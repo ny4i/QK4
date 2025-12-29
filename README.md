@@ -35,7 +35,11 @@ A cross-platform desktop application for remote control of Elecraft K4 radios ov
 
 ### Windows
 
+**To run pre-built release:**
 - Windows 11
+- [Visual C++ Redistributable 2019+](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+
+**To build from source:**
 - Visual Studio 2019+ Build Tools
 - Qt 6, libopus, hidapi (via vcpkg)
 
