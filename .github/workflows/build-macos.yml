@@ -1,4 +1,4 @@
-name: Build
+name: Build macOS
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
 
@@ -23,3 +23,10 @@ jobs:
 
       - name: Verify executable
         run: test -f build/K4Controller
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: K4Controller-macos
+          path: build/K4Controller
+          retention-days: 7

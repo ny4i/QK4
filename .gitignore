@@ -34,3 +34,21 @@ ui_*.h
 
 # Claude local settings
 .claude/settings.local.json
+
+# Windows
+*.exe
+*.dll
+*.lib
+*.pdb
+*.ilk
+*.exp
+*.obj
+
+# Visual Studio
+.vs/
+*.vcxproj.user
+Debug/
+Release/
+x64/
+x86/
+out/

@@ -1,6 +1,17 @@
 # K4Controller
 
-A macOS desktop application for remote control of Elecraft K4 radios over TCP/IP with real-time audio streaming and spectrum display.
+A cross-platform desktop application for remote control of Elecraft K4 radios over TCP/IP with real-time audio streaming and spectrum display.
+
+[![Build macOS](https://github.com/mikeg-dal/K4Controller/actions/workflows/build-macos.yml/badge.svg)](https://github.com/mikeg-dal/K4Controller/actions/workflows/build-macos.yml)
+[![Build Windows](https://github.com/mikeg-dal/K4Controller/actions/workflows/build-windows.yml/badge.svg)](https://github.com/mikeg-dal/K4Controller/actions/workflows/build-windows.yml)
+[![CodeQL](https://github.com/mikeg-dal/K4Controller/actions/workflows/codeql.yml/badge.svg)](https://github.com/mikeg-dal/K4Controller/actions/workflows/codeql.yml)
+
+## Supported Platforms
+
+| Platform | Minimum Version | Architecture |
+|----------|-----------------|--------------|
+| macOS | 14 (Sonoma) | Apple Silicon (M1/M2/M3/M4) |
+| Windows | 11 | x64 |
 
 ## Features
 
@@ -14,33 +25,53 @@ A macOS desktop application for remote control of Elecraft K4 radios over TCP/IP
 
 ## Requirements
 
-- macOS (tested on macOS 14+)
-- Qt 6
-- libopus
-- hidapi
-- CMake 3.16+
+### macOS
+
+- macOS 14 (Sonoma) or later
+- Apple Silicon Mac (M1 or newer)
+- Homebrew
+- Qt 6, libopus, hidapi
+
+### Windows
+
+- Windows 11
+- Visual Studio 2019+ Build Tools
+- Qt 6, libopus, hidapi (via vcpkg)
 
 ## Installation
 
-### Install Dependencies
+### macOS
 
 ```bash
+# Install dependencies
 brew install qt@6 opus hidapi cmake
-```
 
-### Build
-
-```bash
+# Clone and build
 git clone https://github.com/mikeg-dal/K4Controller.git
 cd K4Controller
 cmake -B build -DCMAKE_PREFIX_PATH="$(brew --prefix qt@6)"
 cmake --build build
+
+# Run
+./build/K4Controller
 ```
 
-### Run
+### Windows
 
-```bash
-./build/K4Controller
+```powershell
+# Install vcpkg dependencies
+vcpkg install opus:x64-windows hidapi:x64-windows
+
+# Install Qt 6 (via Qt Online Installer or aqtinstall)
+
+# Clone and build
+git clone https://github.com/mikeg-dal/K4Controller.git
+cd K4Controller
+cmake -B build -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+cmake --build build --config Release
+
+# Run
+.\build\Release\K4Controller.exe
 ```
 
 ## Usage

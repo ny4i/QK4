@@ -1,0 +1,56 @@
+name: Build Windows
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.*'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2019_64'
+          modules: 'qtmultimedia'
+
+      - name: Setup vcpkg
+        run: |
+          cd C:\vcpkg
+          git pull
+          .\bootstrap-vcpkg.bat
+
+      - name: Install dependencies
+        run: |
+          vcpkg install opus:x64-windows hidapi:x64-windows
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Verify executable
+        run: |
+          if (Test-Path build/Release/K4Controller.exe) {
+            Write-Host "Build successful"
+            exit 0
+          } else {
+            Write-Host "Build failed - executable not found"
+            exit 1
+          }
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: K4Controller-windows
+          path: build/Release/K4Controller.exe
+          retention-days: 7

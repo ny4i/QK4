@@ -1,0 +1,41 @@
+name: CodeQL Security Analysis
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly on Monday at 6 AM UTC
+
+jobs:
+  analyze:
+    name: Analyze C++
+    runs-on: macos-14
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: cpp
+          queries: +security-and-quality
+
+      - name: Install dependencies
+        run: brew install qt@6 opus hidapi
+
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_PREFIX_PATH="$(brew --prefix qt@6)"
+          cmake --build build
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:cpp"
