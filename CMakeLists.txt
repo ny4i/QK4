@@ -32,8 +32,6 @@ set(SOURCES
     src/audio/audioengine.cpp
     src/audio/opusdecoder.cpp
     src/audio/opusencoder.cpp
-    src/dsp/spectrum.cpp
-    src/dsp/waterfall.cpp
     src/dsp/panadapter.cpp
     src/dsp/minipanwidget.cpp
     src/settings/radiosettings.cpp
@@ -60,8 +58,6 @@ set(HEADERS
     src/audio/audioengine.h
     src/audio/opusdecoder.h
     src/audio/opusencoder.h
-    src/dsp/spectrum.h
-    src/dsp/waterfall.h
     src/dsp/panadapter.h
     src/dsp/minipanwidget.h
     src/settings/radiosettings.h
