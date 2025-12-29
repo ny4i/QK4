@@ -56,6 +56,9 @@ jobs:
           # Use macdeployqt to bundle Qt frameworks
           $(brew --prefix qt@6)/bin/macdeployqt K4Controller.app
 
+          # Re-sign the app (ad-hoc) after macdeployqt modifies it
+          codesign --force --deep --sign - K4Controller.app
+
           # Create zip
           zip -r K4Controller-macos.zip K4Controller.app
 
