@@ -2,6 +2,54 @@
 
 ## December 29, 2025
 
+### macOS Release Packaging - COMPLETED
+
+Fixed macOS release bundle to run standalone without Homebrew Qt installed.
+
+**Problem:** `macdeployqt` doesn't bundle all transitive dependencies. App crashed with:
+- "Library not loaded: QtDBus.framework" (needed by QtGui)
+- "Library not loaded: libbrotlicommon.1.dylib" (needed by libbrotlidec)
+- "Library not loaded: libdbus-1.3.dylib" (needed by QtDBus)
+
+**Root Causes:**
+1. Homebrew stores frameworks as symlinks; `cp -R` and `cp -RL` failed silently
+2. `macdeployqt` misses transitive dependencies not directly linked by the app
+
+**Solution** (`.github/workflows/release.yml`):
+
+```bash
+# 1. Use ditto instead of cp (handles macOS frameworks correctly)
+ditto "$QTDBUS_REAL" K4Controller.app/Contents/Frameworks/QtDBus.framework
+
+# 2. Copy missing transitive dependencies
+for lib in libbrotlicommon.1.dylib libbrotlidec.1.dylib libbrotlienc.1.dylib; do
+  ditto "$(brew --prefix)/lib/$lib" "K4Controller.app/Contents/Frameworks/$lib"
+done
+ditto "$DBUS_LIB" "K4Controller.app/Contents/Frameworks/libdbus-1.3.dylib"
+
+# 3. Fix permissions (Homebrew files are read-only)
+chmod -R u+rw K4Controller.app/Contents/Frameworks/
+
+# 4. Rewrite library paths to use @rpath
+install_name_tool -change "$(brew --prefix)/lib/libbrotlicommon.1.dylib" \
+  "@rpath/libbrotlicommon.1.dylib" "$FRAMEWORKS/libbrotlidec.1.dylib"
+install_name_tool -change "$(brew --prefix)/opt/dbus/lib/libdbus-1.3.dylib" \
+  "@rpath/libdbus-1.3.dylib" "$FRAMEWORKS/QtDBus.framework/Versions/A/QtDBus"
+
+# 5. Re-sign after modifications
+codesign --force --deep --sign - K4Controller.app
+```
+
+**Key Learnings:**
+- `ditto` is the macOS-native tool for copying frameworks (preserves structure)
+- `readlink -f` resolves symlink chains to actual paths
+- `install_name_tool -change` rewrites hardcoded library paths to @rpath
+- Ad-hoc code signing (`codesign --sign -`) required after modifying binaries
+
+**Versions:** v0.1.0-alpha.104 through v0.1.0-alpha.108
+
+---
+
 ### GitHub CI/CD and Project Infrastructure - COMPLETED
 
 Set up professional GitHub project infrastructure for cross-platform builds.
@@ -649,4 +697,4 @@ Wire up tap/hold actions for each button to send CAT commands:
 
 ---
 
-*Last updated: December 22, 2025*
+*Last updated: December 29, 2025*
