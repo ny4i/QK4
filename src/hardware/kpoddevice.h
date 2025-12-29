@@ -1,0 +1,76 @@
+#ifndef KPODDEVICE_H
+#define KPODDEVICE_H
+
+#include <QObject>
+#include <QString>
+#include <QTimer>
+
+// Forward declaration for hidapi
+typedef struct hid_device_ hid_device;
+
+struct KpodDeviceInfo {
+    bool detected = false;
+    QString productName;
+    QString manufacturer;
+    quint16 vendorId = 0;
+    quint16 productId = 0;
+    QString devicePath;
+    QString firmwareVersion;
+    QString deviceId;
+};
+
+class KpodDevice : public QObject
+{
+    Q_OBJECT
+
+public:
+    static const quint16 VENDOR_ID = 0x04D8;
+    static const quint16 PRODUCT_ID = 0xF12D;
+
+    // Rocker switch positions (bits 5-6 of controls byte)
+    enum RockerPosition {
+        RockerCenter = 0,   // 0b00 - VFO B / Center position
+        RockerRight = 1,    // 0b01 - XIT/RIT position
+        RockerLeft = 2      // 0b10 - VFO A position
+    };
+    Q_ENUM(RockerPosition)
+
+    explicit KpodDevice(QObject *parent = nullptr);
+    ~KpodDevice();
+
+    // Detection
+    bool isDetected() const;
+    KpodDeviceInfo deviceInfo() const;
+    static KpodDeviceInfo detectDevice();
+
+    // Polling control
+    bool startPolling();
+    void stopPolling();
+    bool isPolling() const;
+
+    // Current state
+    RockerPosition rockerPosition() const;
+
+signals:
+    void deviceConnected();
+    void deviceDisconnected();
+    void encoderRotated(int ticks);
+    void rockerPositionChanged(RockerPosition position);
+    void pollError(const QString &error);
+
+private slots:
+    void poll();
+
+private:
+    bool openDevice();
+    void closeDevice();
+    void processResponse(const unsigned char *buffer);
+
+    KpodDeviceInfo m_deviceInfo;
+    hid_device *m_hidDevice = nullptr;
+    QTimer *m_pollTimer = nullptr;
+    static const int POLL_INTERVAL_MS = 20;
+    RockerPosition m_lastRockerPosition = RockerCenter;
+};
+
+#endif // KPODDEVICE_H

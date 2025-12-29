@@ -1,0 +1,5 @@
+/Users/mikegarcia/development/K4Controller/build/CMakeFiles/K4Controller.dir
+/Users/mikegarcia/development/K4Controller/build/CMakeFiles/edit_cache.dir
+/Users/mikegarcia/development/K4Controller/build/CMakeFiles/rebuild_cache.dir
+/Users/mikegarcia/development/K4Controller/build/CMakeFiles/K4Controller_autogen_timestamp_deps.dir
+/Users/mikegarcia/development/K4Controller/build/CMakeFiles/K4Controller_autogen.dir

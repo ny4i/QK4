@@ -1,0 +1,2 @@
+set(__QT_DEPLOY_TARGET_K4Controller_FILE /Users/mikegarcia/development/K4Controller/build/Qt_6_10_1_for_macOS-Debug/K4Controller)
+set(__QT_DEPLOY_TARGET_K4Controller_TYPE EXECUTABLE)
