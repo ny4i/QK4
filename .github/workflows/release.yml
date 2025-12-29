@@ -62,16 +62,10 @@ jobs:
           echo "=== Looking for QtDBus ==="
           find "$(brew --prefix qt@6)" -name "*QtDBus*" -o -name "*DBus*" 2>/dev/null | head -20
 
-          # Copy QtDBus if it exists
-          QT_LIB="$(brew --prefix qt@6)/lib"
-          if [ -d "$QT_LIB/QtDBus.framework" ]; then
-            echo "Copying QtDBus.framework..."
-            cp -R "$QT_LIB/QtDBus.framework" K4Controller.app/Contents/Frameworks/
-          else
-            echo "WARNING: QtDBus.framework not found at $QT_LIB"
-            echo "Checking if it's bundled inside another framework..."
-            ls -la K4Controller.app/Contents/Frameworks/ | head -20
-          fi
+          # Copy QtDBus (it's a symlink, so use -RL to dereference)
+          echo "Copying QtDBus.framework..."
+          cp -RL "$(brew --prefix qt@6)/lib/QtDBus.framework" K4Controller.app/Contents/Frameworks/
+          ls -la K4Controller.app/Contents/Frameworks/ | grep -i dbus
 
           # Re-sign the app (ad-hoc) after macdeployqt modifies it
           codesign --force --deep --sign - K4Controller.app
