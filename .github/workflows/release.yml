@@ -1,0 +1,101 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: brew install qt@6 opus hidapi
+
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_PREFIX_PATH="$(brew --prefix qt@6)"
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Create app bundle
+        run: |
+          mkdir -p K4Controller-macos
+          cp build/K4Controller K4Controller-macos/
+          zip -r K4Controller-macos.zip K4Controller-macos
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: K4Controller-macos
+          path: K4Controller-macos.zip
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.*'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2019_64'
+          modules: 'qtmultimedia'
+
+      - name: Setup vcpkg
+        run: |
+          cd C:\vcpkg
+          git pull
+          .\bootstrap-vcpkg.bat
+
+      - name: Install dependencies
+        run: vcpkg install opus:x64-windows hidapi:x64-windows
+
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Create release package
+        run: |
+          mkdir K4Controller-windows
+          copy build\Release\K4Controller.exe K4Controller-windows\
+          Compress-Archive -Path K4Controller-windows -DestinationPath K4Controller-windows.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: K4Controller-windows
+          path: K4Controller-windows.zip
+
+  release:
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: K4Controller-macos
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: K4Controller-windows
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            K4Controller-macos.zip
+            K4Controller-windows.zip
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') }}
