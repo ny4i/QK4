@@ -4,7 +4,6 @@ A cross-platform desktop application for remote control of Elecraft K4 radios ov
 
 [![Build macOS](https://github.com/mikeg-dal/K4Controller/actions/workflows/build-macos.yml/badge.svg)](https://github.com/mikeg-dal/K4Controller/actions/workflows/build-macos.yml)
 [![Build Windows](https://github.com/mikeg-dal/K4Controller/actions/workflows/build-windows.yml/badge.svg)](https://github.com/mikeg-dal/K4Controller/actions/workflows/build-windows.yml)
-[![CodeQL](https://github.com/mikeg-dal/K4Controller/actions/workflows/codeql.yml/badge.svg)](https://github.com/mikeg-dal/K4Controller/actions/workflows/codeql.yml)
 
 ## Supported Platforms
 

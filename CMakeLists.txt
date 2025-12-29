@@ -9,8 +9,9 @@ set(CMAKE_AUTOUIC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network Multimedia)
 
-# Homebrew paths for macOS
+# Platform-specific dependency handling
 if(APPLE)
+    # macOS with Homebrew
     set(OPUS_PREFIX "/opt/homebrew/opt/opus")
     set(OPUS_INCLUDE_DIRS "${OPUS_PREFIX}/include")
     set(OPUS_LIBRARIES "${OPUS_PREFIX}/lib/libopus.dylib")
@@ -18,7 +19,16 @@ if(APPLE)
     set(HIDAPI_PREFIX "/opt/homebrew/opt/hidapi")
     set(HIDAPI_INCLUDE_DIRS "${HIDAPI_PREFIX}/include")
     set(HIDAPI_LIBRARIES "${HIDAPI_PREFIX}/lib/libhidapi.dylib")
+elseif(WIN32)
+    # Windows with vcpkg
+    find_package(Opus CONFIG REQUIRED)
+    find_package(hidapi CONFIG REQUIRED)
+    set(OPUS_INCLUDE_DIRS "")
+    set(HIDAPI_INCLUDE_DIRS "")
+    set(OPUS_LIBRARIES Opus::opus)
+    set(HIDAPI_LIBRARIES hidapi::hidapi)
 else()
+    # Linux with pkg-config
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(OPUS REQUIRED opus)
     pkg_check_modules(HIDAPI REQUIRED hidapi-libusb)
