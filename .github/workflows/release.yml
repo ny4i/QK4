@@ -56,8 +56,22 @@ jobs:
           # Use macdeployqt to bundle Qt frameworks
           $(brew --prefix qt@6)/bin/macdeployqt K4Controller.app -verbose=2
 
-          # Force copy QtDBus (required by QtGui but macdeployqt misses it)
-          cp -R "$(brew --prefix qt@6)/lib/QtDBus.framework" K4Controller.app/Contents/Frameworks/
+          # Debug: List Qt frameworks available
+          echo "=== Qt lib contents ==="
+          ls -la "$(brew --prefix qt@6)/lib/" | grep -i qt
+          echo "=== Looking for QtDBus ==="
+          find "$(brew --prefix qt@6)" -name "*QtDBus*" -o -name "*DBus*" 2>/dev/null | head -20
+
+          # Copy QtDBus if it exists
+          QT_LIB="$(brew --prefix qt@6)/lib"
+          if [ -d "$QT_LIB/QtDBus.framework" ]; then
+            echo "Copying QtDBus.framework..."
+            cp -R "$QT_LIB/QtDBus.framework" K4Controller.app/Contents/Frameworks/
+          else
+            echo "WARNING: QtDBus.framework not found at $QT_LIB"
+            echo "Checking if it's bundled inside another framework..."
+            ls -la K4Controller.app/Contents/Frameworks/ | head -20
+          fi
 
           # Re-sign the app (ad-hoc) after macdeployqt modifies it
           codesign --force --deep --sign - K4Controller.app
