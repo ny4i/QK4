@@ -2,6 +2,7 @@
 
 A cross-platform desktop application for remote control of Elecraft K4 radios over TCP/IP with real-time audio streaming and spectrum display.
 
+[![Release](https://img.shields.io/github/v/release/mikeg-dal/K4Controller?include_prereleases)](https://github.com/mikeg-dal/K4Controller/releases)
 [![Build macOS](https://github.com/mikeg-dal/K4Controller/actions/workflows/build-macos.yml/badge.svg)](https://github.com/mikeg-dal/K4Controller/actions/workflows/build-macos.yml)
 [![Build Windows](https://github.com/mikeg-dal/K4Controller/actions/workflows/build-windows.yml/badge.svg)](https://github.com/mikeg-dal/K4Controller/actions/workflows/build-windows.yml)
 [![Lint](https://github.com/mikeg-dal/K4Controller/actions/workflows/lint.yml/badge.svg)](https://github.com/mikeg-dal/K4Controller/actions/workflows/lint.yml)
