@@ -7,15 +7,13 @@
 
 // K4-style colors for consistency
 namespace MiniPanColors {
-    const QColor DarkBackground("#0a0a0a");
-    const QColor SpectrumLine("#FFB000");  // Amber to match VFO A
-    const QColor GridLine("#333333");
-}
+const QColor DarkBackground("#0a0a0a");
+const QColor SpectrumLine("#FFB000"); // Amber to match VFO A
+const QColor GridLine("#333333");
+} // namespace MiniPanColors
 
-MiniPanWidget::MiniPanWidget(QWidget *parent)
-    : QWidget(parent)
-{
-    setFixedHeight(90);  // Force taller height for more waterfall history
+MiniPanWidget::MiniPanWidget(QWidget *parent) : QWidget(parent) {
+    setFixedHeight(90); // Force taller height for more waterfall history
     setMinimumWidth(180);
     setMaximumWidth(200);
 
@@ -25,8 +23,7 @@ MiniPanWidget::MiniPanWidget(QWidget *parent)
     initColorLUT();
 }
 
-void MiniPanWidget::initColorLUT()
-{
+void MiniPanWidget::initColorLUT() {
     // Create 256-entry color lookup table (black -> blue -> cyan -> yellow -> red -> white)
     m_colorLUT.resize(256);
 
@@ -70,9 +67,9 @@ void MiniPanWidget::initColorLUT()
     }
 }
 
-void MiniPanWidget::updateSpectrum(const QByteArray &bins)
-{
-    if (bins.isEmpty()) return;
+void MiniPanWidget::updateSpectrum(const QByteArray &bins) {
+    if (bins.isEmpty())
+        return;
 
     // Decompress MiniPAN data: byte / 10 (different from main panadapter)
     // Observed byte range: 0-24+ for noise to strong signals
@@ -100,8 +97,8 @@ void MiniPanWidget::updateSpectrum(const QByteArray &bins)
         m_smoothedSpectrum = m_spectrum;
     } else {
         for (int i = 0; i < m_spectrum.size(); ++i) {
-            m_smoothedSpectrum[i] = m_smoothingAlpha * m_spectrum[i] +
-                                    (1.0f - m_smoothingAlpha) * m_smoothedSpectrum[i];
+            m_smoothedSpectrum[i] =
+                m_smoothingAlpha * m_spectrum[i] + (1.0f - m_smoothingAlpha) * m_smoothedSpectrum[i];
         }
     }
 
@@ -112,8 +109,7 @@ void MiniPanWidget::updateSpectrum(const QByteArray &bins)
     update();
 }
 
-void MiniPanWidget::clear()
-{
+void MiniPanWidget::clear() {
     m_spectrum.clear();
     m_smoothedSpectrum.clear();
     m_waterfallWriteIndex = 0;
@@ -124,8 +120,7 @@ void MiniPanWidget::clear()
     update();
 }
 
-void MiniPanWidget::setNotchFilter(bool enabled, int pitchHz)
-{
+void MiniPanWidget::setNotchFilter(bool enabled, int pitchHz) {
     if (m_notchEnabled != enabled || m_notchPitchHz != pitchHz) {
         m_notchEnabled = enabled;
         m_notchPitchHz = pitchHz;
@@ -133,8 +128,7 @@ void MiniPanWidget::setNotchFilter(bool enabled, int pitchHz)
     }
 }
 
-void MiniPanWidget::setMode(const QString &mode)
-{
+void MiniPanWidget::setMode(const QString &mode) {
     if (m_mode != mode) {
         m_mode = mode;
         m_bandwidthHz = bandwidthForMode(mode);
@@ -142,8 +136,7 @@ void MiniPanWidget::setMode(const QString &mode)
     }
 }
 
-int MiniPanWidget::bandwidthForMode(const QString &mode) const
-{
+int MiniPanWidget::bandwidthForMode(const QString &mode) const {
     // CW modes use 3 kHz bandwidth (±1.5 kHz)
     if (mode == "CW" || mode == "CW-R") {
         return 3000;
@@ -152,8 +145,7 @@ int MiniPanWidget::bandwidthForMode(const QString &mode) const
     return 10000;
 }
 
-void MiniPanWidget::paintEvent(QPaintEvent *event)
-{
+void MiniPanWidget::paintEvent(QPaintEvent *event) {
     Q_UNUSED(event)
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
@@ -190,9 +182,9 @@ void MiniPanWidget::paintEvent(QPaintEvent *event)
     painter.drawRect(rect().adjusted(0, 0, -1, -1));
 }
 
-void MiniPanWidget::drawSpectrum(QPainter &painter, const QRect &rect)
-{
-    if (m_smoothedSpectrum.isEmpty()) return;
+void MiniPanWidget::drawSpectrum(QPainter &painter, const QRect &rect) {
+    if (m_smoothedSpectrum.isEmpty())
+        return;
 
     int x0 = rect.left();
     int y0 = rect.top();
@@ -244,7 +236,7 @@ void MiniPanWidget::drawSpectrum(QPainter &painter, const QRect &rect)
         float value = getPeakForPixel(x);
         float normalized = normalizeDb(value);
         float adjusted = normalized - m_smoothedBaseline;
-        float lineHeight = adjusted * h * 0.95f;  // Use 95% of height for headroom
+        float lineHeight = adjusted * h * 0.95f; // Use 95% of height for headroom
         float y = y0 + h - lineHeight;
 
         if (x == 0) {
@@ -258,12 +250,12 @@ void MiniPanWidget::drawSpectrum(QPainter &painter, const QRect &rect)
     painter.drawPath(path);
 }
 
-void MiniPanWidget::drawWaterfall(QPainter &painter, const QRect &rect)
-{
+void MiniPanWidget::drawWaterfall(QPainter &painter, const QRect &rect) {
     int w = rect.width();
     int h = rect.height();
 
-    if (w <= 0 || h <= 0) return;
+    if (w <= 0 || h <= 0)
+        return;
 
     // Create image at display width × full history (like full panadapter)
     // This ensures consistent display size and smooth stacking from start
@@ -273,7 +265,7 @@ void MiniPanWidget::drawWaterfall(QPainter &painter, const QRect &rect)
         // Map display row to circular buffer: row 0 = newest (writeIndex - 1)
         int histIdx = (m_waterfallWriteIndex - 1 - displayRow + WATERFALL_HISTORY) % WATERFALL_HISTORY;
         const QVector<float> &spectrum = m_waterfallHistory[histIdx];
-        QRgb *scanLine = reinterpret_cast<QRgb*>(waterfallImage.scanLine(displayRow));
+        QRgb *scanLine = reinterpret_cast<QRgb *>(waterfallImage.scanLine(displayRow));
 
         if (spectrum.isEmpty()) {
             // Empty row = black (maintains consistent display)
@@ -307,22 +299,20 @@ void MiniPanWidget::drawWaterfall(QPainter &painter, const QRect &rect)
     painter.drawImage(rect, waterfallImage);
 }
 
-QRgb MiniPanWidget::dbToColor(float db)
-{
+QRgb MiniPanWidget::dbToColor(float db) {
     // Simple linear mapping - no contrast boost needed with correct decompression
     int index = static_cast<int>(normalizeDb(db) * 255.0f);
     index = qBound(0, index, 255);
     return m_colorLUT[index];
 }
 
-float MiniPanWidget::normalizeDb(float db)
-{
+float MiniPanWidget::normalizeDb(float db) {
     return qBound(0.0f, (db - m_minDb) / (m_maxDb - m_minDb), 1.0f);
 }
 
-void MiniPanWidget::drawNotchFilter(QPainter &painter, const QRect &rect)
-{
-    if (!m_notchEnabled || m_notchPitchHz <= 0) return;
+void MiniPanWidget::drawNotchFilter(QPainter &painter, const QRect &rect) {
+    if (!m_notchEnabled || m_notchPitchHz <= 0)
+        return;
 
     // MiniPan bandwidth is mode-dependent: CW=3kHz, Voice/Data=10kHz
     // Notch pitch is audio offset from carrier:
@@ -330,9 +320,9 @@ void MiniPanWidget::drawNotchFilter(QPainter &painter, const QRect &rect)
     // LSB: notch is to the left of center (negative offset)
     int offsetHz;
     if (m_mode == "LSB") {
-        offsetHz = -m_notchPitchHz;  // LSB: below carrier = left of center
+        offsetHz = -m_notchPitchHz; // LSB: below carrier = left of center
     } else {
-        offsetHz = m_notchPitchHz;   // USB/CW/DATA: above carrier = right of center
+        offsetHz = m_notchPitchHz; // USB/CW/DATA: above carrier = right of center
     }
 
     // Convert audio offset to pixel position
@@ -343,13 +333,12 @@ void MiniPanWidget::drawNotchFilter(QPainter &painter, const QRect &rect)
 
     // Only draw if within visible range
     if (notchX >= 0 && notchX < rect.width()) {
-        painter.setPen(QPen(QColor("#FF0000"), 2.0));  // Red, 2px wide
+        painter.setPen(QPen(QColor("#FF0000"), 2.0)); // Red, 2px wide
         painter.drawLine(notchX, rect.top(), notchX, rect.bottom());
     }
 }
 
-void MiniPanWidget::mousePressEvent(QMouseEvent *event)
-{
+void MiniPanWidget::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         emit clicked();
         event->accept();

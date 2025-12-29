@@ -5,25 +5,21 @@
 
 // K4 Color constants
 namespace K4Colors {
-    const QString Background = "#1a1a1a";
-    const QString DarkBackground = "#0d0d0d";
-    const QString VfoAAmber = "#FFB000";
-    const QString VfoBCyan = "#00BFFF";
-    const QString InactiveGray = "#666666";
-    const QString TextWhite = "#FFFFFF";
-}
+const QString Background = "#1a1a1a";
+const QString DarkBackground = "#0d0d0d";
+const QString VfoAAmber = "#FFB000";
+const QString VfoBCyan = "#00BFFF";
+const QString InactiveGray = "#666666";
+const QString TextWhite = "#FFFFFF";
+} // namespace K4Colors
 
 VFOWidget::VFOWidget(VFOType type, QWidget *parent)
-    : QWidget(parent)
-    , m_type(type)
-    , m_primaryColor(type == VFO_A ? K4Colors::VfoAAmber : K4Colors::VfoBCyan)
-    , m_inactiveColor(K4Colors::InactiveGray)
-{
+    : QWidget(parent), m_type(type), m_primaryColor(type == VFO_A ? K4Colors::VfoAAmber : K4Colors::VfoBCyan),
+      m_inactiveColor(K4Colors::InactiveGray) {
     setupUi();
 }
 
-void VFOWidget::setupUi()
-{
+void VFOWidget::setupUi() {
     setStyleSheet(QString("background-color: %1;").arg(K4Colors::Background));
 
     auto *mainLayout = new QVBoxLayout(this);
@@ -33,8 +29,9 @@ void VFOWidget::setupUi()
     // Row 1: Frequency (aligned with S-meter)
     auto *freqRow = new QHBoxLayout();
     m_frequencyLabel = new QLabel("---.---.---", this);
-    m_frequencyLabel->setStyleSheet(QString("color: %1; font-size: 32px; font-weight: bold; font-family: 'Courier New', monospace;")
-                                    .arg(K4Colors::TextWhite));
+    m_frequencyLabel->setStyleSheet(
+        QString("color: %1; font-size: 32px; font-weight: bold; font-family: 'Courier New', monospace;")
+            .arg(K4Colors::TextWhite));
     m_frequencyLabel->setFixedHeight(40);
 
     if (m_type == VFO_A) {
@@ -50,7 +47,7 @@ void VFOWidget::setupUi()
 
     // Stacked widget for normal content vs mini-pan
     m_stackedWidget = new QStackedWidget(this);
-    m_stackedWidget->setFixedHeight(60);  // Height for S-meter + features rows
+    m_stackedWidget->setFixedHeight(60); // Height for S-meter + features rows
 
     // Page 0: Normal content (S-meter + features)
     m_normalContent = new QWidget(m_stackedWidget);
@@ -117,11 +114,11 @@ void VFOWidget::setupUi()
     }
     normalLayout->addLayout(featuresRow);
 
-    m_stackedWidget->addWidget(m_normalContent);  // Index 0
+    m_stackedWidget->addWidget(m_normalContent); // Index 0
 
     // Page 1: Mini-Pan widget
     m_miniPan = new MiniPanWidget(m_stackedWidget);
-    m_stackedWidget->addWidget(m_miniPan);  // Index 1
+    m_stackedWidget->addWidget(m_miniPan); // Index 1
 
     // Connect mini-pan click to show normal view
     connect(m_miniPan, &MiniPanWidget::clicked, this, &VFOWidget::showNormal);
@@ -132,8 +129,7 @@ void VFOWidget::setupUi()
     m_normalContent->installEventFilter(this);
 }
 
-bool VFOWidget::eventFilter(QObject *watched, QEvent *event)
-{
+bool VFOWidget::eventFilter(QObject *watched, QEvent *event) {
     if (watched == m_normalContent && event->type() == QEvent::MouseButtonPress) {
         emit normalContentClicked();
         return true;
@@ -141,51 +137,40 @@ bool VFOWidget::eventFilter(QObject *watched, QEvent *event)
     return QWidget::eventFilter(watched, event);
 }
 
-void VFOWidget::setFrequency(const QString &formatted)
-{
+void VFOWidget::setFrequency(const QString &formatted) {
     m_frequencyLabel->setText(formatted);
 }
 
-void VFOWidget::setSMeterValue(double value)
-{
+void VFOWidget::setSMeterValue(double value) {
     m_sMeter->setValue(value);
 }
 
-void VFOWidget::setAGC(const QString &mode)
-{
+void VFOWidget::setAGC(const QString &mode) {
     m_agcLabel->setText(mode);
     // AGC is always shown, color indicates active state
     bool active = !mode.contains("-") || mode == "AGC-F" || mode == "AGC-S" || mode == "AGC-M";
-    m_agcLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;")
-                              .arg(active ? "#FFFFFF" : "#999999"));
+    m_agcLabel->setStyleSheet(
+        QString("color: %1; font-size: 11px; font-weight: bold;").arg(active ? "#FFFFFF" : "#999999"));
 }
 
-void VFOWidget::setPreamp(bool on)
-{
-    m_preampLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;")
-                                 .arg(on ? "#FFFFFF" : "#999999"));
+void VFOWidget::setPreamp(bool on) {
+    m_preampLabel->setStyleSheet(
+        QString("color: %1; font-size: 11px; font-weight: bold;").arg(on ? "#FFFFFF" : "#999999"));
 }
 
-void VFOWidget::setAtt(bool on)
-{
-    m_attLabel->setStyleSheet(QString("color: %1; font-size: 11px;")
-                              .arg(on ? "#FFFFFF" : "#999999"));
+void VFOWidget::setAtt(bool on) {
+    m_attLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(on ? "#FFFFFF" : "#999999"));
 }
 
-void VFOWidget::setNB(bool on)
-{
-    m_nbLabel->setStyleSheet(QString("color: %1; font-size: 11px;")
-                             .arg(on ? "#FFFFFF" : "#999999"));
+void VFOWidget::setNB(bool on) {
+    m_nbLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(on ? "#FFFFFF" : "#999999"));
 }
 
-void VFOWidget::setNR(bool on)
-{
-    m_nrLabel->setStyleSheet(QString("color: %1; font-size: 11px;")
-                             .arg(on ? "#FFFFFF" : "#999999"));
+void VFOWidget::setNR(bool on) {
+    m_nrLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(on ? "#FFFFFF" : "#999999"));
 }
 
-void VFOWidget::setNotch(bool autoEnabled, bool manualEnabled)
-{
+void VFOWidget::setNotch(bool autoEnabled, bool manualEnabled) {
     QString text = "NTCH";
     bool active = autoEnabled || manualEnabled;
 
@@ -198,26 +183,21 @@ void VFOWidget::setNotch(bool autoEnabled, bool manualEnabled)
     }
 
     m_ntchLabel->setText(text);
-    m_ntchLabel->setStyleSheet(QString("color: %1; font-size: 11px;")
-                               .arg(active ? "#FFFFFF" : "#999999"));
+    m_ntchLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(active ? "#FFFFFF" : "#999999"));
 }
 
-void VFOWidget::updateMiniPan(const QByteArray &data)
-{
+void VFOWidget::updateMiniPan(const QByteArray &data) {
     m_miniPan->updateSpectrum(data);
 }
 
-void VFOWidget::showMiniPan()
-{
+void VFOWidget::showMiniPan() {
     m_stackedWidget->setCurrentIndex(1);
 }
 
-void VFOWidget::showNormal()
-{
+void VFOWidget::showNormal() {
     m_stackedWidget->setCurrentIndex(0);
 }
 
-bool VFOWidget::isMiniPanVisible() const
-{
+bool VFOWidget::isMiniPanVisible() const {
     return m_stackedWidget->currentIndex() == 1;
 }

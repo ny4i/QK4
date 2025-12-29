@@ -11,8 +11,7 @@
 class SMeterWidget;
 class MiniPanWidget;
 
-class VFOWidget : public QWidget
-{
+class VFOWidget : public QWidget {
     Q_OBJECT
 
 public:
@@ -37,13 +36,13 @@ public:
     bool isMiniPanVisible() const;
 
     // Access to mini-pan for direct data updates
-    MiniPanWidget* miniPan() const { return m_miniPan; }
+    MiniPanWidget *miniPan() const { return m_miniPan; }
 
     // Get type
     VFOType type() const { return m_type; }
 
 signals:
-    void normalContentClicked();  // For mini-pan toggle
+    void normalContentClicked(); // For mini-pan toggle
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;

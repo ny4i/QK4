@@ -23,8 +23,7 @@ class QGridLayout;
  * - BW/SHFT are linked: when one swaps, the other swaps too
  * - Scrolling on the active button changes its value
  */
-class SideControlPanel : public QWidget
-{
+class SideControlPanel : public QWidget {
     Q_OBJECT
 
 public:
@@ -37,9 +36,9 @@ public:
     void setPower(int power);
     void setDelay(double delay);
     void setBandwidth(double bw);
-    void setHighCut(double hi);  // kHz
+    void setHighCut(double hi); // kHz
     void setShift(double shift);
-    void setLowCut(double lo);   // kHz
+    void setLowCut(double lo); // kHz
     void setMainRfGain(int gain);
     void setMainSquelch(int sql);
     void setSubSquelch(int sql);
@@ -75,7 +74,7 @@ signals:
     void mainSquelchChanged(int delta);
     void subSquelchChanged(int delta);
     void subRfGainChanged(int delta);
-    void volumeChanged(int value);  // 0-100
+    void volumeChanged(int value); // 0-100
 
 private slots:
     // Group 1: WPM/PWR - handle activation and scrolling
@@ -103,17 +102,17 @@ private:
     void setGroup1Active(DualControlButton *activeBtn);
     void setGroup2Active(DualControlButton *activeBtn);
     void setGroup3Active(DualControlButton *activeBtn);
-    QPushButton* createIconButton(const QString &text);
-    QWidget* createTxFunctionButton(const QString &mainText, const QString &subText, QPushButton *&btnOut);
+    QPushButton *createIconButton(const QString &text);
+    QWidget *createTxFunctionButton(const QString &mainText, const QString &subText, QPushButton *&btnOut);
 
     // Track which function is currently primary for each button
     // (needed to emit correct signal on scroll)
-    bool m_wpmIsPrimary = true;   // WPM or PTCH
-    bool m_pwrIsPrimary = true;   // PWR or DLY
-    bool m_bwIsPrimary = true;    // BW or HI
-    bool m_shiftIsPrimary = true; // SHFT or LO
-    bool m_mainRfIsPrimary = true;  // M.RF or M.SQL
-    bool m_subSqlIsPrimary = true;  // S.SQL or S.RF
+    bool m_wpmIsPrimary = true;    // WPM or PTCH
+    bool m_pwrIsPrimary = true;    // PWR or DLY
+    bool m_bwIsPrimary = true;     // BW or HI
+    bool m_shiftIsPrimary = true;  // SHFT or LO
+    bool m_mainRfIsPrimary = true; // M.RF or M.SQL
+    bool m_subSqlIsPrimary = true; // S.SQL or S.RF
 
     // Group 1: Global (CW/Power)
     DualControlButton *m_wpmBtn;

@@ -7,10 +7,7 @@
 
 // ============== MenuItemWidget ==============
 
-MenuItemWidget::MenuItemWidget(MenuItem *item, QWidget *parent)
-    : QWidget(parent)
-    , m_item(item)
-{
+MenuItemWidget::MenuItemWidget(MenuItem *item, QWidget *parent) : QWidget(parent), m_item(item) {
     setFixedHeight(40);
     setCursor(Qt::PointingHandCursor);
 
@@ -20,20 +17,20 @@ MenuItemWidget::MenuItemWidget(MenuItem *item, QWidget *parent)
 
     // Name label
     m_nameLabel = new QLabel(item->name, this);
-    m_nameLabel->setStyleSheet("color: #AAAAAA; font-size: 14px;");  // Initial unselected state
+    m_nameLabel->setStyleSheet("color: #AAAAAA; font-size: 14px;"); // Initial unselected state
     layout->addWidget(m_nameLabel, 1);
 
     // Lock icon (for read-only items)
     m_lockLabel = new QLabel(this);
     if (item->isReadOnly()) {
-        m_lockLabel->setText("\xF0\x9F\x94\x92");  // Lock emoji
+        m_lockLabel->setText("\xF0\x9F\x94\x92"); // Lock emoji
     }
     m_lockLabel->setFixedWidth(20);
     layout->addWidget(m_lockLabel);
 
     // Value label
     m_valueLabel = new QLabel(item->displayValue(), this);
-    m_valueLabel->setStyleSheet("color: #888888; font-size: 14px; font-weight: bold;");  // Initial unselected state
+    m_valueLabel->setStyleSheet("color: #888888; font-size: 14px; font-weight: bold;"); // Initial unselected state
     m_valueLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
     m_valueLabel->setMinimumWidth(80);
     layout->addWidget(m_valueLabel);
@@ -41,26 +38,25 @@ MenuItemWidget::MenuItemWidget(MenuItem *item, QWidget *parent)
     setLayout(layout);
 }
 
-void MenuItemWidget::setSelected(bool selected)
-{
+void MenuItemWidget::setSelected(bool selected) {
     m_selected = selected;
     updateLabelColors();
     update();
 }
 
-void MenuItemWidget::updateLabelColors()
-{
+void MenuItemWidget::updateLabelColors() {
     // Update label colors based on selection and edit state
     // Two-zone highlighting: left zone (name) and right zone (value) have different colors
     if (m_selected) {
         if (m_editing) {
             // EDITING MODE: name on grey, value on off-white
-            m_nameLabel->setStyleSheet("color: #CCCCCC; font-size: 14px;");  // Light text on grey
-            m_valueLabel->setStyleSheet("color: #333333; font-size: 14px; font-weight: bold;");  // Dark text on off-white
+            m_nameLabel->setStyleSheet("color: #CCCCCC; font-size: 14px;"); // Light text on grey
+            m_valueLabel->setStyleSheet(
+                "color: #333333; font-size: 14px; font-weight: bold;"); // Dark text on off-white
         } else {
             // BROWSE MODE: name on off-white, value on grey
-            m_nameLabel->setStyleSheet("color: #333333; font-size: 14px;");  // Dark text on off-white
-            m_valueLabel->setStyleSheet("color: #FFFFFF; font-size: 14px; font-weight: bold;");  // White text on grey
+            m_nameLabel->setStyleSheet("color: #333333; font-size: 14px;"); // Dark text on off-white
+            m_valueLabel->setStyleSheet("color: #FFFFFF; font-size: 14px; font-weight: bold;"); // White text on grey
         }
     } else {
         // Unselected: grey text on dark background
@@ -69,20 +65,17 @@ void MenuItemWidget::updateLabelColors()
     }
 }
 
-void MenuItemWidget::setEditMode(bool editing)
-{
+void MenuItemWidget::setEditMode(bool editing) {
     m_editing = editing;
     updateLabelColors();
     update();
 }
 
-void MenuItemWidget::updateDisplay()
-{
+void MenuItemWidget::updateDisplay() {
     m_valueLabel->setText(m_item->displayValue());
 }
 
-void MenuItemWidget::paintEvent(QPaintEvent *event)
-{
+void MenuItemWidget::paintEvent(QPaintEvent *event) {
     Q_UNUSED(event);
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
@@ -117,18 +110,14 @@ void MenuItemWidget::paintEvent(QPaintEvent *event)
     painter.drawLine(0, height() - 1, width(), height() - 1);
 }
 
-void MenuItemWidget::mousePressEvent(QMouseEvent *event)
-{
+void MenuItemWidget::mousePressEvent(QMouseEvent *event) {
     Q_UNUSED(event);
     emit clicked();
 }
 
 // ============== MenuOverlayWidget ==============
 
-MenuOverlayWidget::MenuOverlayWidget(MenuModel *model, QWidget *parent)
-    : QWidget(parent)
-    , m_model(model)
-{
+MenuOverlayWidget::MenuOverlayWidget(MenuModel *model, QWidget *parent) : QWidget(parent), m_model(model) {
     setWindowFlags(Qt::FramelessWindowHint);
     setAttribute(Qt::WA_TranslucentBackground, false);
     setFocusPolicy(Qt::StrongFocus);
@@ -138,8 +127,7 @@ MenuOverlayWidget::MenuOverlayWidget(MenuModel *model, QWidget *parent)
     connect(m_model, &MenuModel::menuValueChanged, this, &MenuOverlayWidget::onMenuValueChanged);
 }
 
-void MenuOverlayWidget::setupUi()
-{
+void MenuOverlayWidget::setupUi() {
     // Main layout
     QHBoxLayout *mainLayout = new QHBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 0);
@@ -155,10 +143,8 @@ void MenuOverlayWidget::setupUi()
 
     // Category header
     m_categoryLabel = new QLabel("MENU", m_contentWidget);
-    m_categoryLabel->setStyleSheet(
-        "background-color: #222228; color: #666; font-size: 12px; "
-        "font-weight: bold; padding: 8px 15px;"
-    );
+    m_categoryLabel->setStyleSheet("background-color: #222228; color: #666; font-size: 12px; "
+                                   "font-weight: bold; padding: 8px 15px;");
     contentLayout->addWidget(m_categoryLabel);
 
     // Scroll area for menu items
@@ -166,12 +152,10 @@ void MenuOverlayWidget::setupUi()
     m_scrollArea->setWidgetResizable(true);
     m_scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     m_scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    m_scrollArea->setStyleSheet(
-        "QScrollArea { border: none; background: transparent; }"
-        "QScrollBar:vertical { background: #18181C; width: 8px; }"
-        "QScrollBar::handle:vertical { background: #444; border-radius: 4px; }"
-        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }"
-    );
+    m_scrollArea->setStyleSheet("QScrollArea { border: none; background: transparent; }"
+                                "QScrollBar:vertical { background: #18181C; width: 8px; }"
+                                "QScrollBar::handle:vertical { background: #444; border-radius: 4px; }"
+                                "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }");
 
     m_listContainer = new QWidget();
     m_listContainer->setStyleSheet("background: transparent;");
@@ -198,22 +182,21 @@ void MenuOverlayWidget::setupUi()
     navOuterLayout->setContentsMargins(8, 12, 8, 12);
     navOuterLayout->setSpacing(8);
 
-    QString buttonStyle =
-        "QPushButton { background-color: #3A3A45; color: white; border: none; "
-        "border-radius: 6px; font-size: 16px; font-weight: bold; }"
-        "QPushButton:pressed { background-color: #505060; }";
+    QString buttonStyle = "QPushButton { background-color: #3A3A45; color: white; border: none; "
+                          "border-radius: 6px; font-size: 16px; font-weight: bold; }"
+                          "QPushButton:pressed { background-color: #505060; }";
 
     // Row 1: Up and Down buttons side by side
     QHBoxLayout *row1 = new QHBoxLayout();
     row1->setSpacing(8);
 
-    m_upBtn = new QPushButton("\xE2\x96\xB2", navPanel);  // ▲
+    m_upBtn = new QPushButton("\xE2\x96\xB2", navPanel); // ▲
     m_upBtn->setFixedSize(54, 44);
     m_upBtn->setStyleSheet(buttonStyle);
     connect(m_upBtn, &QPushButton::clicked, this, &MenuOverlayWidget::navigateUp);
     row1->addWidget(m_upBtn);
 
-    m_downBtn = new QPushButton("\xE2\x96\xBC", navPanel);  // ▼
+    m_downBtn = new QPushButton("\xE2\x96\xBC", navPanel); // ▼
     m_downBtn->setFixedSize(54, 44);
     m_downBtn->setStyleSheet(buttonStyle);
     connect(m_downBtn, &QPushButton::clicked, this, &MenuOverlayWidget::navigateDown);
@@ -226,7 +209,7 @@ void MenuOverlayWidget::setupUi()
     QHBoxLayout *row2 = new QHBoxLayout();
     row2->setSpacing(8);
 
-    m_selectBtn = new QPushButton("\xE2\x97\x8B", navPanel);  // ○
+    m_selectBtn = new QPushButton("\xE2\x97\x8B", navPanel); // ○
     m_selectBtn->setFixedSize(54, 44);
     m_selectBtn->setStyleSheet(buttonStyle);
     connect(m_selectBtn, &QPushButton::clicked, this, &MenuOverlayWidget::selectCurrent);
@@ -235,10 +218,8 @@ void MenuOverlayWidget::setupUi()
     m_aLabel = new QLabel("A", navPanel);
     m_aLabel->setFixedSize(54, 44);
     m_aLabel->setAlignment(Qt::AlignCenter);
-    m_aLabel->setStyleSheet(
-        "background-color: #3A3A45; color: #888; border: none; "
-        "border-radius: 6px; font-size: 16px; font-weight: bold;"
-    );
+    m_aLabel->setStyleSheet("background-color: #3A3A45; color: #888; border: none; "
+                            "border-radius: 6px; font-size: 16px; font-weight: bold;");
     row2->addWidget(m_aLabel);
 
     navOuterLayout->addLayout(row2);
@@ -250,24 +231,20 @@ void MenuOverlayWidget::setupUi()
 
     m_normBtn = new QPushButton("NORM", navPanel);
     m_normBtn->setFixedSize(54, 44);
-    m_normBtn->setStyleSheet(
-        "QPushButton { background-color: #3A3A45; color: #888; border: none; "
-        "border-radius: 6px; font-size: 10px; font-weight: bold; }"
-        "QPushButton:pressed { background-color: #505060; }"
-    );
+    m_normBtn->setStyleSheet("QPushButton { background-color: #3A3A45; color: #888; border: none; "
+                             "border-radius: 6px; font-size: 10px; font-weight: bold; }"
+                             "QPushButton:pressed { background-color: #505060; }");
     connect(m_normBtn, &QPushButton::clicked, this, &MenuOverlayWidget::resetToDefault);
     row3->addWidget(m_normBtn);
 
-    m_backBtn = new QPushButton("\xE2\x86\xA9", navPanel);  // ↩
+    m_backBtn = new QPushButton("\xE2\x86\xA9", navPanel); // ↩
     m_backBtn->setFixedSize(54, 44);
-    m_backBtn->setStyleSheet(
-        "QPushButton { background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "stop:0 #4a4a4a, stop:0.4 #3a3a3a, stop:0.6 #353535, stop:1 #2a2a2a);"
-        "color: white; border: 1px solid #606060; border-radius: 6px; "
-        "font-size: 16px; font-weight: bold; }"
-        "QPushButton:pressed { background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "stop:0 #2a2a2a, stop:0.4 #353535, stop:0.6 #3a3a3a, stop:1 #4a4a4a); }"
-    );
+    m_backBtn->setStyleSheet("QPushButton { background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+                             "stop:0 #4a4a4a, stop:0.4 #3a3a3a, stop:0.6 #353535, stop:1 #2a2a2a);"
+                             "color: white; border: 1px solid #606060; border-radius: 6px; "
+                             "font-size: 16px; font-weight: bold; }"
+                             "QPushButton:pressed { background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+                             "stop:0 #2a2a2a, stop:0.4 #353535, stop:0.6 #3a3a3a, stop:1 #4a4a4a); }");
     connect(m_backBtn, &QPushButton::clicked, this, &MenuOverlayWidget::closeOverlay);
     row3->addWidget(m_backBtn);
 
@@ -278,8 +255,7 @@ void MenuOverlayWidget::setupUi()
     setLayout(mainLayout);
 }
 
-void MenuOverlayWidget::populateItems()
-{
+void MenuOverlayWidget::populateItems() {
     // Clear existing
     for (auto *widget : m_itemWidgets) {
         m_listLayout->removeWidget(widget);
@@ -288,7 +264,7 @@ void MenuOverlayWidget::populateItems()
     m_itemWidgets.clear();
 
     // Add menu items
-    QVector<MenuItem*> items = m_model->getAllItems();
+    QVector<MenuItem *> items = m_model->getAllItems();
     for (MenuItem *item : items) {
         MenuItemWidget *widget = new MenuItemWidget(item, m_listContainer);
         connect(widget, &MenuItemWidget::clicked, this, [this, widget]() {
@@ -304,7 +280,7 @@ void MenuOverlayWidget::populateItems()
                 }
             }
         });
-        m_listLayout->insertWidget(m_listLayout->count() - 1, widget);  // Before stretch
+        m_listLayout->insertWidget(m_listLayout->count() - 1, widget); // Before stretch
         m_itemWidgets.append(widget);
     }
 
@@ -315,36 +291,31 @@ void MenuOverlayWidget::populateItems()
     updateNormButton();
 }
 
-void MenuOverlayWidget::show()
-{
+void MenuOverlayWidget::show() {
     populateItems();
     QWidget::show();
     setFocus();
 }
 
-void MenuOverlayWidget::hide()
-{
+void MenuOverlayWidget::hide() {
     QWidget::hide();
     emit closed();
 }
 
-void MenuOverlayWidget::refresh()
-{
+void MenuOverlayWidget::refresh() {
     for (auto *widget : m_itemWidgets) {
         widget->updateDisplay();
     }
     updateNormButton();
 }
 
-void MenuOverlayWidget::paintEvent(QPaintEvent *event)
-{
+void MenuOverlayWidget::paintEvent(QPaintEvent *event) {
     Q_UNUSED(event);
     QPainter painter(this);
     painter.fillRect(rect(), QColor(24, 24, 28));
 }
 
-void MenuOverlayWidget::keyPressEvent(QKeyEvent *event)
-{
+void MenuOverlayWidget::keyPressEvent(QKeyEvent *event) {
     switch (event->key()) {
     case Qt::Key_Up:
         navigateUp();
@@ -382,20 +353,18 @@ void MenuOverlayWidget::keyPressEvent(QKeyEvent *event)
     }
 }
 
-void MenuOverlayWidget::mousePressEvent(QMouseEvent *event)
-{
+void MenuOverlayWidget::mousePressEvent(QMouseEvent *event) {
     // Close if clicking outside content area (but not on nav panel)
     QRect contentRect = m_contentWidget->geometry();
-    if (!contentRect.contains(event->pos()) &&
-        event->pos().x() < contentRect.x()) {
+    if (!contentRect.contains(event->pos()) && event->pos().x() < contentRect.x()) {
         closeOverlay();
     }
 }
 
-void MenuOverlayWidget::wheelEvent(QWheelEvent *event)
-{
+void MenuOverlayWidget::wheelEvent(QWheelEvent *event) {
     int delta = event->angleDelta().y();
-    if (delta == 0) return;
+    if (delta == 0)
+        return;
 
     if (m_editMode) {
         // In edit mode, wheel changes value
@@ -418,16 +387,16 @@ void MenuOverlayWidget::wheelEvent(QWheelEvent *event)
     event->accept();
 }
 
-bool MenuOverlayWidget::eventFilter(QObject *watched, QEvent *event)
-{
+bool MenuOverlayWidget::eventFilter(QObject *watched, QEvent *event) {
     // Intercept wheel events from scroll area to move selection instead of scrolling
     if (event->type() == QEvent::Wheel) {
         if (watched == m_scrollArea || watched == m_scrollArea->viewport()) {
-            QWheelEvent *wheelEvent = static_cast<QWheelEvent*>(event);
+            QWheelEvent *wheelEvent = static_cast<QWheelEvent *>(event);
             wheelEvent->accept();
 
             int delta = wheelEvent->angleDelta().y();
-            if (delta == 0) return true;
+            if (delta == 0)
+                return true;
 
             if (m_editMode) {
                 // In edit mode, wheel changes value
@@ -447,14 +416,13 @@ bool MenuOverlayWidget::eventFilter(QObject *watched, QEvent *event)
                     navigateDown();
                 }
             }
-            return true;  // Event handled, don't let scroll area scroll
+            return true; // Event handled, don't let scroll area scroll
         }
     }
     return QWidget::eventFilter(watched, event);
 }
 
-void MenuOverlayWidget::navigateUp()
-{
+void MenuOverlayWidget::navigateUp() {
     if (m_editMode) {
         // In edit mode, up increments value
         if (!m_itemWidgets.isEmpty() && m_selectedIndex < m_itemWidgets.size()) {
@@ -472,8 +440,7 @@ void MenuOverlayWidget::navigateUp()
     }
 }
 
-void MenuOverlayWidget::navigateDown()
-{
+void MenuOverlayWidget::navigateDown() {
     if (m_editMode) {
         // In edit mode, down decrements value
         if (!m_itemWidgets.isEmpty() && m_selectedIndex < m_itemWidgets.size()) {
@@ -491,8 +458,7 @@ void MenuOverlayWidget::navigateDown()
     }
 }
 
-void MenuOverlayWidget::selectCurrent()
-{
+void MenuOverlayWidget::selectCurrent() {
     if (m_itemWidgets.isEmpty() || m_selectedIndex >= m_itemWidgets.size()) {
         return;
     }
@@ -511,8 +477,7 @@ void MenuOverlayWidget::selectCurrent()
     }
 }
 
-void MenuOverlayWidget::closeOverlay()
-{
+void MenuOverlayWidget::closeOverlay() {
     if (m_editMode) {
         setEditMode(false);
     } else {
@@ -520,8 +485,7 @@ void MenuOverlayWidget::closeOverlay()
     }
 }
 
-void MenuOverlayWidget::resetToDefault()
-{
+void MenuOverlayWidget::resetToDefault() {
     if (m_itemWidgets.isEmpty() || m_selectedIndex >= m_itemWidgets.size()) {
         return;
     }
@@ -540,47 +504,40 @@ void MenuOverlayWidget::resetToDefault()
     m_model->updateValue(item->id, defaultVal);
 }
 
-void MenuOverlayWidget::updateSelection()
-{
+void MenuOverlayWidget::updateSelection() {
     for (int i = 0; i < m_itemWidgets.size(); ++i) {
         m_itemWidgets[i]->setSelected(i == m_selectedIndex);
         m_itemWidgets[i]->setEditMode(i == m_selectedIndex && m_editMode);
     }
 }
 
-void MenuOverlayWidget::ensureSelectedVisible()
-{
+void MenuOverlayWidget::ensureSelectedVisible() {
     if (m_selectedIndex >= 0 && m_selectedIndex < m_itemWidgets.size()) {
         m_scrollArea->ensureWidgetVisible(m_itemWidgets[m_selectedIndex]);
     }
 }
 
-void MenuOverlayWidget::setEditMode(bool editing)
-{
+void MenuOverlayWidget::setEditMode(bool editing) {
     m_editMode = editing;
     updateSelection();
     updateButtonLabels();
     updateNormButton();
 }
 
-void MenuOverlayWidget::updateButtonLabels()
-{
+void MenuOverlayWidget::updateButtonLabels() {
     if (m_editMode) {
         m_upBtn->setText("+");
         m_downBtn->setText("-");
     } else {
-        m_upBtn->setText("\xE2\x96\xB2");  // ▲
-        m_downBtn->setText("\xE2\x96\xBC");  // ▼
+        m_upBtn->setText("\xE2\x96\xB2");   // ▲
+        m_downBtn->setText("\xE2\x96\xBC"); // ▼
     }
 }
 
-void MenuOverlayWidget::updateNormButton()
-{
+void MenuOverlayWidget::updateNormButton() {
     if (m_itemWidgets.isEmpty() || m_selectedIndex >= m_itemWidgets.size()) {
-        m_normBtn->setStyleSheet(
-            "QPushButton { background-color: #3A3A45; color: #888; border: none; "
-            "border-radius: 6px; font-size: 10px; font-weight: bold; }"
-        );
+        m_normBtn->setStyleSheet("QPushButton { background-color: #3A3A45; color: #888; border: none; "
+                                 "border-radius: 6px; font-size: 10px; font-weight: bold; }");
         return;
     }
 
@@ -589,23 +546,18 @@ void MenuOverlayWidget::updateNormButton()
 
     if (isDefault) {
         // Grey - value is at default
-        m_normBtn->setStyleSheet(
-            "QPushButton { background-color: #3A3A45; color: #888; border: none; "
-            "border-radius: 6px; font-size: 10px; font-weight: bold; }"
-            "QPushButton:pressed { background-color: #505060; }"
-        );
+        m_normBtn->setStyleSheet("QPushButton { background-color: #3A3A45; color: #888; border: none; "
+                                 "border-radius: 6px; font-size: 10px; font-weight: bold; }"
+                                 "QPushButton:pressed { background-color: #505060; }");
     } else {
         // White/bright - value differs from default
-        m_normBtn->setStyleSheet(
-            "QPushButton { background-color: #DDD; color: #333; border: none; "
-            "border-radius: 6px; font-size: 10px; font-weight: bold; }"
-            "QPushButton:pressed { background-color: #FFF; }"
-        );
+        m_normBtn->setStyleSheet("QPushButton { background-color: #DDD; color: #333; border: none; "
+                                 "border-radius: 6px; font-size: 10px; font-weight: bold; }"
+                                 "QPushButton:pressed { background-color: #FFF; }");
     }
 }
 
-void MenuOverlayWidget::onMenuValueChanged(int menuId, int newValue)
-{
+void MenuOverlayWidget::onMenuValueChanged(int menuId, int newValue) {
     Q_UNUSED(newValue);
     // Find and update the widget for this menu item
     for (auto *widget : m_itemWidgets) {

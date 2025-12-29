@@ -4,26 +4,19 @@
 #include <QDebug>
 
 AudioEngine::AudioEngine(QObject *parent)
-    : QObject(parent)
-    , m_audioSink(nullptr)
-    , m_audioSinkDevice(nullptr)
-    , m_audioSource(nullptr)
-    , m_audioSourceDevice(nullptr)
-    , m_micEnabled(false)
-{
+    : QObject(parent), m_audioSink(nullptr), m_audioSinkDevice(nullptr), m_audioSource(nullptr),
+      m_audioSourceDevice(nullptr), m_micEnabled(false) {
     // K4 uses 12kHz mono Float32 PCM (after decoding and de-interleaving)
     m_format.setSampleRate(12000);
     m_format.setChannelCount(1);
     m_format.setSampleFormat(QAudioFormat::Float);
 }
 
-AudioEngine::~AudioEngine()
-{
+AudioEngine::~AudioEngine() {
     stop();
 }
 
-bool AudioEngine::start()
-{
+bool AudioEngine::start() {
     bool outputOk = setupAudioOutput();
     bool inputOk = setupAudioInput();
 
@@ -37,8 +30,7 @@ bool AudioEngine::start()
     return outputOk;
 }
 
-void AudioEngine::stop()
-{
+void AudioEngine::stop() {
     if (m_audioSink) {
         m_audioSink->stop();
         delete m_audioSink;
@@ -54,8 +46,7 @@ void AudioEngine::stop()
     }
 }
 
-bool AudioEngine::setupAudioOutput()
-{
+bool AudioEngine::setupAudioOutput() {
     QAudioDevice outputDevice = QMediaDevices::defaultAudioOutput();
     if (outputDevice.isNull()) {
         qWarning() << "AudioEngine: No audio output device available";
@@ -70,7 +61,7 @@ bool AudioEngine::setupAudioOutput()
     qDebug() << "AudioEngine: Using output device:" << outputDevice.description();
 
     m_audioSink = new QAudioSink(outputDevice, m_format, this);
-    m_audioSink->setBufferSize(12000 * 4 * 1);  // 1 second buffer (12000 samples * 4 bytes float * 1 channel)
+    m_audioSink->setBufferSize(12000 * 4 * 1); // 1 second buffer (12000 samples * 4 bytes float * 1 channel)
 
     m_audioSinkDevice = m_audioSink->start();
     if (!m_audioSinkDevice) {
@@ -86,8 +77,7 @@ bool AudioEngine::setupAudioOutput()
     return true;
 }
 
-bool AudioEngine::setupAudioInput()
-{
+bool AudioEngine::setupAudioInput() {
     QAudioDevice inputDevice = QMediaDevices::defaultAudioInput();
     if (inputDevice.isNull()) {
         qWarning() << "AudioEngine: No audio input device available";
@@ -108,8 +98,7 @@ bool AudioEngine::setupAudioInput()
     return true;
 }
 
-void AudioEngine::playAudio(const QByteArray &pcmData)
-{
+void AudioEngine::playAudio(const QByteArray &pcmData) {
     if (!m_audioSinkDevice || pcmData.isEmpty()) {
         return;
     }
@@ -120,25 +109,24 @@ void AudioEngine::playAudio(const QByteArray &pcmData)
     }
 }
 
-void AudioEngine::setMicEnabled(bool enabled)
-{
-    if (m_micEnabled == enabled) return;
+void AudioEngine::setMicEnabled(bool enabled) {
+    if (m_micEnabled == enabled)
+        return;
 
     m_micEnabled = enabled;
 
-    if (!m_audioSource) return;
+    if (!m_audioSource)
+        return;
 
     if (enabled) {
         m_audioSourceDevice = m_audioSource->start();
         if (m_audioSourceDevice) {
-            connect(m_audioSourceDevice, &QIODevice::readyRead,
-                    this, &AudioEngine::onMicDataReady);
+            connect(m_audioSourceDevice, &QIODevice::readyRead, this, &AudioEngine::onMicDataReady);
             qDebug() << "AudioEngine: Microphone enabled";
         }
     } else {
         if (m_audioSourceDevice) {
-            disconnect(m_audioSourceDevice, &QIODevice::readyRead,
-                       this, &AudioEngine::onMicDataReady);
+            disconnect(m_audioSourceDevice, &QIODevice::readyRead, this, &AudioEngine::onMicDataReady);
         }
         m_audioSource->stop();
         m_audioSourceDevice = nullptr;
@@ -146,9 +134,9 @@ void AudioEngine::setMicEnabled(bool enabled)
     }
 }
 
-void AudioEngine::onMicDataReady()
-{
-    if (!m_audioSourceDevice || !m_micEnabled) return;
+void AudioEngine::onMicDataReady() {
+    if (!m_audioSourceDevice || !m_micEnabled)
+        return;
 
     QByteArray data = m_audioSourceDevice->readAll();
     if (!data.isEmpty()) {
@@ -156,8 +144,7 @@ void AudioEngine::onMicDataReady()
     }
 }
 
-void AudioEngine::setVolume(float volume)
-{
+void AudioEngine::setVolume(float volume) {
     m_volume = qBound(0.0f, volume, 1.0f);
     if (m_audioSink) {
         m_audioSink->setVolume(m_volume);

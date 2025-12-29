@@ -8,8 +8,7 @@
 #include <QSpinBox>
 #include "settings/radiosettings.h"
 
-class RadioManagerDialog : public QDialog
-{
+class RadioManagerDialog : public QDialog {
     Q_OBJECT
 
 public:

@@ -21,8 +21,7 @@
  * - Margins: 6, 8, 6, 8
  * - Spacing: 4
  */
-class RightSidePanel : public QWidget
-{
+class RightSidePanel : public QWidget {
     Q_OBJECT
 
 public:
@@ -30,7 +29,7 @@ public:
     ~RightSidePanel() = default;
 
     // Access main layout for adding content
-    QVBoxLayout* contentLayout() { return m_layout; }
+    QVBoxLayout *contentLayout() { return m_layout; }
 
 signals:
     // Button click signals (main function)
@@ -47,7 +46,7 @@ signals:
 
 private:
     void setupUi();
-    QWidget* createFunctionButton(const QString &mainText, const QString &subText, QPushButton *&btnOut);
+    QWidget *createFunctionButton(const QString &mainText, const QString &subText, QPushButton *&btnOut);
 
     QVBoxLayout *m_layout;
 

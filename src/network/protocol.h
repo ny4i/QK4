@@ -6,29 +6,28 @@
 
 // K4 Protocol Constants
 namespace K4Protocol {
-    // Packet markers
-    static const QByteArray START_MARKER = QByteArray::fromHex("FEFDFCFB");
-    static const QByteArray END_MARKER = QByteArray::fromHex("FBFCFDFE");
+// Packet markers
+static const QByteArray START_MARKER = QByteArray::fromHex("FEFDFCFB");
+static const QByteArray END_MARKER = QByteArray::fromHex("FBFCFDFE");
 
-    // Payload types (first byte of payload)
-    enum PayloadType : quint8 {
-        CAT = 0x00,      // CAT command (ASCII)
-        Audio = 0x01,    // Audio data (Opus)
-        PAN = 0x02,      // Panadapter/spectrum data
-        MiniPAN = 0x03   // Mini panadapter (unused)
-    };
+// Payload types (first byte of payload)
+enum PayloadType : quint8 {
+    CAT = 0x00,    // CAT command (ASCII)
+    Audio = 0x01,  // Audio data (Opus)
+    PAN = 0x02,    // Panadapter/spectrum data
+    MiniPAN = 0x03 // Mini panadapter (unused)
+};
 
-    // Default K4 port
-    static const quint16 DEFAULT_PORT = 9205;
+// Default K4 port
+static const quint16 DEFAULT_PORT = 9205;
 
-    // Timing constants
-    static const int PING_INTERVAL_MS = 3000;      // 3 seconds
-    static const int CONNECTION_TIMEOUT_MS = 10000; // 10 seconds
-    static const int AUTH_TIMEOUT_MS = 5000;        // 5 seconds for auth response
-}
+// Timing constants
+static const int PING_INTERVAL_MS = 3000;       // 3 seconds
+static const int CONNECTION_TIMEOUT_MS = 10000; // 10 seconds
+static const int AUTH_TIMEOUT_MS = 5000;        // 5 seconds for auth response
+} // namespace K4Protocol
 
-class Protocol : public QObject
-{
+class Protocol : public QObject {
     Q_OBJECT
 
 public:
@@ -49,7 +48,8 @@ public:
 signals:
     void audioDataReady(const QByteArray &opusData);
     // receiver: 0 = Main (VFO A), 1 = Sub (VFO B)
-    void spectrumDataReady(int receiver, const QByteArray &spectrumData, qint64 centerFreq, qint32 sampleRate, float noiseFloor);
+    void spectrumDataReady(int receiver, const QByteArray &spectrumData, qint64 centerFreq, qint32 sampleRate,
+                           float noiseFloor);
     void miniSpectrumDataReady(int receiver, const QByteArray &spectrumData);
     void catResponseReceived(const QString &response);
     void packetReceived(quint8 type, const QByteArray &payload);

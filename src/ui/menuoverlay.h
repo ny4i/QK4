@@ -12,8 +12,7 @@
 #include <QWheelEvent>
 #include "../models/menumodel.h"
 
-class MenuItemWidget : public QWidget
-{
+class MenuItemWidget : public QWidget {
     Q_OBJECT
 
 public:
@@ -23,7 +22,7 @@ public:
     void setEditMode(bool editing);
     bool isSelected() const { return m_selected; }
     bool isEditing() const { return m_editing; }
-    MenuItem* menuItem() const { return m_item; }
+    MenuItem *menuItem() const { return m_item; }
     void updateDisplay();
 
 signals:
@@ -44,8 +43,7 @@ private:
     bool m_editing = false;
 };
 
-class MenuOverlayWidget : public QWidget
-{
+class MenuOverlayWidget : public QWidget {
     Q_OBJECT
 
 public:
@@ -57,7 +55,7 @@ public:
 
 signals:
     void closed();
-    void menuValueChangeRequested(int menuId, const QString &action);  // "+", "-", "/"
+    void menuValueChangeRequested(int menuId, const QString &action); // "+", "-", "/"
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -90,7 +88,7 @@ private:
     QVBoxLayout *m_listLayout;
     QLabel *m_categoryLabel;
 
-    QList<MenuItemWidget*> m_itemWidgets;
+    QList<MenuItemWidget *> m_itemWidgets;
     int m_selectedIndex = 0;
     bool m_editMode = false;
 

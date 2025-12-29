@@ -1,34 +1,26 @@
 #include "radiosettings.h"
 
-RadioSettings* RadioSettings::instance()
-{
+RadioSettings *RadioSettings::instance() {
     static RadioSettings instance;
     return &instance;
 }
 
 RadioSettings::RadioSettings(QObject *parent)
-    : QObject(parent)
-    , m_lastSelectedIndex(-1)
-    , m_kpodEnabled(false)
-    , m_settings("K4Controller", "K4Controller")
-{
+    : QObject(parent), m_lastSelectedIndex(-1), m_kpodEnabled(false), m_settings("K4Controller", "K4Controller") {
     load();
 }
 
-QVector<RadioEntry> RadioSettings::radios() const
-{
+QVector<RadioEntry> RadioSettings::radios() const {
     return m_radios;
 }
 
-void RadioSettings::addRadio(const RadioEntry &radio)
-{
+void RadioSettings::addRadio(const RadioEntry &radio) {
     m_radios.append(radio);
     save();
     emit radiosChanged();
 }
 
-void RadioSettings::removeRadio(int index)
-{
+void RadioSettings::removeRadio(int index) {
     if (index >= 0 && index < m_radios.size()) {
         m_radios.removeAt(index);
         if (m_lastSelectedIndex >= m_radios.size()) {
@@ -39,8 +31,7 @@ void RadioSettings::removeRadio(int index)
     }
 }
 
-void RadioSettings::updateRadio(int index, const RadioEntry &radio)
-{
+void RadioSettings::updateRadio(int index, const RadioEntry &radio) {
     if (index >= 0 && index < m_radios.size()) {
         m_radios[index] = radio;
         save();
@@ -48,26 +39,22 @@ void RadioSettings::updateRadio(int index, const RadioEntry &radio)
     }
 }
 
-int RadioSettings::lastSelectedIndex() const
-{
+int RadioSettings::lastSelectedIndex() const {
     return m_lastSelectedIndex;
 }
 
-void RadioSettings::setLastSelectedIndex(int index)
-{
+void RadioSettings::setLastSelectedIndex(int index) {
     if (m_lastSelectedIndex != index) {
         m_lastSelectedIndex = index;
         save();
     }
 }
 
-bool RadioSettings::kpodEnabled() const
-{
+bool RadioSettings::kpodEnabled() const {
     return m_kpodEnabled;
 }
 
-void RadioSettings::setKpodEnabled(bool enabled)
-{
+void RadioSettings::setKpodEnabled(bool enabled) {
     if (m_kpodEnabled != enabled) {
         m_kpodEnabled = enabled;
         save();
@@ -75,13 +62,11 @@ void RadioSettings::setKpodEnabled(bool enabled)
     }
 }
 
-QString RadioSettings::kpa1500Host() const
-{
+QString RadioSettings::kpa1500Host() const {
     return m_kpa1500Host;
 }
 
-void RadioSettings::setKpa1500Host(const QString &host)
-{
+void RadioSettings::setKpa1500Host(const QString &host) {
     if (m_kpa1500Host != host) {
         m_kpa1500Host = host;
         save();
@@ -89,13 +74,11 @@ void RadioSettings::setKpa1500Host(const QString &host)
     }
 }
 
-quint16 RadioSettings::kpa1500Port() const
-{
+quint16 RadioSettings::kpa1500Port() const {
     return m_kpa1500Port;
 }
 
-void RadioSettings::setKpa1500Port(quint16 port)
-{
+void RadioSettings::setKpa1500Port(quint16 port) {
     if (m_kpa1500Port != port) {
         m_kpa1500Port = port;
         save();
@@ -103,13 +86,11 @@ void RadioSettings::setKpa1500Port(quint16 port)
     }
 }
 
-bool RadioSettings::kpa1500Enabled() const
-{
+bool RadioSettings::kpa1500Enabled() const {
     return m_kpa1500Enabled;
 }
 
-void RadioSettings::setKpa1500Enabled(bool enabled)
-{
+void RadioSettings::setKpa1500Enabled(bool enabled) {
     if (m_kpa1500Enabled != enabled) {
         m_kpa1500Enabled = enabled;
         save();
@@ -117,13 +98,11 @@ void RadioSettings::setKpa1500Enabled(bool enabled)
     }
 }
 
-int RadioSettings::kpa1500PollInterval() const
-{
+int RadioSettings::kpa1500PollInterval() const {
     return m_kpa1500PollInterval;
 }
 
-void RadioSettings::setKpa1500PollInterval(int intervalMs)
-{
+void RadioSettings::setKpa1500PollInterval(int intervalMs) {
     // Clamp to reasonable range: 100ms - 5000ms
     intervalMs = qBound(100, intervalMs, 5000);
     if (m_kpa1500PollInterval != intervalMs) {
@@ -133,20 +112,17 @@ void RadioSettings::setKpa1500PollInterval(int intervalMs)
     }
 }
 
-int RadioSettings::volume() const
-{
+int RadioSettings::volume() const {
     return m_settings.value("audio/volume", 45).toInt();
 }
 
-void RadioSettings::setVolume(int value)
-{
+void RadioSettings::setVolume(int value) {
     value = qBound(0, value, 100);
     m_settings.setValue("audio/volume", value);
     m_settings.sync();
 }
 
-void RadioSettings::load()
-{
+void RadioSettings::load() {
     int count = m_settings.beginReadArray("radios");
     m_radios.clear();
     for (int i = 0; i < count; ++i) {
@@ -170,8 +146,7 @@ void RadioSettings::load()
     m_kpa1500PollInterval = m_settings.value("kpa1500/pollInterval", 800).toInt();
 }
 
-void RadioSettings::save()
-{
+void RadioSettings::save() {
     m_settings.beginWriteArray("radios");
     for (int i = 0; i < m_radios.size(); ++i) {
         m_settings.setArrayIndex(i);

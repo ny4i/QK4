@@ -29,29 +29,23 @@
 
 // K4 Color scheme
 namespace K4Colors {
-    const QString Background = "#1a1a1a";
-    const QString DarkBackground = "#0d0d0d";
-    const QString VfoAAmber = "#FFB000";
-    const QString VfoBCyan = "#00BFFF";
-    const QString TxRed = "#FF0000";
-    const QString AgcGreen = "#00FF00";
-    const QString InactiveGray = "#666666";
-    const QString TextWhite = "#FFFFFF";
-    const QString TextGray = "#999999";
-    const QString RitCyan = "#00CED1";
-}
+const QString Background = "#1a1a1a";
+const QString DarkBackground = "#0d0d0d";
+const QString VfoAAmber = "#FFB000";
+const QString VfoBCyan = "#00BFFF";
+const QString TxRed = "#FF0000";
+const QString AgcGreen = "#00FF00";
+const QString InactiveGray = "#666666";
+const QString TextWhite = "#FFFFFF";
+const QString TextGray = "#999999";
+const QString RitCyan = "#00CED1";
+} // namespace K4Colors
 
 // ============== MainWindow Implementation ==============
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
-    , m_tcpClient(new TcpClient(this))
-    , m_radioState(new RadioState(this))
-    , m_clockTimer(new QTimer(this))
-    , m_audioEngine(new AudioEngine(this))
-    , m_opusDecoder(new OpusDecoder(this))
-    , m_menuModel(new MenuModel(this))
-    , m_menuOverlay(nullptr)
-{
+    : QMainWindow(parent), m_tcpClient(new TcpClient(this)), m_radioState(new RadioState(this)),
+      m_clockTimer(new QTimer(this)), m_audioEngine(new AudioEngine(this)), m_opusDecoder(new OpusDecoder(this)),
+      m_menuModel(new MenuModel(this)), m_menuOverlay(nullptr) {
     // Initialize Opus decoder (K4 sends 12kHz stereo: left=Main, right=Sub)
     m_opusDecoder->initialize(12000, 2);
     setupMenuBar();
@@ -65,8 +59,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_menuOverlay->hide();
 
     // Connect menu overlay signals
-    connect(m_menuOverlay, &MenuOverlayWidget::menuValueChangeRequested,
-            this, &MainWindow::onMenuValueChangeRequested);
+    connect(m_menuOverlay, &MenuOverlayWidget::menuValueChangeRequested, this, &MainWindow::onMenuValueChangeRequested);
     connect(m_menuOverlay, &MenuOverlayWidget::closed, this, [this]() {
         if (m_bottomMenuBar) {
             m_bottomMenuBar->setMenuActive(false);
@@ -75,8 +68,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Create band selection popup
     m_bandPopup = new BandPopupWidget(this);
-    connect(m_bandPopup, &BandPopupWidget::bandSelected,
-            this, &MainWindow::onBandSelected);
+    connect(m_bandPopup, &BandPopupWidget::bandSelected, this, &MainWindow::onBandSelected);
 
     // TcpClient signals
     connect(m_tcpClient, &TcpClient::stateChanged, this, &MainWindow::onStateChanged);
@@ -91,7 +83,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_radioState, &RadioState::frequencyChanged, this, &MainWindow::onFrequencyChanged);
     connect(m_radioState, &RadioState::modeChanged, this, &MainWindow::onModeChanged);
     connect(m_radioState, &RadioState::modeChanged, this, [this](RadioState::Mode) {
-        onVoxChanged(false);  // Refresh VOX display when mode changes (VOX is mode-specific)
+        onVoxChanged(false); // Refresh VOX display when mode changes (VOX is mode-specific)
     });
     connect(m_radioState, &RadioState::sMeterChanged, this, &MainWindow::onSMeterChanged);
     connect(m_radioState, &RadioState::filterBandwidthChanged, this, &MainWindow::onBandwidthChanged);
@@ -112,7 +104,7 @@ MainWindow::MainWindow(QWidget *parent)
     // Helper to update all 4 filter display values (called on BW or SHFT change)
     auto updateFilterDisplay = [this]() {
         int bwHz = m_radioState->filterBandwidth();
-        int shiftHz = m_radioState->shiftHz();  // raw IS value × 10
+        int shiftHz = m_radioState->shiftHz(); // raw IS value × 10
 
         // BW/SHFT in kHz
         m_sideControlPanel->setBandwidth(bwHz / 1000.0);
@@ -130,13 +122,12 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_radioState, &RadioState::ifShiftChanged, this, updateFilterDisplay);
     connect(m_radioState, &RadioState::keyerSpeedChanged, m_sideControlPanel, &SideControlPanel::setWpm);
     connect(m_radioState, &RadioState::cwPitchChanged, this, [this](int pitch) {
-        m_sideControlPanel->setPitch(pitch / 1000.0);  // Hz to kHz (500Hz = 0.50)
+        m_sideControlPanel->setPitch(pitch / 1000.0); // Hz to kHz (500Hz = 0.50)
     });
-    connect(m_radioState, &RadioState::rfPowerChanged, this, [this](double watts, bool) {
-        m_sideControlPanel->setPower(static_cast<int>(watts));
-    });
+    connect(m_radioState, &RadioState::rfPowerChanged, this,
+            [this](double watts, bool) { m_sideControlPanel->setPower(static_cast<int>(watts)); });
     connect(m_radioState, &RadioState::qskDelayChanged, this, [this](int delay) {
-        m_sideControlPanel->setDelay(delay / 100.0);  // 10ms units to seconds (20 -> 0.20)
+        m_sideControlPanel->setDelay(delay / 100.0); // 10ms units to seconds (20 -> 0.20)
     });
     connect(m_radioState, &RadioState::rfGainChanged, m_sideControlPanel, &SideControlPanel::setMainRfGain);
     connect(m_radioState, &RadioState::squelchChanged, m_sideControlPanel, &SideControlPanel::setMainSquelch);
@@ -183,18 +174,13 @@ MainWindow::MainWindow(QWidget *parent)
     m_kpodDevice = new KpodDevice(this);
 
     // Connect KPOD signals
-    connect(m_kpodDevice, &KpodDevice::encoderRotated,
-            this, &MainWindow::onKpodEncoderRotated);
-    connect(m_kpodDevice, &KpodDevice::rockerPositionChanged,
-            this, [this](KpodDevice::RockerPosition pos) {
-        onKpodRockerChanged(static_cast<int>(pos));
-    });
-    connect(m_kpodDevice, &KpodDevice::pollError,
-            this, &MainWindow::onKpodPollError);
+    connect(m_kpodDevice, &KpodDevice::encoderRotated, this, &MainWindow::onKpodEncoderRotated);
+    connect(m_kpodDevice, &KpodDevice::rockerPositionChanged, this,
+            [this](KpodDevice::RockerPosition pos) { onKpodRockerChanged(static_cast<int>(pos)); });
+    connect(m_kpodDevice, &KpodDevice::pollError, this, &MainWindow::onKpodPollError);
 
     // Connect to settings for KPOD enable/disable
-    connect(RadioSettings::instance(), &RadioSettings::kpodEnabledChanged,
-            this, &MainWindow::onKpodEnabledChanged);
+    connect(RadioSettings::instance(), &RadioSettings::kpodEnabledChanged, this, &MainWindow::onKpodEnabledChanged);
 
     // Start KPOD polling if enabled and detected
     if (RadioSettings::instance()->kpodEnabled() && m_kpodDevice->isDetected()) {
@@ -205,46 +191,36 @@ MainWindow::MainWindow(QWidget *parent)
     m_kpa1500Client = new KPA1500Client(this);
 
     // Connect KPA1500 signals
-    connect(m_kpa1500Client, &KPA1500Client::connected,
-            this, &MainWindow::onKpa1500Connected);
-    connect(m_kpa1500Client, &KPA1500Client::disconnected,
-            this, &MainWindow::onKpa1500Disconnected);
-    connect(m_kpa1500Client, &KPA1500Client::errorOccurred,
-            this, &MainWindow::onKpa1500Error);
+    connect(m_kpa1500Client, &KPA1500Client::connected, this, &MainWindow::onKpa1500Connected);
+    connect(m_kpa1500Client, &KPA1500Client::disconnected, this, &MainWindow::onKpa1500Disconnected);
+    connect(m_kpa1500Client, &KPA1500Client::errorOccurred, this, &MainWindow::onKpa1500Error);
 
     // Connect to settings for KPA1500 enable/disable and settings changes
-    connect(RadioSettings::instance(), &RadioSettings::kpa1500EnabledChanged,
-            this, &MainWindow::onKpa1500EnabledChanged);
-    connect(RadioSettings::instance(), &RadioSettings::kpa1500SettingsChanged,
-            this, &MainWindow::onKpa1500SettingsChanged);
+    connect(RadioSettings::instance(), &RadioSettings::kpa1500EnabledChanged, this,
+            &MainWindow::onKpa1500EnabledChanged);
+    connect(RadioSettings::instance(), &RadioSettings::kpa1500SettingsChanged, this,
+            &MainWindow::onKpa1500SettingsChanged);
 
     // Start KPA1500 connection if enabled and configured
-    if (RadioSettings::instance()->kpa1500Enabled() &&
-        !RadioSettings::instance()->kpa1500Host().isEmpty()) {
-        m_kpa1500Client->connectToHost(
-            RadioSettings::instance()->kpa1500Host(),
-            RadioSettings::instance()->kpa1500Port());
+    if (RadioSettings::instance()->kpa1500Enabled() && !RadioSettings::instance()->kpa1500Host().isEmpty()) {
+        m_kpa1500Client->connectToHost(RadioSettings::instance()->kpa1500Host(),
+                                       RadioSettings::instance()->kpa1500Port());
     }
 
     // Initialize KPA1500 status display
     updateKpa1500Status();
 
     // Defer resize to after layouts are finalized (fixes initial window size issue)
-    QTimer::singleShot(0, this, [this]() {
-        resize(1340, 800);
-    });
+    QTimer::singleShot(0, this, [this]() { resize(1340, 800); });
 }
 
-MainWindow::~MainWindow()
-{
-}
+MainWindow::~MainWindow() {}
 
-void MainWindow::setupMenuBar()
-{
+void MainWindow::setupMenuBar() {
     // Match K4 menu style: Connect, File, Tools, View
     menuBar()->setStyleSheet(QString("QMenuBar { background-color: %1; color: %2; }"
-                                      "QMenuBar::item:selected { background-color: #333; }")
-                              .arg(K4Colors::DarkBackground, K4Colors::TextWhite));
+                                     "QMenuBar::item:selected { background-color: #333; }")
+                                 .arg(K4Colors::DarkBackground, K4Colors::TextWhite));
 
     QMenu *connectMenu = menuBar()->addMenu("Connect");
     QAction *radiosAction = new QAction("Radios...", this);
@@ -253,7 +229,7 @@ void MainWindow::setupMenuBar()
 
     QMenu *optionsMenu = menuBar()->addMenu("Options");
     QAction *optionsAction = new QAction("Settings...", this);
-    optionsAction->setMenuRole(QAction::NoRole);  // Prevent macOS from moving to app menu
+    optionsAction->setMenuRole(QAction::NoRole); // Prevent macOS from moving to app menu
     connect(optionsAction, &QAction::triggered, this, [this]() {
         OptionsDialog dialog(m_radioState, m_kpa1500Client, this);
         dialog.exec();
@@ -270,11 +246,10 @@ void MainWindow::setupMenuBar()
     Q_UNUSED(viewMenu)
 }
 
-void MainWindow::setupUi()
-{
+void MainWindow::setupUi() {
     setWindowTitle("K4Controller");
     setMinimumSize(1340, 800);
-    resize(1340, 800);  // Default to minimum size on launch
+    resize(1340, 800); // Default to minimum size on launch
     setStyleSheet(QString("QMainWindow { background-color: %1; }").arg(K4Colors::Background));
 
     auto *centralWidget = new QWidget(this);
@@ -338,7 +313,7 @@ void MainWindow::setupUi()
         if (m_audioEngine) {
             m_audioEngine->setVolume(value / 100.0f);
         }
-        RadioSettings::instance()->setVolume(value);  // Persist setting
+        RadioSettings::instance()->setVolume(value); // Persist setting
     });
 
     // Connect bottom menu bar signals
@@ -361,8 +336,7 @@ void MainWindow::setupUi()
     });
 }
 
-void MainWindow::setupTopStatusBar(QWidget *parent)
-{
+void MainWindow::setupTopStatusBar(QWidget *parent) {
     auto *statusBar = new QWidget(parent);
     statusBar->setFixedHeight(28);
     statusBar->setStyleSheet(QString("background-color: %1;").arg(K4Colors::DarkBackground));
@@ -408,7 +382,7 @@ void MainWindow::setupTopStatusBar(QWidget *parent)
     // KPA1500 status (to left of K4 status)
     m_kpa1500StatusLabel = new QLabel("", statusBar);
     m_kpa1500StatusLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Colors::InactiveGray));
-    m_kpa1500StatusLabel->hide();  // Hidden when not enabled
+    m_kpa1500StatusLabel->hide(); // Hidden when not enabled
     layout->addWidget(m_kpa1500StatusLabel);
 
     // K4 Connection status
@@ -417,8 +391,7 @@ void MainWindow::setupTopStatusBar(QWidget *parent)
     layout->addWidget(m_connectionStatusLabel);
 }
 
-void MainWindow::setupVfoSection(QWidget *parent)
-{
+void MainWindow::setupVfoSection(QWidget *parent) {
     // Main vertical layout: VFO row on top, antenna row below
     auto *mainVLayout = new QVBoxLayout(parent);
     mainVLayout->setContentsMargins(4, 4, 4, 4);
@@ -434,9 +407,7 @@ void MainWindow::setupVfoSection(QWidget *parent)
     m_vfoA = new VFOWidget(VFOWidget::VFO_A, parent);
 
     // Connect VFO A click to toggle mini-pan
-    connect(m_vfoA, &VFOWidget::normalContentClicked, this, [this]() {
-        m_vfoA->showMiniPan();
-    });
+    connect(m_vfoA, &VFOWidget::normalContentClicked, this, [this]() { m_vfoA->showMiniPan(); });
 
     layout->addWidget(m_vfoA, 1);
 
@@ -456,7 +427,7 @@ void MainWindow::setupVfoSection(QWidget *parent)
 
     // A column: square + mode below (in fixed-width container for proper centering)
     auto *vfoAContainer = new QWidget(centerWidget);
-    vfoAContainer->setFixedWidth(45);  // Match mode label width for consistent centering
+    vfoAContainer->setFixedWidth(45); // Match mode label width for consistent centering
     auto *vfoAColumn = new QVBoxLayout(vfoAContainer);
     vfoAColumn->setContentsMargins(0, 0, 0, 0);
     vfoAColumn->setSpacing(2);
@@ -464,19 +435,20 @@ void MainWindow::setupVfoSection(QWidget *parent)
     m_vfoASquare = new QLabel("A", vfoAContainer);
     m_vfoASquare->setFixedSize(30, 30);
     m_vfoASquare->setAlignment(Qt::AlignCenter);
-    m_vfoASquare->setStyleSheet(QString("background-color: %1; color: %2; font-size: 16px; font-weight: bold; border-radius: 4px;")
-                                 .arg(K4Colors::VfoBCyan, K4Colors::DarkBackground));
+    m_vfoASquare->setStyleSheet(
+        QString("background-color: %1; color: %2; font-size: 16px; font-weight: bold; border-radius: 4px;")
+            .arg(K4Colors::VfoBCyan, K4Colors::DarkBackground));
     vfoAColumn->addWidget(m_vfoASquare, 0, Qt::AlignHCenter);
 
     m_modeALabel = new QLabel("USB", vfoAContainer);
-    m_modeALabel->setFixedWidth(45);  // Wide enough for "DATA-R"
+    m_modeALabel->setFixedWidth(45); // Wide enough for "DATA-R"
     m_modeALabel->setAlignment(Qt::AlignCenter);
     m_modeALabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::TextWhite));
     vfoAColumn->addWidget(m_modeALabel, 0, Qt::AlignHCenter);
 
     txRow->addWidget(vfoAContainer);
-    txRow->addStretch();  // Push center elements away from A
-    txRow->addSpacing(15);  // Extra spacing for filter UI room
+    txRow->addStretch();   // Push center elements away from A
+    txRow->addSpacing(15); // Extra spacing for filter UI room
 
     // Left triangle space - visible when split is OFF (pointing at A)
     // Uses fixed size container to maintain space even when hidden
@@ -493,17 +465,17 @@ void MainWindow::setupVfoSection(QWidget *parent)
 
     // Right triangle space - visible when split is ON (pointing at B)
     // Uses fixed size container to maintain space even when hidden
-    m_txTriangleB = new QLabel("", centerWidget);  // Empty by default
+    m_txTriangleB = new QLabel("", centerWidget); // Empty by default
     m_txTriangleB->setFixedSize(24, 24);
     m_txTriangleB->setAlignment(Qt::AlignCenter);
     m_txTriangleB->setStyleSheet(QString("color: %1; font-size: 18px;").arg(K4Colors::VfoAAmber));
     txRow->addWidget(m_txTriangleB);
-    txRow->addSpacing(15);  // Extra spacing for filter UI room
-    txRow->addStretch();  // Push center elements away from B
+    txRow->addSpacing(15); // Extra spacing for filter UI room
+    txRow->addStretch();   // Push center elements away from B
 
     // B column: square + mode below (in fixed-width container for proper centering)
     auto *vfoBContainer = new QWidget(centerWidget);
-    vfoBContainer->setFixedWidth(45);  // Match mode label width for consistent centering
+    vfoBContainer->setFixedWidth(45); // Match mode label width for consistent centering
     auto *vfoBColumn = new QVBoxLayout(vfoBContainer);
     vfoBColumn->setContentsMargins(0, 0, 0, 0);
     vfoBColumn->setSpacing(2);
@@ -511,12 +483,13 @@ void MainWindow::setupVfoSection(QWidget *parent)
     m_vfoBSquare = new QLabel("B", vfoBContainer);
     m_vfoBSquare->setFixedSize(30, 30);
     m_vfoBSquare->setAlignment(Qt::AlignCenter);
-    m_vfoBSquare->setStyleSheet(QString("background-color: %1; color: %2; font-size: 16px; font-weight: bold; border-radius: 4px;")
-                                 .arg(K4Colors::AgcGreen, K4Colors::DarkBackground));
+    m_vfoBSquare->setStyleSheet(
+        QString("background-color: %1; color: %2; font-size: 16px; font-weight: bold; border-radius: 4px;")
+            .arg(K4Colors::AgcGreen, K4Colors::DarkBackground));
     vfoBColumn->addWidget(m_vfoBSquare, 0, Qt::AlignHCenter);
 
     m_modeBLabel = new QLabel("USB", vfoBContainer);
-    m_modeBLabel->setFixedWidth(45);  // Wide enough for "DATA-R"
+    m_modeBLabel->setFixedWidth(45); // Wide enough for "DATA-R"
     m_modeBLabel->setAlignment(Qt::AlignCenter);
     m_modeBLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::TextWhite));
     vfoBColumn->addWidget(m_modeBLabel, 0, Qt::AlignHCenter);
@@ -571,7 +544,8 @@ void MainWindow::setupVfoSection(QWidget *parent)
 
     m_ritXitValueLabel = new QLabel("+0.00", m_ritXitBox);
     m_ritXitValueLabel->setAlignment(Qt::AlignCenter);
-    m_ritXitValueLabel->setStyleSheet(QString("color: %1; font-size: 14px; font-weight: bold; border: none;").arg(K4Colors::TextWhite));
+    m_ritXitValueLabel->setStyleSheet(
+        QString("color: %1; font-size: 14px; font-weight: bold; border: none;").arg(K4Colors::TextWhite));
     ritXitLayout->addWidget(m_ritXitValueLabel);
 
     centerLayout->addWidget(m_ritXitBox, 0, Qt::AlignHCenter);
@@ -583,9 +557,7 @@ void MainWindow::setupVfoSection(QWidget *parent)
     m_vfoB = new VFOWidget(VFOWidget::VFO_B, parent);
 
     // Connect VFO B click to toggle mini-pan
-    connect(m_vfoB, &VFOWidget::normalContentClicked, this, [this]() {
-        m_vfoB->showMiniPan();
-    });
+    connect(m_vfoB, &VFOWidget::normalContentClicked, this, [this]() { m_vfoB->showMiniPan(); });
 
     layout->addWidget(m_vfoB, 1);
 
@@ -603,7 +575,7 @@ void MainWindow::setupVfoSection(QWidget *parent)
     m_rxAntALabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::TextWhite));
     antennaRow->addWidget(m_rxAntALabel);
 
-    antennaRow->addStretch(1);  // Push RX A left, TX to center
+    antennaRow->addStretch(1); // Push RX A left, TX to center
 
     // VOX indicator - orange when on, grey when off
     m_voxLabel = new QLabel("VOX", parent);
@@ -611,7 +583,7 @@ void MainWindow::setupVfoSection(QWidget *parent)
     m_voxLabel->setStyleSheet("color: #999999; font-size: 11px; font-weight: bold;");
     antennaRow->addWidget(m_voxLabel);
 
-    antennaRow->addSpacing(40);  // ~6 character spacing between VOX and TX antenna
+    antennaRow->addSpacing(40); // ~6 character spacing between VOX and TX antenna
 
     // TX Antenna - orange color, centered
     m_txAntennaLabel = new QLabel("1:ANT1", parent);
@@ -619,7 +591,7 @@ void MainWindow::setupVfoSection(QWidget *parent)
     m_txAntennaLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::VfoAAmber));
     antennaRow->addWidget(m_txAntennaLabel);
 
-    antennaRow->addStretch(1);  // Push TX center, RX B right
+    antennaRow->addStretch(1); // Push TX center, RX B right
 
     // RX Antenna B (Sub) - white color, right side
     m_rxAntBLabel = new QLabel("1:ANT1", parent);
@@ -630,8 +602,7 @@ void MainWindow::setupVfoSection(QWidget *parent)
     mainVLayout->addLayout(antennaRow);
 }
 
-void MainWindow::setupSpectrumPlaceholder(QWidget *parent)
-{
+void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     // Container for spectrum displays
     m_spectrumContainer = new QWidget(parent);
     m_spectrumContainer->setStyleSheet(QString("background-color: %1;").arg(K4Colors::DarkBackground));
@@ -685,7 +656,7 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent)
     // Uses OPTIMISTIC UPDATES like K4Mobile - update local state immediately
     connect(m_spanDownBtn, &QPushButton::clicked, this, [this]() {
         int currentSpan = m_radioState->spanHz();
-        int newSpan = currentSpan - 1000;  // -1 kHz
+        int newSpan = currentSpan - 1000; // -1 kHz
         qDebug() << "Span- clicked: current=" << currentSpan << "new=" << newSpan;
         if (newSpan >= 5000) {
             // OPTIMISTIC UPDATE: Update local state immediately (like K4Mobile)
@@ -700,7 +671,7 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent)
 
     connect(m_spanUpBtn, &QPushButton::clicked, this, [this]() {
         int currentSpan = m_radioState->spanHz();
-        int newSpan = currentSpan + 1000;  // +1 kHz
+        int newSpan = currentSpan + 1000; // +1 kHz
         qDebug() << "Span+ clicked: current=" << currentSpan << "new=" << newSpan;
         if (newSpan <= 368000) {
             // OPTIMISTIC UPDATE: Update local state immediately
@@ -721,21 +692,14 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent)
     m_panadapterA->installEventFilter(this);
 
     // Update panadapter when frequency/mode changes
-    connect(m_radioState, &RadioState::frequencyChanged, this, [this](quint64 freq) {
-        m_panadapterA->setTunedFrequency(freq);
-    });
-    connect(m_radioState, &RadioState::modeChanged, this, [this](RadioState::Mode mode) {
-        m_panadapterA->setMode(RadioState::modeToString(mode));
-    });
-    connect(m_radioState, &RadioState::filterBandwidthChanged, this, [this](int bw) {
-        m_panadapterA->setFilterBandwidth(bw);
-    });
-    connect(m_radioState, &RadioState::ifShiftChanged, this, [this](int shift) {
-        m_panadapterA->setIfShift(shift);
-    });
-    connect(m_radioState, &RadioState::cwPitchChanged, this, [this](int pitch) {
-        m_panadapterA->setCwPitch(pitch);
-    });
+    connect(m_radioState, &RadioState::frequencyChanged, this,
+            [this](quint64 freq) { m_panadapterA->setTunedFrequency(freq); });
+    connect(m_radioState, &RadioState::modeChanged, this,
+            [this](RadioState::Mode mode) { m_panadapterA->setMode(RadioState::modeToString(mode)); });
+    connect(m_radioState, &RadioState::filterBandwidthChanged, this,
+            [this](int bw) { m_panadapterA->setFilterBandwidth(bw); });
+    connect(m_radioState, &RadioState::ifShiftChanged, this, [this](int shift) { m_panadapterA->setIfShift(shift); });
+    connect(m_radioState, &RadioState::cwPitchChanged, this, [this](int pitch) { m_panadapterA->setCwPitch(pitch); });
 
     // Notch filter visualization
     connect(m_radioState, &RadioState::notchChanged, this, [this]() {
@@ -745,18 +709,17 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent)
         // Update mini-pan too
         m_vfoA->miniPan()->setNotchFilter(enabled, pitch);
         // Update NTCH indicator in VFO processing row
-        m_vfoA->setNotch(m_radioState->autoNotchEnabled(),
-                         m_radioState->manualNotchEnabled());
+        m_vfoA->setNotch(m_radioState->autoNotchEnabled(), m_radioState->manualNotchEnabled());
     });
     // Also update mini-pan mode when mode changes
-    connect(m_radioState, &RadioState::modeChanged, this, [this](RadioState::Mode mode) {
-        m_vfoA->miniPan()->setMode(RadioState::modeToString(mode));
-    });
+    connect(m_radioState, &RadioState::modeChanged, this,
+            [this](RadioState::Mode mode) { m_vfoA->miniPan()->setMode(RadioState::modeToString(mode)); });
 
     // Mouse control: click to tune
     connect(m_panadapterA, &PanadapterWidget::frequencyClicked, this, [this](qint64 freq) {
         // Guard: only send if connected and frequency is valid
-        if (!m_tcpClient->isConnected() || freq <= 0) return;
+        if (!m_tcpClient->isConnected() || freq <= 0)
+            return;
         QString cmd = QString("FA%1;").arg(freq, 11, 10, QChar('0'));
         m_tcpClient->sendCAT(cmd);
         // Request frequency back to update UI (K4 doesn't echo SET commands)
@@ -766,7 +729,8 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent)
     // Mouse control: scroll wheel to adjust frequency using K4's native step
     connect(m_panadapterA, &PanadapterWidget::frequencyScrolled, this, [this](int steps) {
         // Guard: only send if connected
-        if (!m_tcpClient->isConnected()) return;
+        if (!m_tcpClient->isConnected())
+            return;
         // Use UP/DN commands - respects K4's current VFO step size
         QString cmd = (steps > 0) ? "UP;" : "DN;";
         int count = qAbs(steps);
@@ -778,26 +742,21 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent)
     });
 
     // VFO B connections for future use
-    connect(m_radioState, &RadioState::frequencyBChanged, this, [this](quint64 freq) {
-        m_panadapterB->setTunedFrequency(freq);
-    });
-    connect(m_radioState, &RadioState::modeBChanged, this, [this](RadioState::Mode mode) {
-        m_panadapterB->setMode(RadioState::modeToString(mode));
-    });
-    connect(m_radioState, &RadioState::filterBandwidthBChanged, this, [this](int bw) {
-        m_panadapterB->setFilterBandwidth(bw);
-    });
+    connect(m_radioState, &RadioState::frequencyBChanged, this,
+            [this](quint64 freq) { m_panadapterB->setTunedFrequency(freq); });
+    connect(m_radioState, &RadioState::modeBChanged, this,
+            [this](RadioState::Mode mode) { m_panadapterB->setMode(RadioState::modeToString(mode)); });
+    connect(m_radioState, &RadioState::filterBandwidthBChanged, this,
+            [this](int bw) { m_panadapterB->setFilterBandwidth(bw); });
 }
 
-void MainWindow::updateDateTime()
-{
+void MainWindow::updateDateTime() {
     QDateTime now = QDateTime::currentDateTimeUtc();
     m_dateTimeLabel->setText(now.toString("M-dd / HH:mm:ss") + " Z");
     m_sideControlPanel->setTime(now.toString("HH:mm:ss") + " Z");
 }
 
-QString MainWindow::formatFrequency(quint64 freq)
-{
+QString MainWindow::formatFrequency(quint64 freq) {
     QString freqStr = QString::number(freq);
     while (freqStr.length() < 8) {
         freqStr.prepend('0');
@@ -821,16 +780,13 @@ QString MainWindow::formatFrequency(quint64 freq)
     return formatted;
 }
 
-void MainWindow::showRadioManager()
-{
+void MainWindow::showRadioManager() {
     RadioManagerDialog dialog(this);
-    connect(&dialog, &RadioManagerDialog::connectRequested,
-            this, &MainWindow::connectToRadio);
+    connect(&dialog, &RadioManagerDialog::connectRequested, this, &MainWindow::connectToRadio);
     dialog.exec();
 }
 
-void MainWindow::connectToRadio(const RadioEntry &radio)
-{
+void MainWindow::connectToRadio(const RadioEntry &radio) {
     if (m_tcpClient->isConnected()) {
         m_tcpClient->disconnectFromHost();
     }
@@ -842,29 +798,25 @@ void MainWindow::connectToRadio(const RadioEntry &radio)
     m_tcpClient->connectToHost(radio.host, radio.port, radio.password);
 }
 
-void MainWindow::onConnectClicked()
-{
+void MainWindow::onConnectClicked() {
     showRadioManager();
 }
 
-void MainWindow::onDisconnectClicked()
-{
+void MainWindow::onDisconnectClicked() {
     m_tcpClient->disconnectFromHost();
 }
 
-void MainWindow::onStateChanged(TcpClient::ConnectionState state)
-{
+void MainWindow::onStateChanged(TcpClient::ConnectionState state) {
     updateConnectionState(state);
 }
 
-void MainWindow::onError(const QString &error)
-{
+void MainWindow::onError(const QString &error) {
     m_connectionStatusLabel->setText("Error: " + error);
-    m_connectionStatusLabel->setStyleSheet(QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Colors::TxRed));
+    m_connectionStatusLabel->setStyleSheet(
+        QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Colors::TxRed));
 }
 
-void MainWindow::onAuthenticated()
-{
+void MainWindow::onAuthenticated() {
     qDebug() << "Successfully authenticated with K4 radio";
 
     // Start audio engine for RX audio
@@ -877,15 +829,14 @@ void MainWindow::onAuthenticated()
     }
 }
 
-void MainWindow::onAuthenticationFailed()
-{
+void MainWindow::onAuthenticationFailed() {
     qDebug() << "Authentication failed";
     m_connectionStatusLabel->setText("Auth Failed");
-    m_connectionStatusLabel->setStyleSheet(QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Colors::TxRed));
+    m_connectionStatusLabel->setStyleSheet(
+        QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Colors::TxRed));
 }
 
-void MainWindow::onCatResponse(const QString &response)
-{
+void MainWindow::onCatResponse(const QString &response) {
     // Parse CAT commands (may contain multiple commands separated by ;)
     QStringList commands = response.split(';', Qt::SkipEmptyParts);
     for (const QString &cmd : commands) {
@@ -911,50 +862,41 @@ void MainWindow::onCatResponse(const QString &response)
     }
 }
 
-void MainWindow::onFrequencyChanged(quint64 freq)
-{
+void MainWindow::onFrequencyChanged(quint64 freq) {
     m_vfoA->setFrequency(formatFrequency(freq));
 }
 
-void MainWindow::onFrequencyBChanged(quint64 freq)
-{
+void MainWindow::onFrequencyBChanged(quint64 freq) {
     m_vfoB->setFrequency(formatFrequency(freq));
 }
 
-void MainWindow::onModeChanged(RadioState::Mode mode)
-{
+void MainWindow::onModeChanged(RadioState::Mode mode) {
     m_modeALabel->setText(RadioState::modeToString(mode));
 }
 
-void MainWindow::onModeBChanged(RadioState::Mode mode)
-{
+void MainWindow::onModeBChanged(RadioState::Mode mode) {
     m_modeBLabel->setText(RadioState::modeToString(mode));
 }
 
-void MainWindow::onSMeterChanged(double value)
-{
+void MainWindow::onSMeterChanged(double value) {
     m_vfoA->setSMeterValue(value);
 }
 
-void MainWindow::onSMeterBChanged(double value)
-{
+void MainWindow::onSMeterBChanged(double value) {
     m_vfoB->setSMeterValue(value);
 }
 
-void MainWindow::onBandwidthChanged(int bw)
-{
+void MainWindow::onBandwidthChanged(int bw) {
     Q_UNUSED(bw)
     // Could update a bandwidth display if needed
 }
 
-void MainWindow::onBandwidthBChanged(int bw)
-{
+void MainWindow::onBandwidthBChanged(int bw) {
     Q_UNUSED(bw)
     // Could update a bandwidth display if needed
 }
 
-void MainWindow::updateConnectionState(TcpClient::ConnectionState state)
-{
+void MainWindow::updateConnectionState(TcpClient::ConnectionState state) {
     switch (state) {
     case TcpClient::Disconnected:
         m_connectionStatusLabel->setText("K4 Disconnected");
@@ -968,23 +910,25 @@ void MainWindow::updateConnectionState(TcpClient::ConnectionState state)
 
     case TcpClient::Connecting:
         m_connectionStatusLabel->setText("K4 Connecting...");
-        m_connectionStatusLabel->setStyleSheet(QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Colors::VfoAAmber));
+        m_connectionStatusLabel->setStyleSheet(
+            QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Colors::VfoAAmber));
         break;
 
     case TcpClient::Authenticating:
         m_connectionStatusLabel->setText("K4 Authenticating...");
-        m_connectionStatusLabel->setStyleSheet(QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Colors::VfoAAmber));
+        m_connectionStatusLabel->setStyleSheet(
+            QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Colors::VfoAAmber));
         break;
 
     case TcpClient::Connected:
         m_connectionStatusLabel->setText("K4 Connected");
-        m_connectionStatusLabel->setStyleSheet(QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Colors::AgcGreen));
+        m_connectionStatusLabel->setStyleSheet(
+            QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Colors::AgcGreen));
         break;
     }
 }
 
-void MainWindow::onRfPowerChanged(double watts, bool isQrp)
-{
+void MainWindow::onRfPowerChanged(double watts, bool isQrp) {
     QString powerStr;
     if (isQrp) {
         // QRP mode: 0.0 - 10.0 W, show one decimal
@@ -997,26 +941,22 @@ void MainWindow::onRfPowerChanged(double watts, bool isQrp)
     m_sideControlPanel->setPowerReading(watts);
 }
 
-void MainWindow::onSupplyVoltageChanged(double volts)
-{
+void MainWindow::onSupplyVoltageChanged(double volts) {
     m_voltageLabel->setText(QString("%1 V").arg(volts, 0, 'f', 1));
     m_sideControlPanel->setVoltage(volts);
 }
 
-void MainWindow::onSupplyCurrentChanged(double amps)
-{
+void MainWindow::onSupplyCurrentChanged(double amps) {
     m_currentLabel->setText(QString("%1 A").arg(amps, 0, 'f', 1));
     m_sideControlPanel->setCurrent(amps);
 }
 
-void MainWindow::onSwrChanged(double swr)
-{
+void MainWindow::onSwrChanged(double swr) {
     m_swrLabel->setText(QString("%1:1").arg(swr, 0, 'f', 1));
     m_sideControlPanel->setSwr(swr);
 }
 
-void MainWindow::onSplitChanged(bool enabled)
-{
+void MainWindow::onSplitChanged(bool enabled) {
     if (enabled) {
         m_splitLabel->setText("SPLIT ON");
         m_splitLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::AgcGreen));
@@ -1032,28 +972,27 @@ void MainWindow::onSplitChanged(bool enabled)
     }
 }
 
-void MainWindow::onAntennaChanged(int txAnt, int rxAntMain, int rxAntSub)
-{
+void MainWindow::onAntennaChanged(int txAnt, int rxAntMain, int rxAntSub) {
     // Format RX antenna display based on AR command value
     // AR values 0-3 are special modes, not antenna indices:
     // 0 = Disconnected, 1 = EXT XVTR, 2 = RX uses TX ant, 3 = INT XVTR
     // 4 = RX1, 5 = RX2, 6-7 = ATU antennas
     auto formatRxAntenna = [this, txAnt](int arValue) -> QString {
         switch (arValue) {
-            case 0:  // Disconnected
-                return "OFF";
-            case 1:  // EXT. XVTR IN
-                return "EXT";
-            case 2:  // RX USES TX ANT - show TX antenna
-                return QString("%1:%2").arg(txAnt).arg(m_radioState->antennaName(txAnt));
-            case 3:  // INT. XVTR IN
-                return "INT";
-            case 4:  // RX ANT IN1
-                return QString("RX1:%1").arg(m_radioState->antennaName(4));
-            case 5:  // RX ANT IN2 / ATU RX ANT1
-                return QString("RX2:%1").arg(m_radioState->antennaName(5));
-            default: // ATU antennas (6-7)
-                return QString("ATU%1").arg(arValue - 4);
+        case 0: // Disconnected
+            return "OFF";
+        case 1: // EXT. XVTR IN
+            return "EXT";
+        case 2: // RX USES TX ANT - show TX antenna
+            return QString("%1:%2").arg(txAnt).arg(m_radioState->antennaName(txAnt));
+        case 3: // INT. XVTR IN
+            return "INT";
+        case 4: // RX ANT IN1
+            return QString("RX1:%1").arg(m_radioState->antennaName(4));
+        case 5: // RX ANT IN2 / ATU RX ANT1
+            return QString("RX2:%1").arg(m_radioState->antennaName(5));
+        default: // ATU antennas (6-7)
+            return QString("ATU%1").arg(arValue - 4);
         }
     };
 
@@ -1065,16 +1004,14 @@ void MainWindow::onAntennaChanged(int txAnt, int rxAntMain, int rxAntSub)
     m_rxAntBLabel->setText(formatRxAntenna(rxAntSub));
 }
 
-void MainWindow::onAntennaNameChanged(int index, const QString &name)
-{
+void MainWindow::onAntennaNameChanged(int index, const QString &name) {
     Q_UNUSED(index)
     Q_UNUSED(name)
     // Refresh antenna displays when a name changes
     onAntennaChanged(m_radioState->txAntenna(), m_radioState->rxAntennaMain(), m_radioState->rxAntennaSub());
 }
 
-void MainWindow::onVoxChanged(bool enabled)
-{
+void MainWindow::onVoxChanged(bool enabled) {
     Q_UNUSED(enabled)
     // Use mode-specific VOX state (CW modes use VXC, Voice modes use VXV, Data modes use VXD)
     bool voxOn = m_radioState->voxForCurrentMode();
@@ -1085,18 +1022,19 @@ void MainWindow::onVoxChanged(bool enabled)
     }
 }
 
-void MainWindow::onRitXitChanged(bool ritEnabled, bool xitEnabled, int offset)
-{
+void MainWindow::onRitXitChanged(bool ritEnabled, bool xitEnabled, int offset) {
     // Update RIT label
     if (ritEnabled) {
-        m_ritLabel->setStyleSheet(QString("color: %1; font-size: 10px; font-weight: bold; border: none;").arg(K4Colors::TextWhite));
+        m_ritLabel->setStyleSheet(
+            QString("color: %1; font-size: 10px; font-weight: bold; border: none;").arg(K4Colors::TextWhite));
     } else {
         m_ritLabel->setStyleSheet(QString("color: %1; font-size: 10px; border: none;").arg(K4Colors::InactiveGray));
     }
 
     // Update XIT label
     if (xitEnabled) {
-        m_xitLabel->setStyleSheet(QString("color: %1; font-size: 10px; font-weight: bold; border: none;").arg(K4Colors::TextWhite));
+        m_xitLabel->setStyleSheet(
+            QString("color: %1; font-size: 10px; font-weight: bold; border: none;").arg(K4Colors::TextWhite));
     } else {
         m_xitLabel->setStyleSheet(QString("color: %1; font-size: 10px; border: none;").arg(K4Colors::InactiveGray));
     }
@@ -1107,8 +1045,7 @@ void MainWindow::onRitXitChanged(bool ritEnabled, bool xitEnabled, int offset)
     m_ritXitValueLabel->setText(QString("%1%2").arg(sign).arg(offsetKHz, 0, 'f', 2));
 }
 
-void MainWindow::onMessageBankChanged(int bank)
-{
+void MainWindow::onMessageBankChanged(int bank) {
     if (bank == 1) {
         m_msgBankLabel->setText("MSG: I");
     } else {
@@ -1116,14 +1053,19 @@ void MainWindow::onMessageBankChanged(int bank)
     }
 }
 
-void MainWindow::onProcessingChanged()
-{
+void MainWindow::onProcessingChanged() {
     // AGC
     QString agcText;
     switch (m_radioState->agcSpeed()) {
-        case RadioState::AGC_Off: agcText = "AGC"; break;
-        case RadioState::AGC_Slow: agcText = "AGC-S"; break;
-        case RadioState::AGC_Fast: agcText = "AGC-F"; break;
+    case RadioState::AGC_Off:
+        agcText = "AGC";
+        break;
+    case RadioState::AGC_Slow:
+        agcText = "AGC-S";
+        break;
+    case RadioState::AGC_Fast:
+        agcText = "AGC-F";
+        break;
     }
     m_vfoA->setAGC(agcText);
 
@@ -1140,14 +1082,19 @@ void MainWindow::onProcessingChanged()
     m_vfoA->setNR(m_radioState->noiseReductionEnabled());
 }
 
-void MainWindow::onProcessingChangedB()
-{
+void MainWindow::onProcessingChangedB() {
     // AGC
     QString agcText;
     switch (m_radioState->agcSpeedB()) {
-        case RadioState::AGC_Off: agcText = "AGC"; break;
-        case RadioState::AGC_Slow: agcText = "AGC-S"; break;
-        case RadioState::AGC_Fast: agcText = "AGC-F"; break;
+    case RadioState::AGC_Off:
+        agcText = "AGC";
+        break;
+    case RadioState::AGC_Slow:
+        agcText = "AGC-S";
+        break;
+    case RadioState::AGC_Fast:
+        agcText = "AGC-F";
+        break;
     }
     m_vfoB->setAGC(agcText);
 
@@ -1164,8 +1111,8 @@ void MainWindow::onProcessingChangedB()
     m_vfoB->setNR(m_radioState->noiseReductionEnabledB());
 }
 
-void MainWindow::onSpectrumData(int receiver, const QByteArray &data, qint64 centerFreq, qint32 sampleRate, float noiseFloor)
-{
+void MainWindow::onSpectrumData(int receiver, const QByteArray &data, qint64 centerFreq, qint32 sampleRate,
+                                float noiseFloor) {
     // Route spectrum data to appropriate panadapter
     // receiver: 0 = Main (VFO A), 1 = Sub (VFO B)
     if (receiver == 0) {
@@ -1175,8 +1122,7 @@ void MainWindow::onSpectrumData(int receiver, const QByteArray &data, qint64 cen
     }
 }
 
-void MainWindow::onMiniSpectrumData(int receiver, const QByteArray &data)
-{
+void MainWindow::onMiniSpectrumData(int receiver, const QByteArray &data) {
     // Feed MiniPAN data to mini-pan widget when visible
     if (receiver == 0 && m_vfoA->isMiniPanVisible()) {
         m_vfoA->updateMiniPan(data);
@@ -1186,8 +1132,7 @@ void MainWindow::onMiniSpectrumData(int receiver, const QByteArray &data)
     }
 }
 
-void MainWindow::onAudioData(const QByteArray &payload)
-{
+void MainWindow::onAudioData(const QByteArray &payload) {
     // Only process audio when connected
     if (!m_tcpClient->isConnected()) {
         return;
@@ -1202,11 +1147,10 @@ void MainWindow::onAudioData(const QByteArray &payload)
     }
 }
 
-bool MainWindow::eventFilter(QObject *watched, QEvent *event)
-{
+bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
     // Reposition span control buttons when panadapter resizes
     if (watched == m_panadapterA && event->type() == QEvent::Resize) {
-        QResizeEvent *resizeEvent = static_cast<QResizeEvent*>(event);
+        QResizeEvent *resizeEvent = static_cast<QResizeEvent *>(event);
         int w = resizeEvent->size().width();
         int h = resizeEvent->size().height();
 
@@ -1220,14 +1164,11 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
     return QMainWindow::eventFilter(watched, event);
 }
 
-void MainWindow::showMenuOverlay()
-{
+void MainWindow::showMenuOverlay() {
     // Position overlay over the spectrum container
     if (m_spectrumContainer && m_menuOverlay) {
         QPoint pos = m_spectrumContainer->mapTo(this, QPoint(0, 0));
-        m_menuOverlay->setGeometry(pos.x(), pos.y(),
-                                    m_spectrumContainer->width(),
-                                    m_spectrumContainer->height());
+        m_menuOverlay->setGeometry(pos.x(), pos.y(), m_spectrumContainer->width(), m_spectrumContainer->height());
         m_menuOverlay->show();
         m_menuOverlay->raise();
 
@@ -1238,8 +1179,7 @@ void MainWindow::showMenuOverlay()
     }
 }
 
-void MainWindow::onMenuValueChangeRequested(int menuId, const QString &action)
-{
+void MainWindow::onMenuValueChangeRequested(int menuId, const QString &action) {
     // Build and send ME command
     // action: "+" = increment, "-" = decrement, "/" = toggle
     QString cmd = QString("ME%1.%2;").arg(menuId, 4, 10, QChar('0')).arg(action);
@@ -1266,15 +1206,13 @@ void MainWindow::onMenuValueChangeRequested(int menuId, const QString &action)
     }
 }
 
-void MainWindow::showBandPopup()
-{
+void MainWindow::showBandPopup() {
     if (m_bandPopup && m_bottomMenuBar) {
         m_bandPopup->showAboveButton(m_bottomMenuBar->bandButton());
     }
 }
 
-void MainWindow::onBandSelected(const QString &bandName)
-{
+void MainWindow::onBandSelected(const QString &bandName) {
     qDebug() << "Band selected:" << bandName;
 
     // Get band number from name
@@ -1302,8 +1240,7 @@ void MainWindow::onBandSelected(const QString &bandName)
     }
 }
 
-void MainWindow::updateBandSelection(int bandNum)
-{
+void MainWindow::updateBandSelection(int bandNum) {
     qDebug() << "Band number updated:" << bandNum;
     m_currentBandNum = bandNum;
 
@@ -1315,68 +1252,72 @@ void MainWindow::updateBandSelection(int bandNum)
 
 // ============== KPOD Event Handlers ==============
 
-void MainWindow::onKpodEncoderRotated(int ticks)
-{
+void MainWindow::onKpodEncoderRotated(int ticks) {
     if (!m_tcpClient->isConnected()) {
         return;
     }
 
     // Action depends on rocker position
     switch (m_kpodDevice->rockerPosition()) {
-        case KpodDevice::RockerLeft:  // VFO A
-            // Tune VFO A using UP/DN commands
-            {
-                QString cmd = (ticks > 0) ? "UP;" : "DN;";
-                int count = qAbs(ticks);
-                for (int i = 0; i < count; i++) {
-                    m_tcpClient->sendCAT(cmd);
-                }
+    case KpodDevice::RockerLeft: // VFO A
+        // Tune VFO A using UP/DN commands
+        {
+            QString cmd = (ticks > 0) ? "UP;" : "DN;";
+            int count = qAbs(ticks);
+            for (int i = 0; i < count; i++) {
+                m_tcpClient->sendCAT(cmd);
             }
-            break;
+        }
+        break;
 
-        case KpodDevice::RockerCenter:  // VFO B
-            // Tune VFO B using UP$/DN$ commands (Sub RX)
-            {
-                QString cmd = (ticks > 0) ? "UP$;" : "DN$;";
-                int count = qAbs(ticks);
-                for (int i = 0; i < count; i++) {
-                    m_tcpClient->sendCAT(cmd);
-                }
+    case KpodDevice::RockerCenter: // VFO B
+        // Tune VFO B using UP$/DN$ commands (Sub RX)
+        {
+            QString cmd = (ticks > 0) ? "UP$;" : "DN$;";
+            int count = qAbs(ticks);
+            for (int i = 0; i < count; i++) {
+                m_tcpClient->sendCAT(cmd);
             }
-            break;
+        }
+        break;
 
-        case KpodDevice::RockerRight:  // RIT/XIT
-            // Adjust RIT/XIT offset using RU/RD commands
-            {
-                QString cmd = (ticks > 0) ? "RU;" : "RD;";
-                int count = qAbs(ticks);
-                for (int i = 0; i < count; i++) {
-                    m_tcpClient->sendCAT(cmd);
-                }
+    case KpodDevice::RockerRight: // RIT/XIT
+        // Adjust RIT/XIT offset using RU/RD commands
+        {
+            QString cmd = (ticks > 0) ? "RU;" : "RD;";
+            int count = qAbs(ticks);
+            for (int i = 0; i < count; i++) {
+                m_tcpClient->sendCAT(cmd);
             }
-            break;
+        }
+        break;
     }
 }
 
-void MainWindow::onKpodRockerChanged(int position)
-{
+void MainWindow::onKpodRockerChanged(int position) {
     QString posName;
     switch (static_cast<KpodDevice::RockerPosition>(position)) {
-        case KpodDevice::RockerLeft:   posName = "VFO A"; break;
-        case KpodDevice::RockerCenter: posName = "VFO B"; break;
-        case KpodDevice::RockerRight:  posName = "XIT/RIT"; break;
-        default: posName = "Unknown"; break;
+    case KpodDevice::RockerLeft:
+        posName = "VFO A";
+        break;
+    case KpodDevice::RockerCenter:
+        posName = "VFO B";
+        break;
+    case KpodDevice::RockerRight:
+        posName = "XIT/RIT";
+        break;
+    default:
+        posName = "Unknown";
+        break;
     }
     qDebug() << "KPOD rocker changed to:" << posName;
 }
 
-void MainWindow::onKpodPollError(const QString &error)
-{
+void MainWindow::onKpodPollError(const QString &error) {
     qWarning() << "KPOD error:" << error;
 }
 
-void MainWindow::onKpodEnabledChanged(bool enabled)
-{
+void MainWindow::onKpodEnabledChanged(bool enabled) {
     if (enabled) {
         if (m_kpodDevice->isDetected()) {
             m_kpodDevice->startPolling();
@@ -1388,8 +1329,7 @@ void MainWindow::onKpodEnabledChanged(bool enabled)
 
 // ============== KPA1500 Amplifier Slots ==============
 
-void MainWindow::onKpa1500Connected()
-{
+void MainWindow::onKpa1500Connected() {
     qDebug() << "KPA1500: Connected to amplifier";
     // Start polling with configured interval
     int pollInterval = RadioSettings::instance()->kpa1500PollInterval();
@@ -1397,26 +1337,21 @@ void MainWindow::onKpa1500Connected()
     updateKpa1500Status();
 }
 
-void MainWindow::onKpa1500Disconnected()
-{
+void MainWindow::onKpa1500Disconnected() {
     qDebug() << "KPA1500: Disconnected from amplifier";
     updateKpa1500Status();
 }
 
-void MainWindow::onKpa1500Error(const QString &error)
-{
+void MainWindow::onKpa1500Error(const QString &error) {
     qWarning() << "KPA1500: Error -" << error;
 }
 
-void MainWindow::onKpa1500EnabledChanged(bool enabled)
-{
+void MainWindow::onKpa1500EnabledChanged(bool enabled) {
     if (enabled) {
         // Connect if host is configured
         QString host = RadioSettings::instance()->kpa1500Host();
         if (!host.isEmpty()) {
-            m_kpa1500Client->connectToHost(
-                host,
-                RadioSettings::instance()->kpa1500Port());
+            m_kpa1500Client->connectToHost(host, RadioSettings::instance()->kpa1500Port());
         }
     } else {
         m_kpa1500Client->disconnectFromHost();
@@ -1424,23 +1359,19 @@ void MainWindow::onKpa1500EnabledChanged(bool enabled)
     updateKpa1500Status();
 }
 
-void MainWindow::onKpa1500SettingsChanged()
-{
+void MainWindow::onKpa1500SettingsChanged() {
     // Reconnect with new settings if enabled
     if (RadioSettings::instance()->kpa1500Enabled()) {
         m_kpa1500Client->disconnectFromHost();
         QString host = RadioSettings::instance()->kpa1500Host();
         if (!host.isEmpty()) {
-            m_kpa1500Client->connectToHost(
-                host,
-                RadioSettings::instance()->kpa1500Port());
+            m_kpa1500Client->connectToHost(host, RadioSettings::instance()->kpa1500Port());
         }
     }
     updateKpa1500Status();
 }
 
-void MainWindow::updateKpa1500Status()
-{
+void MainWindow::updateKpa1500Status() {
     bool enabled = RadioSettings::instance()->kpa1500Enabled();
     bool connected = m_kpa1500Client && m_kpa1500Client->isConnected();
 
@@ -1451,13 +1382,11 @@ void MainWindow::updateKpa1500Status()
         if (connected) {
             m_kpa1500StatusLabel->setText("KPA1500 Connected");
             m_kpa1500StatusLabel->setStyleSheet(
-                QString("color: %1; font-size: 12px; font-weight: bold;")
-                .arg(K4Colors::AgcGreen));
+                QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Colors::AgcGreen));
         } else {
             m_kpa1500StatusLabel->setText("KPA1500 Not Connected");
             m_kpa1500StatusLabel->setStyleSheet(
-                QString("color: %1; font-size: 12px; font-weight: bold;")
-                .arg(K4Colors::TxRed));
+                QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Colors::TxRed));
         }
     }
 }

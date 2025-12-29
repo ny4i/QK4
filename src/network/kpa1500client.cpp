@@ -6,12 +6,8 @@ const QString KPA1500Client::POLL_COMMANDS =
     "^BN;^WS;^TM;^FS;^OS;^VI;^FC;^ON;^FL;^AN;^IP;^SN;^PC;^VM1;^VM2;^VM3;^VM5;^LR;^CR;^PWF;^PWR;^PWD;";
 
 KPA1500Client::KPA1500Client(QObject *parent)
-    : QObject(parent)
-    , m_socket(new QTcpSocket(this))
-    , m_pollTimer(new QTimer(this))
-    , m_port(1500)
-    , m_state(Disconnected)
-{
+    : QObject(parent), m_socket(new QTcpSocket(this)), m_pollTimer(new QTimer(this)), m_port(1500),
+      m_state(Disconnected) {
     connect(m_socket, &QTcpSocket::connected, this, &KPA1500Client::onSocketConnected);
     connect(m_socket, &QTcpSocket::disconnected, this, &KPA1500Client::onSocketDisconnected);
     connect(m_socket, &QTcpSocket::readyRead, this, &KPA1500Client::onReadyRead);
@@ -19,14 +15,12 @@ KPA1500Client::KPA1500Client(QObject *parent)
     connect(m_pollTimer, &QTimer::timeout, this, &KPA1500Client::onPollTimer);
 }
 
-KPA1500Client::~KPA1500Client()
-{
+KPA1500Client::~KPA1500Client() {
     stopPolling();
     disconnectFromHost();
 }
 
-void KPA1500Client::connectToHost(const QString &host, quint16 port)
-{
+void KPA1500Client::connectToHost(const QString &host, quint16 port) {
     if (m_state != Disconnected) {
         disconnectFromHost();
     }
@@ -39,8 +33,7 @@ void KPA1500Client::connectToHost(const QString &host, quint16 port)
     m_socket->connectToHost(host, port);
 }
 
-void KPA1500Client::disconnectFromHost()
-{
+void KPA1500Client::disconnectFromHost() {
     stopPolling();
     if (m_socket->state() != QAbstractSocket::UnconnectedState) {
         m_socket->disconnectFromHost();
@@ -51,18 +44,15 @@ void KPA1500Client::disconnectFromHost()
     setState(Disconnected);
 }
 
-bool KPA1500Client::isConnected() const
-{
+bool KPA1500Client::isConnected() const {
     return m_state == Connected;
 }
 
-KPA1500Client::ConnectionState KPA1500Client::connectionState() const
-{
+KPA1500Client::ConnectionState KPA1500Client::connectionState() const {
     return m_state;
 }
 
-void KPA1500Client::sendCommand(const QString &command)
-{
+void KPA1500Client::sendCommand(const QString &command) {
     if (m_state != Connected) {
         qWarning() << "KPA1500Client: Cannot send command, not connected";
         return;
@@ -73,8 +63,7 @@ void KPA1500Client::sendCommand(const QString &command)
     m_socket->flush();
 }
 
-void KPA1500Client::startPolling(int intervalMs)
-{
+void KPA1500Client::startPolling(int intervalMs) {
     if (m_state == Connected && intervalMs > 0) {
         m_pollTimer->start(intervalMs);
         // Send initial poll immediately
@@ -82,36 +71,31 @@ void KPA1500Client::startPolling(int intervalMs)
     }
 }
 
-void KPA1500Client::stopPolling()
-{
+void KPA1500Client::stopPolling() {
     m_pollTimer->stop();
 }
 
-void KPA1500Client::setState(ConnectionState state)
-{
+void KPA1500Client::setState(ConnectionState state) {
     if (m_state != state) {
         m_state = state;
         emit stateChanged(state);
     }
 }
 
-void KPA1500Client::onSocketConnected()
-{
+void KPA1500Client::onSocketConnected() {
     qDebug() << "KPA1500Client: Connected to" << m_host << ":" << m_port;
     setState(Connected);
     emit connected();
 }
 
-void KPA1500Client::onSocketDisconnected()
-{
+void KPA1500Client::onSocketDisconnected() {
     qDebug() << "KPA1500Client: Disconnected";
     stopPolling();
     setState(Disconnected);
     emit disconnected();
 }
 
-void KPA1500Client::onReadyRead()
-{
+void KPA1500Client::onReadyRead() {
     QByteArray data = m_socket->readAll();
     m_receiveBuffer.append(QString::fromLatin1(data));
 
@@ -119,8 +103,7 @@ void KPA1500Client::onReadyRead()
     parseResponse(m_receiveBuffer);
 }
 
-void KPA1500Client::onSocketError(QAbstractSocket::SocketError error)
-{
+void KPA1500Client::onSocketError(QAbstractSocket::SocketError error) {
     Q_UNUSED(error)
     QString errorString = m_socket->errorString();
     qWarning() << "KPA1500Client: Socket error:" << errorString;
@@ -130,15 +113,13 @@ void KPA1500Client::onSocketError(QAbstractSocket::SocketError error)
     setState(Disconnected);
 }
 
-void KPA1500Client::onPollTimer()
-{
+void KPA1500Client::onPollTimer() {
     if (m_state == Connected) {
         sendCommand(POLL_COMMANDS);
     }
 }
 
-void KPA1500Client::parseResponse(const QString &response)
-{
+void KPA1500Client::parseResponse(const QString &response) {
     // Split by ';' and process each complete response
     int pos = 0;
     int endPos;
@@ -153,8 +134,7 @@ void KPA1500Client::parseResponse(const QString &response)
     m_receiveBuffer = response.mid(pos);
 }
 
-void KPA1500Client::parseSingleResponse(const QString &response)
-{
+void KPA1500Client::parseSingleResponse(const QString &response) {
     // KPA1500 responses start with '^' and end with ';'
     if (!response.startsWith('^') || !response.endsWith(';')) {
         return;

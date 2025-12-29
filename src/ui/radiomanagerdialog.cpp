@@ -4,20 +4,15 @@
 #include <QGridLayout>
 #include <QLabel>
 
-RadioManagerDialog::RadioManagerDialog(QWidget *parent)
-    : QDialog(parent)
-    , m_currentIndex(-1)
-{
+RadioManagerDialog::RadioManagerDialog(QWidget *parent) : QDialog(parent), m_currentIndex(-1) {
     setupUi();
     refreshList();
     updateButtonStates();
 
-    connect(RadioSettings::instance(), &RadioSettings::radiosChanged,
-            this, &RadioManagerDialog::refreshList);
+    connect(RadioSettings::instance(), &RadioSettings::radiosChanged, this, &RadioManagerDialog::refreshList);
 }
 
-void RadioManagerDialog::setupUi()
-{
+void RadioManagerDialog::setupUi() {
     setWindowTitle("Server Manager");
     setFixedSize(580, 360);
 
@@ -37,33 +32,29 @@ void RadioManagerDialog::setupUi()
     leftSection->setSpacing(8);
 
     auto *serversTitle = new QLabel("Available Servers", this);
-    serversTitle->setStyleSheet(
-        "QLabel { color: #FFD700; font-weight: bold; font-size: 14px; }"
-    );
+    serversTitle->setStyleSheet("QLabel { color: #FFD700; font-weight: bold; font-size: 14px; }");
     leftSection->addWidget(serversTitle);
 
     m_radioList = new QListWidget(this);
     m_radioList->setMinimumWidth(180);
     m_radioList->setMaximumWidth(200);
-    m_radioList->setStyleSheet(
-        "QListWidget { "
-        "  background-color: #3c3c3c; "
-        "  color: #ffffff; "
-        "  border: 1px solid #555555; "
-        "  border-radius: 4px; "
-        "  padding: 4px; "
-        "} "
-        "QListWidget::item { "
-        "  padding: 6px; "
-        "} "
-        "QListWidget::item:selected { "
-        "  background-color: #0078d4; "
-        "  color: #ffffff; "
-        "} "
-        "QListWidget::item:hover { "
-        "  background-color: #4a4a4a; "
-        "}"
-    );
+    m_radioList->setStyleSheet("QListWidget { "
+                               "  background-color: #3c3c3c; "
+                               "  color: #ffffff; "
+                               "  border: 1px solid #555555; "
+                               "  border-radius: 4px; "
+                               "  padding: 4px; "
+                               "} "
+                               "QListWidget::item { "
+                               "  padding: 6px; "
+                               "} "
+                               "QListWidget::item:selected { "
+                               "  background-color: #0078d4; "
+                               "  color: #ffffff; "
+                               "} "
+                               "QListWidget::item:hover { "
+                               "  background-color: #4a4a4a; "
+                               "}");
     leftSection->addWidget(m_radioList);
     topLayout->addLayout(leftSection);
 
@@ -72,9 +63,7 @@ void RadioManagerDialog::setupUi()
     rightSection->setSpacing(8);
 
     auto *editTitle = new QLabel("Edit Connect", this);
-    editTitle->setStyleSheet(
-        "QLabel { color: #FFD700; font-weight: bold; font-size: 14px; }"
-    );
+    editTitle->setStyleSheet("QLabel { color: #FFD700; font-weight: bold; font-size: 14px; }");
     rightSection->addWidget(editTitle);
 
     // Form fields - label on LEFT of text box
@@ -82,15 +71,14 @@ void RadioManagerDialog::setupUi()
     formLayout->setHorizontalSpacing(10);
     formLayout->setVerticalSpacing(10);
 
-    QString lineEditStyle =
-        "QLineEdit { "
-        "  background-color: #3c3c3c; "
-        "  color: #ffffff; "
-        "  border: 1px solid #555555; "
-        "  border-radius: 4px; "
-        "  padding: 6px; "
-        "  min-width: 150px; "
-        "}";
+    QString lineEditStyle = "QLineEdit { "
+                            "  background-color: #3c3c3c; "
+                            "  color: #ffffff; "
+                            "  border: 1px solid #555555; "
+                            "  border-radius: 4px; "
+                            "  padding: 6px; "
+                            "  min-width: 150px; "
+                            "}";
 
     QString labelStyle = "QLabel { color: #cccccc; font-size: 12px; }";
 
@@ -141,39 +129,38 @@ void RadioManagerDialog::setupUi()
 
     // === BOTTOM: Button Row ===
     auto *buttonLayout = new QHBoxLayout();
-    buttonLayout->setSpacing(16);  // More spacing between buttons
+    buttonLayout->setSpacing(16); // More spacing between buttons
 
-    QString buttonStyle =
-        "QPushButton { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 #4a4a4a, stop:0.4 #3a3a3a, "
-        "    stop:0.6 #353535, stop:1 #2a2a2a); "
-        "  color: #FFFFFF; "
-        "  border: 1px solid #606060; "
-        "  border-radius: 5px; "
-        "  padding: 10px 20px; "
-        "  font-size: 12px; "
-        "  font-weight: bold; "
-        "  min-width: 70px; "
-        "} "
-        "QPushButton:hover { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 #5a5a5a, stop:0.4 #4a4a4a, "
-        "    stop:0.6 #454545, stop:1 #3a3a3a); "
-        "  border: 1px solid #808080; "
-        "} "
-        "QPushButton:pressed { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 #2a2a2a, stop:0.4 #353535, "
-        "    stop:0.6 #3a3a3a, stop:1 #4a4a4a); "
-        "  border: 1px solid #909090; "
-        "} "
-        "QPushButton:disabled { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 #3a3a3a, stop:1 #2a2a2a); "
-        "  color: #666666; "
-        "  border: 1px solid #444444; "
-        "}";
+    QString buttonStyle = "QPushButton { "
+                          "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+                          "    stop:0 #4a4a4a, stop:0.4 #3a3a3a, "
+                          "    stop:0.6 #353535, stop:1 #2a2a2a); "
+                          "  color: #FFFFFF; "
+                          "  border: 1px solid #606060; "
+                          "  border-radius: 5px; "
+                          "  padding: 10px 20px; "
+                          "  font-size: 12px; "
+                          "  font-weight: bold; "
+                          "  min-width: 70px; "
+                          "} "
+                          "QPushButton:hover { "
+                          "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+                          "    stop:0 #5a5a5a, stop:0.4 #4a4a4a, "
+                          "    stop:0.6 #454545, stop:1 #3a3a3a); "
+                          "  border: 1px solid #808080; "
+                          "} "
+                          "QPushButton:pressed { "
+                          "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+                          "    stop:0 #2a2a2a, stop:0.4 #353535, "
+                          "    stop:0.6 #3a3a3a, stop:1 #4a4a4a); "
+                          "  border: 1px solid #909090; "
+                          "} "
+                          "QPushButton:disabled { "
+                          "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+                          "    stop:0 #3a3a3a, stop:1 #2a2a2a); "
+                          "  color: #666666; "
+                          "  border: 1px solid #444444; "
+                          "}";
 
     m_connectButton = new QPushButton("Connect", this);
     m_connectButton->setStyleSheet(buttonStyle);
@@ -192,31 +179,30 @@ void RadioManagerDialog::setupUi()
     buttonLayout->addWidget(m_deleteButton);
 
     // Back button - smaller with curved arrow
-    QString backButtonStyle =
-        "QPushButton { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 #4a4a4a, stop:0.4 #3a3a3a, "
-        "    stop:0.6 #353535, stop:1 #2a2a2a); "
-        "  color: #FFFFFF; "
-        "  border: 1px solid #606060; "
-        "  border-radius: 4px; "
-        "  padding: 4px; "
-        "  font-size: 14px; "
-        "} "
-        "QPushButton:hover { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 #5a5a5a, stop:0.4 #4a4a4a, "
-        "    stop:0.6 #454545, stop:1 #3a3a3a); "
-        "  border: 1px solid #808080; "
-        "} "
-        "QPushButton:pressed { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 #2a2a2a, stop:0.4 #353535, "
-        "    stop:0.6 #3a3a3a, stop:1 #4a4a4a); "
-        "  border: 1px solid #909090; "
-        "}";
+    QString backButtonStyle = "QPushButton { "
+                              "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+                              "    stop:0 #4a4a4a, stop:0.4 #3a3a3a, "
+                              "    stop:0.6 #353535, stop:1 #2a2a2a); "
+                              "  color: #FFFFFF; "
+                              "  border: 1px solid #606060; "
+                              "  border-radius: 4px; "
+                              "  padding: 4px; "
+                              "  font-size: 14px; "
+                              "} "
+                              "QPushButton:hover { "
+                              "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+                              "    stop:0 #5a5a5a, stop:0.4 #4a4a4a, "
+                              "    stop:0.6 #454545, stop:1 #3a3a3a); "
+                              "  border: 1px solid #808080; "
+                              "} "
+                              "QPushButton:pressed { "
+                              "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+                              "    stop:0 #2a2a2a, stop:0.4 #353535, "
+                              "    stop:0.6 #3a3a3a, stop:1 #4a4a4a); "
+                              "  border: 1px solid #909090; "
+                              "}";
 
-    m_backButton = new QPushButton(QString::fromUtf8("\xE2\x86\xA9"), this);  // ↩ Curved arrow
+    m_backButton = new QPushButton(QString::fromUtf8("\xE2\x86\xA9"), this); // ↩ Curved arrow
     m_backButton->setStyleSheet(backButtonStyle);
     m_backButton->setFixedSize(36, 36);
     m_backButton->setToolTip("Back / Exit");
@@ -230,19 +216,14 @@ void RadioManagerDialog::setupUi()
     connect(m_saveButton, &QPushButton::clicked, this, &RadioManagerDialog::onSaveClicked);
     connect(m_deleteButton, &QPushButton::clicked, this, &RadioManagerDialog::onDeleteClicked);
     connect(m_backButton, &QPushButton::clicked, this, &RadioManagerDialog::onBackClicked);
-    connect(m_radioList, &QListWidget::itemSelectionChanged,
-            this, &RadioManagerDialog::onSelectionChanged);
-    connect(m_radioList, &QListWidget::itemDoubleClicked,
-            this, &RadioManagerDialog::onItemDoubleClicked);
+    connect(m_radioList, &QListWidget::itemSelectionChanged, this, &RadioManagerDialog::onSelectionChanged);
+    connect(m_radioList, &QListWidget::itemDoubleClicked, this, &RadioManagerDialog::onItemDoubleClicked);
 
     // Update button states when host field changes
-    connect(m_hostEdit, &QLineEdit::textChanged, this, [this]() {
-        updateButtonStates();
-    });
+    connect(m_hostEdit, &QLineEdit::textChanged, this, [this]() { updateButtonStates(); });
 }
 
-void RadioManagerDialog::refreshList()
-{
+void RadioManagerDialog::refreshList() {
     m_radioList->clear();
 
     const auto radios = RadioSettings::instance()->radios();
@@ -260,8 +241,7 @@ void RadioManagerDialog::refreshList()
     updateButtonStates();
 }
 
-void RadioManagerDialog::onConnectClicked()
-{
+void RadioManagerDialog::onConnectClicked() {
     QString host = m_hostEdit->text().trimmed();
     if (!host.isEmpty()) {
         RadioEntry entry;
@@ -279,8 +259,7 @@ void RadioManagerDialog::onConnectClicked()
     }
 }
 
-void RadioManagerDialog::onNewClicked()
-{
+void RadioManagerDialog::onNewClicked() {
     m_currentIndex = -1;
     clearFields();
     m_radioList->clearSelection();
@@ -288,19 +267,18 @@ void RadioManagerDialog::onNewClicked()
     updateButtonStates();
 }
 
-void RadioManagerDialog::onSaveClicked()
-{
+void RadioManagerDialog::onSaveClicked() {
     QString name = m_nameEdit->text().trimmed();
     QString host = m_hostEdit->text().trimmed();
     QString password = m_passwordEdit->text();
     QString portText = m_portEdit->text().trimmed();
 
     if (name.isEmpty()) {
-        name = host;  // Use host as name if no name provided
+        name = host; // Use host as name if no name provided
     }
 
     if (host.isEmpty()) {
-        return;  // Can't save without host
+        return; // Can't save without host
     }
 
     RadioEntry entry;
@@ -325,8 +303,7 @@ void RadioManagerDialog::onSaveClicked()
     updateButtonStates();
 }
 
-void RadioManagerDialog::onDeleteClicked()
-{
+void RadioManagerDialog::onDeleteClicked() {
     if (m_currentIndex >= 0 && m_currentIndex < RadioSettings::instance()->radios().size()) {
         RadioSettings::instance()->removeRadio(m_currentIndex);
         clearFields();
@@ -335,13 +312,11 @@ void RadioManagerDialog::onDeleteClicked()
     updateButtonStates();
 }
 
-void RadioManagerDialog::onBackClicked()
-{
+void RadioManagerDialog::onBackClicked() {
     reject();
 }
 
-void RadioManagerDialog::onSelectionChanged()
-{
+void RadioManagerDialog::onSelectionChanged() {
     int row = m_radioList->currentRow();
     if (row >= 0) {
         m_currentIndex = row;
@@ -350,14 +325,12 @@ void RadioManagerDialog::onSelectionChanged()
     updateButtonStates();
 }
 
-void RadioManagerDialog::onItemDoubleClicked(QListWidgetItem *item)
-{
+void RadioManagerDialog::onItemDoubleClicked(QListWidgetItem *item) {
     Q_UNUSED(item)
     onConnectClicked();
 }
 
-void RadioManagerDialog::updateButtonStates()
-{
+void RadioManagerDialog::updateButtonStates() {
     bool hasSelection = m_currentIndex >= 0 && m_currentIndex < RadioSettings::instance()->radios().size();
     bool hasHost = !m_hostEdit->text().trimmed().isEmpty();
 
@@ -366,16 +339,14 @@ void RadioManagerDialog::updateButtonStates()
     m_saveButton->setEnabled(hasHost);
 }
 
-void RadioManagerDialog::clearFields()
-{
+void RadioManagerDialog::clearFields() {
     m_nameEdit->clear();
     m_hostEdit->clear();
     m_portEdit->clear();
     m_passwordEdit->clear();
 }
 
-void RadioManagerDialog::populateFieldsFromSelection()
-{
+void RadioManagerDialog::populateFieldsFromSelection() {
     if (m_currentIndex >= 0 && m_currentIndex < RadioSettings::instance()->radios().size()) {
         const RadioEntry &radio = RadioSettings::instance()->radios().at(m_currentIndex);
         m_nameEdit->setText(radio.name);
@@ -385,15 +356,13 @@ void RadioManagerDialog::populateFieldsFromSelection()
     }
 }
 
-RadioEntry RadioManagerDialog::selectedRadio() const
-{
+RadioEntry RadioManagerDialog::selectedRadio() const {
     if (m_currentIndex >= 0) {
         return RadioSettings::instance()->radios().at(m_currentIndex);
     }
     return RadioEntry();
 }
 
-bool RadioManagerDialog::hasSelection() const
-{
+bool RadioManagerDialog::hasSelection() const {
     return m_currentIndex >= 0;
 }

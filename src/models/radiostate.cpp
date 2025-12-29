@@ -1,15 +1,12 @@
 #include "radiostate.h"
 #include <QDebug>
 
-RadioState::RadioState(QObject *parent)
-    : QObject(parent)
-{
-}
+RadioState::RadioState(QObject *parent) : QObject(parent) {}
 
-void RadioState::parseCATCommand(const QString &command)
-{
+void RadioState::parseCATCommand(const QString &command) {
     QString cmd = command.trimmed();
-    if (cmd.isEmpty()) return;
+    if (cmd.isEmpty())
+        return;
 
     // Remove trailing semicolon for parsing
     if (cmd.endsWith(';')) {
@@ -215,8 +212,7 @@ void RadioState::parseCATCommand(const QString &command)
             m_isTransmitting = true;
             emit transmitStateChanged(true);
         }
-    }
-    else if (cmd == "RX") {
+    } else if (cmd == "RX") {
         if (m_isTransmitting) {
             m_isTransmitting = false;
             emit transmitStateChanged(false);
@@ -382,9 +378,12 @@ void RadioState::parseCATCommand(const QString &command)
         bool ok;
         int gt = cmd.mid(3).toInt(&ok);
         if (ok) {
-            if (gt == 0) m_agcSpeedB = AGC_Off;
-            else if (gt == 1) m_agcSpeedB = AGC_Slow;
-            else if (gt == 2) m_agcSpeedB = AGC_Fast;
+            if (gt == 0)
+                m_agcSpeedB = AGC_Off;
+            else if (gt == 1)
+                m_agcSpeedB = AGC_Slow;
+            else if (gt == 2)
+                m_agcSpeedB = AGC_Fast;
             emit processingChangedB();
         }
     }
@@ -393,9 +392,12 @@ void RadioState::parseCATCommand(const QString &command)
         bool ok;
         int gt = cmd.mid(2).toInt(&ok);
         if (ok) {
-            if (gt == 0) m_agcSpeed = AGC_Off;
-            else if (gt == 1) m_agcSpeed = AGC_Slow;
-            else if (gt == 2) m_agcSpeed = AGC_Fast;
+            if (gt == 0)
+                m_agcSpeed = AGC_Off;
+            else if (gt == 1)
+                m_agcSpeed = AGC_Slow;
+            else if (gt == 2)
+                m_agcSpeed = AGC_Fast;
             emit processingChanged();
         }
     }
@@ -451,7 +453,7 @@ void RadioState::parseCATCommand(const QString &command)
         bool ok;
         int pitchCode = cmd.mid(2).toInt(&ok);
         if (ok && pitchCode >= 25 && pitchCode <= 95) {
-            int pitchHz = pitchCode * 10;  // Convert code to Hz
+            int pitchHz = pitchCode * 10; // Convert code to Hz
             if (pitchHz != m_cwPitch) {
                 m_cwPitch = pitchHz;
                 emit cwPitchChanged(m_cwPitch);
@@ -584,7 +586,8 @@ void RadioState::parseCATCommand(const QString &command)
         int vsIndex = data.indexOf("VS:");
         if (vsIndex >= 0) {
             int commaIndex = data.indexOf(',', vsIndex);
-            QString vsStr = (commaIndex > vsIndex) ? data.mid(vsIndex + 3, commaIndex - vsIndex - 3) : data.mid(vsIndex + 3);
+            QString vsStr =
+                (commaIndex > vsIndex) ? data.mid(vsIndex + 3, commaIndex - vsIndex - 3) : data.mid(vsIndex + 3);
             bool ok;
             double voltage = vsStr.toDouble(&ok);
             if (ok && voltage != m_supplyVoltage) {
@@ -596,7 +599,8 @@ void RadioState::parseCATCommand(const QString &command)
         int isIndex = data.indexOf("IS:");
         if (isIndex >= 0) {
             int commaIndex = data.indexOf(',', isIndex);
-            QString isStr = (commaIndex > isIndex) ? data.mid(isIndex + 3, commaIndex - isIndex - 3) : data.mid(isIndex + 3);
+            QString isStr =
+                (commaIndex > isIndex) ? data.mid(isIndex + 3, commaIndex - isIndex - 3) : data.mid(isIndex + 3);
             bool ok;
             double current = isStr.toDouble(&ok);
             if (ok && current != m_supplyCurrent) {
@@ -654,7 +658,7 @@ void RadioState::parseCATCommand(const QString &command)
     }
     // Panadapter Reference Level (#REF) - #REF-110 (not #REF$ which is Sub RX)
     else if (cmd.startsWith("#REF") && !cmd.startsWith("#REF$") && cmd.length() > 4) {
-        QString refStr = cmd.mid(4);  // Get "-110" from "#REF-110"
+        QString refStr = cmd.mid(4); // Get "-110" from "#REF-110"
         bool ok;
         int level = refStr.toInt(&ok);
         if (ok && level != m_refLevel) {
@@ -664,7 +668,7 @@ void RadioState::parseCATCommand(const QString &command)
     }
     // Panadapter Span (#SPN) - #SPN10000 (Hz)
     else if (cmd.startsWith("#SPN") && cmd.length() > 4) {
-        QString spanStr = cmd.mid(4);  // Get "10000" from "#SPN10000"
+        QString spanStr = cmd.mid(4); // Get "10000" from "#SPN10000"
         qDebug() << "Parsing #SPN response:" << cmd << "spanStr:" << spanStr;
         bool ok;
         int span = spanStr.toInt(&ok);
@@ -678,43 +682,57 @@ void RadioState::parseCATCommand(const QString &command)
     emit stateUpdated();
 }
 
-RadioState::Mode RadioState::modeFromCode(int code)
-{
+RadioState::Mode RadioState::modeFromCode(int code) {
     switch (code) {
-    case 1: return LSB;
-    case 2: return USB;
-    case 3: return CW;
-    case 4: return FM;
-    case 5: return AM;
-    case 6: return DATA;
-    case 7: return CW_R;
-    case 9: return DATA_R;
-    default: return USB;
+    case 1:
+        return LSB;
+    case 2:
+        return USB;
+    case 3:
+        return CW;
+    case 4:
+        return FM;
+    case 5:
+        return AM;
+    case 6:
+        return DATA;
+    case 7:
+        return CW_R;
+    case 9:
+        return DATA_R;
+    default:
+        return USB;
     }
 }
 
-QString RadioState::modeToString(Mode mode)
-{
+QString RadioState::modeToString(Mode mode) {
     switch (mode) {
-    case LSB: return "LSB";
-    case USB: return "USB";
-    case CW: return "CW";
-    case FM: return "FM";
-    case AM: return "AM";
-    case DATA: return "DATA";
-    case CW_R: return "CW-R";
-    case DATA_R: return "DATA-R";
-    default: return "USB";
+    case LSB:
+        return "LSB";
+    case USB:
+        return "USB";
+    case CW:
+        return "CW";
+    case FM:
+        return "FM";
+    case AM:
+        return "AM";
+    case DATA:
+        return "DATA";
+    case CW_R:
+        return "CW-R";
+    case DATA_R:
+        return "DATA-R";
+    default:
+        return "USB";
     }
 }
 
-QString RadioState::modeString() const
-{
+QString RadioState::modeString() const {
     return modeToString(m_mode);
 }
 
-QString RadioState::sMeterString() const
-{
+QString RadioState::sMeterString() const {
     if (m_sMeter <= 9.0) {
         return QString("S%1").arg(static_cast<int>(m_sMeter));
     } else {
@@ -723,8 +741,7 @@ QString RadioState::sMeterString() const
     }
 }
 
-QString RadioState::sMeterStringB() const
-{
+QString RadioState::sMeterStringB() const {
     if (m_sMeterB <= 9.0) {
         return QString("S%1").arg(static_cast<int>(m_sMeterB));
     } else {

@@ -1,20 +1,17 @@
 #include "bottommenubar.h"
 #include <QHBoxLayout>
 
-BottomMenuBar::BottomMenuBar(QWidget *parent)
-    : QWidget(parent)
-{
+BottomMenuBar::BottomMenuBar(QWidget *parent) : QWidget(parent) {
     setupUi();
 }
 
-void BottomMenuBar::setupUi()
-{
+void BottomMenuBar::setupUi() {
     setFixedHeight(52);
 
     auto *layout = new QHBoxLayout(this);
     // Left margin matches side panel width to align buttons with waterfall above
     layout->setContentsMargins(105, 6, 10, 6);
-    layout->setSpacing(10);  // Equal spacing between all buttons
+    layout->setSpacing(10); // Equal spacing between all buttons
 
     // Add stretch before buttons to center them
     layout->addStretch();
@@ -49,8 +46,7 @@ void BottomMenuBar::setupUi()
     connect(m_txBtn, &QPushButton::clicked, this, &BottomMenuBar::txClicked);
 }
 
-QPushButton* BottomMenuBar::createMenuButton(const QString &text)
-{
+QPushButton *BottomMenuBar::createMenuButton(const QString &text) {
     auto *btn = new QPushButton(text, this);
     btn->setMinimumWidth(70);
     btn->setFixedHeight(36);
@@ -59,8 +55,7 @@ QPushButton* BottomMenuBar::createMenuButton(const QString &text)
     return btn;
 }
 
-QString BottomMenuBar::buttonStyleSheet() const
-{
+QString BottomMenuBar::buttonStyleSheet() const {
     // Subtle rounded edges, gradient grey to white, white border with thin line
     return R"(
         QPushButton {
@@ -95,8 +90,7 @@ QString BottomMenuBar::buttonStyleSheet() const
     )";
 }
 
-QString BottomMenuBar::activeButtonStyleSheet() const
-{
+QString BottomMenuBar::activeButtonStyleSheet() const {
     // Inverse colors when button is active (e.g., MENU button when menu is open)
     return R"(
         QPushButton {
@@ -111,8 +105,7 @@ QString BottomMenuBar::activeButtonStyleSheet() const
     )";
 }
 
-void BottomMenuBar::setMenuActive(bool active)
-{
+void BottomMenuBar::setMenuActive(bool active) {
     if (active) {
         m_menuBtn->setStyleSheet(activeButtonStyleSheet());
     } else {

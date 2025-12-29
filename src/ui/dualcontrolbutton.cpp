@@ -7,63 +7,54 @@
 
 // Colors matching K4 design
 namespace DualButtonColors {
-    const QColor Background("#2a2a2a");
-    const QColor BackgroundHover("#3a3a3a");
-    const QColor Border("#555555");
-    const QColor BorderActive("#777777");
-    const QColor TextWhite("#FFFFFF");
-    const QColor TextYellow("#FFB000");      // Amber/yellow for alternate
-    const QColor BarOrange("#FF8C00");       // Global context
-    const QColor BarCyan("#00BFFF");         // Main RX context
-    const QColor BarGreen("#00FF00");        // Sub RX context
-}
+const QColor Background("#2a2a2a");
+const QColor BackgroundHover("#3a3a3a");
+const QColor Border("#555555");
+const QColor BorderActive("#777777");
+const QColor TextWhite("#FFFFFF");
+const QColor TextYellow("#FFB000"); // Amber/yellow for alternate
+const QColor BarOrange("#FF8C00");  // Global context
+const QColor BarCyan("#00BFFF");    // Main RX context
+const QColor BarGreen("#00FF00");   // Sub RX context
+} // namespace DualButtonColors
 
-DualControlButton::DualControlButton(QWidget *parent)
-    : QWidget(parent)
-{
-    setFixedSize(90, 48);  // Slightly taller for better text fit
+DualControlButton::DualControlButton(QWidget *parent) : QWidget(parent) {
+    setFixedSize(90, 48); // Slightly taller for better text fit
     setCursor(Qt::PointingHandCursor);
     setMouseTracking(true);
 }
 
-void DualControlButton::setPrimaryLabel(const QString &label)
-{
+void DualControlButton::setPrimaryLabel(const QString &label) {
     m_primaryLabel = label;
     update();
 }
 
-void DualControlButton::setPrimaryValue(const QString &value)
-{
+void DualControlButton::setPrimaryValue(const QString &value) {
     m_primaryValue = value;
     update();
 }
 
-void DualControlButton::setAlternateLabel(const QString &label)
-{
+void DualControlButton::setAlternateLabel(const QString &label) {
     m_alternateLabel = label;
     update();
 }
 
-void DualControlButton::setAlternateValue(const QString &value)
-{
+void DualControlButton::setAlternateValue(const QString &value) {
     m_alternateValue = value;
     update();
 }
 
-void DualControlButton::setContext(Context context)
-{
+void DualControlButton::setContext(Context context) {
     m_context = context;
     update();
 }
 
-void DualControlButton::setShowIndicator(bool show)
-{
+void DualControlButton::setShowIndicator(bool show) {
     m_showIndicator = show;
     update();
 }
 
-void DualControlButton::swapFunctions()
-{
+void DualControlButton::swapFunctions() {
     // Swap labels
     QString tempLabel = m_primaryLabel;
     m_primaryLabel = m_alternateLabel;
@@ -77,26 +68,27 @@ void DualControlButton::swapFunctions()
     update();
 }
 
-QColor DualControlButton::contextColor() const
-{
+QColor DualControlButton::contextColor() const {
     switch (m_context) {
-        case Global: return DualButtonColors::BarOrange;
-        case MainRx: return DualButtonColors::BarCyan;
-        case SubRx:  return DualButtonColors::BarGreen;
+    case Global:
+        return DualButtonColors::BarOrange;
+    case MainRx:
+        return DualButtonColors::BarCyan;
+    case SubRx:
+        return DualButtonColors::BarGreen;
     }
     return DualButtonColors::BarCyan;
 }
 
-void DualControlButton::paintEvent(QPaintEvent *event)
-{
+void DualControlButton::paintEvent(QPaintEvent *event) {
     Q_UNUSED(event)
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
     int w = width();
     int h = height();
-    int barWidth = 5;       // Context indicator bar width
-    int radius = 4;         // Subtle rounded corners
+    int barWidth = 5; // Context indicator bar width
+    int radius = 4;   // Subtle rounded corners
     int margin = 1;
 
     // Background with subtle gradient
@@ -167,8 +159,7 @@ void DualControlButton::paintEvent(QPaintEvent *event)
     painter.drawText(textLeft, h - 10, altText);
 }
 
-void DualControlButton::mousePressEvent(QMouseEvent *event)
-{
+void DualControlButton::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         // If we don't have the indicator, we want to become active
         if (!m_showIndicator) {
@@ -183,8 +174,7 @@ void DualControlButton::mousePressEvent(QMouseEvent *event)
     }
 }
 
-void DualControlButton::wheelEvent(QWheelEvent *event)
-{
+void DualControlButton::wheelEvent(QWheelEvent *event) {
     // Only respond to scroll if this button has the indicator (is active)
     if (m_showIndicator) {
         int delta = event->angleDelta().y() > 0 ? 1 : -1;
@@ -199,15 +189,13 @@ void DualControlButton::wheelEvent(QWheelEvent *event)
     }
 }
 
-void DualControlButton::enterEvent(QEnterEvent *event)
-{
+void DualControlButton::enterEvent(QEnterEvent *event) {
     m_isHovered = true;
     update();
     QWidget::enterEvent(event);
 }
 
-void DualControlButton::leaveEvent(QEvent *event)
-{
+void DualControlButton::leaveEvent(QEvent *event) {
     m_isHovered = false;
     update();
     QWidget::leaveEvent(event);

@@ -2,15 +2,9 @@
 #include <QDebug>
 
 TcpClient::TcpClient(QObject *parent)
-    : QObject(parent)
-    , m_socket(new QTcpSocket(this))
-    , m_protocol(new Protocol(this))
-    , m_authTimer(new QTimer(this))
-    , m_pingTimer(new QTimer(this))
-    , m_port(K4Protocol::DEFAULT_PORT)
-    , m_state(Disconnected)
-    , m_authResponseReceived(false)
-{
+    : QObject(parent), m_socket(new QTcpSocket(this)), m_protocol(new Protocol(this)), m_authTimer(new QTimer(this)),
+      m_pingTimer(new QTimer(this)), m_port(K4Protocol::DEFAULT_PORT), m_state(Disconnected),
+      m_authResponseReceived(false) {
     // Socket signals
     connect(m_socket, &QTcpSocket::connected, this, &TcpClient::onSocketConnected);
     connect(m_socket, &QTcpSocket::disconnected, this, &TcpClient::onSocketDisconnected);
@@ -41,26 +35,24 @@ TcpClient::TcpClient(QObject *parent)
             // FA, FB, MD, MD$, BW, BW$, IS, CW, KS, PC, SD (per mode), SQ, RG, SQ$, RG$,
             // #SPN, #REF, VXC, VXV, VXD, and all menu definitions (MEDF)
             qDebug() << "Sending initialization commands...";
-            sendCAT("RDY;");   // Ready - triggers comprehensive state dump
-            sendCAT("K41;");   // Enable advanced K4 protocol mode
-            sendCAT("AI4;");   // Enable Auto Information mode 4 - CRITICAL for streaming updates
-            sendCAT("ER1;");   // Request long format error messages
-            sendCAT("EM3;");   // Set audio to Opus Float 32-bit mode (required for audio streaming)
+            sendCAT("RDY;"); // Ready - triggers comprehensive state dump
+            sendCAT("K41;"); // Enable advanced K4 protocol mode
+            sendCAT("AI4;"); // Enable Auto Information mode 4 - CRITICAL for streaming updates
+            sendCAT("ER1;"); // Request long format error messages
+            sendCAT("EM3;"); // Set audio to Opus Float 32-bit mode (required for audio streaming)
         }
     });
     connect(m_protocol, &Protocol::catResponseReceived, this, &TcpClient::onCatResponse);
 }
 
-TcpClient::~TcpClient()
-{
+TcpClient::~TcpClient() {
     stopPingTimer();
     if (m_socket->state() != QAbstractSocket::UnconnectedState) {
         m_socket->abort();
     }
 }
 
-void TcpClient::connectToHost(const QString &host, quint16 port, const QString &password)
-{
+void TcpClient::connectToHost(const QString &host, quint16 port, const QString &password) {
     if (m_state != Disconnected) {
         disconnectFromHost();
     }
@@ -74,8 +66,7 @@ void TcpClient::connectToHost(const QString &host, quint16 port, const QString &
     m_socket->connectToHost(host, port);
 }
 
-void TcpClient::disconnectFromHost()
-{
+void TcpClient::disconnectFromHost() {
     stopPingTimer();
     m_authTimer->stop();
 
@@ -90,33 +81,28 @@ void TcpClient::disconnectFromHost()
     setState(Disconnected);
 }
 
-bool TcpClient::isConnected() const
-{
+bool TcpClient::isConnected() const {
     return m_state == Connected;
 }
 
-TcpClient::ConnectionState TcpClient::connectionState() const
-{
+TcpClient::ConnectionState TcpClient::connectionState() const {
     return m_state;
 }
 
-void TcpClient::sendCAT(const QString &command)
-{
+void TcpClient::sendCAT(const QString &command) {
     if (m_state == Connected) {
         QByteArray packet = Protocol::buildCATPacket(command);
         m_socket->write(packet);
     }
 }
 
-void TcpClient::sendRaw(const QByteArray &data)
-{
+void TcpClient::sendRaw(const QByteArray &data) {
     if (m_socket->state() == QAbstractSocket::ConnectedState) {
         m_socket->write(data);
     }
 }
 
-void TcpClient::setState(ConnectionState state)
-{
+void TcpClient::setState(ConnectionState state) {
     if (m_state != state) {
         m_state = state;
         emit stateChanged(state);
@@ -129,8 +115,7 @@ void TcpClient::setState(ConnectionState state)
     }
 }
 
-void TcpClient::onSocketConnected()
-{
+void TcpClient::onSocketConnected() {
     qDebug() << "Socket connected, sending authentication...";
     setState(Authenticating);
     sendAuthentication();
@@ -139,8 +124,7 @@ void TcpClient::onSocketConnected()
     m_authTimer->start(K4Protocol::AUTH_TIMEOUT_MS);
 }
 
-void TcpClient::onSocketDisconnected()
-{
+void TcpClient::onSocketDisconnected() {
     qDebug() << "Socket disconnected";
     stopPingTimer();
     m_authTimer->stop();
@@ -153,14 +137,12 @@ void TcpClient::onSocketDisconnected()
     setState(Disconnected);
 }
 
-void TcpClient::onReadyRead()
-{
+void TcpClient::onReadyRead() {
     QByteArray data = m_socket->readAll();
     m_protocol->parse(data);
 }
 
-void TcpClient::onSocketError(QAbstractSocket::SocketError error)
-{
+void TcpClient::onSocketError(QAbstractSocket::SocketError error) {
     Q_UNUSED(error)
     stopPingTimer();
     m_authTimer->stop();
@@ -176,8 +158,7 @@ void TcpClient::onSocketError(QAbstractSocket::SocketError error)
     setState(Disconnected);
 }
 
-void TcpClient::onAuthTimeout()
-{
+void TcpClient::onAuthTimeout() {
     if (m_state == Authenticating && !m_authResponseReceived) {
         qDebug() << "Authentication timeout";
         emit authenticationFailed();
@@ -186,21 +167,18 @@ void TcpClient::onAuthTimeout()
     }
 }
 
-void TcpClient::onPingTimer()
-{
+void TcpClient::onPingTimer() {
     if (m_state == Connected) {
         sendCAT("PING;");
     }
 }
 
-void TcpClient::onCatResponse(const QString &response)
-{
+void TcpClient::onCatResponse(const QString &response) {
     Q_UNUSED(response);
     // Verbose logging removed for performance
 }
 
-void TcpClient::sendAuthentication()
-{
+void TcpClient::sendAuthentication() {
     // Build SHA-384 hash of password as hex string
     QByteArray authData = Protocol::buildAuthData(m_password);
     qDebug() << "Sending auth hash (" << authData.size() << "bytes)";
@@ -211,12 +189,10 @@ void TcpClient::sendAuthentication()
     // Radio will respond with packets, which triggers auth success and init sequence
 }
 
-void TcpClient::startPingTimer()
-{
+void TcpClient::startPingTimer() {
     m_pingTimer->start();
 }
 
-void TcpClient::stopPingTimer()
-{
+void TcpClient::stopPingTimer() {
     m_pingTimer->stop();
 }

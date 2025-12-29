@@ -8,8 +8,7 @@
 #include <QIODevice>
 #include <QBuffer>
 
-class AudioEngine : public QObject
-{
+class AudioEngine : public QObject {
     Q_OBJECT
 
 public:
@@ -23,7 +22,7 @@ public:
     void setMicEnabled(bool enabled);
     bool isMicEnabled() const { return m_micEnabled; }
 
-    void setVolume(float volume);  // 0.0 to 1.0
+    void setVolume(float volume); // 0.0 to 1.0
     float volume() const { return m_volume; }
 
 signals:

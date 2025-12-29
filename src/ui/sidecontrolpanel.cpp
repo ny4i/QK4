@@ -6,19 +6,16 @@
 #include <QGridLayout>
 #include <QSpacerItem>
 
-SideControlPanel::SideControlPanel(QWidget *parent)
-    : QWidget(parent)
-{
+SideControlPanel::SideControlPanel(QWidget *parent) : QWidget(parent) {
     setupUi();
 }
 
-void SideControlPanel::setupUi()
-{
-    setFixedWidth(105);  // Slightly wider for better text fit
+void SideControlPanel::setupUi() {
+    setFixedWidth(105); // Slightly wider for better text fit
 
     auto *layout = new QVBoxLayout(this);
     layout->setContentsMargins(6, 8, 6, 8);
-    layout->setSpacing(4);  // Default spacing between buttons in a group
+    layout->setSpacing(4); // Default spacing between buttons in a group
 
     // ===== TX Function Buttons (2x3 grid) =====
     auto *txGrid = new QGridLayout();
@@ -50,7 +47,7 @@ void SideControlPanel::setupUi()
     m_wpmBtn->setAlternateLabel("PTCH");
     m_wpmBtn->setAlternateValue("--");
     m_wpmBtn->setContext(DualControlButton::Global);
-    m_wpmBtn->setShowIndicator(true);  // First button in group is active by default
+    m_wpmBtn->setShowIndicator(true); // First button in group is active by default
     layout->addWidget(m_wpmBtn);
 
     m_pwrBtn = new DualControlButton(this);
@@ -59,7 +56,7 @@ void SideControlPanel::setupUi()
     m_pwrBtn->setAlternateLabel("DLY");
     m_pwrBtn->setAlternateValue("--");
     m_pwrBtn->setContext(DualControlButton::Global);
-    m_pwrBtn->setShowIndicator(false);  // Second button starts inactive
+    m_pwrBtn->setShowIndicator(false); // Second button starts inactive
     layout->addWidget(m_pwrBtn);
 
     // ===== Spacing between groups =====
@@ -72,7 +69,7 @@ void SideControlPanel::setupUi()
     m_bwBtn->setAlternateLabel("HI");
     m_bwBtn->setAlternateValue("--");
     m_bwBtn->setContext(DualControlButton::MainRx);
-    m_bwBtn->setShowIndicator(true);  // First button in group is active
+    m_bwBtn->setShowIndicator(true); // First button in group is active
     layout->addWidget(m_bwBtn);
 
     m_shiftBtn = new DualControlButton(this);
@@ -81,7 +78,7 @@ void SideControlPanel::setupUi()
     m_shiftBtn->setAlternateLabel("LO");
     m_shiftBtn->setAlternateValue("--");
     m_shiftBtn->setContext(DualControlButton::MainRx);
-    m_shiftBtn->setShowIndicator(false);  // Second button starts inactive
+    m_shiftBtn->setShowIndicator(false); // Second button starts inactive
     layout->addWidget(m_shiftBtn);
 
     // ===== Spacing between groups =====
@@ -94,7 +91,7 @@ void SideControlPanel::setupUi()
     m_mainRfBtn->setAlternateLabel("M.SQL");
     m_mainRfBtn->setAlternateValue("--");
     m_mainRfBtn->setContext(DualControlButton::MainRx);
-    m_mainRfBtn->setShowIndicator(true);  // First button in group is active
+    m_mainRfBtn->setShowIndicator(true); // First button in group is active
     layout->addWidget(m_mainRfBtn);
 
     m_subSqlBtn = new DualControlButton(this);
@@ -103,7 +100,7 @@ void SideControlPanel::setupUi()
     m_subSqlBtn->setAlternateLabel("S.RF");
     m_subSqlBtn->setAlternateValue("--");
     m_subSqlBtn->setContext(DualControlButton::SubRx);
-    m_subSqlBtn->setShowIndicator(false);  // Second button starts inactive
+    m_subSqlBtn->setShowIndicator(false); // Second button starts inactive
     layout->addWidget(m_subSqlBtn);
 
     // ===== Volume Slider =====
@@ -116,26 +113,24 @@ void SideControlPanel::setupUi()
 
     m_volumeSlider = new QSlider(Qt::Horizontal, this);
     m_volumeSlider->setRange(0, 100);
-    m_volumeSlider->setValue(RadioSettings::instance()->volume());  // Restore from settings (default 45%)
-    m_volumeSlider->setStyleSheet(
-        "QSlider::groove:horizontal {"
-        "    border: 1px solid #333333;"
-        "    height: 6px;"
-        "    background: #0d0d0d;"
-        "    border-radius: 3px;"
-        "}"
-        "QSlider::handle:horizontal {"
-        "    background: #FFB000;"
-        "    border: 1px solid #FFB000;"
-        "    width: 14px;"
-        "    margin: -4px 0;"
-        "    border-radius: 7px;"
-        "}"
-        "QSlider::sub-page:horizontal {"
-        "    background: #FFB000;"
-        "    border-radius: 3px;"
-        "}"
-    );
+    m_volumeSlider->setValue(RadioSettings::instance()->volume()); // Restore from settings (default 45%)
+    m_volumeSlider->setStyleSheet("QSlider::groove:horizontal {"
+                                  "    border: 1px solid #333333;"
+                                  "    height: 6px;"
+                                  "    background: #0d0d0d;"
+                                  "    border-radius: 3px;"
+                                  "}"
+                                  "QSlider::handle:horizontal {"
+                                  "    background: #FFB000;"
+                                  "    border: 1px solid #FFB000;"
+                                  "    width: 14px;"
+                                  "    margin: -4px 0;"
+                                  "    border-radius: 7px;"
+                                  "}"
+                                  "QSlider::sub-page:horizontal {"
+                                  "    background: #FFB000;"
+                                  "    border-radius: 3px;"
+                                  "}");
     layout->addWidget(m_volumeSlider);
 
     connect(m_volumeSlider, &QSlider::valueChanged, this, &SideControlPanel::volumeChanged);
@@ -164,7 +159,7 @@ void SideControlPanel::setupUi()
     iconRow->setSpacing(8);
 
     m_helpBtn = createIconButton("?");
-    m_connectBtn = createIconButton(QString::fromUtf8("\xF0\x9F\x8C\x90"));  // 🌐 Globe
+    m_connectBtn = createIconButton(QString::fromUtf8("\xF0\x9F\x8C\x90")); // 🌐 Globe
     m_connectBtn->setToolTip("Connect to Radio");
 
     iconRow->addWidget(m_helpBtn);
@@ -182,10 +177,10 @@ void SideControlPanel::setupUi()
     connect(m_wpmBtn, &DualControlButton::valueScrolled, this, &SideControlPanel::onWpmScrolled);
     connect(m_pwrBtn, &DualControlButton::valueScrolled, this, &SideControlPanel::onPwrScrolled);
     connect(m_wpmBtn, &DualControlButton::clicked, this, [this]() {
-        m_wpmIsPrimary = !m_wpmIsPrimary;  // Track swap
+        m_wpmIsPrimary = !m_wpmIsPrimary; // Track swap
     });
     connect(m_pwrBtn, &DualControlButton::clicked, this, [this]() {
-        m_pwrIsPrimary = !m_pwrIsPrimary;  // Track swap
+        m_pwrIsPrimary = !m_pwrIsPrimary; // Track swap
     });
 
     // ===== Connect Group 2 signals (BW/SHFT) - LINKED PAIR =====
@@ -202,47 +197,41 @@ void SideControlPanel::setupUi()
     connect(m_mainRfBtn, &DualControlButton::valueScrolled, this, &SideControlPanel::onMainRfScrolled);
     connect(m_subSqlBtn, &DualControlButton::valueScrolled, this, &SideControlPanel::onSubSqlScrolled);
     connect(m_mainRfBtn, &DualControlButton::clicked, this, [this]() {
-        m_mainRfIsPrimary = !m_mainRfIsPrimary;  // Track swap
+        m_mainRfIsPrimary = !m_mainRfIsPrimary; // Track swap
     });
     connect(m_subSqlBtn, &DualControlButton::clicked, this, [this]() {
-        m_subSqlIsPrimary = !m_subSqlIsPrimary;  // Track swap
+        m_subSqlIsPrimary = !m_subSqlIsPrimary; // Track swap
     });
 }
 
 // ===== Group Management =====
 
-void SideControlPanel::setGroup1Active(DualControlButton *activeBtn)
-{
+void SideControlPanel::setGroup1Active(DualControlButton *activeBtn) {
     m_wpmBtn->setShowIndicator(activeBtn == m_wpmBtn);
     m_pwrBtn->setShowIndicator(activeBtn == m_pwrBtn);
 }
 
-void SideControlPanel::setGroup2Active(DualControlButton *activeBtn)
-{
+void SideControlPanel::setGroup2Active(DualControlButton *activeBtn) {
     m_bwBtn->setShowIndicator(activeBtn == m_bwBtn);
     m_shiftBtn->setShowIndicator(activeBtn == m_shiftBtn);
 }
 
-void SideControlPanel::setGroup3Active(DualControlButton *activeBtn)
-{
+void SideControlPanel::setGroup3Active(DualControlButton *activeBtn) {
     m_mainRfBtn->setShowIndicator(activeBtn == m_mainRfBtn);
     m_subSqlBtn->setShowIndicator(activeBtn == m_subSqlBtn);
 }
 
 // ===== Group 1 Slots =====
 
-void SideControlPanel::onWpmBecameActive()
-{
+void SideControlPanel::onWpmBecameActive() {
     setGroup1Active(m_wpmBtn);
 }
 
-void SideControlPanel::onPwrBecameActive()
-{
+void SideControlPanel::onPwrBecameActive() {
     setGroup1Active(m_pwrBtn);
 }
 
-void SideControlPanel::onWpmScrolled(int delta)
-{
+void SideControlPanel::onWpmScrolled(int delta) {
     if (m_wpmIsPrimary) {
         emit wpmChanged(delta);
     } else {
@@ -250,8 +239,7 @@ void SideControlPanel::onWpmScrolled(int delta)
     }
 }
 
-void SideControlPanel::onPwrScrolled(int delta)
-{
+void SideControlPanel::onPwrScrolled(int delta) {
     if (m_pwrIsPrimary) {
         emit powerChanged(delta);
     } else {
@@ -261,18 +249,15 @@ void SideControlPanel::onPwrScrolled(int delta)
 
 // ===== Group 2 Slots (BW/SHFT - LINKED PAIR) =====
 
-void SideControlPanel::onBwBecameActive()
-{
+void SideControlPanel::onBwBecameActive() {
     setGroup2Active(m_bwBtn);
 }
 
-void SideControlPanel::onShiftBecameActive()
-{
+void SideControlPanel::onShiftBecameActive() {
     setGroup2Active(m_shiftBtn);
 }
 
-void SideControlPanel::onBwScrolled(int delta)
-{
+void SideControlPanel::onBwScrolled(int delta) {
     if (m_bwIsPrimary) {
         emit bandwidthChanged(delta);
     } else {
@@ -280,8 +265,7 @@ void SideControlPanel::onBwScrolled(int delta)
     }
 }
 
-void SideControlPanel::onShiftScrolled(int delta)
-{
+void SideControlPanel::onShiftScrolled(int delta) {
     if (m_shiftIsPrimary) {
         emit shiftChanged(delta);
     } else {
@@ -289,36 +273,31 @@ void SideControlPanel::onShiftScrolled(int delta)
     }
 }
 
-void SideControlPanel::onBwClicked()
-{
+void SideControlPanel::onBwClicked() {
     // BW and SHFT are linked - when one swaps, the other swaps too
     m_bwIsPrimary = !m_bwIsPrimary;
     m_shiftIsPrimary = !m_shiftIsPrimary;
-    m_shiftBtn->swapFunctions();  // Also swap the shift button
+    m_shiftBtn->swapFunctions(); // Also swap the shift button
 }
 
-void SideControlPanel::onShiftClicked()
-{
+void SideControlPanel::onShiftClicked() {
     // BW and SHFT are linked - when one swaps, the other swaps too
     m_shiftIsPrimary = !m_shiftIsPrimary;
     m_bwIsPrimary = !m_bwIsPrimary;
-    m_bwBtn->swapFunctions();  // Also swap the BW button
+    m_bwBtn->swapFunctions(); // Also swap the BW button
 }
 
 // ===== Group 3 Slots =====
 
-void SideControlPanel::onMainRfBecameActive()
-{
+void SideControlPanel::onMainRfBecameActive() {
     setGroup3Active(m_mainRfBtn);
 }
 
-void SideControlPanel::onSubSqlBecameActive()
-{
+void SideControlPanel::onSubSqlBecameActive() {
     setGroup3Active(m_subSqlBtn);
 }
 
-void SideControlPanel::onMainRfScrolled(int delta)
-{
+void SideControlPanel::onMainRfScrolled(int delta) {
     if (m_mainRfIsPrimary) {
         emit mainRfGainChanged(delta);
     } else {
@@ -326,8 +305,7 @@ void SideControlPanel::onMainRfScrolled(int delta)
     }
 }
 
-void SideControlPanel::onSubSqlScrolled(int delta)
-{
+void SideControlPanel::onSubSqlScrolled(int delta) {
     if (m_subSqlIsPrimary) {
         emit subSquelchChanged(delta);
     } else {
@@ -337,8 +315,7 @@ void SideControlPanel::onSubSqlScrolled(int delta)
 
 // ===== Value Setters =====
 
-void SideControlPanel::setWpm(int wpm)
-{
+void SideControlPanel::setWpm(int wpm) {
     if (m_wpmIsPrimary) {
         m_wpmBtn->setPrimaryValue(QString::number(wpm));
     } else {
@@ -346,8 +323,7 @@ void SideControlPanel::setWpm(int wpm)
     }
 }
 
-void SideControlPanel::setPitch(double pitch)
-{
+void SideControlPanel::setPitch(double pitch) {
     QString pitchStr = QString::number(pitch, 'f', 2);
     if (!m_wpmIsPrimary) {
         m_wpmBtn->setPrimaryValue(pitchStr);
@@ -356,8 +332,7 @@ void SideControlPanel::setPitch(double pitch)
     }
 }
 
-void SideControlPanel::setPower(int power)
-{
+void SideControlPanel::setPower(int power) {
     if (m_pwrIsPrimary) {
         m_pwrBtn->setPrimaryValue(QString::number(power));
     } else {
@@ -365,8 +340,7 @@ void SideControlPanel::setPower(int power)
     }
 }
 
-void SideControlPanel::setDelay(double delay)
-{
+void SideControlPanel::setDelay(double delay) {
     QString delayStr = QString::number(delay, 'f', 2);
     if (!m_pwrIsPrimary) {
         m_pwrBtn->setPrimaryValue(delayStr);
@@ -375,8 +349,7 @@ void SideControlPanel::setDelay(double delay)
     }
 }
 
-void SideControlPanel::setBandwidth(double bw)
-{
+void SideControlPanel::setBandwidth(double bw) {
     QString bwStr = QString::number(bw, 'f', 2);
     if (m_bwIsPrimary) {
         m_bwBtn->setPrimaryValue(bwStr);
@@ -385,8 +358,7 @@ void SideControlPanel::setBandwidth(double bw)
     }
 }
 
-void SideControlPanel::setHighCut(double hi)
-{
+void SideControlPanel::setHighCut(double hi) {
     QString hiStr = QString::number(hi, 'f', 2);
     if (!m_bwIsPrimary) {
         m_bwBtn->setPrimaryValue(hiStr);
@@ -395,8 +367,7 @@ void SideControlPanel::setHighCut(double hi)
     }
 }
 
-void SideControlPanel::setShift(double shift)
-{
+void SideControlPanel::setShift(double shift) {
     QString shiftStr = QString::number(shift, 'f', 2);
     if (m_shiftIsPrimary) {
         m_shiftBtn->setPrimaryValue(shiftStr);
@@ -405,8 +376,7 @@ void SideControlPanel::setShift(double shift)
     }
 }
 
-void SideControlPanel::setLowCut(double lo)
-{
+void SideControlPanel::setLowCut(double lo) {
     QString loStr = QString::number(lo, 'f', 2);
     if (!m_shiftIsPrimary) {
         m_shiftBtn->setPrimaryValue(loStr);
@@ -415,8 +385,7 @@ void SideControlPanel::setLowCut(double lo)
     }
 }
 
-void SideControlPanel::setMainRfGain(int gain)
-{
+void SideControlPanel::setMainRfGain(int gain) {
     if (m_mainRfIsPrimary) {
         m_mainRfBtn->setPrimaryValue(QString::number(gain));
     } else {
@@ -424,8 +393,7 @@ void SideControlPanel::setMainRfGain(int gain)
     }
 }
 
-void SideControlPanel::setMainSquelch(int sql)
-{
+void SideControlPanel::setMainSquelch(int sql) {
     if (!m_mainRfIsPrimary) {
         m_mainRfBtn->setPrimaryValue(QString::number(sql));
     } else {
@@ -433,8 +401,7 @@ void SideControlPanel::setMainSquelch(int sql)
     }
 }
 
-void SideControlPanel::setSubSquelch(int sql)
-{
+void SideControlPanel::setSubSquelch(int sql) {
     if (m_subSqlIsPrimary) {
         m_subSqlBtn->setPrimaryValue(QString::number(sql));
     } else {
@@ -442,8 +409,7 @@ void SideControlPanel::setSubSquelch(int sql)
     }
 }
 
-void SideControlPanel::setSubRfGain(int gain)
-{
+void SideControlPanel::setSubRfGain(int gain) {
     if (!m_subSqlIsPrimary) {
         m_subSqlBtn->setPrimaryValue(QString::number(gain));
     } else {
@@ -451,55 +417,48 @@ void SideControlPanel::setSubRfGain(int gain)
     }
 }
 
-void SideControlPanel::setTime(const QString &time)
-{
+void SideControlPanel::setTime(const QString &time) {
     m_timeLabel->setText(time);
 }
 
-void SideControlPanel::setPowerReading(double watts)
-{
+void SideControlPanel::setPowerReading(double watts) {
     QString current = m_powerSwrLabel->text();
     int spaceIdx = current.indexOf(' ');
     QString swrPart = (spaceIdx > 0) ? current.mid(spaceIdx) : " 1.0:1";
     m_powerSwrLabel->setText(QString("%1W%2").arg(watts, 0, 'f', 1).arg(swrPart));
 }
 
-void SideControlPanel::setSwr(double swr)
-{
+void SideControlPanel::setSwr(double swr) {
     QString current = m_powerSwrLabel->text();
     int wIdx = current.indexOf('W');
     QString powerPart = (wIdx > 0) ? current.left(wIdx + 1) : "0.0W";
     m_powerSwrLabel->setText(QString("%1 %2:1").arg(powerPart).arg(swr, 0, 'f', 1));
 }
 
-void SideControlPanel::setActiveReceiver(bool isSubRx)
-{
+void SideControlPanel::setActiveReceiver(bool isSubRx) {
     // Update context colors for filter buttons based on active receiver
     DualControlButton::Context ctx = isSubRx ? DualControlButton::SubRx : DualControlButton::MainRx;
     m_bwBtn->setContext(ctx);
     m_shiftBtn->setContext(ctx);
 }
 
-void SideControlPanel::setVoltage(double volts)
-{
+void SideControlPanel::setVoltage(double volts) {
     QString current = m_voltageCurrentLabel->text();
     int vIdx = current.indexOf('V');
     QString currentPart = (vIdx > 0) ? current.mid(vIdx + 1).trimmed() : "-.-A";
     m_voltageCurrentLabel->setText(QString("%1V  %2").arg(volts, 0, 'f', 1).arg(currentPart));
 }
 
-void SideControlPanel::setCurrent(double amps)
-{
+void SideControlPanel::setCurrent(double amps) {
     QString current = m_voltageCurrentLabel->text();
     int vIdx = current.indexOf('V');
     QString voltsPart = (vIdx > 0) ? current.left(vIdx + 1) : "--.-V";
     m_voltageCurrentLabel->setText(QString("%1  %2A").arg(voltsPart).arg(amps, 0, 'f', 1));
 }
 
-QPushButton* SideControlPanel::createIconButton(const QString &text)
-{
+QPushButton *SideControlPanel::createIconButton(const QString &text) {
     auto *btn = new QPushButton(text, this);
-    btn->setFixedSize(32, 32);  // Small square buttons
+    btn->setFixedSize(32, 32); // Small square buttons
     btn->setCursor(Qt::PointingHandCursor);
     btn->setStyleSheet(R"(
         QPushButton {
@@ -528,8 +487,8 @@ QPushButton* SideControlPanel::createIconButton(const QString &text)
     return btn;
 }
 
-QWidget* SideControlPanel::createTxFunctionButton(const QString &mainText, const QString &subText, QPushButton *&btnOut)
-{
+QWidget *SideControlPanel::createTxFunctionButton(const QString &mainText, const QString &subText,
+                                                  QPushButton *&btnOut) {
     // Container widget for button + sub-text label
     auto *container = new QWidget(this);
     auto *layout = new QVBoxLayout(container);
@@ -578,7 +537,6 @@ QWidget* SideControlPanel::createTxFunctionButton(const QString &mainText, const
     return container;
 }
 
-int SideControlPanel::volume() const
-{
+int SideControlPanel::volume() const {
     return m_volumeSlider ? m_volumeSlider->value() : 100;
 }

@@ -3,19 +3,14 @@
 #include <QDebug>
 #include <algorithm>
 
-MenuModel::MenuModel(QObject *parent)
-    : QObject(parent)
-{
-}
+MenuModel::MenuModel(QObject *parent) : QObject(parent) {}
 
-void MenuModel::addMenuItem(const MenuItem &item)
-{
+void MenuModel::addMenuItem(const MenuItem &item) {
     m_items[item.id] = item;
     emit menuItemAdded(item.id);
 }
 
-void MenuModel::updateValue(int menuId, int value)
-{
+void MenuModel::updateValue(int menuId, int value) {
     if (m_items.contains(menuId)) {
         if (m_items[menuId].currentValue != value) {
             m_items[menuId].currentValue = value;
@@ -24,16 +19,14 @@ void MenuModel::updateValue(int menuId, int value)
     }
 }
 
-MenuItem* MenuModel::getMenuItem(int menuId)
-{
+MenuItem *MenuModel::getMenuItem(int menuId) {
     if (m_items.contains(menuId)) {
         return &m_items[menuId];
     }
     return nullptr;
 }
 
-const MenuItem* MenuModel::getMenuItem(int menuId) const
-{
+const MenuItem *MenuModel::getMenuItem(int menuId) const {
     auto it = m_items.find(menuId);
     if (it != m_items.end()) {
         return &it.value();
@@ -41,36 +34,31 @@ const MenuItem* MenuModel::getMenuItem(int menuId) const
     return nullptr;
 }
 
-QVector<MenuItem*> MenuModel::getAllItems()
-{
-    QVector<MenuItem*> result;
+QVector<MenuItem *> MenuModel::getAllItems() {
+    QVector<MenuItem *> result;
     for (auto it = m_items.begin(); it != m_items.end(); ++it) {
         result.append(&it.value());
     }
     // Sort alphabetically by name
-    std::sort(result.begin(), result.end(), [](MenuItem* a, MenuItem* b) {
-        return a->name.toLower() < b->name.toLower();
-    });
+    std::sort(result.begin(), result.end(),
+              [](MenuItem *a, MenuItem *b) { return a->name.toLower() < b->name.toLower(); });
     return result;
 }
 
-QVector<MenuItem*> MenuModel::getItemsByCategory(const QString &category)
-{
-    QVector<MenuItem*> result;
+QVector<MenuItem *> MenuModel::getItemsByCategory(const QString &category) {
+    QVector<MenuItem *> result;
     for (auto it = m_items.begin(); it != m_items.end(); ++it) {
         if (it.value().category == category) {
             result.append(&it.value());
         }
     }
     // Sort alphabetically by name
-    std::sort(result.begin(), result.end(), [](MenuItem* a, MenuItem* b) {
-        return a->name.toLower() < b->name.toLower();
-    });
+    std::sort(result.begin(), result.end(),
+              [](MenuItem *a, MenuItem *b) { return a->name.toLower() < b->name.toLower(); });
     return result;
 }
 
-QStringList MenuModel::getCategories() const
-{
+QStringList MenuModel::getCategories() const {
     QSet<QString> categories;
     for (const auto &item : m_items) {
         categories.insert(item.category);
@@ -80,19 +68,16 @@ QStringList MenuModel::getCategories() const
     return result;
 }
 
-void MenuModel::clear()
-{
+void MenuModel::clear() {
     m_items.clear();
     emit modelCleared();
 }
 
-QString MenuModel::urlDecode(const QString &str)
-{
+QString MenuModel::urlDecode(const QString &str) {
     return QUrl::fromPercentEncoding(str.toUtf8());
 }
 
-bool MenuModel::parseMEDF(const QString &medfLine)
-{
+bool MenuModel::parseMEDF(const QString &medfLine) {
     // Format: MEDF0007,AGC Hold Time,RX AGC,DEC,1,0,200,0,0,1[,option1,option2,...];
     QString line = medfLine.trimmed();
     if (!line.startsWith("MEDF")) {
@@ -114,7 +99,7 @@ bool MenuModel::parseMEDF(const QString &medfLine)
     MenuItem item;
 
     // Parse menu ID from MEDF0007
-    QString idStr = parts[0].mid(4);  // Remove "MEDF"
+    QString idStr = parts[0].mid(4); // Remove "MEDF"
     bool ok;
     item.id = idStr.toInt(&ok);
     if (!ok) {
@@ -157,15 +142,13 @@ bool MenuModel::parseMEDF(const QString &medfLine)
     // Add to model
     addMenuItem(item);
 
-    qDebug() << "Parsed MEDF:" << item.id << item.name << item.category
-             << item.type << "value:" << item.currentValue
+    qDebug() << "Parsed MEDF:" << item.id << item.name << item.category << item.type << "value:" << item.currentValue
              << "options:" << item.options;
 
     return true;
 }
 
-bool MenuModel::parseME(const QString &meLine)
-{
+bool MenuModel::parseME(const QString &meLine) {
     // Format: ME0007.0123;
     QString line = meLine.trimmed();
     if (!line.startsWith("ME") || line.startsWith("MEDF")) {
@@ -184,7 +167,7 @@ bool MenuModel::parseME(const QString &meLine)
     }
 
     // Parse menu ID
-    QString idStr = line.mid(2, dotPos - 2);  // Skip "ME", up to dot
+    QString idStr = line.mid(2, dotPos - 2); // Skip "ME", up to dot
     bool ok;
     int menuId = idStr.toInt(&ok);
     if (!ok) {

@@ -4,8 +4,7 @@
 #include <QObject>
 #include <opus/opus.h>
 
-class OpusEncoder : public QObject
-{
+class OpusEncoder : public QObject {
     Q_OBJECT
 
 public:

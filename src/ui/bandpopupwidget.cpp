@@ -7,58 +7,47 @@
 #include <QApplication>
 
 namespace {
-    // Indicator bar/triangle color
-    const QColor IndicatorColor(85, 85, 85);  // #555555
+// Indicator bar/triangle color
+const QColor IndicatorColor(85, 85, 85); // #555555
 
-    // Layout constants
-    const int ButtonWidth = 70;
-    const int ButtonHeight = 44;
-    const int ButtonSpacing = 8;
-    const int RowSpacing = 2;
-    const int Margin = 12;
-    const int TriangleWidth = 24;
-    const int TriangleHeight = 12;
-    const int BottomStripHeight = 8;  // Gray strip at bottom of popup
+// Layout constants
+const int ButtonWidth = 70;
+const int ButtonHeight = 44;
+const int ButtonSpacing = 8;
+const int RowSpacing = 2;
+const int Margin = 12;
+const int TriangleWidth = 24;
+const int TriangleHeight = 12;
+const int BottomStripHeight = 8; // Gray strip at bottom of popup
 
-    // K4 Band Number mapping (BN command)
-    // Band number -> button label
-    const QMap<int, QString> BandNumToName = {
-        {0, "1.8"},   // 160m
-        {1, "3.5"},   // 80m
-        {2, "5"},     // 60m
-        {3, "7"},     // 40m
-        {4, "10"},    // 30m
-        {5, "14"},    // 20m
-        {6, "18"},    // 17m
-        {7, "21"},    // 15m
-        {8, "24"},    // 12m
-        {9, "28"},    // 10m
-        {10, "50"},   // 6m
-        // 16-25 are transverter bands, all map to "XVTR"
-    };
+// K4 Band Number mapping (BN command)
+// Band number -> button label
+const QMap<int, QString> BandNumToName = {
+    {0, "1.8"}, // 160m
+    {1, "3.5"}, // 80m
+    {2, "5"},   // 60m
+    {3, "7"},   // 40m
+    {4, "10"},  // 30m
+    {5, "14"},  // 20m
+    {6, "18"},  // 17m
+    {7, "21"},  // 15m
+    {8, "24"},  // 12m
+    {9, "28"},  // 10m
+    {10, "50"}, // 6m
+    // 16-25 are transverter bands, all map to "XVTR"
+};
 
-    // Button label -> band number
-    const QMap<QString, int> BandNameToNum = {
-        {"1.8", 0},
-        {"3.5", 1},
-        {"5", 2},
-        {"7", 3},
-        {"10", 4},
-        {"14", 5},
-        {"18", 6},
-        {"21", 7},
-        {"24", 8},
-        {"28", 9},
-        {"50", 10},
-        {"XVTR", 16},  // First transverter band (16-25 range)
-    };
-}
+// Button label -> band number
+const QMap<QString, int> BandNameToNum = {
+    {"1.8", 0}, {"3.5", 1}, {"5", 2},  {"7", 3},  {"10", 4},  {"14", 5},
+    {"18", 6},  {"21", 7},  {"24", 8}, {"28", 9}, {"50", 10}, {"XVTR", 16}, // First transverter band (16-25 range)
+};
+} // namespace
 
 BandPopupWidget::BandPopupWidget(QWidget *parent)
-    : QWidget(parent)
-    , m_selectedBand("14")  // Default to 20m band
-    , m_triangleXOffset(0)
-{
+    : QWidget(parent), m_selectedBand("14") // Default to 20m band
+      ,
+      m_triangleXOffset(0) {
     setWindowFlags(Qt::Popup | Qt::FramelessWindowHint);
     setAttribute(Qt::WA_TranslucentBackground, false);
     setFocusPolicy(Qt::StrongFocus);
@@ -66,8 +55,7 @@ BandPopupWidget::BandPopupWidget(QWidget *parent)
     setupUi();
 }
 
-void BandPopupWidget::setupUi()
-{
+void BandPopupWidget::setupUi() {
     auto *mainLayout = new QVBoxLayout(this);
     // Bottom margin includes space for the gray strip + triangle extending below
     mainLayout->setContentsMargins(Margin, Margin, Margin, Margin + BottomStripHeight + TriangleHeight);
@@ -106,8 +94,7 @@ void BandPopupWidget::setupUi()
     setFixedSize(totalWidth, totalHeight);
 }
 
-QPushButton* BandPopupWidget::createBandButton(const QString &text)
-{
+QPushButton *BandPopupWidget::createBandButton(const QString &text) {
     QPushButton *btn = new QPushButton(text, this);
     btn->setFixedSize(ButtonWidth, ButtonHeight);
     btn->setFocusPolicy(Qt::NoFocus);
@@ -118,8 +105,7 @@ QPushButton* BandPopupWidget::createBandButton(const QString &text)
     return btn;
 }
 
-QString BandPopupWidget::normalButtonStyle()
-{
+QString BandPopupWidget::normalButtonStyle() {
     return R"(
         QPushButton {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
@@ -151,8 +137,7 @@ QString BandPopupWidget::normalButtonStyle()
     )";
 }
 
-QString BandPopupWidget::selectedButtonStyle()
-{
+QString BandPopupWidget::selectedButtonStyle() {
     return R"(
         QPushButton {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
@@ -183,8 +168,7 @@ QString BandPopupWidget::selectedButtonStyle()
     )";
 }
 
-void BandPopupWidget::updateButtonStyles()
-{
+void BandPopupWidget::updateButtonStyles() {
     for (auto it = m_buttonMap.begin(); it != m_buttonMap.end(); ++it) {
         if (it.key() == m_selectedBand) {
             it.value()->setStyleSheet(selectedButtonStyle());
@@ -194,17 +178,15 @@ void BandPopupWidget::updateButtonStyles()
     }
 }
 
-void BandPopupWidget::setSelectedBand(const QString &bandName)
-{
+void BandPopupWidget::setSelectedBand(const QString &bandName) {
     if (m_buttonMap.contains(bandName)) {
         m_selectedBand = bandName;
         updateButtonStyles();
     }
 }
 
-void BandPopupWidget::onBandButtonClicked()
-{
-    QPushButton *btn = qobject_cast<QPushButton*>(sender());
+void BandPopupWidget::onBandButtonClicked() {
+    QPushButton *btn = qobject_cast<QPushButton *>(sender());
     if (btn) {
         QString bandName = btn->property("bandName").toString();
         m_selectedBand = bandName;
@@ -214,9 +196,9 @@ void BandPopupWidget::onBandButtonClicked()
     }
 }
 
-void BandPopupWidget::showAboveButton(QWidget *triggerButton)
-{
-    if (!triggerButton) return;
+void BandPopupWidget::showAboveButton(QWidget *triggerButton) {
+    if (!triggerButton)
+        return;
 
     // Get the trigger button's global position
     QPoint btnGlobal = triggerButton->mapToGlobal(QPoint(0, 0));
@@ -227,7 +209,7 @@ void BandPopupWidget::showAboveButton(QWidget *triggerButton)
     int popupY = btnGlobal.y() - height();
 
     // Store offset for triangle drawing (relative to popup center)
-    m_triangleXOffset = 0;  // Triangle at center
+    m_triangleXOffset = 0; // Triangle at center
 
     // Ensure popup stays on screen
     QRect screenGeom = QApplication::primaryScreen()->availableGeometry();
@@ -245,14 +227,12 @@ void BandPopupWidget::showAboveButton(QWidget *triggerButton)
     update();
 }
 
-void BandPopupWidget::hidePopup()
-{
+void BandPopupWidget::hidePopup() {
     hide();
     emit closed();
 }
 
-void BandPopupWidget::paintEvent(QPaintEvent *event)
-{
+void BandPopupWidget::paintEvent(QPaintEvent *event) {
     Q_UNUSED(event)
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
@@ -284,8 +264,7 @@ void BandPopupWidget::paintEvent(QPaintEvent *event)
     painter.drawPath(triangle);
 }
 
-void BandPopupWidget::keyPressEvent(QKeyEvent *event)
-{
+void BandPopupWidget::keyPressEvent(QKeyEvent *event) {
     if (event->key() == Qt::Key_Escape) {
         hidePopup();
     } else {
@@ -293,20 +272,17 @@ void BandPopupWidget::keyPressEvent(QKeyEvent *event)
     }
 }
 
-void BandPopupWidget::focusOutEvent(QFocusEvent *event)
-{
+void BandPopupWidget::focusOutEvent(QFocusEvent *event) {
     Q_UNUSED(event)
     // Don't auto-close on focus out - let popup behavior handle it
     // hidePopup();
 }
 
-int BandPopupWidget::getBandNumber(const QString &bandName) const
-{
-    return BandNameToNum.value(bandName, -1);  // -1 for GEN, MEM, or unknown
+int BandPopupWidget::getBandNumber(const QString &bandName) const {
+    return BandNameToNum.value(bandName, -1); // -1 for GEN, MEM, or unknown
 }
 
-QString BandPopupWidget::getBandName(int bandNum) const
-{
+QString BandPopupWidget::getBandName(int bandNum) const {
     // Transverter bands 16-25 all map to XVTR
     if (bandNum >= 16 && bandNum <= 25) {
         return "XVTR";
@@ -314,8 +290,7 @@ QString BandPopupWidget::getBandName(int bandNum) const
     return BandNumToName.value(bandNum, QString());
 }
 
-void BandPopupWidget::setSelectedBandByNumber(int bandNum)
-{
+void BandPopupWidget::setSelectedBandByNumber(int bandNum) {
     QString bandName = getBandName(bandNum);
     if (!bandName.isEmpty()) {
         setSelectedBand(bandName);

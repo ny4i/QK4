@@ -5,28 +5,14 @@
 #include <QString>
 #include <QMap>
 
-class RadioState : public QObject
-{
+class RadioState : public QObject {
     Q_OBJECT
 
 public:
-    enum Mode {
-        LSB = 1,
-        USB = 2,
-        CW = 3,
-        FM = 4,
-        AM = 5,
-        DATA = 6,
-        CW_R = 7,
-        DATA_R = 9
-    };
+    enum Mode { LSB = 1, USB = 2, CW = 3, FM = 4, AM = 5, DATA = 6, CW_R = 7, DATA_R = 9 };
     Q_ENUM(Mode)
 
-    enum AGCSpeed {
-        AGC_Off = 0,
-        AGC_Slow = 1,
-        AGC_Fast = 2
-    };
+    enum AGCSpeed { AGC_Off = 0, AGC_Slow = 1, AGC_Fast = 2 };
     Q_ENUM(AGCSpeed)
 
     explicit RadioState(QObject *parent = nullptr);
@@ -48,7 +34,7 @@ public:
     int filterBandwidthB() const { return m_filterBandwidthB; }
     int filterPosition() const { return m_filterPosition; }
     int ifShift() const { return m_ifShift; }
-    int shiftHz() const { return m_ifShift * 10; }  // Convert raw IS value to Hz (IS0050 = 500 Hz)
+    int shiftHz() const { return m_ifShift * 10; } // Convert raw IS value to Hz (IS0050 = 500 Hz)
     int cwPitch() const { return m_cwPitch; }
 
     // Power and levels
@@ -142,14 +128,14 @@ public:
     // Returns VOX state for current operating mode
     bool voxForCurrentMode() const {
         switch (m_mode) {
-            case CW:
-            case CW_R:
-                return m_voxCW;
-            case DATA:
-            case DATA_R:
-                return m_voxData;
-            default:  // LSB, USB, AM, FM = Voice modes
-                return m_voxVoice;
+        case CW:
+        case CW_R:
+            return m_voxCW;
+        case DATA:
+        case DATA_R:
+            return m_voxData;
+        default: // LSB, USB, AM, FM = Voice modes
+            return m_voxVoice;
         }
     }
 
@@ -160,14 +146,14 @@ public:
     // Returns delay for current operating mode (in 10ms increments)
     int delayForCurrentMode() const {
         switch (m_mode) {
-            case CW:
-            case CW_R:
-                return m_qskDelayCW;
-            case DATA:
-            case DATA_R:
-                return m_qskDelayData;
-            default:  // LSB, USB, AM, FM = Voice modes
-                return m_qskDelayVoice;
+        case CW:
+        case CW_R:
+            return m_qskDelayCW;
+        case DATA:
+        case DATA_R:
+            return m_qskDelayData;
+        default: // LSB, USB, AM, FM = Voice modes
+            return m_qskDelayVoice;
         }
     }
 
@@ -212,18 +198,18 @@ signals:
     void antennaNameChanged(int index, const QString &name);
     void ritXitChanged(bool ritEnabled, bool xitEnabled, int offset);
     void messageBankChanged(int bank);
-    void processingChanged();  // NB, NR, PA, RA, GT changes for Main RX
-    void processingChangedB(); // NB, NR, PA, RA, GT changes for Sub RX
-    void refLevelChanged(int level);  // Panadapter reference level (#REF command)
-    void spanChanged(int spanHz);     // Panadapter span (#SPN command)
-    void keyerSpeedChanged(int wpm);  // CW keyer speed
-    void qskDelayChanged(int delay);  // QSK/VOX delay in 10ms increments
-    void rfGainChanged(int gain);     // RF gain
-    void squelchChanged(int level);   // Squelch level
-    void rfGainBChanged(int gain);    // RF gain Sub RX
-    void squelchBChanged(int level);  // Squelch Sub RX
-    void voxChanged(bool enabled);    // VOX state (any mode)
-    void notchChanged();              // Manual notch state/pitch changed
+    void processingChanged();        // NB, NR, PA, RA, GT changes for Main RX
+    void processingChangedB();       // NB, NR, PA, RA, GT changes for Sub RX
+    void refLevelChanged(int level); // Panadapter reference level (#REF command)
+    void spanChanged(int spanHz);    // Panadapter span (#SPN command)
+    void keyerSpeedChanged(int wpm); // CW keyer speed
+    void qskDelayChanged(int delay); // QSK/VOX delay in 10ms increments
+    void rfGainChanged(int gain);    // RF gain
+    void squelchChanged(int level);  // Squelch level
+    void rfGainBChanged(int gain);   // RF gain Sub RX
+    void squelchBChanged(int level); // Squelch Sub RX
+    void voxChanged(bool enabled);   // VOX state (any mode)
+    void notchChanged();             // Manual notch state/pitch changed
     void stateUpdated();
 
 private:
@@ -239,18 +225,18 @@ private:
     int m_filterBandwidth = 2400;
     int m_filterBandwidthB = 2400;
     int m_filterPosition = 2;
-    int m_ifShift = -1;      // IF shift position (0-99, 50=centered) - init to -1 to ensure first emit
-    int m_cwPitch = -1;      // Init to -1 to ensure first emit
+    int m_ifShift = -1; // IF shift position (0-99, 50=centered) - init to -1 to ensure first emit
+    int m_cwPitch = -1; // Init to -1 to ensure first emit
 
     // Power and levels
     double m_rfPower = 50.0;
     bool m_isQrpMode = false;
     int m_micGain = 50;
-    int m_rfGain = -999;     // Init to invalid to ensure first emit
-    int m_squelchLevel = -1; // Init to invalid to ensure first emit
-    int m_rfGainB = -999;    // Sub RX RF gain
+    int m_rfGain = -999;      // Init to invalid to ensure first emit
+    int m_squelchLevel = -1;  // Init to invalid to ensure first emit
+    int m_rfGainB = -999;     // Sub RX RF gain
     int m_squelchLevelB = -1; // Sub RX squelch
-    int m_keyerSpeed = -1;   // WPM - init to -1 to ensure first emit
+    int m_keyerSpeed = -1;    // WPM - init to -1 to ensure first emit
 
     // Meters
     double m_sMeter = 0.0;
@@ -281,7 +267,7 @@ private:
     // Notch filter
     bool m_autoNotchEnabled = false;
     bool m_manualNotchEnabled = false;
-    int m_manualNotchPitch = 1000;  // 150-5000 Hz, default 1000
+    int m_manualNotchPitch = 1000; // 150-5000 Hz, default 1000
 
     int m_preamp = 0;
     bool m_preampEnabled = false;
@@ -326,10 +312,10 @@ private:
     int m_qskDelayData = -1;
 
     // Panadapter REF level
-    int m_refLevel = -110;  // Default -110 dBm
+    int m_refLevel = -110; // Default -110 dBm
 
     // Panadapter span (from #SPN command)
-    int m_spanHz = 10000;  // Default 10 kHz
+    int m_spanHz = 10000; // Default 10 kHz
 
     // Radio info
     QString m_radioID;

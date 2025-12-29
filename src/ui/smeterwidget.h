@@ -4,14 +4,13 @@
 #include <QWidget>
 #include <QColor>
 
-class SMeterWidget : public QWidget
-{
+class SMeterWidget : public QWidget {
     Q_OBJECT
 
 public:
     explicit SMeterWidget(QWidget *parent = nullptr);
 
-    void setValue(double sValue);  // S-units (0-9, then 9+dB)
+    void setValue(double sValue); // S-units (0-9, then 9+dB)
     void setColor(const QColor &color);
 
 protected:

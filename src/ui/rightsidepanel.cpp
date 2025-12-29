@@ -3,30 +3,19 @@
 
 // K4 Color scheme (matching left panel)
 namespace {
-    const QString Background = "#1a1a1a";
-    const QString TextWhite = "#FFFFFF";
-    const QString TextGray = "#999999";
-    const QString AmberOrange = "#FFB000";
-}
+const QString Background = "#1a1a1a";
+const QString TextWhite = "#FFFFFF";
+const QString TextGray = "#999999";
+const QString AmberOrange = "#FFB000";
+} // namespace
 
 RightSidePanel::RightSidePanel(QWidget *parent)
-    : QWidget(parent)
-    , m_preBtn(nullptr)
-    , m_nbBtn(nullptr)
-    , m_nrBtn(nullptr)
-    , m_ntchBtn(nullptr)
-    , m_filBtn(nullptr)
-    , m_abBtn(nullptr)
-    , m_revBtn(nullptr)
-    , m_atobBtn(nullptr)
-    , m_spotBtn(nullptr)
-    , m_modeBtn(nullptr)
-{
+    : QWidget(parent), m_preBtn(nullptr), m_nbBtn(nullptr), m_nrBtn(nullptr), m_ntchBtn(nullptr), m_filBtn(nullptr),
+      m_abBtn(nullptr), m_revBtn(nullptr), m_atobBtn(nullptr), m_spotBtn(nullptr), m_modeBtn(nullptr) {
     setupUi();
 }
 
-void RightSidePanel::setupUi()
-{
+void RightSidePanel::setupUi() {
     // Match left panel dimensions exactly
     setFixedWidth(105);
 
@@ -78,8 +67,7 @@ void RightSidePanel::setupUi()
     m_layout->addStretch();
 }
 
-QWidget* RightSidePanel::createFunctionButton(const QString &mainText, const QString &subText, QPushButton *&btnOut)
-{
+QWidget *RightSidePanel::createFunctionButton(const QString &mainText, const QString &subText, QPushButton *&btnOut) {
     // Container widget for button + sub-text label
     auto *container = new QWidget(this);
     auto *layout = new QVBoxLayout(container);

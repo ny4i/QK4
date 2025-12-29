@@ -6,8 +6,7 @@
 #include <QList>
 #include <QMap>
 
-class BandPopupWidget : public QWidget
-{
+class BandPopupWidget : public QWidget {
     Q_OBJECT
 
 public:
@@ -39,19 +38,19 @@ protected:
 
 private:
     void setupUi();
-    QPushButton* createBandButton(const QString &text);
+    QPushButton *createBandButton(const QString &text);
     void updateButtonStyles();
     void onBandButtonClicked();
 
     // Band buttons organized by row
-    QList<QPushButton*> m_row1Buttons;  // 1.8, 3.5, 7, 14, 21, 28, MEM
-    QList<QPushButton*> m_row2Buttons;  // GEN, 5, 10, 18, 24, 50, XVTR
-    QMap<QString, QPushButton*> m_buttonMap;
+    QList<QPushButton *> m_row1Buttons; // 1.8, 3.5, 7, 14, 21, 28, MEM
+    QList<QPushButton *> m_row2Buttons; // GEN, 5, 10, 18, 24, 50, XVTR
+    QMap<QString, QPushButton *> m_buttonMap;
 
     QString m_selectedBand;
 
     // Position info for drawing the indicator triangle
-    int m_triangleXOffset;  // X offset from popup center to triangle point
+    int m_triangleXOffset; // X offset from popup center to triangle point
 
     // Style sheets
     static QString normalButtonStyle();

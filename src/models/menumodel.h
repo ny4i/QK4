@@ -9,17 +9,17 @@
 
 // Single menu item from MEDF response
 struct MenuItem {
-    int id = 0;                  // Menu ID (e.g., 7)
-    QString name;                // "AGC Hold Time" (URL decoded)
-    QString category;            // "RX AGC"
-    QString type;                // "BIN", "DEC", "SN", etc.
-    int flag = 0;                // 0=normal, 1=enabled, 2=read-only
+    int id = 0;       // Menu ID (e.g., 7)
+    QString name;     // "AGC Hold Time" (URL decoded)
+    QString category; // "RX AGC"
+    QString type;     // "BIN", "DEC", "SN", etc.
+    int flag = 0;     // 0=normal, 1=enabled, 2=read-only
     int minValue = 0;
     int maxValue = 0;
     int defaultValue = 0;
     int currentValue = 0;
     int step = 1;
-    QStringList options;         // For selection types: ["OFF", "ON"]
+    QStringList options; // For selection types: ["OFF", "ON"]
 
     // Helper methods
     bool isBinary() const { return type == "BIN"; }
@@ -33,8 +33,7 @@ struct MenuItem {
     }
 };
 
-class MenuModel : public QObject
-{
+class MenuModel : public QObject {
     Q_OBJECT
 
 public:
@@ -45,10 +44,10 @@ public:
     void updateValue(int menuId, int value);
 
     // Access menu items
-    MenuItem* getMenuItem(int menuId);
-    const MenuItem* getMenuItem(int menuId) const;
-    QVector<MenuItem*> getAllItems();
-    QVector<MenuItem*> getItemsByCategory(const QString &category);
+    MenuItem *getMenuItem(int menuId);
+    const MenuItem *getMenuItem(int menuId) const;
+    QVector<MenuItem *> getAllItems();
+    QVector<MenuItem *> getItemsByCategory(const QString &category);
     QStringList getCategories() const;
 
     // Get count
@@ -71,7 +70,7 @@ signals:
     void modelCleared();
 
 private:
-    QMap<int, MenuItem> m_items;  // menuId -> MenuItem
+    QMap<int, MenuItem> m_items; // menuId -> MenuItem
 
     // URL decode helper (%2C -> ,)
     static QString urlDecode(const QString &str);

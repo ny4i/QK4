@@ -13,8 +13,7 @@
  * Each menu button triggers a popup menu or panel when pressed.
  * Styled with subtle rounded edges, gradient background, white border.
  */
-class BottomMenuBar : public QWidget
-{
+class BottomMenuBar : public QWidget {
     Q_OBJECT
 
 public:
@@ -22,10 +21,10 @@ public:
     ~BottomMenuBar() = default;
 
     // Getters for button positioning (for popup placement)
-    QPushButton* bandButton() const { return m_bandBtn; }
+    QPushButton *bandButton() const { return m_bandBtn; }
 
 public slots:
-    void setMenuActive(bool active);  // Toggle MENU button inverse colors
+    void setMenuActive(bool active); // Toggle MENU button inverse colors
 
 signals:
     void menuClicked();
@@ -38,7 +37,7 @@ signals:
 
 private:
     void setupUi();
-    QPushButton* createMenuButton(const QString &text);
+    QPushButton *createMenuButton(const QString &text);
     QString buttonStyleSheet() const;
     QString activeButtonStyleSheet() const;
 

@@ -6,32 +6,19 @@
 #include <QTimer>
 #include <QMap>
 
-class KPA1500Client : public QObject
-{
+class KPA1500Client : public QObject {
     Q_OBJECT
 
 public:
-    enum ConnectionState {
-        Disconnected,
-        Connecting,
-        Connected
-    };
+    enum ConnectionState { Disconnected, Connecting, Connected };
     Q_ENUM(ConnectionState)
 
     // Amp operating state (^ON response)
-    enum OperatingState {
-        StateUnknown = -1,
-        StateStandby = 0,
-        StateOperate = 1
-    };
+    enum OperatingState { StateUnknown = -1, StateStandby = 0, StateOperate = 1 };
     Q_ENUM(OperatingState)
 
     // Fault status (^FS response)
-    enum FaultStatus {
-        FaultNone = 0,
-        FaultActive = 1,
-        FaultHistory = 2
-    };
+    enum FaultStatus { FaultNone = 0, FaultActive = 1, FaultHistory = 2 };
     Q_ENUM(FaultStatus)
 
     explicit KPA1500Client(QObject *parent = nullptr);

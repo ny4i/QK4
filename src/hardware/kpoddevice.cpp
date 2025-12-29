@@ -3,11 +3,7 @@
 #include <QDebug>
 
 KpodDevice::KpodDevice(QObject *parent)
-    : QObject(parent)
-    , m_hidDevice(nullptr)
-    , m_pollTimer(new QTimer(this))
-    , m_lastRockerPosition(RockerCenter)
-{
+    : QObject(parent), m_hidDevice(nullptr), m_pollTimer(new QTimer(this)), m_lastRockerPosition(RockerCenter) {
     m_deviceInfo = detectDevice();
 
     // Setup poll timer
@@ -15,25 +11,21 @@ KpodDevice::KpodDevice(QObject *parent)
     connect(m_pollTimer, &QTimer::timeout, this, &KpodDevice::poll);
 }
 
-KpodDevice::~KpodDevice()
-{
+KpodDevice::~KpodDevice() {
     stopPolling();
 }
 
-bool KpodDevice::isDetected() const
-{
+bool KpodDevice::isDetected() const {
     return m_deviceInfo.detected;
 }
 
-KpodDeviceInfo KpodDevice::deviceInfo() const
-{
+KpodDeviceInfo KpodDevice::deviceInfo() const {
     return m_deviceInfo;
 }
 
-bool KpodDevice::startPolling()
-{
+bool KpodDevice::startPolling() {
     if (m_pollTimer->isActive()) {
-        return true;  // Already polling
+        return true; // Already polling
     }
 
     if (!openDevice()) {
@@ -50,8 +42,7 @@ bool KpodDevice::startPolling()
     return true;
 }
 
-void KpodDevice::stopPolling()
-{
+void KpodDevice::stopPolling() {
     if (m_pollTimer->isActive()) {
         m_pollTimer->stop();
         qDebug() << "KPOD: Polling stopped";
@@ -59,20 +50,17 @@ void KpodDevice::stopPolling()
     closeDevice();
 }
 
-bool KpodDevice::isPolling() const
-{
+bool KpodDevice::isPolling() const {
     return m_pollTimer->isActive();
 }
 
-KpodDevice::RockerPosition KpodDevice::rockerPosition() const
-{
+KpodDevice::RockerPosition KpodDevice::rockerPosition() const {
     return m_lastRockerPosition;
 }
 
-bool KpodDevice::openDevice()
-{
+bool KpodDevice::openDevice() {
     if (m_hidDevice) {
-        return true;  // Already open
+        return true; // Already open
     }
 
     if (hid_init() != 0) {
@@ -94,8 +82,7 @@ bool KpodDevice::openDevice()
     return true;
 }
 
-void KpodDevice::closeDevice()
-{
+void KpodDevice::closeDevice() {
     if (m_hidDevice) {
         hid_close(m_hidDevice);
         m_hidDevice = nullptr;
@@ -105,8 +92,7 @@ void KpodDevice::closeDevice()
     }
 }
 
-void KpodDevice::poll()
-{
+void KpodDevice::poll() {
     if (!m_hidDevice) {
         stopPolling();
         emit pollError("Device handle invalid");
@@ -144,8 +130,7 @@ void KpodDevice::poll()
     // readResult == 0 means no data available (normal for non-blocking)
 }
 
-void KpodDevice::processResponse(const unsigned char *buffer)
-{
+void KpodDevice::processResponse(const unsigned char *buffer) {
     // Extract encoder ticks (signed int16, little-endian)
     qint16 encoderTicks = static_cast<qint16>(buffer[1] | (buffer[2] << 8));
 
@@ -161,15 +146,14 @@ void KpodDevice::processResponse(const unsigned char *buffer)
     RockerPosition rocker = static_cast<RockerPosition>((controlsByte >> 5) & 0x03);
 
     // Emit rocker change only on transitions
-    if (rocker != m_lastRockerPosition && rocker != 3) {  // 3 would be error state
+    if (rocker != m_lastRockerPosition && rocker != 3) { // 3 would be error state
         m_lastRockerPosition = rocker;
         emit rockerPositionChanged(rocker);
         qDebug() << "KPOD: Rocker position changed to" << rocker;
     }
 }
 
-KpodDeviceInfo KpodDevice::detectDevice()
-{
+KpodDeviceInfo KpodDevice::detectDevice() {
     KpodDeviceInfo info;
 
     if (hid_init() != 0) {

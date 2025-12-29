@@ -11,8 +11,7 @@
 class RadioState;
 class KPA1500Client;
 
-class OptionsDialog : public QDialog
-{
+class OptionsDialog : public QDialog {
     Q_OBJECT
 
 public:
@@ -24,12 +23,12 @@ private slots:
 
 private:
     void setupUi();
-    QWidget* createAboutPage();
-    QWidget* createKpodPage();
-    QWidget* createKpa1500Page();
-    QWidget* createAudioInputPage();
-    QWidget* createAudioOutputPage();
-    QWidget* createNetworkPage();
+    QWidget *createAboutPage();
+    QWidget *createKpodPage();
+    QWidget *createKpa1500Page();
+    QWidget *createAudioInputPage();
+    QWidget *createAudioOutputPage();
+    QWidget *createNetworkPage();
     void updateKpa1500Status();
 
     RadioState *m_radioState;

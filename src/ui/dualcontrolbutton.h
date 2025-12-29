@@ -27,15 +27,14 @@
  *   wpmBtn->setContext(DualControlButton::Global);
  *   wpmBtn->setShowIndicator(true);  // Only one per group
  */
-class DualControlButton : public QWidget
-{
+class DualControlButton : public QWidget {
     Q_OBJECT
 
 public:
     enum Context {
-        Global,     // Orange bar - global settings like WPM, PWR
-        MainRx,     // Cyan bar - Main receiver settings
-        SubRx       // Green bar - Sub receiver settings
+        Global, // Orange bar - global settings like WPM, PWR
+        MainRx, // Cyan bar - Main receiver settings
+        SubRx   // Green bar - Sub receiver settings
     };
 
     explicit DualControlButton(QWidget *parent = nullptr);
@@ -65,9 +64,9 @@ public:
     void swapFunctions();
 
 signals:
-    void valueScrolled(int delta);      // Scroll wheel changed value (only when indicator shown)
-    void clicked();                     // Button was clicked (triggers swap)
-    void becameActive();                // User clicked to activate this button
+    void valueScrolled(int delta); // Scroll wheel changed value (only when indicator shown)
+    void clicked();                // Button was clicked (triggers swap)
+    void becameActive();           // User clicked to activate this button
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -79,10 +78,10 @@ protected:
 private:
     QColor contextColor() const;
 
-    QString m_primaryLabel;      // e.g., "WPM", "BW", "M.RF"
-    QString m_primaryValue;      // e.g., "15", "0.40", "0"
-    QString m_alternateLabel;    // e.g., "PTCH", "HI", "M.SQL"
-    QString m_alternateValue;    // e.g., "600", "2800", "0"
+    QString m_primaryLabel;   // e.g., "WPM", "BW", "M.RF"
+    QString m_primaryValue;   // e.g., "15", "0.40", "0"
+    QString m_alternateLabel; // e.g., "PTCH", "HI", "M.SQL"
+    QString m_alternateValue; // e.g., "600", "2800", "0"
     Context m_context = MainRx;
     bool m_showIndicator = true; // Show the colored bar (active in group)
     bool m_isHovered = false;

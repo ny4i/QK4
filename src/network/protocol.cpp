@@ -3,13 +3,9 @@
 #include <QtEndian>
 #include <QDebug>
 
-Protocol::Protocol(QObject *parent)
-    : QObject(parent)
-{
-}
+Protocol::Protocol(QObject *parent) : QObject(parent) {}
 
-void Protocol::parse(const QByteArray &data)
-{
+void Protocol::parse(const QByteArray &data) {
     m_buffer.append(data);
 
     // Process all complete packets in the buffer
@@ -37,8 +33,7 @@ void Protocol::parse(const QByteArray &data)
         }
 
         // Read payload length (big-endian uint32)
-        quint32 payloadLength = qFromBigEndian<quint32>(
-            reinterpret_cast<const uchar*>(m_buffer.constData() + 4));
+        quint32 payloadLength = qFromBigEndian<quint32>(reinterpret_cast<const uchar *>(m_buffer.constData() + 4));
 
         // Calculate total packet size: start(4) + length(4) + payload + end(4)
         int totalPacketSize = 4 + 4 + payloadLength + 4;
@@ -68,8 +63,7 @@ void Protocol::parse(const QByteArray &data)
     }
 }
 
-void Protocol::processPacket(const QByteArray &payload)
-{
+void Protocol::processPacket(const QByteArray &payload) {
     if (payload.isEmpty()) {
         return;
     }
@@ -109,12 +103,9 @@ void Protocol::processPacket(const QByteArray &payload)
         // Bytes 27+: Compressed bin data
         if (payload.size() > 27) {
             int receiver = static_cast<quint8>(payload[4]); // 0=Main, 1=Sub
-            qint64 centerFreq = qFromLittleEndian<qint64>(
-                reinterpret_cast<const uchar*>(payload.constData() + 11));
-            qint32 sampleRate = qFromLittleEndian<qint32>(
-                reinterpret_cast<const uchar*>(payload.constData() + 19));
-            qint32 noiseFloorRaw = qFromLittleEndian<qint32>(
-                reinterpret_cast<const uchar*>(payload.constData() + 23));
+            qint64 centerFreq = qFromLittleEndian<qint64>(reinterpret_cast<const uchar *>(payload.constData() + 11));
+            qint32 sampleRate = qFromLittleEndian<qint32>(reinterpret_cast<const uchar *>(payload.constData() + 19));
+            qint32 noiseFloorRaw = qFromLittleEndian<qint32>(reinterpret_cast<const uchar *>(payload.constData() + 23));
             float noiseFloor = noiseFloorRaw / 10.0f;
 
             QByteArray bins = payload.mid(27);
@@ -139,8 +130,7 @@ void Protocol::processPacket(const QByteArray &payload)
     }
 }
 
-QByteArray Protocol::buildPacket(const QByteArray &payload)
-{
+QByteArray Protocol::buildPacket(const QByteArray &payload) {
     QByteArray packet;
     packet.reserve(payload.size() + 12);
 
@@ -150,7 +140,7 @@ QByteArray Protocol::buildPacket(const QByteArray &payload)
     // Payload length (big-endian)
     quint32 length = payload.size();
     char lengthBytes[4];
-    qToBigEndian(length, reinterpret_cast<uchar*>(lengthBytes));
+    qToBigEndian(length, reinterpret_cast<uchar *>(lengthBytes));
     packet.append(lengthBytes, 4);
 
     // Payload
@@ -162,8 +152,7 @@ QByteArray Protocol::buildPacket(const QByteArray &payload)
     return packet;
 }
 
-QByteArray Protocol::buildCATPacket(const QString &command)
-{
+QByteArray Protocol::buildCATPacket(const QString &command) {
     QByteArray payload;
     payload.append(static_cast<char>(K4Protocol::CAT));
     payload.append('\x00');
@@ -173,8 +162,7 @@ QByteArray Protocol::buildCATPacket(const QString &command)
     return buildPacket(payload);
 }
 
-QByteArray Protocol::buildAuthData(const QString &password)
-{
+QByteArray Protocol::buildAuthData(const QString &password) {
     // SHA-384 hash of password
     QByteArray passwordData = password.toUtf8();
     QByteArray hash = QCryptographicHash::hash(passwordData, QCryptographicHash::Sha384);

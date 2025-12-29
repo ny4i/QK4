@@ -26,8 +26,7 @@ class BandPopupWidget;
 class KpodDevice;
 class KPA1500Client;
 
-class MainWindow : public QMainWindow
-{
+class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
@@ -132,8 +131,8 @@ private:
 
     // Center section
     QLabel *m_vfoASquare;
-    QLabel *m_txTriangle;    // Left triangle (pointing at A) - shown when split OFF
-    QLabel *m_txTriangleB;   // Right triangle (pointing at B) - shown when split ON
+    QLabel *m_txTriangle;  // Left triangle (pointing at A) - shown when split OFF
+    QLabel *m_txTriangleB; // Right triangle (pointing at B) - shown when split ON
     QLabel *m_txIndicator;
     QLabel *m_vfoBSquare;
     QLabel *m_splitLabel;
@@ -145,10 +144,9 @@ private:
     QLabel *m_voxLabel;
     QLabel *m_txAntennaLabel;
 
-
     // Spectrum/Waterfall displays
-    PanadapterWidget *m_panadapterA;  // VFO A (Main RX)
-    PanadapterWidget *m_panadapterB;  // VFO B (Sub RX) - for future use
+    PanadapterWidget *m_panadapterA; // VFO A (Main RX)
+    PanadapterWidget *m_panadapterB; // VFO B (Sub RX) - for future use
     QWidget *m_spectrumContainer;
 
     // Span control buttons (overlay on panadapter)
@@ -167,7 +165,7 @@ private:
     BandPopupWidget *m_bandPopup;
 
     RadioEntry m_currentRadio;
-    int m_currentBandNum = -1;  // Current band number for VFO A (BN command)
+    int m_currentBandNum = -1; // Current band number for VFO A (BN command)
 
     // KPOD device
     KpodDevice *m_kpodDevice;

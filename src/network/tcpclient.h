@@ -6,17 +6,11 @@
 #include <QTimer>
 #include "protocol.h"
 
-class TcpClient : public QObject
-{
+class TcpClient : public QObject {
     Q_OBJECT
 
 public:
-    enum ConnectionState {
-        Disconnected,
-        Connecting,
-        Authenticating,
-        Connected
-    };
+    enum ConnectionState { Disconnected, Connecting, Authenticating, Connected };
     Q_ENUM(ConnectionState)
 
     explicit TcpClient(QObject *parent = nullptr);
@@ -30,7 +24,7 @@ public:
     void sendCAT(const QString &command);
     void sendRaw(const QByteArray &data);
 
-    Protocol* protocol() { return m_protocol; }
+    Protocol *protocol() { return m_protocol; }
 
 signals:
     void stateChanged(ConnectionState state);

@@ -19,8 +19,7 @@ struct KpodDeviceInfo {
     QString deviceId;
 };
 
-class KpodDevice : public QObject
-{
+class KpodDevice : public QObject {
     Q_OBJECT
 
 public:
@@ -29,9 +28,9 @@ public:
 
     // Rocker switch positions (bits 5-6 of controls byte)
     enum RockerPosition {
-        RockerCenter = 0,   // 0b00 - VFO B / Center position
-        RockerRight = 1,    // 0b01 - XIT/RIT position
-        RockerLeft = 2      // 0b10 - VFO A position
+        RockerCenter = 0, // 0b00 - VFO B / Center position
+        RockerRight = 1,  // 0b01 - XIT/RIT position
+        RockerLeft = 2    // 0b10 - VFO A position
     };
     Q_ENUM(RockerPosition)
 

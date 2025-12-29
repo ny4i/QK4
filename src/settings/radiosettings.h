@@ -17,12 +17,11 @@ struct RadioEntry {
     }
 };
 
-class RadioSettings : public QObject
-{
+class RadioSettings : public QObject {
     Q_OBJECT
 
 public:
-    static RadioSettings* instance();
+    static RadioSettings *instance();
 
     QVector<RadioEntry> radios() const;
     void addRadio(const RadioEntry &radio);
@@ -47,7 +46,7 @@ public:
 
     // Audio settings
     int volume() const;
-    void setVolume(int value);  // 0-100, default 45
+    void setVolume(int value); // 0-100, default 45
 
 signals:
     void radiosChanged();
@@ -69,7 +68,7 @@ private:
     QString m_kpa1500Host;
     quint16 m_kpa1500Port = 1500;
     bool m_kpa1500Enabled = false;
-    int m_kpa1500PollInterval = 800;  // Default: 800ms
+    int m_kpa1500PollInterval = 800; // Default: 800ms
 
     QSettings m_settings;
 };
