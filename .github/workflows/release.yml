@@ -54,7 +54,17 @@ jobs:
           EOF
 
           # Use macdeployqt to bundle Qt frameworks
-          $(brew --prefix qt@6)/bin/macdeployqt K4Controller.app
+          $(brew --prefix qt@6)/bin/macdeployqt K4Controller.app -verbose=2
+
+          # Copy missing Qt frameworks that macdeployqt may miss
+          QT_LIB="$(brew --prefix qt@6)/lib"
+          FRAMEWORKS="K4Controller.app/Contents/Frameworks"
+          for framework in QtDBus QtOpenGL QtSvg; do
+            if [ -d "$QT_LIB/$framework.framework" ] && [ ! -d "$FRAMEWORKS/$framework.framework" ]; then
+              echo "Copying missing $framework..."
+              cp -R "$QT_LIB/$framework.framework" "$FRAMEWORKS/"
+            fi
+          done
 
           # Re-sign the app (ad-hoc) after macdeployqt modifies it
           codesign --force --deep --sign - K4Controller.app
