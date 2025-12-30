@@ -30,8 +30,14 @@ class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
+    // Panadapter display modes
+    enum class PanadapterMode { MainOnly, Dual, SubOnly };
+
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+
+    // Switch between Main only, Dual (A+B), and Sub only display
+    void setPanadapterMode(PanadapterMode mode);
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -149,10 +155,18 @@ private:
     PanadapterWidget *m_panadapterB; // VFO B (Sub RX) - for future use
     QWidget *m_spectrumContainer;
 
-    // Span control buttons (overlay on panadapter)
+    // Span control buttons (overlay on panadapter A)
     QPushButton *m_spanUpBtn;
     QPushButton *m_spanDownBtn;
     QPushButton *m_centerBtn;
+
+    // Span control buttons (overlay on panadapter B)
+    QPushButton *m_spanUpBtnB;
+    QPushButton *m_spanDownBtnB;
+    QPushButton *m_centerBtnB;
+
+    // Panadapter display mode
+    PanadapterMode m_panadapterMode = PanadapterMode::MainOnly;
 
     // Control panels (L-shaped layout)
     SideControlPanel *m_sideControlPanel;

@@ -1,5 +1,172 @@
 # K4Controller Development Log
 
+## December 30, 2025
+
+### Passband Display Simplification - COMPLETED
+
+**Goal:** Cleaner passband visualization with single center frequency marker.
+
+**Changes:**
+- Removed passband edge lines from both main panadapter and Mini-Pan
+- Passband now shows only semi-transparent fill (indicating filter width)
+- Added `drawFrequencyMarker()` to MiniPanWidget for center frequency line
+- Mini-Pan frequency marker uses darker shade of passband color (blue for A, green for B)
+
+**Files Modified:**
+- `src/dsp/panadapter.cpp` - removed edge line drawing from `drawFilterPassband()`
+- `src/dsp/minipanwidget.h` - added `drawFrequencyMarker()` declaration
+- `src/dsp/minipanwidget.cpp` - removed edge lines, added frequency marker implementation
+
+---
+
+### Dual Panadapter Frequency Offset Fix - COMPLETED
+
+**Bug:** In Dual mode (both panadapters visible), signals appeared offset from the filter/passband indicator. MainOnly mode worked correctly.
+
+**Root Cause:** Bug in `upsampleSpectrum()` function that bypassed resampling when input bins exceeded widget width.
+
+```cpp
+// BUG: This was incorrect!
+if (input.size() >= targetWidth) {
+    output = input;  // Copies ALL elements, doesn't resize to targetWidth
+    return;
+}
+```
+
+**Why This Caused the Offset:**
+| Mode | Widget Width | K4 Bins | Behavior | Result |
+|------|-------------|---------|----------|--------|
+| MainOnly | ~1200 px | ~1000 | Upsamples to 1200 | ✅ Correct |
+| Dual | ~600 px | ~1000 | Copied all 1000 bins | ❌ Only left 60% displayed |
+
+The draw loop only read bins 0-599, but passband assumed full frequency range.
+
+**Fix** (`src/dsp/panadapter.cpp`):
+- Removed the early-return that skipped resampling
+- Function now always resamples to `targetWidth` (handles both up/downsampling)
+- The existing interpolation code already worked correctly for both cases
+
+---
+
+### Mini-PAN RX Byte Discovery & Styling - COMPLETED
+
+**Bug:** Both Mini-Pans displayed identical data (VFO A spectrum on both).
+
+**Root Cause:** The K4-Remote Protocol PDF (rev. A1) incorrectly documented Mini-PAN as having no RX byte. Through packet analysis, we discovered Mini-PAN packets **DO** contain an RX byte at position 4 (undocumented).
+
+**Packet Analysis (via debug logging):**
+```
+PKT TYPE= 3 Bytes[0-7]: "03 00 f4 00 00 00 04 00"  ← byte4=00 (Main)
+PKT TYPE= 3 Bytes[0-7]: "03 00 f5 00 01 00 04 00"  ← byte4=01 (Sub)
+```
+
+**Actual Mini-PAN Structure (corrected):**
+| Byte | Description |
+|------|-------------|
+| 0 | TYPE (0x03) |
+| 1 | VER (0x00) |
+| 2 | SEQ (sequence) |
+| 3 | Reserved (0x00) |
+| 4 | **RX (0=Main, 1=Sub)** |
+| 5+ | Mini PAN Data |
+
+**Protocol Changes** (`src/network/protocol.cpp`):
+- Read receiver from `payload[4]` instead of hardcoding 0
+- Data starts at `payload.mid(5)` instead of `payload.mid(3)`
+
+**MainWindow Changes** (`src/mainwindow.cpp`):
+- Route Mini-PAN based on `receiver` parameter (0→VFO A, 1→VFO B)
+- Mini-Pan A: Blue spectrum (0, 128, 255) and blue passband
+- Mini-Pan B: Green spectrum (0, 200, 0) and green passband
+- Colors match main panadapter scheme for visual consistency
+
+**MiniPanWidget Changes** (`src/dsp/minipanwidget.h/.cpp`):
+- Reduced spectrum line thickness from 1.5 to 1.0 for cleaner display
+- Added `setPassbandColor(QColor)` method for customizable passband color
+- Added `m_passbandColor` member variable (default: blue)
+- Updated `drawFilterPassband()` to use member variable instead of hardcoded green
+
+---
+
+### Mini-Pan for VFO B / Sub RX - COMPLETED
+
+Implemented Mini-Pan display for VFO B (Sub RX), mirroring VFO A functionality.
+
+**RadioState Changes** (`src/models/radiostate.h/.cpp`):
+- Added `m_miniPanAEnabled`, `m_miniPanBEnabled` state tracking
+- Added `miniPanAEnabled()`, `miniPanBEnabled()` getters
+- Added `setMiniPanAEnabled(bool)`, `setMiniPanBEnabled(bool)` setters (optimistic updates)
+- Added signals `miniPanAEnabledChanged`, `miniPanBEnabledChanged`
+
+**MainWindow Changes** (`src/mainwindow.cpp`):
+- VFO A toggle sends `#MP1;` / `#MP0;` CAT commands
+- VFO B toggle sends `#MP$1;` / `#MP$0;` CAT commands
+- Set optimistic state BEFORE sending CAT (K4 doesn't echo these commands)
+- Connected `modeBChanged` and `filterBandwidthBChanged` to VFO B Mini-Pan
+
+**MiniPanWidget Changes** (`src/dsp/minipanwidget.h/.cpp`):
+- Added `setSpectrumColor(QColor)` method for customizable spectrum line color
+- Added `m_spectrumColor` member variable (default: amber for VFO A)
+
+**CAT Commands:**
+| Function | Main RX | Sub RX |
+|----------|---------|--------|
+| Enable Mini-Pan | `#MP1;` | `#MP$1;` |
+| Disable Mini-Pan | `#MP0;` | `#MP$0;` |
+
+**Color Scheme:**
+- VFO A Mini-Pan: Amber `K4Colors::VfoAAmber`
+- VFO B Mini-Pan: Cyan `K4Colors::VfoBCyan`
+
+---
+
+### Sub RX Main Panadapter - COMPLETED
+
+Implemented full Sub RX (VFO B) main panadapter with side-by-side layout.
+
+**Features Implemented:**
+- Three display modes: MainOnly, Dual, SubOnly (via `setPanadapterMode()`)
+- Side-by-side layout using QHBoxLayout (A on left, B on right)
+- Independent C/+/- span control buttons for each panadapter
+- Click-to-tune and scroll-wheel tuning for VFO B
+- VFO-specific passband and frequency marker colors
+
+**RadioState Changes** (`src/models/radiostate.h/.cpp`):
+- Added `refLevelB()`, `spanHzB()`, `setSpanHzB()` for Sub RX state
+- Added signals `refLevelBChanged`, `spanBChanged`
+- Added CAT parsing for `#REF$` and `#SPN$` commands (Sub RX variants)
+
+**MainWindow Changes** (`src/mainwindow.cpp`):
+- Changed spectrum layout from QVBoxLayout to QHBoxLayout
+- Added `PanadapterMode` enum (MainOnly, Dual, SubOnly)
+- Added `setPanadapterMode()` method for display mode switching
+- Created span control buttons for panadapter B (`m_spanDownBtnB`, `m_spanUpBtnB`, `m_centerBtnB`)
+- Wired SUB RX button to cycle through panadapter modes
+- Added VFO B mouse controls: `FB{freq};` for click, `UP$;`/`DN$;` for scroll
+
+**PanadapterWidget Changes** (`src/dsp/panadapter.h/.cpp`):
+- Added `setPassbandColor()` and `setFrequencyMarkerColor()` methods
+- Added `m_passbandColor` and `m_frequencyMarkerColor` member variables
+- Updated `drawFilterPassband()` to use `m_passbandColor`
+- Updated `drawFrequencyMarker()` to use `m_frequencyMarkerColor`
+- Default colors: Blue passband `(0, 128, 255)`, darker blue marker `(0, 80, 200)`
+
+**Color Scheme (per physical K4 rig):**
+- VFO A: Blue passband, darker blue frequency marker (defaults)
+- VFO B: Green passband `(0, 200, 0)`, darker green marker `(0, 140, 0)`
+
+**CAT Commands:**
+| Function | VFO A | VFO B |
+|----------|-------|-------|
+| Span | `#SPN{value};` | `#SPN${value};` |
+| Center | `FC;` | `FC$;` |
+| Ref Level | `#REF` response | `#REF$` response |
+| Tune Up | `UP;` | `UP$;` |
+| Tune Down | `DN;` | `DN$;` |
+| Set Freq | `FA{freq};` | `FB{freq};` |
+
+---
+
 ## December 29, 2025
 
 ### macOS Release Packaging - COMPLETED

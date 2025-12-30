@@ -157,10 +157,10 @@ public:
         }
     }
 
-    // Panadapter REF level
+    // Panadapter REF level (Main)
     int refLevel() const { return m_refLevel; }
 
-    // Panadapter span (from #SPN command, in Hz)
+    // Panadapter span (Main, from #SPN command, in Hz)
     int spanHz() const { return m_spanHz; }
 
     // Setter for optimistic span updates (UI updates immediately, like K4Mobile)
@@ -170,6 +170,28 @@ public:
             emit spanChanged(m_spanHz);
         }
     }
+
+    // Panadapter REF level (Sub)
+    int refLevelB() const { return m_refLevelB; }
+
+    // Panadapter span (Sub, from #SPN$ command, in Hz)
+    int spanHzB() const { return m_spanHzB; }
+
+    // Setter for optimistic span updates (Sub RX)
+    void setSpanHzB(int spanHz) {
+        if (spanHz > 0 && spanHz != m_spanHzB) {
+            m_spanHzB = spanHz;
+            emit spanBChanged(m_spanHzB);
+        }
+    }
+
+    // Mini-Pan enabled state (tracked via #MP / #MP$ CAT commands)
+    bool miniPanAEnabled() const { return m_miniPanAEnabled; }
+    bool miniPanBEnabled() const { return m_miniPanBEnabled; }
+
+    // Mini-Pan state setters (called optimistically when sending CAT commands)
+    void setMiniPanAEnabled(bool enabled);
+    void setMiniPanBEnabled(bool enabled);
 
     // Static helpers
     static Mode modeFromCode(int code);
@@ -198,18 +220,22 @@ signals:
     void antennaNameChanged(int index, const QString &name);
     void ritXitChanged(bool ritEnabled, bool xitEnabled, int offset);
     void messageBankChanged(int bank);
-    void processingChanged();        // NB, NR, PA, RA, GT changes for Main RX
-    void processingChangedB();       // NB, NR, PA, RA, GT changes for Sub RX
-    void refLevelChanged(int level); // Panadapter reference level (#REF command)
-    void spanChanged(int spanHz);    // Panadapter span (#SPN command)
-    void keyerSpeedChanged(int wpm); // CW keyer speed
-    void qskDelayChanged(int delay); // QSK/VOX delay in 10ms increments
-    void rfGainChanged(int gain);    // RF gain
-    void squelchChanged(int level);  // Squelch level
-    void rfGainBChanged(int gain);   // RF gain Sub RX
-    void squelchBChanged(int level); // Squelch Sub RX
-    void voxChanged(bool enabled);   // VOX state (any mode)
-    void notchChanged();             // Manual notch state/pitch changed
+    void processingChanged();                  // NB, NR, PA, RA, GT changes for Main RX
+    void processingChangedB();                 // NB, NR, PA, RA, GT changes for Sub RX
+    void refLevelChanged(int level);           // Panadapter reference level (#REF command)
+    void spanChanged(int spanHz);              // Panadapter span (#SPN command)
+    void refLevelBChanged(int level);          // Sub RX panadapter reference level (#REF$ command)
+    void spanBChanged(int spanHz);             // Sub RX panadapter span (#SPN$ command)
+    void keyerSpeedChanged(int wpm);           // CW keyer speed
+    void qskDelayChanged(int delay);           // QSK/VOX delay in 10ms increments
+    void rfGainChanged(int gain);              // RF gain
+    void squelchChanged(int level);            // Squelch level
+    void rfGainBChanged(int gain);             // RF gain Sub RX
+    void squelchBChanged(int level);           // Squelch Sub RX
+    void voxChanged(bool enabled);             // VOX state (any mode)
+    void notchChanged();                       // Manual notch state/pitch changed
+    void miniPanAEnabledChanged(bool enabled); // Mini-Pan A state (#MP command)
+    void miniPanBEnabledChanged(bool enabled); // Mini-Pan B state (#MP$ command)
     void stateUpdated();
 
 private:
@@ -311,17 +337,27 @@ private:
     int m_qskDelayVoice = -1;
     int m_qskDelayData = -1;
 
-    // Panadapter REF level
+    // Panadapter REF level (Main)
     int m_refLevel = -110; // Default -110 dBm
 
-    // Panadapter span (from #SPN command)
+    // Panadapter span (Main, from #SPN command)
     int m_spanHz = 10000; // Default 10 kHz
+
+    // Panadapter REF level (Sub)
+    int m_refLevelB = -110; // Default -110 dBm
+
+    // Panadapter span (Sub, from #SPN$ command)
+    int m_spanHzB = 10000; // Default 10 kHz
 
     // Radio info
     QString m_radioID;
     QString m_radioModel;
     QString m_optionModules;
     QMap<QString, QString> m_firmwareVersions;
+
+    // Mini-Pan enabled state (tracked via #MP / #MP$ CAT commands)
+    bool m_miniPanAEnabled = false;
+    bool m_miniPanBEnabled = false;
 };
 
 #endif // RADIOSTATE_H

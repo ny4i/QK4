@@ -35,6 +35,8 @@ public:
 
     // Display settings
     void setSpectrumColor(const QColor &color);
+    void setPassbandColor(const QColor &color);        // Filter passband overlay color
+    void setFrequencyMarkerColor(const QColor &color); // Tuned frequency line color
     void setGridEnabled(bool enabled);
     void setPeakHoldEnabled(bool enabled);
     void setRefLevel(int level); // Dynamic REF level from K4 (#REF command)
@@ -102,6 +104,8 @@ private:
     float m_smoothingAlpha;          // EMA smoothing factor
     float m_smoothedBaseline = 0.0f; // Smoothed baseline for stable spectrum drawing
     QColor m_spectrumColor;
+    QColor m_passbandColor;        // Filter passband overlay (default: green for VFO A legacy)
+    QColor m_frequencyMarkerColor; // Tuned frequency line (default: orange)
     bool m_gridEnabled;
     bool m_peakHoldEnabled;
     int m_refLevel; // REF level from K4 in dBm (default -110)

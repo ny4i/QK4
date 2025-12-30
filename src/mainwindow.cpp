@@ -147,16 +147,13 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_radioState, &RadioState::processingChangedB, this, &MainWindow::onProcessingChangedB);
 
     // RadioState REF level -> Panadapter (for dynamic waterfall color scaling)
-    connect(m_radioState, &RadioState::refLevelChanged, this, [this](int level) {
-        m_panadapterA->setRefLevel(level);
-        // m_panadapterB->setRefLevel(level); // For future Sub RX panadapter
-    });
+    connect(m_radioState, &RadioState::refLevelChanged, this, [this](int level) { m_panadapterA->setRefLevel(level); });
+    connect(m_radioState, &RadioState::refLevelBChanged, this,
+            [this](int level) { m_panadapterB->setRefLevel(level); });
 
     // RadioState span -> Panadapter (for frequency labels and bin extraction)
-    connect(m_radioState, &RadioState::spanChanged, this, [this](int spanHz) {
-        m_panadapterA->setSpan(spanHz);
-        // m_panadapterB->setSpan(spanHz); // For future Sub RX panadapter
-    });
+    connect(m_radioState, &RadioState::spanChanged, this, [this](int spanHz) { m_panadapterA->setSpan(spanHz); });
+    connect(m_radioState, &RadioState::spanBChanged, this, [this](int spanHz) { m_panadapterB->setSpan(spanHz); });
 
     // Protocol spectrum data -> Panadapter
     connect(m_tcpClient->protocol(), &Protocol::spectrumDataReady, this, &MainWindow::onSpectrumData);
@@ -328,8 +325,22 @@ void MainWindow::setupUi() {
     connect(m_bottomMenuBar, &BottomMenuBar::mainRxClicked, this, []() {
         // TODO: Show main RX settings
     });
-    connect(m_bottomMenuBar, &BottomMenuBar::subRxClicked, this, []() {
-        // TODO: Show sub RX settings
+    connect(m_bottomMenuBar, &BottomMenuBar::subRxClicked, this, [this]() {
+        // Cycle through panadapter modes: MainOnly -> Dual -> SubOnly -> MainOnly
+        switch (m_panadapterMode) {
+        case PanadapterMode::MainOnly:
+            setPanadapterMode(PanadapterMode::Dual);
+            qDebug() << "Panadapter mode: Dual";
+            break;
+        case PanadapterMode::Dual:
+            setPanadapterMode(PanadapterMode::SubOnly);
+            qDebug() << "Panadapter mode: SubOnly";
+            break;
+        case PanadapterMode::SubOnly:
+            setPanadapterMode(PanadapterMode::MainOnly);
+            qDebug() << "Panadapter mode: MainOnly";
+            break;
+        }
     });
     connect(m_bottomMenuBar, &BottomMenuBar::txClicked, this, []() {
         // TODO: Show TX settings
@@ -406,8 +417,20 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     // ===== VFO A (Left - Amber) - Using VFOWidget =====
     m_vfoA = new VFOWidget(VFOWidget::VFO_A, parent);
 
-    // Connect VFO A click to toggle mini-pan
-    connect(m_vfoA, &VFOWidget::normalContentClicked, this, [this]() { m_vfoA->showMiniPan(); });
+    // Connect VFO A click to toggle mini-pan (send CAT to enable Mini-Pan streaming)
+    connect(m_vfoA, &VFOWidget::normalContentClicked, this, [this]() {
+        m_vfoA->showMiniPan();
+        m_radioState->setMiniPanAEnabled(true); // Set state BEFORE sending CAT (K4 doesn't echo)
+        m_tcpClient->sendCAT("#MP1;");          // Enable Mini-Pan A streaming
+    });
+    connect(m_vfoA->miniPan(), &MiniPanWidget::clicked, this, [this]() {
+        m_radioState->setMiniPanAEnabled(false); // Set state BEFORE sending CAT
+        m_tcpClient->sendCAT("#MP0;");           // Disable Mini-Pan A streaming
+    });
+
+    // Set Mini-Pan A colors to blue (matching main panadapter A passband)
+    m_vfoA->miniPan()->setSpectrumColor(QColor(0, 128, 255));     // Blue spectrum
+    m_vfoA->miniPan()->setPassbandColor(QColor(0, 128, 255, 64)); // Blue passband
 
     layout->addWidget(m_vfoA, 1);
 
@@ -556,26 +579,40 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     // ===== VFO B (Right - Cyan) - Using VFOWidget =====
     m_vfoB = new VFOWidget(VFOWidget::VFO_B, parent);
 
-    // Connect VFO B click to toggle mini-pan
-    connect(m_vfoB, &VFOWidget::normalContentClicked, this, [this]() { m_vfoB->showMiniPan(); });
+    // Set Mini-Pan B colors to green (matching main panadapter B passband)
+    m_vfoB->miniPan()->setSpectrumColor(QColor(0, 200, 0));     // Green spectrum
+    m_vfoB->miniPan()->setPassbandColor(QColor(0, 255, 0, 64)); // Green passband
+
+    // Connect VFO B click to toggle mini-pan (send CAT to enable Mini-Pan streaming)
+    connect(m_vfoB, &VFOWidget::normalContentClicked, this, [this]() {
+        m_vfoB->showMiniPan();
+        m_radioState->setMiniPanBEnabled(true); // Set state BEFORE sending CAT (K4 doesn't echo)
+        m_tcpClient->sendCAT("#MP$1;");         // Enable Mini-Pan B (Sub RX) streaming
+    });
+    connect(m_vfoB->miniPan(), &MiniPanWidget::clicked, this, [this]() {
+        m_radioState->setMiniPanBEnabled(false); // Set state BEFORE sending CAT
+        m_tcpClient->sendCAT("#MP$0;");          // Disable Mini-Pan B streaming
+    });
 
     layout->addWidget(m_vfoB, 1);
 
     // Add the VFO row to main layout
     mainVLayout->addWidget(vfoRowWidget);
 
-    // ===== Antenna Row (below VFO section, full width) =====
+    // ===== Antenna Row (below VFO section, centered) =====
     auto *antennaRow = new QHBoxLayout();
     antennaRow->setContentsMargins(8, 0, 8, 0);
     antennaRow->setSpacing(0);
 
-    // RX Antenna A (Main) - white color, left side
+    antennaRow->addStretch(1); // Push content toward center
+
+    // RX Antenna A (Main) - white color, left of VOX
     m_rxAntALabel = new QLabel("1:ANT1", parent);
-    m_rxAntALabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    m_rxAntALabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
     m_rxAntALabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::TextWhite));
     antennaRow->addWidget(m_rxAntALabel);
 
-    antennaRow->addStretch(1); // Push RX A left, TX to center
+    antennaRow->addSpacing(8); // Small gap between RX A and VOX
 
     // VOX indicator - orange when on, grey when off
     m_voxLabel = new QLabel("VOX", parent);
@@ -583,7 +620,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     m_voxLabel->setStyleSheet("color: #999999; font-size: 11px; font-weight: bold;");
     antennaRow->addWidget(m_voxLabel);
 
-    antennaRow->addSpacing(40); // ~6 character spacing between VOX and TX antenna
+    antennaRow->addSpacing(40); // Spacing between VOX and TX antenna
 
     // TX Antenna - orange color, centered
     m_txAntennaLabel = new QLabel("1:ANT1", parent);
@@ -591,13 +628,15 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     m_txAntennaLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::VfoAAmber));
     antennaRow->addWidget(m_txAntennaLabel);
 
-    antennaRow->addStretch(1); // Push TX center, RX B right
+    antennaRow->addSpacing(8); // Small gap between TX and RX B
 
-    // RX Antenna B (Sub) - white color, right side
+    // RX Antenna B (Sub) - white color, right of TX antenna
     m_rxAntBLabel = new QLabel("1:ANT1", parent);
-    m_rxAntBLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    m_rxAntBLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     m_rxAntBLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::TextWhite));
     antennaRow->addWidget(m_rxAntBLabel);
+
+    antennaRow->addStretch(1); // Push content toward center
 
     mainVLayout->addLayout(antennaRow);
 }
@@ -608,11 +647,12 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     m_spectrumContainer->setStyleSheet(QString("background-color: %1;").arg(K4Colors::DarkBackground));
     m_spectrumContainer->setMinimumHeight(300);
 
-    auto *layout = new QVBoxLayout(m_spectrumContainer);
+    // Use QHBoxLayout for side-by-side panadapters (Main left, Sub right)
+    auto *layout = new QHBoxLayout(m_spectrumContainer);
     layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(0);
+    layout->setSpacing(2); // Small gap between panadapters
 
-    // Main panadapter for VFO A
+    // Main panadapter for VFO A (left side)
     m_panadapterA = new PanadapterWidget(m_spectrumContainer);
     m_panadapterA->setSpectrumColor(QColor(K4Colors::VfoAAmber));
     m_panadapterA->setDbRange(-140.0f, -20.0f);
@@ -620,13 +660,16 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     m_panadapterA->setGridEnabled(true);
     layout->addWidget(m_panadapterA);
 
-    // VFO B panadapter - created but hidden for future use
+    // Sub panadapter for VFO B (right side)
     m_panadapterB = new PanadapterWidget(m_spectrumContainer);
     m_panadapterB->setSpectrumColor(QColor(K4Colors::VfoBCyan));
     m_panadapterB->setDbRange(-140.0f, -20.0f);
     m_panadapterB->setSpectrumRatio(0.35f);
     m_panadapterB->setGridEnabled(true);
-    m_panadapterB->hide(); // Hidden by default, show when Sub RX is enabled
+    m_panadapterB->setPassbandColor(QColor(0, 200, 0));        // Green passband for VFO B
+    m_panadapterB->setFrequencyMarkerColor(QColor(0, 140, 0)); // Darker green marker for VFO B
+    layout->addWidget(m_panadapterB);
+    m_panadapterB->hide(); // Start hidden (MainOnly mode)
 
     // Span control buttons - overlay on panadapter (lower right, above freq labels)
     QString btnStyle = "QPushButton { background: rgba(0,0,0,0.6); color: white; "
@@ -634,6 +677,7 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
                        "font-size: 14px; font-weight: bold; min-width: 28px; min-height: 24px; }"
                        "QPushButton:hover { background: rgba(80,80,80,0.8); }";
 
+    // Main panadapter (A) buttons
     m_spanDownBtn = new QPushButton("-", m_panadapterA);
     m_spanDownBtn->setStyleSheet(btnStyle);
     m_spanDownBtn->setFixedSize(28, 24);
@@ -646,23 +690,37 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     m_centerBtn->setStyleSheet(btnStyle);
     m_centerBtn->setFixedSize(28, 24);
 
+    // Sub panadapter (B) buttons
+    m_spanDownBtnB = new QPushButton("-", m_panadapterB);
+    m_spanDownBtnB->setStyleSheet(btnStyle);
+    m_spanDownBtnB->setFixedSize(28, 24);
+
+    m_spanUpBtnB = new QPushButton("+", m_panadapterB);
+    m_spanUpBtnB->setStyleSheet(btnStyle);
+    m_spanUpBtnB->setFixedSize(28, 24);
+
+    m_centerBtnB = new QPushButton("C", m_panadapterB);
+    m_centerBtnB->setStyleSheet(btnStyle);
+    m_centerBtnB->setFixedSize(28, 24);
+
     // Position buttons (will be repositioned in resizeEvent of panadapter)
     // Triangle layout: C centered above, - and + below
     m_spanDownBtn->move(m_panadapterA->width() - 70, m_panadapterA->height() - 45);
     m_spanUpBtn->move(m_panadapterA->width() - 35, m_panadapterA->height() - 45);
     m_centerBtn->move(m_panadapterA->width() - 52, m_panadapterA->height() - 73);
 
-    // Span adjustment: 1 kHz increments, range 5 kHz to 368 kHz
+    m_spanDownBtnB->move(m_panadapterB->width() - 70, m_panadapterB->height() - 45);
+    m_spanUpBtnB->move(m_panadapterB->width() - 35, m_panadapterB->height() - 45);
+    m_centerBtnB->move(m_panadapterB->width() - 52, m_panadapterB->height() - 73);
+
+    // Span adjustment for Main: 1 kHz increments, range 5 kHz to 368 kHz
     // Uses OPTIMISTIC UPDATES like K4Mobile - update local state immediately
     connect(m_spanDownBtn, &QPushButton::clicked, this, [this]() {
         int currentSpan = m_radioState->spanHz();
         int newSpan = currentSpan - 1000; // -1 kHz
         qDebug() << "Span- clicked: current=" << currentSpan << "new=" << newSpan;
         if (newSpan >= 5000) {
-            // OPTIMISTIC UPDATE: Update local state immediately (like K4Mobile)
-            // K4 doesn't echo #SPN set commands, so we update immediately for responsive UI
             m_radioState->setSpanHz(newSpan);
-
             QString cmd = QString("#SPN%1;").arg(newSpan);
             qDebug() << "Sending span command:" << cmd;
             m_tcpClient->sendCAT(cmd);
@@ -674,9 +732,7 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
         int newSpan = currentSpan + 1000; // +1 kHz
         qDebug() << "Span+ clicked: current=" << currentSpan << "new=" << newSpan;
         if (newSpan <= 368000) {
-            // OPTIMISTIC UPDATE: Update local state immediately
             m_radioState->setSpanHz(newSpan);
-
             QString cmd = QString("#SPN%1;").arg(newSpan);
             qDebug() << "Sending span command:" << cmd;
             m_tcpClient->sendCAT(cmd);
@@ -688,8 +744,39 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
         m_tcpClient->sendCAT("FC;");
     });
 
-    // Install event filter to reposition span buttons when panadapter resizes
+    // Span adjustment for Sub: uses $ suffix for Sub RX commands
+    connect(m_spanDownBtnB, &QPushButton::clicked, this, [this]() {
+        int currentSpan = m_radioState->spanHzB();
+        int newSpan = currentSpan - 1000;
+        qDebug() << "Span B- clicked: current=" << currentSpan << "new=" << newSpan;
+        if (newSpan >= 5000) {
+            m_radioState->setSpanHzB(newSpan);
+            QString cmd = QString("#SPN$%1;").arg(newSpan);
+            qDebug() << "Sending span B command:" << cmd;
+            m_tcpClient->sendCAT(cmd);
+        }
+    });
+
+    connect(m_spanUpBtnB, &QPushButton::clicked, this, [this]() {
+        int currentSpan = m_radioState->spanHzB();
+        int newSpan = currentSpan + 1000;
+        qDebug() << "Span B+ clicked: current=" << currentSpan << "new=" << newSpan;
+        if (newSpan <= 368000) {
+            m_radioState->setSpanHzB(newSpan);
+            QString cmd = QString("#SPN$%1;").arg(newSpan);
+            qDebug() << "Sending span B command:" << cmd;
+            m_tcpClient->sendCAT(cmd);
+        }
+    });
+
+    connect(m_centerBtnB, &QPushButton::clicked, this, [this]() {
+        qDebug() << "Center B clicked: sending FC$;";
+        m_tcpClient->sendCAT("FC$;");
+    });
+
+    // Install event filter to reposition span buttons when panadapters resize
     m_panadapterA->installEventFilter(this);
+    m_panadapterB->installEventFilter(this);
 
     // Update panadapter when frequency/mode changes
     connect(m_radioState, &RadioState::frequencyChanged, this,
@@ -714,6 +801,14 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     // Also update mini-pan mode when mode changes
     connect(m_radioState, &RadioState::modeChanged, this,
             [this](RadioState::Mode mode) { m_vfoA->miniPan()->setMode(RadioState::modeToString(mode)); });
+
+    // Mini-pan filter passband visualization
+    connect(m_radioState, &RadioState::filterBandwidthChanged, this,
+            [this](int bw) { m_vfoA->miniPan()->setFilterBandwidth(bw); });
+    connect(m_radioState, &RadioState::ifShiftChanged, this,
+            [this](int shift) { m_vfoA->miniPan()->setIfShift(shift); });
+    connect(m_radioState, &RadioState::cwPitchChanged, this,
+            [this](int pitch) { m_vfoA->miniPan()->setCwPitch(pitch); });
 
     // Mouse control: click to tune
     connect(m_panadapterA, &PanadapterWidget::frequencyClicked, this, [this](qint64 freq) {
@@ -741,13 +836,45 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
         m_tcpClient->sendCAT("FA;");
     });
 
-    // VFO B connections for future use
+    // VFO B connections
     connect(m_radioState, &RadioState::frequencyBChanged, this,
             [this](quint64 freq) { m_panadapterB->setTunedFrequency(freq); });
     connect(m_radioState, &RadioState::modeBChanged, this,
             [this](RadioState::Mode mode) { m_panadapterB->setMode(RadioState::modeToString(mode)); });
     connect(m_radioState, &RadioState::filterBandwidthBChanged, this,
             [this](int bw) { m_panadapterB->setFilterBandwidth(bw); });
+
+    // VFO B Mini-Pan connections (mode-dependent bandwidth)
+    connect(m_radioState, &RadioState::modeBChanged, this,
+            [this](RadioState::Mode mode) { m_vfoB->miniPan()->setMode(RadioState::modeToString(mode)); });
+    connect(m_radioState, &RadioState::filterBandwidthBChanged, this,
+            [this](int bw) { m_vfoB->miniPan()->setFilterBandwidth(bw); });
+
+    // Mouse control for VFO B: click to tune
+    connect(m_panadapterB, &PanadapterWidget::frequencyClicked, this, [this](qint64 freq) {
+        // Guard: only send if connected and frequency is valid
+        if (!m_tcpClient->isConnected() || freq <= 0)
+            return;
+        QString cmd = QString("FB%1;").arg(freq, 11, 10, QChar('0'));
+        m_tcpClient->sendCAT(cmd);
+        // Request frequency back to update UI (K4 doesn't echo SET commands)
+        m_tcpClient->sendCAT("FB;");
+    });
+
+    // Mouse control for VFO B: scroll wheel to adjust frequency using K4's native step
+    connect(m_panadapterB, &PanadapterWidget::frequencyScrolled, this, [this](int steps) {
+        // Guard: only send if connected
+        if (!m_tcpClient->isConnected())
+            return;
+        // Use UP$/DN$ commands for Sub RX - respects K4's current VFO step size
+        QString cmd = (steps > 0) ? "UP$;" : "DN$;";
+        int count = qAbs(steps);
+        for (int i = 0; i < count; i++) {
+            m_tcpClient->sendCAT(cmd);
+        }
+        // Request frequency back to update UI
+        m_tcpClient->sendCAT("FB;");
+    });
 }
 
 void MainWindow::updateDateTime() {
@@ -1123,11 +1250,10 @@ void MainWindow::onSpectrumData(int receiver, const QByteArray &data, qint64 cen
 }
 
 void MainWindow::onMiniSpectrumData(int receiver, const QByteArray &data) {
-    // Feed MiniPAN data to mini-pan widget when visible
+    // Route Mini-PAN data based on receiver byte (0=Main/A, 1=Sub/B)
     if (receiver == 0 && m_vfoA->isMiniPanVisible()) {
         m_vfoA->updateMiniPan(data);
-    }
-    if (receiver == 1 && m_vfoB->isMiniPanVisible()) {
+    } else if (receiver == 1 && m_vfoB->isMiniPanVisible()) {
         m_vfoB->updateMiniPan(data);
     }
 }
@@ -1148,7 +1274,7 @@ void MainWindow::onAudioData(const QByteArray &payload) {
 }
 
 bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
-    // Reposition span control buttons when panadapter resizes
+    // Reposition span control buttons when panadapter A resizes
     if (watched == m_panadapterA && event->type() == QEvent::Resize) {
         QResizeEvent *resizeEvent = static_cast<QResizeEvent *>(event);
         int w = resizeEvent->size().width();
@@ -1161,7 +1287,38 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
         m_centerBtn->move(w - 52, h - 73);
     }
 
+    // Reposition span control buttons when panadapter B resizes
+    if (watched == m_panadapterB && event->type() == QEvent::Resize) {
+        QResizeEvent *resizeEvent = static_cast<QResizeEvent *>(event);
+        int w = resizeEvent->size().width();
+        int h = resizeEvent->size().height();
+
+        // Position B buttons at lower right, above the frequency label bar (20px)
+        // Triangle layout: C centered above, - and + below
+        m_spanDownBtnB->move(w - 70, h - 45);
+        m_spanUpBtnB->move(w - 35, h - 45);
+        m_centerBtnB->move(w - 52, h - 73);
+    }
+
     return QMainWindow::eventFilter(watched, event);
+}
+
+void MainWindow::setPanadapterMode(PanadapterMode mode) {
+    m_panadapterMode = mode;
+    switch (mode) {
+    case PanadapterMode::MainOnly:
+        m_panadapterA->show();
+        m_panadapterB->hide();
+        break;
+    case PanadapterMode::Dual:
+        m_panadapterA->show();
+        m_panadapterB->show();
+        break;
+    case PanadapterMode::SubOnly:
+        m_panadapterA->hide();
+        m_panadapterB->show();
+        break;
+    }
 }
 
 void MainWindow::showMenuOverlay() {

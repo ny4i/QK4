@@ -46,11 +46,15 @@ void VFOWidget::setupUi() {
     mainLayout->addLayout(freqRow);
 
     // Stacked widget for normal content vs mini-pan
+    // Use dynamic height - stacked widget resizes based on active page
+    // Use Maximum horizontal policy so it doesn't expand beyond content width
     m_stackedWidget = new QStackedWidget(this);
-    m_stackedWidget->setFixedHeight(60); // Height for S-meter + features rows
+    m_stackedWidget->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
+    m_stackedWidget->setMaximumWidth(200); // Match mini-pan max width
 
     // Page 0: Normal content (S-meter + features)
     m_normalContent = new QWidget(m_stackedWidget);
+    m_normalContent->setFixedHeight(60); // S-meter + features = 60px
     auto *normalLayout = new QVBoxLayout(m_normalContent);
     normalLayout->setContentsMargins(0, 0, 0, 0);
     normalLayout->setSpacing(2);
@@ -123,7 +127,19 @@ void VFOWidget::setupUi() {
     // Connect mini-pan click to show normal view
     connect(m_miniPan, &MiniPanWidget::clicked, this, &VFOWidget::showNormal);
 
-    mainLayout->addWidget(m_stackedWidget);
+    // Wrap stacked widget in HBox for edge alignment
+    // VFO A: left-aligned (stretch on right)
+    // VFO B: right-aligned (stretch on left)
+    auto *stackedRow = new QHBoxLayout();
+    stackedRow->setContentsMargins(0, 0, 0, 0);
+    if (m_type == VFO_A) {
+        stackedRow->addWidget(m_stackedWidget);
+        stackedRow->addStretch(); // Push to left edge
+    } else {
+        stackedRow->addStretch(); // Push to right edge
+        stackedRow->addWidget(m_stackedWidget);
+    }
+    mainLayout->addLayout(stackedRow);
 
     // Install event filter for click-to-toggle on normal content
     m_normalContent->installEventFilter(this);

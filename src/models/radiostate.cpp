@@ -666,8 +666,18 @@ void RadioState::parseCATCommand(const QString &command) {
             emit refLevelChanged(m_refLevel);
         }
     }
-    // Panadapter Span (#SPN) - #SPN10000 (Hz)
-    else if (cmd.startsWith("#SPN") && cmd.length() > 4) {
+    // Sub RX Panadapter Reference Level (#REF$) - #REF$-110
+    else if (cmd.startsWith("#REF$") && cmd.length() > 5) {
+        QString refStr = cmd.mid(5); // Get "-110" from "#REF$-110"
+        bool ok;
+        int level = refStr.toInt(&ok);
+        if (ok && level != m_refLevelB) {
+            m_refLevelB = level;
+            emit refLevelBChanged(m_refLevelB);
+        }
+    }
+    // Panadapter Span (#SPN) - #SPN10000 (Hz) - not #SPN$ which is Sub RX
+    else if (cmd.startsWith("#SPN") && !cmd.startsWith("#SPN$") && cmd.length() > 4) {
         QString spanStr = cmd.mid(4); // Get "10000" from "#SPN10000"
         qDebug() << "Parsing #SPN response:" << cmd << "spanStr:" << spanStr;
         bool ok;
@@ -676,6 +686,34 @@ void RadioState::parseCATCommand(const QString &command) {
             qDebug() << "Span changed from" << m_spanHz << "to" << span;
             m_spanHz = span;
             emit spanChanged(m_spanHz);
+        }
+    }
+    // Sub RX Panadapter Span (#SPN$) - #SPN$10000 (Hz)
+    else if (cmd.startsWith("#SPN$") && cmd.length() > 5) {
+        QString spanStr = cmd.mid(5); // Get "10000" from "#SPN$10000"
+        qDebug() << "Parsing #SPN$ response:" << cmd << "spanStr:" << spanStr;
+        bool ok;
+        int span = spanStr.toInt(&ok);
+        if (ok && span > 0 && span != m_spanHzB) {
+            qDebug() << "Span B changed from" << m_spanHzB << "to" << span;
+            m_spanHzB = span;
+            emit spanBChanged(m_spanHzB);
+        }
+    }
+    // Mini-Pan Sub RX (#MP$) - #MP$0 or #MP$1
+    else if (cmd.startsWith("#MP$") && cmd.length() > 4) {
+        bool enabled = (cmd.mid(4, 1) == "1");
+        if (m_miniPanBEnabled != enabled) {
+            m_miniPanBEnabled = enabled;
+            emit miniPanBEnabledChanged(enabled);
+        }
+    }
+    // Mini-Pan Main RX (#MP) - #MP0 or #MP1
+    else if (cmd.startsWith("#MP") && cmd.length() > 3) {
+        bool enabled = (cmd.mid(3, 1) == "1");
+        if (m_miniPanAEnabled != enabled) {
+            m_miniPanAEnabled = enabled;
+            emit miniPanAEnabledChanged(enabled);
         }
     }
 
@@ -747,5 +785,19 @@ QString RadioState::sMeterStringB() const {
     } else {
         int dbOver = static_cast<int>((m_sMeterB - 9.0) * 10);
         return QString("S9+%1").arg(dbOver);
+    }
+}
+
+void RadioState::setMiniPanAEnabled(bool enabled) {
+    if (m_miniPanAEnabled != enabled) {
+        m_miniPanAEnabled = enabled;
+        emit miniPanAEnabledChanged(enabled);
+    }
+}
+
+void RadioState::setMiniPanBEnabled(bool enabled) {
+    if (m_miniPanBEnabled != enabled) {
+        m_miniPanBEnabled = enabled;
+        emit miniPanBEnabledChanged(enabled);
     }
 }

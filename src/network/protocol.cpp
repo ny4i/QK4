@@ -114,13 +114,17 @@ void Protocol::processPacket(const QByteArray &payload) {
         break;
     }
     case K4Protocol::MiniPAN: {
-        // MiniPAN Type 3 payload: [0x03][ver][seq][data...]
-        // Note: No RX field - receiver context comes from elsewhere
-        // Simpler format for smaller displays
-        if (payload.size() > 3) {
-            QByteArray bins = payload.mid(3);
-            // For now, assume Main RX (0) for mini-pan
-            emit miniSpectrumDataReady(0, bins);
+        // MiniPAN Type 3 payload structure (discovered via packet analysis):
+        // Byte 0: TYPE (0x03)
+        // Byte 1: VER (0x00)
+        // Byte 2: SEQ (sequence)
+        // Byte 3: Reserved (0x00)
+        // Byte 4: RX (0=Main, 1=Sub)
+        // Byte 5+: Mini PAN Data
+        if (payload.size() > 5) {
+            int receiver = static_cast<quint8>(payload[4]); // RX byte
+            QByteArray bins = payload.mid(5);
+            emit miniSpectrumDataReady(receiver, bins);
         }
         break;
     }

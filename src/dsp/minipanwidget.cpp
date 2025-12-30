@@ -13,7 +13,7 @@ const QColor GridLine("#333333");
 } // namespace MiniPanColors
 
 MiniPanWidget::MiniPanWidget(QWidget *parent) : QWidget(parent) {
-    setFixedHeight(90); // Force taller height for more waterfall history
+    setFixedHeight(110); // Taller for more waterfall history (was 90, clipped to 60)
     setMinimumWidth(180);
     setMaximumWidth(200);
 
@@ -120,6 +120,20 @@ void MiniPanWidget::clear() {
     update();
 }
 
+void MiniPanWidget::setSpectrumColor(const QColor &color) {
+    if (m_spectrumColor != color) {
+        m_spectrumColor = color;
+        update();
+    }
+}
+
+void MiniPanWidget::setPassbandColor(const QColor &color) {
+    if (m_passbandColor != color) {
+        m_passbandColor = color;
+        update();
+    }
+}
+
 void MiniPanWidget::setNotchFilter(bool enabled, int pitchHz) {
     if (m_notchEnabled != enabled || m_notchPitchHz != pitchHz) {
         m_notchEnabled = enabled;
@@ -132,6 +146,27 @@ void MiniPanWidget::setMode(const QString &mode) {
     if (m_mode != mode) {
         m_mode = mode;
         m_bandwidthHz = bandwidthForMode(mode);
+        update();
+    }
+}
+
+void MiniPanWidget::setFilterBandwidth(int bwHz) {
+    if (m_filterBw != bwHz) {
+        m_filterBw = bwHz;
+        update();
+    }
+}
+
+void MiniPanWidget::setIfShift(int shift) {
+    if (m_ifShift != shift) {
+        m_ifShift = shift;
+        update();
+    }
+}
+
+void MiniPanWidget::setCwPitch(int pitchHz) {
+    if (m_cwPitch != pitchHz) {
+        m_cwPitch = pitchHz;
         update();
     }
 }
@@ -168,6 +203,14 @@ void MiniPanWidget::paintEvent(QPaintEvent *event) {
 
     // Draw spectrum
     drawSpectrum(painter, spectrumRect);
+
+    // Draw filter passband in both areas
+    drawFilterPassband(painter, spectrumRect);
+    drawFilterPassband(painter, waterfallRect);
+
+    // Draw frequency marker (center line) in both areas
+    drawFrequencyMarker(painter, spectrumRect);
+    drawFrequencyMarker(painter, waterfallRect);
 
     // Draw notch filter marker in both areas
     drawNotchFilter(painter, spectrumRect);
@@ -236,7 +279,8 @@ void MiniPanWidget::drawSpectrum(QPainter &painter, const QRect &rect) {
         float value = getPeakForPixel(x);
         float normalized = normalizeDb(value);
         float adjusted = normalized - m_smoothedBaseline;
-        float lineHeight = adjusted * h * 0.95f; // Use 95% of height for headroom
+        // Apply height boost for more prominent signal display
+        float lineHeight = adjusted * h * 0.95f * m_heightBoost;
         float y = y0 + h - lineHeight;
 
         if (x == 0) {
@@ -246,7 +290,7 @@ void MiniPanWidget::drawSpectrum(QPainter &painter, const QRect &rect) {
         }
     }
 
-    painter.setPen(QPen(MiniPanColors::SpectrumLine, 1.5));
+    painter.setPen(QPen(m_spectrumColor, 1.0));
     painter.drawPath(path);
 }
 
@@ -336,6 +380,58 @@ void MiniPanWidget::drawNotchFilter(QPainter &painter, const QRect &rect) {
         painter.setPen(QPen(QColor("#FF0000"), 2.0)); // Red, 2px wide
         painter.drawLine(notchX, rect.top(), notchX, rect.bottom());
     }
+}
+
+void MiniPanWidget::drawFilterPassband(QPainter &painter, const QRect &rect) {
+    if (m_filterBw <= 0)
+        return;
+
+    int w = rect.width();
+    int centerX = w / 2; // Mini-pan is centered on VFO
+
+    // Convert filter bandwidth to pixels
+    int bwPixels = (m_filterBw * w) / m_bandwidthHz;
+
+    // Calculate shift offset for CW modes
+    // K4 IF shift: IS0050 displayed as "0.50" means 500 Hz
+    // Value is in units of 10 Hz, so IS0050 = 500 Hz
+    // Shift offset = (shift_value - pitch_value) * 10 Hz
+    int shiftHz = m_ifShift * 10;
+    int shiftOffsetHz = shiftHz - m_cwPitch;
+    int shiftPixels = (shiftOffsetHz * w) / m_bandwidthHz;
+
+    // Calculate passband position based on mode
+    int passbandX;
+    if (m_mode == "CW" || m_mode == "CW-R") {
+        // CW modes: filter is centered on VFO marker when shift equals pitch
+        // Shift moves the passband left/right from center
+        passbandX = centerX + shiftPixels - bwPixels / 2;
+    } else if (m_mode == "LSB") {
+        // LSB: filter is below carrier (left of center)
+        passbandX = centerX - bwPixels;
+    } else {
+        // USB, DATA, DATA-R, AM, FM: filter is above carrier (right of center)
+        passbandX = centerX;
+    }
+
+    // Draw semi-transparent passband overlay (use member color with 25% opacity)
+    QColor fillColor = m_passbandColor;
+    fillColor.setAlpha(64);
+    painter.fillRect(passbandX, rect.top(), bwPixels, rect.height(), fillColor);
+}
+
+void MiniPanWidget::drawFrequencyMarker(QPainter &painter, const QRect &rect) {
+    // Draw vertical line at center (Mini-Pan is always centered on VFO frequency)
+    int centerX = rect.width() / 2;
+
+    // Use darker version of passband color for the marker
+    QColor markerColor = m_passbandColor;
+    markerColor.setAlpha(255); // Full opacity
+    // Darken the color
+    markerColor = markerColor.darker(150);
+
+    painter.setPen(QPen(markerColor, 2));
+    painter.drawLine(centerX, rect.top(), centerX, rect.bottom());
 }
 
 void MiniPanWidget::mousePressEvent(QMouseEvent *event) {

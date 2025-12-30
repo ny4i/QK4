@@ -4,6 +4,33 @@ All notable changes to K4Controller will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+- Sub RX main panadapter with full spectrum/waterfall display
+- Three panadapter display modes: Main Only, Dual (A+B side-by-side), Sub Only
+- Independent span control buttons (C/+/-) for both panadapters
+- Click-to-tune and scroll-wheel tuning for VFO B panadapter
+- SUB RX button cycles through panadapter display modes
+- Mini-Pan for VFO B (Sub RX) with green spectrum line
+- Mode-dependent Mini-Pan bandwidth for VFO B (CW=3kHz, Voice/Data=10kHz)
+
+### Changed
+- VFO A passband indicator now uses blue color (matching physical K4 display)
+- VFO B passband indicator uses green color for visual distinction
+- Frequency markers use darker shades (blue for A, green for B) for clarity
+- Mini-Pan now sends CAT commands (#MP / #MP$) to enable/disable streaming
+- Mini-Pan spectrum line thickness reduced for cleaner display
+- Mini-Pan colors match main panadapter scheme (blue for A, green for B)
+- Passband display simplified: removed edge lines, shows only fill and center frequency marker
+- Mini-Pan now shows center frequency marker line (darker shade of passband color)
+
+### Fixed
+- Mini-Pan VFO B now displays correct Sub RX spectrum (discovered undocumented RX byte at position 4)
+- Dual panadapter mode now shows correct frequency alignment (spectrum was only showing partial range)
+
+---
+
 ## [0.1.0-alpha.108] - 2025-12-29
 
 ### Added

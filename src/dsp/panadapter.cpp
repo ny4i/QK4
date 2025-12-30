@@ -30,8 +30,8 @@ PanadapterWidget::PanadapterWidget(QWidget *parent)
       ,
       m_smoothingAlpha(0.80f) // Higher = less averaging, more responsive
       ,
-      m_spectrumColor(K4Colors::VfoAAmber), m_gridEnabled(true), m_peakHoldEnabled(true),
-      m_refLevel(-110) // Default REF level from K4
+      m_spectrumColor(K4Colors::VfoAAmber), m_passbandColor(0, 128, 255), m_frequencyMarkerColor(0, 80, 200),
+      m_gridEnabled(true), m_peakHoldEnabled(true), m_refLevel(-110) // Default REF level from K4
       ,
       m_spanHz(10000) // Default 10 kHz span (from #SPN command)
       ,
@@ -207,14 +207,8 @@ void PanadapterWidget::applySmoothing(const QVector<float> &input, QVector<float
 }
 
 void PanadapterWidget::upsampleSpectrum(const QVector<float> &input, QVector<float> &output, int targetWidth) {
-    // Linear interpolation to match display width for smooth rendering
+    // Resample spectrum to match display width (handles both upsampling and downsampling)
     if (input.isEmpty() || targetWidth <= 0) {
-        output = input;
-        return;
-    }
-
-    // If input already has enough resolution, just copy
-    if (input.size() >= targetWidth) {
         output = input;
         return;
     }
@@ -301,6 +295,16 @@ void PanadapterWidget::setCwPitch(int pitchHz) {
 
 void PanadapterWidget::setSpectrumColor(const QColor &color) {
     m_spectrumColor = color;
+    update();
+}
+
+void PanadapterWidget::setPassbandColor(const QColor &color) {
+    m_passbandColor = color;
+    update();
+}
+
+void PanadapterWidget::setFrequencyMarkerColor(const QColor &color) {
+    m_frequencyMarkerColor = color;
     update();
 }
 
@@ -633,7 +637,7 @@ void PanadapterWidget::drawFrequencyMarker(QPainter &painter, const QRect &rect)
     // Draw vertical line at tuned frequency (panadapter section only)
     int x = freqToX(m_tunedFreq, rect.width());
     if (x >= 0 && x < rect.width()) {
-        painter.setPen(QPen(QColor("#FFA500"), 2)); // Orange
+        painter.setPen(QPen(m_frequencyMarkerColor, 2));
         painter.drawLine(x, rect.top(), x, rect.bottom());
     }
 }
@@ -673,14 +677,10 @@ void PanadapterWidget::drawFilterPassband(QPainter &painter, const QRect &rect) 
         passbandX = carrierX;
     }
 
-    // Draw semi-transparent green passband overlay (25% opacity like K4Mobile)
-    QColor passbandColor(0, 255, 0, 64); // 25% opacity green
-    painter.fillRect(passbandX, rect.top(), bwPixels, rect.height(), passbandColor);
-
-    // Draw passband edges
-    painter.setPen(QPen(QColor(0, 255, 0, 153), 1.5)); // 60% opacity green
-    painter.drawLine(passbandX, rect.top(), passbandX, rect.bottom());
-    painter.drawLine(passbandX + bwPixels, rect.top(), passbandX + bwPixels, rect.bottom());
+    // Draw semi-transparent passband overlay (25% opacity)
+    QColor fillColor = m_passbandColor;
+    fillColor.setAlpha(64); // 25% opacity
+    painter.fillRect(passbandX, rect.top(), bwPixels, rect.height(), fillColor);
 }
 
 void PanadapterWidget::drawNotchFilter(QPainter &painter, const QRect &rect) {
