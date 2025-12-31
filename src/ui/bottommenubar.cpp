@@ -112,3 +112,11 @@ void BottomMenuBar::setMenuActive(bool active) {
         m_menuBtn->setStyleSheet(buttonStyleSheet());
     }
 }
+
+void BottomMenuBar::setDisplayActive(bool active) {
+    if (active) {
+        m_displayBtn->setStyleSheet(activeButtonStyleSheet());
+    } else {
+        m_displayBtn->setStyleSheet(buttonStyleSheet());
+    }
+}

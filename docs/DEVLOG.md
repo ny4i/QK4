@@ -1,6 +1,350 @@
 # K4Controller Development Log
 
+## December 31, 2025
+
+### Feature: Right Side Panel Button Expansion
+
+Added 8 new buttons to RightSidePanel below the existing 5x2 grid.
+
+**New Button Layout:**
+
+| PF Row (2x2) | |
+|--------------|--------------|
+| B SET / PF 1 | CLR / PF 2 |
+| RIT / PF 3 | XIT / PF 4 |
+
+| Bottom Row (2x2) | |
+|------------------|-----------------|
+| FREQ ENT / SCAN | RATE / KHZ |
+| LOCK A / LOCK B | SUB / DIVERSITY |
+
+**Implementation:**
+- Added 8 new button pointers and signals to `rightsidepanel.h`
+- Added two QGridLayout grids after existing 5x2 grid
+- 16px spacing between main grid and PF row
+- 32px spacing between PF row and bottom row
+- FREQ ENT uses stacked text (`"FREQ\nENT"`)
+- Same styling as existing buttons (gradient, white text, orange sub-label)
+
+**Files Modified:**
+- `src/ui/rightsidepanel.h` - Added button pointers, signals, updated docs
+- `src/ui/rightsidepanel.cpp` - Added grids, spacing, signal connections
+
+---
+
+### Feature: SPAN Control A/B Support
+
+**Problem:**
+When PAN = B, the SPAN +/- buttons didn't work correctly:
+- CAT commands were sent correctly (`#SPN$` for B)
+- But the display didn't update to show VFO B's span value
+- Only `spanChanged` (VFO A) was connected to update the display
+
+**Root Cause:**
+SPAN control didn't follow the A/B pattern used by REF level:
+- Only single `m_currentSpanKHz` value instead of A/B
+- Only `setSpanValue()` instead of A/B setters
+- No `updateSpanControlGroup()` function
+- Only `spanChanged` signal connected, not `spanBChanged`
+
+**Solution:**
+Added A/B support following REF level pattern, plus A+B dual targeting.
+
+**DisplayPopupWidget:**
+- Replaced `m_currentSpanKHz` with `m_spanA`/`m_spanB`
+- Added `setSpanValueA(double)` and `setSpanValueB(double)` setters
+- Added `updateSpanControlGroup()` that shows correct value based on A/B toggle
+- Added `updateSpanControlGroup()` calls alongside `updateRefLevelControlGroup()` in toggle handlers
+
+**MainWindow:**
+- Connected `spanBChanged` signal to `setSpanValueB()`
+- Updated SPAN +/- handlers to support A+B dual targeting:
+
+| Toggle State | Commands Sent |
+|--------------|---------------|
+| A only | `#SPN` |
+| B only | `#SPN$` |
+| A+B both | `#SPN` AND `#SPN$` |
+
+**Files Modified:**
+- `src/ui/displaypopupwidget.h` - Added A/B span tracking, method declarations
+- `src/ui/displaypopupwidget.cpp` - Added setters, update function, toggle handler calls
+- `src/mainwindow.cpp` - Added `spanBChanged` connection, fixed +/- handlers for A+B
+
+---
+
+### Feature: VFO Cursor Mode → Passband Indicator Sync
+
+**Problem:**
+Clicking CURS A+/A- or CURS B+/B- buttons sent the correct CAT commands (`#VFA/;`, `#VFB/;`) but the panadapter passband indicator didn't reflect the cursor visibility state.
+
+**Solution:**
+Connected `RadioState::vfoACursorChanged` and `vfoBCursorChanged` signals to `PanadapterWidget::setCursorVisible()`.
+
+**VFO Cursor Modes (#VFA / #VFB):**
+| Mode | Name | Passband Visible |
+|------|------|------------------|
+| 0 | OFF | No |
+| 1 | ON | Yes |
+| 2 | AUTO | Yes |
+| 3 | HIDE | No |
+
+**Rule:** `visible = (mode == 1 || mode == 2)`
+
+**Changes:**
+
+**PanadapterWidget:**
+- Added `m_cursorVisible` member variable (default: true)
+- Added `setCursorVisible(bool)` setter
+- Updated `drawFilterPassband()` guard: `if (!m_cursorVisible || m_filterBw <= 0)`
+
+**MainWindow:**
+- Added connections from cursor signals to panadapter visibility:
+```cpp
+connect(m_radioState, &RadioState::vfoACursorChanged, this, [this](int mode) {
+    m_panadapterA->setCursorVisible(mode == 1 || mode == 2);
+});
+connect(m_radioState, &RadioState::vfoBCursorChanged, this, [this](int mode) {
+    m_panadapterB->setCursorVisible(mode == 1 || mode == 2);
+});
+```
+
+**Files Modified:**
+- `src/dsp/panadapter.h` - Added `setCursorVisible()`, `m_cursorVisible`
+- `src/dsp/panadapter.cpp` - Added setter, modified guard
+- `src/mainwindow.cpp` - Added cursor signal connections to panadapters
+
+---
+
+### Fix: Auto-Ref Parsing - Correct #AR Response Format
+
+**Problem:**
+AUTO button never highlighted when radio was in auto mode.
+
+**Root Cause:**
+We were parsing the `#AR` response completely wrong. Assumed format was `#ARA` or `#ARM`, but actual K4 format is:
+
+**Format:** `#ARaadd+oom;`
+- `aa` = averaging constant (01-20)
+- `dd` = debounce constant (04-09)
+- `+oo` = user offset (-08 to +08)
+- `m` = **mode (1=auto, 0=manual)**
+
+**Example:** `#AR1203+041;` → mode=1 (AUTO)
+
+**Broken code:**
+```cpp
+bool enabled = (cmd.mid(3, 1) == "A");  // Got '1' from "1203", compared to "A" → false!
+```
+
+**Fix:**
+```cpp
+QChar modeChar = cmd.at(cmd.length() - 2); // Last char before ';'
+bool enabled = (modeChar == '1');          // 1=auto, 0=manual
+```
+
+**Also fixed:**
+- Added `updateRefLevelControlGroup()` call after creating REF control to sync initial state
+
+**Files Modified:**
+- `src/models/radiostate.cpp` - Fixed #AR parsing to read mode from last digit
+- `src/ui/displaypopupwidget.cpp` - Added initial sync for AUTO button state
+
+---
+
+### Fix: Auto-Ref is GLOBAL (not per-VFO)
+
+**Problem Discovered:**
+The previous implementation incorrectly treated Auto-Ref as separate A/B settings. Auto-Ref Level (`#AR`) is a **GLOBAL setting** - it affects BOTH VFOs simultaneously. There is no `#AR$` command.
+
+**What was wrong:**
+1. `m_autoRefLevelB` existed in RadioState (should not exist)
+2. `autoRefLevelBChanged` signal existed (should not exist)
+3. `#AR$` parsing existed (command doesn't exist)
+4. DisplayPopupWidget tracked `m_autoRefA` and `m_autoRefB` separately
+5. Auto button sent `#AR$/;` when B selected
+
+**Correct behavior:**
+- **Auto-Ref Mode** is GLOBAL - same for both VFOs
+- **Ref Level Value** is per-VFO - A and B can have different values
+- **A/B toggle** controls which VALUE is displayed and which VFO +/- targets
+- **AUTO button** always sends `#AR/;` (no suffix)
+
+**Changes:**
+
+**RadioState:**
+- Removed `m_autoRefLevelB` member variable
+- Removed `autoRefLevelB()` getter
+- Removed `autoRefLevelBChanged` signal
+- Removed `#AR$` parsing block
+- Updated comment for `#AR` to indicate GLOBAL scope
+
+**DisplayPopupWidget:**
+- Replaced `m_autoRefA` and `m_autoRefB` with single `m_autoRef` boolean
+- Removed `setAutoRefLevelA()` and `setAutoRefLevelB()` slots
+- Updated `setAutoRefLevel()` to set `m_autoRef` directly
+- Updated `updateRefLevelControlGroup()` to use `m_autoRef` for both VFOs
+- Updated auto button click handler to send `#AR/;` (no suffix)
+
+**MainWindow:**
+- Changed `setAutoRefLevelA` -> `setAutoRefLevel` connection
+- Removed `autoRefLevelBChanged` connection
+
+**Files Modified:**
+- `src/models/radiostate.h` - Removed B auto-ref state
+- `src/models/radiostate.cpp` - Removed #AR$ parsing
+- `src/mainwindow.cpp` - Simplified connection
+- `src/ui/displaypopupwidget.h` - Simplified to single m_autoRef
+- `src/ui/displaypopupwidget.cpp` - Updated handlers for global auto-ref
+- `src/models/CLAUDE.md` - Updated documentation
+
+---
+
+### Ref Level A/B Support (Original - Partially Incorrect)
+
+**Goal:** Each RX (A and B) has independent auto/manual ref level state and value. Display popup should track and display the correct state based on A/B toggle selection.
+
+**Changes:**
+
+**RadioState:**
+- Added `m_autoRefLevelB` member variable and `autoRefLevelBChanged(bool)` signal
+- Added parsing for `#AR$` commands (Sub RX auto-ref) - parsed before `#AR` (longer prefix first)
+- `autoRefLevelB()` getter returns true if auto mode enabled for Sub RX
+
+**DisplayPopupWidget:**
+- Added A/B ref level state tracking: `m_refLevelA`, `m_refLevelB`, `m_autoRefA`, `m_autoRefB`
+- Added slots: `setRefLevelValueA()`, `setRefLevelValueB()`, `setAutoRefLevelA()`, `setAutoRefLevelB()`
+- Added `updateRefLevelControlGroup()` helper to sync display with A/B selection
+- Ref level control group now:
+  - Displays value for selected VFO (A or B based on toggle)
+  - Shows faded grey text when in auto mode
+  - AUTO button toggles sends correct CAT command (#AR/ or #AR$/) based on A/B
+  - +/- buttons send correct CAT command (#REF+/- or #REF$+/-) based on A/B
+- A/B toggle click handlers now call `updateRefLevelControlGroup()`
+- PAN mode auto-sync now calls `updateRefLevelControlGroup()` to keep in sync
+
+**ControlGroupWidget:**
+- Added `setValueFaded(bool)` method and `m_valueFaded` member
+- `paintEvent()` draws value text in grey when faded (visual indication of auto mode)
+
+**MainWindow:**
+- Connected `autoRefLevelChanged` -> `setAutoRefLevelA` (renamed)
+- Connected `autoRefLevelBChanged` -> `setAutoRefLevelB` (new)
+- Connected `refLevelChanged` -> `setRefLevelValueA` (renamed)
+- Connected `refLevelBChanged` -> `setRefLevelValueB` (new)
+
+**Optimistic Updates:**
+K4 doesn't echo #AR commands, so auto toggle uses optimistic local update pattern (like PAN mode).
+
+**Files Modified:**
+- `src/models/radiostate.h` - Added autoRefLevelB signal, m_autoRefLevelB member
+- `src/models/radiostate.cpp` - Added #AR$ parsing before #AR
+- `src/ui/displaypopupwidget.h` - Added A/B ref state, setValueFaded, updateRefLevelControlGroup
+- `src/ui/displaypopupwidget.cpp` - Implemented A/B ref level tracking, faded value support
+- `src/mainwindow.cpp` - Connected B ref level signals
+
+**CAT Commands:**
+- `#AR;` / `#AR$;` - Query auto-ref state (A/B)
+- `#ARA;` / `#AR$A;` - Set auto mode (A/B)
+- `#ARM;` / `#AR$M;` - Set manual mode (A/B)
+- `#AR/;` / `#AR$/;` - Toggle auto/manual (A/B)
+- `#REF+;` / `#REF$+;` - Increment ref level (A/B)
+- `#REF-;` / `#REF$-;` - Decrement ref level (A/B)
+
+---
+
+### Cleanup - Debug Logging Removal
+
+Removed debug logging from previous PAN mode fixes:
+- Removed `qDebug()` calls from `#DPM` and `#HDPM` parsing
+- Removed `qDebug()` calls from `#SPN` and `#SPN$` parsing
+- Removed `qDebug()` calls from `setDualPanModeLcd()` state setter
+
+---
+
 ## December 30, 2025
+
+### Display Popup Menu Fixes - AVERAGE/NB Control Groups and Button Init
+
+**Issues Fixed:**
+
+1. **PAN button face stuck on "PAN = A"**: Button wasn't updating when radio changed dual panadapter mode
+   - Root cause: `updateMenuButtonLabels()` wasn't called during `setupUi()`, and RadioState initial values matched defaults so signals didn't fire
+   - Fix: Added `updateMenuButtonLabels()` call to `setupUi()` and changed RadioState display state initial values to -1
+
+2. **Missing AVERAGE control group**: When AVERAGE menu item selected, no control was shown
+   - Added `m_averageControlPage` with ControlGroupWidget showing current averaging value and +/- buttons
+   - Connected to `#AVG` CAT commands with step values: 1, 5, 10, 15, 20
+
+3. **Missing NB control group**: When NB menu item selected, no control was shown
+   - Added `m_nbControlPage` with ControlGroupWidget showing DDC NB mode (OFF/ON/AUTO) and level (0-14)
+   - Connected to `#NB$` and `#NBL$` CAT commands (DDC Noise Blanker, not radio NB)
+
+**Files Modified:**
+- `src/ui/displaypopupwidget.h` - Added control pages, DDC NB state, setters, signals
+- `src/ui/displaypopupwidget.cpp` - Implemented createAverageControlPage(), createNbControlPage(), updateNbControlGroupValue()
+- `src/models/radiostate.h` - Changed display state inits to -1, added ddcNbMode/ddcNbLevel
+- `src/models/radiostate.cpp` - Added #NB$ and #NBL$ parsing
+- `src/mainwindow.cpp` - Wired averaging/NB control signals, added DDC NB state queries
+
+**Key CAT Commands:**
+- `#AVG01;` to `#AVG20;` - Set averaging (1-20)
+- `#NB$0/1/2;` - DDC NB mode (OFF/ON/AUTO)
+- `#NBL$00;` to `#NBL$14;` - DDC NB level (0-14)
+
+---
+
+### Display Popup Menu CAT Command Wiring - COMPLETED
+
+**Goal:** Wire up the DisplayPopupWidget menu items to send K4 CAT commands and update button labels based on radio state.
+
+**Changes:**
+
+**DisplayPopupWidget:**
+- Added state tracking variables for all display settings (DPM, DSM, WFC, AVG, PKM, FXT, FXA, FRZ, VFA, VFB)
+- Added `catCommandRequested(QString)` signal to send CAT commands via MainWindow
+- Added setter slots to receive state updates from RadioState
+- Added `updateMenuButtonLabels()` to dynamically update button face text
+- Added `setPrimaryText()`/`setAlternateText()` to DisplayMenuButton
+- Implemented `onMenuItemClicked()` to emit CAT commands with LCD/EXT prefix logic
+- Implemented `onMenuItemRightClicked()` for alternate actions (right-click)
+
+**Menu Item -> CAT Command Mapping:**
+| Item | Primary Click | Right-Click |
+|------|--------------|-------------|
+| PanWaterfall | `#DPM` cycle (A→B→Dual) | `#DSM` toggle (spectrum/waterfall) |
+| NbWtrClrs | `NB;` toggle | `#WFC` cycle (5 colors) |
+| RefLvlScale | Show REF control | `#AR/;` toggle auto-ref |
+| SpanCenter | Show SPAN control | `FC;` / `FC$;` center on VFO |
+| AveragePeak | `#AVG` cycle (1,5,10,15,20) | `#PKM/;` toggle peak |
+| FixedFreeze | `#FXT`+`#FXA` cycle (6 modes) | `#FRZ` toggle freeze |
+| CursAB | `#VFA/;` toggle | `#VFB/;` toggle |
+
+**RadioState:**
+- Added display state variables and signals (dualPanModeChanged, displayModeChanged, etc.)
+- Added parsing for display CAT commands (#DPM, #DSM, #WFC, #AVG, #PKM, #FXT, #FXA, #FRZ, #VFA, #VFB, #AR)
+
+**MainWindow:**
+- Connected DisplayPopupWidget::catCommandRequested to TcpClient::sendCAT
+- Connected RadioState display signals to DisplayPopupWidget setters
+- Added display state queries in onAuthenticated() after connection
+
+**Fixed Tune 6-State Cycle:**
+- TRACK (FXT=0)
+- SLIDE1 (FXT=1, FXA=0)
+- SLIDE2 (FXT=1, FXA=4)
+- FIXED1 (FXT=1, FXA=1)
+- FIXED2 (FXT=1, FXA=2)
+- STATIC (FXT=1, FXA=3)
+
+**Files Modified:**
+- `src/ui/displaypopupwidget.h` - Added state variables, setters, signals
+- `src/ui/displaypopupwidget.cpp` - Implemented click handlers, button label updates
+- `src/models/radiostate.h` - Added display state variables and signals
+- `src/models/radiostate.cpp` - Added display CAT command parsing
+- `src/mainwindow.cpp` - Wired signal connections, added state queries
+
+---
 
 ### Passband Display Simplification - COMPLETED
 

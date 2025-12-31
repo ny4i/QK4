@@ -55,6 +55,7 @@ set(SOURCES
     src/ui/smeterwidget.cpp
     src/ui/vfowidget.cpp
     src/ui/bandpopupwidget.cpp
+    src/ui/displaypopupwidget.cpp
     src/ui/optionsdialog.cpp
     src/ui/rightsidepanel.cpp
     src/hardware/kpoddevice.cpp
@@ -81,6 +82,7 @@ set(HEADERS
     src/ui/smeterwidget.h
     src/ui/vfowidget.h
     src/ui/bandpopupwidget.h
+    src/ui/displaypopupwidget.h
     src/ui/optionsdialog.h
     src/ui/rightsidepanel.h
     src/hardware/kpoddevice.h

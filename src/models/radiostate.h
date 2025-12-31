@@ -193,6 +193,24 @@ public:
     void setMiniPanAEnabled(bool enabled);
     void setMiniPanBEnabled(bool enabled);
 
+    // Display state (tracked via # prefixed display commands)
+    // LCD/EXT getters - default to LCD for backwards compatibility
+    int dualPanModeLcd() const { return m_dualPanModeLcd; }
+    int dualPanModeExt() const { return m_dualPanModeExt; }
+    int displayModeLcd() const { return m_displayModeLcd; }
+    int displayModeExt() const { return m_displayModeExt; }
+    int waterfallColor() const { return m_waterfallColor; }
+    int averaging() const { return m_averaging; }
+    bool peakMode() const { return m_peakMode > 0; }
+    int fixedTune() const { return m_fixedTune; }         // #FXT: 0=track, 1=fixed
+    int fixedTuneMode() const { return m_fixedTuneMode; } // #FXA: 0-4
+    bool freeze() const { return m_freeze > 0; }
+    int vfoACursor() const { return m_vfoACursor; }
+    int vfoBCursor() const { return m_vfoBCursor; }
+    bool autoRefLevel() const { return m_autoRefLevel > 0; }
+    int ddcNbMode() const { return m_ddcNbMode; }   // #NB$: 0=off, 1=on, 2=auto
+    int ddcNbLevel() const { return m_ddcNbLevel; } // #NBL$: 0-14
+
     // Static helpers
     static Mode modeFromCode(int code);
     static QString modeToString(Mode mode);
@@ -236,6 +254,23 @@ signals:
     void notchChanged();                       // Manual notch state/pitch changed
     void miniPanAEnabledChanged(bool enabled); // Mini-Pan A state (#MP command)
     void miniPanBEnabledChanged(bool enabled); // Mini-Pan B state (#MP$ command)
+
+    // Display state signals (separate LCD and EXT)
+    void dualPanModeLcdChanged(int mode);    // #DPM: LCD 0=A, 1=B, 2=Dual
+    void dualPanModeExtChanged(int mode);    // #HDPM: EXT 0=A, 1=B, 2=Dual
+    void displayModeLcdChanged(int mode);    // #DSM: LCD 0=spectrum, 1=spectrum+waterfall
+    void displayModeExtChanged(int mode);    // #HDSM: EXT 0=spectrum, 1=spectrum+waterfall
+    void waterfallColorChanged(int color);   // #WFC: 0-4
+    void averagingChanged(int value);        // #AVG: 1-20
+    void peakModeChanged(bool enabled);      // #PKM: 0/1
+    void fixedTuneChanged(int fxt, int fxa); // #FXT + #FXA combined
+    void freezeChanged(bool enabled);        // #FRZ: 0/1
+    void vfoACursorChanged(int mode);        // #VFA: 0-3
+    void vfoBCursorChanged(int mode);        // #VFB: 0-3
+    void autoRefLevelChanged(bool enabled);  // #AR: A/M (GLOBAL - affects both VFOs)
+    void ddcNbModeChanged(int mode);         // #NB$: 0=off, 1=on, 2=auto
+    void ddcNbLevelChanged(int level);       // #NBL$: 0-14
+
     void stateUpdated();
 
 private:
@@ -358,6 +393,25 @@ private:
     // Mini-Pan enabled state (tracked via #MP / #MP$ CAT commands)
     bool m_miniPanAEnabled = false;
     bool m_miniPanBEnabled = false;
+
+    // Display state (from # prefixed display commands)
+    // Initial values are -1 to ensure first update triggers signal
+    // Separate LCD (#DPM, #DSM) and EXT (#HDPM, #HDSM) state
+    int m_dualPanModeLcd = -1; // #DPM: LCD 0=A, 1=B, 2=Dual
+    int m_dualPanModeExt = -1; // #HDPM: EXT 0=A, 1=B, 2=Dual
+    int m_displayModeLcd = -1; // #DSM: LCD 0=spectrum, 1=spectrum+waterfall
+    int m_displayModeExt = -1; // #HDSM: EXT 0=spectrum, 1=spectrum+waterfall
+    int m_waterfallColor = -1; // #WFC: 0-4
+    int m_averaging = -1;      // #AVG: 1-20
+    int m_peakMode = -1;       // #PKM: 0/1 (int for -1 init)
+    int m_fixedTune = -1;      // #FXT: 0=track, 1=fixed
+    int m_fixedTuneMode = -1;  // #FXA: 0-4
+    int m_freeze = -1;         // #FRZ: 0/1 (int for -1 init)
+    int m_vfoACursor = -1;     // #VFA: 0=OFF, 1=ON, 2=AUTO, 3=HIDE
+    int m_vfoBCursor = -1;     // #VFB: 0-3
+    int m_autoRefLevel = -1;   // #AR: A=auto, M=manual (GLOBAL - affects both VFOs)
+    int m_ddcNbMode = -1;      // #NB$: 0=off, 1=on, 2=auto
+    int m_ddcNbLevel = -1;     // #NBL$: 0-14
 };
 
 #endif // RADIOSTATE_H

@@ -43,6 +43,7 @@ public:
     void setSpan(int spanHz);    // Dynamic span from K4 (#SPN command)
     int span() const { return m_spanHz; }
     void setNotchFilter(bool enabled, int pitchHz); // Manual notch visualization
+    void setCursorVisible(bool visible);           // VFO cursor/passband visibility
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -122,6 +123,9 @@ private:
     // Notch filter visualization
     bool m_notchEnabled = false;
     int m_notchPitchHz = 0; // Audio frequency offset (150-5000 Hz)
+
+    // VFO cursor/passband visibility (#VFA/#VFB modes 0-3)
+    bool m_cursorVisible = true; // true for modes 1 (ON) and 2 (AUTO)
 };
 
 #endif // PANADAPTER_H

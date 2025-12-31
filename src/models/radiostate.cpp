@@ -679,11 +679,9 @@ void RadioState::parseCATCommand(const QString &command) {
     // Panadapter Span (#SPN) - #SPN10000 (Hz) - not #SPN$ which is Sub RX
     else if (cmd.startsWith("#SPN") && !cmd.startsWith("#SPN$") && cmd.length() > 4) {
         QString spanStr = cmd.mid(4); // Get "10000" from "#SPN10000"
-        qDebug() << "Parsing #SPN response:" << cmd << "spanStr:" << spanStr;
         bool ok;
         int span = spanStr.toInt(&ok);
         if (ok && span > 0 && span != m_spanHz) {
-            qDebug() << "Span changed from" << m_spanHz << "to" << span;
             m_spanHz = span;
             emit spanChanged(m_spanHz);
         }
@@ -691,11 +689,9 @@ void RadioState::parseCATCommand(const QString &command) {
     // Sub RX Panadapter Span (#SPN$) - #SPN$10000 (Hz)
     else if (cmd.startsWith("#SPN$") && cmd.length() > 5) {
         QString spanStr = cmd.mid(5); // Get "10000" from "#SPN$10000"
-        qDebug() << "Parsing #SPN$ response:" << cmd << "spanStr:" << spanStr;
         bool ok;
         int span = spanStr.toInt(&ok);
         if (ok && span > 0 && span != m_spanHzB) {
-            qDebug() << "Span B changed from" << m_spanHzB << "to" << span;
             m_spanHzB = span;
             emit spanBChanged(m_spanHzB);
         }
@@ -714,6 +710,147 @@ void RadioState::parseCATCommand(const QString &command) {
         if (m_miniPanAEnabled != enabled) {
             m_miniPanAEnabled = enabled;
             emit miniPanAEnabledChanged(enabled);
+        }
+    }
+    // Dual Panadapter Mode - EXT (#HDPM) - must check before #DPM
+    else if (cmd.startsWith("#HDPM") && cmd.length() > 5) {
+        bool ok;
+        int mode = cmd.mid(5, 1).toInt(&ok);
+        if (ok && mode >= 0 && mode <= 2 && mode != m_dualPanModeExt) {
+            m_dualPanModeExt = mode;
+            emit dualPanModeExtChanged(mode);
+        }
+    }
+    // Dual Panadapter Mode - LCD (#DPM)
+    else if (cmd.startsWith("#DPM") && cmd.length() > 4) {
+        bool ok;
+        int mode = cmd.mid(4, 1).toInt(&ok);
+        if (ok && mode >= 0 && mode <= 2 && mode != m_dualPanModeLcd) {
+            m_dualPanModeLcd = mode;
+            emit dualPanModeLcdChanged(mode);
+        }
+    }
+    // Display Mode - EXT (#HDSM) - must check before #DSM
+    else if (cmd.startsWith("#HDSM") && cmd.length() > 5) {
+        qDebug() << "Display HDSM (EXT) command received:" << cmd;
+        bool ok;
+        int mode = cmd.mid(5, 1).toInt(&ok);
+        if (ok && mode >= 0 && mode <= 1 && mode != m_displayModeExt) {
+            m_displayModeExt = mode;
+            emit displayModeExtChanged(mode);
+        }
+    }
+    // Display Mode - LCD (#DSM)
+    else if (cmd.startsWith("#DSM") && cmd.length() > 4) {
+        qDebug() << "Display DSM (LCD) command received:" << cmd;
+        bool ok;
+        int mode = cmd.mid(4, 1).toInt(&ok);
+        if (ok && mode >= 0 && mode <= 1 && mode != m_displayModeLcd) {
+            m_displayModeLcd = mode;
+            emit displayModeLcdChanged(mode);
+        }
+    }
+    // Waterfall Color (#WFC) - #WFC0-4 or #WFC$0-4 for VFO B
+    else if (cmd.startsWith("#WFC") && cmd.length() > 4) {
+        int offset = cmd.startsWith("#WFC$") ? 5 : 4;
+        if (cmd.length() > offset) {
+            bool ok;
+            int color = cmd.mid(offset, 1).toInt(&ok);
+            if (ok && color >= 0 && color <= 4 && color != m_waterfallColor) {
+                m_waterfallColor = color;
+                emit waterfallColorChanged(color);
+            }
+        }
+    }
+    // Averaging (#AVG) - #AVGnn (1-20)
+    else if (cmd.startsWith("#AVG") && cmd.length() > 4) {
+        bool ok;
+        int avg = cmd.mid(4).toInt(&ok);
+        if (ok && avg >= 1 && avg <= 20 && avg != m_averaging) {
+            m_averaging = avg;
+            emit averagingChanged(avg);
+        }
+    }
+    // Peak Mode (#PKM) - #PKM0/1
+    else if (cmd.startsWith("#PKM") && cmd.length() > 4) {
+        bool enabled = (cmd.mid(4, 1) == "1");
+        if (enabled != m_peakMode) {
+            m_peakMode = enabled;
+            emit peakModeChanged(enabled);
+        }
+    }
+    // Fixed Tune (#FXT) - #FXT0/1 (0=track, 1=fixed)
+    else if (cmd.startsWith("#FXT") && cmd.length() > 4) {
+        bool ok;
+        int fxt = cmd.mid(4, 1).toInt(&ok);
+        if (ok && fxt >= 0 && fxt <= 1 && fxt != m_fixedTune) {
+            m_fixedTune = fxt;
+            emit fixedTuneChanged(m_fixedTune, m_fixedTuneMode);
+        }
+    }
+    // Fixed Tune Mode (#FXA) - #FXA0-4
+    else if (cmd.startsWith("#FXA") && cmd.length() > 4) {
+        bool ok;
+        int fxa = cmd.mid(4, 1).toInt(&ok);
+        if (ok && fxa >= 0 && fxa <= 4 && fxa != m_fixedTuneMode) {
+            m_fixedTuneMode = fxa;
+            emit fixedTuneChanged(m_fixedTune, m_fixedTuneMode);
+        }
+    }
+    // Freeze (#FRZ) - #FRZ0/1
+    else if (cmd.startsWith("#FRZ") && cmd.length() > 4) {
+        bool enabled = (cmd.mid(4, 1) == "1");
+        if (enabled != m_freeze) {
+            m_freeze = enabled;
+            emit freezeChanged(enabled);
+        }
+    }
+    // VFO A Cursor Mode (#VFA) - #VFA0-3
+    else if (cmd.startsWith("#VFA") && cmd.length() > 4) {
+        bool ok;
+        int mode = cmd.mid(4, 1).toInt(&ok);
+        if (ok && mode >= 0 && mode <= 3 && mode != m_vfoACursor) {
+            m_vfoACursor = mode;
+            emit vfoACursorChanged(mode);
+        }
+    }
+    // VFO B Cursor Mode (#VFB) - #VFB0-3
+    else if (cmd.startsWith("#VFB") && cmd.length() > 4) {
+        bool ok;
+        int mode = cmd.mid(4, 1).toInt(&ok);
+        if (ok && mode >= 0 && mode <= 3 && mode != m_vfoBCursor) {
+            m_vfoBCursor = mode;
+            emit vfoBCursorChanged(mode);
+        }
+    }
+    // Auto-Ref Level (#AR) - Format: #ARaadd+oom;
+    // aa=averaging(01-20), dd=debounce(04-09), +oo=offset(-08 to +08), m=mode(1=auto,0=manual)
+    // Example: #AR1203+041; means averaging=12, debounce=03, offset=+04, mode=1 (AUTO)
+    else if (cmd.startsWith("#AR") && cmd.length() >= 12) {
+        QChar modeChar = cmd.at(cmd.length() - 2); // Last char before ';'
+        bool enabled = (modeChar == '1');          // 1=auto, 0=manual
+        int newVal = enabled ? 1 : 0;
+        if (newVal != m_autoRefLevel) {
+            m_autoRefLevel = newVal;
+            emit autoRefLevelChanged(enabled);
+        }
+    }
+    // DDC Noise Blanker Mode (#NB$) - #NB$0/1/2
+    else if (cmd.startsWith("#NB$") && cmd.length() > 4) {
+        bool ok;
+        int mode = cmd.mid(4, 1).toInt(&ok);
+        if (ok && mode >= 0 && mode <= 2 && mode != m_ddcNbMode) {
+            m_ddcNbMode = mode;
+            emit ddcNbModeChanged(mode);
+        }
+    }
+    // DDC Noise Blanker Level (#NBL$) - #NBL$0-14
+    else if (cmd.startsWith("#NBL$") && cmd.length() > 5) {
+        bool ok;
+        int level = cmd.mid(5).chopped(cmd.endsWith(';') ? 1 : 0).toInt(&ok);
+        if (ok && level >= 0 && level <= 14 && level != m_ddcNbLevel) {
+            m_ddcNbLevel = level;
+            emit ddcNbLevelChanged(level);
         }
     }
 

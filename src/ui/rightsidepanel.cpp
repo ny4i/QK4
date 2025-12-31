@@ -11,7 +11,9 @@ const QString AmberOrange = "#FFB000";
 
 RightSidePanel::RightSidePanel(QWidget *parent)
     : QWidget(parent), m_preBtn(nullptr), m_nbBtn(nullptr), m_nrBtn(nullptr), m_ntchBtn(nullptr), m_filBtn(nullptr),
-      m_abBtn(nullptr), m_revBtn(nullptr), m_atobBtn(nullptr), m_spotBtn(nullptr), m_modeBtn(nullptr) {
+      m_abBtn(nullptr), m_revBtn(nullptr), m_atobBtn(nullptr), m_spotBtn(nullptr), m_modeBtn(nullptr),
+      m_bsetBtn(nullptr), m_clrBtn(nullptr), m_ritBtn(nullptr), m_xitBtn(nullptr), m_freqEntBtn(nullptr),
+      m_rateBtn(nullptr), m_lockABtn(nullptr), m_subBtn(nullptr) {
     setupUi();
 }
 
@@ -51,7 +53,7 @@ void RightSidePanel::setupUi() {
 
     m_layout->addLayout(buttonGrid);
 
-    // Connect button signals
+    // Connect existing button signals
     connect(m_preBtn, &QPushButton::clicked, this, &RightSidePanel::preClicked);
     connect(m_nbBtn, &QPushButton::clicked, this, &RightSidePanel::nbClicked);
     connect(m_nrBtn, &QPushButton::clicked, this, &RightSidePanel::nrClicked);
@@ -62,6 +64,56 @@ void RightSidePanel::setupUi() {
     connect(m_atobBtn, &QPushButton::clicked, this, &RightSidePanel::atobClicked);
     connect(m_spotBtn, &QPushButton::clicked, this, &RightSidePanel::spotClicked);
     connect(m_modeBtn, &QPushButton::clicked, this, &RightSidePanel::modeClicked);
+
+    // Add spacing between main grid and PF grid
+    m_layout->addSpacing(16);
+
+    // Create 2×2 PF button grid (B SET, CLR, RIT, XIT)
+    auto *pfGrid = new QGridLayout();
+    pfGrid->setContentsMargins(0, 0, 0, 0);
+    pfGrid->setHorizontalSpacing(4);
+    pfGrid->setVerticalSpacing(8);
+
+    // Row 0: B SET/PF 1, CLR/PF 2
+    pfGrid->addWidget(createFunctionButton("B SET", "PF 1", m_bsetBtn), 0, 0);
+    pfGrid->addWidget(createFunctionButton("CLR", "PF 2", m_clrBtn), 0, 1);
+
+    // Row 1: RIT/PF 3, XIT/PF 4
+    pfGrid->addWidget(createFunctionButton("RIT", "PF 3", m_ritBtn), 1, 0);
+    pfGrid->addWidget(createFunctionButton("XIT", "PF 4", m_xitBtn), 1, 1);
+
+    m_layout->addLayout(pfGrid);
+
+    // Connect PF button signals
+    connect(m_bsetBtn, &QPushButton::clicked, this, &RightSidePanel::bsetClicked);
+    connect(m_clrBtn, &QPushButton::clicked, this, &RightSidePanel::clrClicked);
+    connect(m_ritBtn, &QPushButton::clicked, this, &RightSidePanel::ritClicked);
+    connect(m_xitBtn, &QPushButton::clicked, this, &RightSidePanel::xitClicked);
+
+    // Add spacing between PF grid and bottom grid
+    m_layout->addSpacing(32);
+
+    // Create 2×2 bottom button grid (FREQ ENT, RATE, LOCK A, SUB)
+    auto *bottomGrid = new QGridLayout();
+    bottomGrid->setContentsMargins(0, 0, 0, 0);
+    bottomGrid->setHorizontalSpacing(4);
+    bottomGrid->setVerticalSpacing(8);
+
+    // Row 0: FREQ ENT/SCAN (stacked text), RATE/KHZ
+    bottomGrid->addWidget(createFunctionButton("FREQ\nENT", "SCAN", m_freqEntBtn), 0, 0);
+    bottomGrid->addWidget(createFunctionButton("RATE", "KHZ", m_rateBtn), 0, 1);
+
+    // Row 1: LOCK A/LOCK B, SUB/DIVERSITY
+    bottomGrid->addWidget(createFunctionButton("LOCK A", "LOCK B", m_lockABtn), 1, 0);
+    bottomGrid->addWidget(createFunctionButton("SUB", "DIVERSITY", m_subBtn), 1, 1);
+
+    m_layout->addLayout(bottomGrid);
+
+    // Connect bottom button signals
+    connect(m_freqEntBtn, &QPushButton::clicked, this, &RightSidePanel::freqEntClicked);
+    connect(m_rateBtn, &QPushButton::clicked, this, &RightSidePanel::rateClicked);
+    connect(m_lockABtn, &QPushButton::clicked, this, &RightSidePanel::lockAClicked);
+    connect(m_subBtn, &QPushButton::clicked, this, &RightSidePanel::subClicked);
 
     // Add stretch at bottom to push content up (same as left panel pattern)
     m_layout->addStretch();

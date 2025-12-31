@@ -5,6 +5,7 @@
 #include "ui/bottommenubar.h"
 #include "ui/menuoverlay.h"
 #include "ui/bandpopupwidget.h"
+#include "ui/displaypopupwidget.h"
 #include "ui/optionsdialog.h"
 #include "models/menumodel.h"
 #include "dsp/panadapter.h"
@@ -69,6 +70,32 @@ MainWindow::MainWindow(QWidget *parent)
     // Create band selection popup
     m_bandPopup = new BandPopupWidget(this);
     connect(m_bandPopup, &BandPopupWidget::bandSelected, this, &MainWindow::onBandSelected);
+
+    // Create display popup
+    m_displayPopup = new DisplayPopupWidget(this);
+    connect(m_displayPopup, &DisplayPopupWidget::closed, this, [this]() {
+        if (m_bottomMenuBar) {
+            m_bottomMenuBar->setDisplayActive(false);
+        }
+    });
+    // DisplayPopup pan mode changed -> update panadapter display
+    // (K4 doesn't echo #DPM commands, so DisplayPopup notifies us directly)
+    connect(m_displayPopup, &DisplayPopupWidget::dualPanModeChanged, this, [this](int mode) {
+        switch (mode) {
+        case 0: // A only
+            setPanadapterMode(PanadapterMode::MainOnly);
+            break;
+        case 1: // B only
+            setPanadapterMode(PanadapterMode::SubOnly);
+            break;
+        case 2: // Dual (A+B)
+            setPanadapterMode(PanadapterMode::Dual);
+            break;
+        }
+    });
+
+    // DisplayPopup CAT commands -> TcpClient
+    connect(m_displayPopup, &DisplayPopupWidget::catCommandRequested, m_tcpClient, &TcpClient::sendCAT);
 
     // TcpClient signals
     connect(m_tcpClient, &TcpClient::stateChanged, this, &MainWindow::onStateChanged);
@@ -154,6 +181,140 @@ MainWindow::MainWindow(QWidget *parent)
     // RadioState span -> Panadapter (for frequency labels and bin extraction)
     connect(m_radioState, &RadioState::spanChanged, this, [this](int spanHz) { m_panadapterA->setSpan(spanHz); });
     connect(m_radioState, &RadioState::spanBChanged, this, [this](int spanHz) { m_panadapterB->setSpan(spanHz); });
+
+    // RadioState display state -> DisplayPopup (for button face updates)
+    // Separate LCD and EXT signals
+    connect(m_radioState, &RadioState::dualPanModeLcdChanged, m_displayPopup, &DisplayPopupWidget::setDualPanModeLcd);
+    connect(m_radioState, &RadioState::dualPanModeExtChanged, m_displayPopup, &DisplayPopupWidget::setDualPanModeExt);
+
+    // RadioState dual pan mode -> Panadapter widget visibility
+    // Sync app's panadapter display with radio's #DPM mode
+    connect(m_radioState, &RadioState::dualPanModeLcdChanged, this, [this](int mode) {
+        switch (mode) {
+        case 0: // A only
+            setPanadapterMode(PanadapterMode::MainOnly);
+            break;
+        case 1: // B only
+            setPanadapterMode(PanadapterMode::SubOnly);
+            break;
+        case 2: // Dual (A+B)
+            setPanadapterMode(PanadapterMode::Dual);
+            break;
+        }
+    });
+    connect(m_radioState, &RadioState::displayModeLcdChanged, m_displayPopup, &DisplayPopupWidget::setDisplayModeLcd);
+    connect(m_radioState, &RadioState::displayModeExtChanged, m_displayPopup, &DisplayPopupWidget::setDisplayModeExt);
+    connect(m_radioState, &RadioState::waterfallColorChanged, m_displayPopup, &DisplayPopupWidget::setWaterfallColor);
+    connect(m_radioState, &RadioState::averagingChanged, m_displayPopup, &DisplayPopupWidget::setAveraging);
+    connect(m_radioState, &RadioState::peakModeChanged, m_displayPopup, &DisplayPopupWidget::setPeakMode);
+    connect(m_radioState, &RadioState::fixedTuneChanged, m_displayPopup, &DisplayPopupWidget::setFixedTuneMode);
+    connect(m_radioState, &RadioState::freezeChanged, m_displayPopup, &DisplayPopupWidget::setFreeze);
+    connect(m_radioState, &RadioState::vfoACursorChanged, m_displayPopup, &DisplayPopupWidget::setVfoACursor);
+    connect(m_radioState, &RadioState::vfoBCursorChanged, m_displayPopup, &DisplayPopupWidget::setVfoBCursor);
+    // VFO cursor visibility → panadapter passband indicator
+    // Visible for ON (1) and AUTO (2), hidden for OFF (0) and HIDE (3)
+    connect(m_radioState, &RadioState::vfoACursorChanged, this, [this](int mode) {
+        m_panadapterA->setCursorVisible(mode == 1 || mode == 2);
+    });
+    connect(m_radioState, &RadioState::vfoBCursorChanged, this, [this](int mode) {
+        m_panadapterB->setCursorVisible(mode == 1 || mode == 2);
+    });
+    connect(m_radioState, &RadioState::autoRefLevelChanged, m_displayPopup, &DisplayPopupWidget::setAutoRefLevel);
+    connect(m_radioState, &RadioState::ddcNbModeChanged, m_displayPopup, &DisplayPopupWidget::setDdcNbMode);
+    connect(m_radioState, &RadioState::ddcNbLevelChanged, m_displayPopup, &DisplayPopupWidget::setDdcNbLevel);
+    // Also update span/ref values in popup
+    connect(m_radioState, &RadioState::spanChanged, this, [this](int spanHz) {
+        m_displayPopup->setSpanValueA(spanHz / 1000.0); // Hz to kHz
+    });
+    connect(m_radioState, &RadioState::spanBChanged, this, [this](int spanHz) {
+        m_displayPopup->setSpanValueB(spanHz / 1000.0); // Hz to kHz
+    });
+    connect(m_radioState, &RadioState::refLevelChanged, m_displayPopup, &DisplayPopupWidget::setRefLevelValueA);
+    connect(m_radioState, &RadioState::refLevelBChanged, m_displayPopup, &DisplayPopupWidget::setRefLevelValueB);
+
+    // Averaging control +/- -> CAT commands
+    connect(m_displayPopup, &DisplayPopupWidget::averagingIncrementRequested, this, [this]() {
+        // Cycle up: 1->5->10->15->20
+        int current = m_radioState->averaging();
+        int next = current;
+        if (current < 5)
+            next = 5;
+        else if (current < 10)
+            next = 10;
+        else if (current < 15)
+            next = 15;
+        else if (current < 20)
+            next = 20;
+        else
+            next = 20; // Already at max
+        m_tcpClient->sendCAT(QString("#AVG%1;").arg(next, 2, 10, QChar('0')));
+    });
+    connect(m_displayPopup, &DisplayPopupWidget::averagingDecrementRequested, this, [this]() {
+        // Cycle down: 20->15->10->5->1
+        int current = m_radioState->averaging();
+        int next = current;
+        if (current > 15)
+            next = 15;
+        else if (current > 10)
+            next = 10;
+        else if (current > 5)
+            next = 5;
+        else if (current > 1)
+            next = 1;
+        else
+            next = 1; // Already at min
+        m_tcpClient->sendCAT(QString("#AVG%1;").arg(next, 2, 10, QChar('0')));
+    });
+
+    // DDC NB level control +/- -> CAT commands
+    connect(m_displayPopup, &DisplayPopupWidget::nbLevelIncrementRequested, this, [this]() {
+        int current = m_radioState->ddcNbLevel();
+        int next = qMin(current + 1, 14);
+        m_tcpClient->sendCAT(QString("#NBL$%1;").arg(next, 2, 10, QChar('0')));
+    });
+    connect(m_displayPopup, &DisplayPopupWidget::nbLevelDecrementRequested, this, [this]() {
+        int current = m_radioState->ddcNbLevel();
+        int next = qMax(current - 1, 0);
+        m_tcpClient->sendCAT(QString("#NBL$%1;").arg(next, 2, 10, QChar('0')));
+    });
+
+    // Span control from display popup -> CAT commands (respects A/B selection)
+    connect(m_displayPopup, &DisplayPopupWidget::spanIncrementRequested, this, [this]() {
+        bool vfoA = m_displayPopup->isVfoAEnabled();
+        bool vfoB = m_displayPopup->isVfoBEnabled();
+        // Use A as reference if both selected, else use selected VFO
+        int currentSpan = (vfoB && !vfoA) ? m_radioState->spanHzB() : m_radioState->spanHz();
+        int newSpan = currentSpan + 1000;
+        if (newSpan <= 368000) {
+            // Target whichever VFO(s) are enabled
+            if (vfoA) {
+                m_radioState->setSpanHz(newSpan);
+                m_tcpClient->sendCAT(QString("#SPN%1;").arg(newSpan));
+            }
+            if (vfoB) {
+                m_radioState->setSpanHzB(newSpan);
+                m_tcpClient->sendCAT(QString("#SPN$%1;").arg(newSpan));
+            }
+        }
+    });
+    connect(m_displayPopup, &DisplayPopupWidget::spanDecrementRequested, this, [this]() {
+        bool vfoA = m_displayPopup->isVfoAEnabled();
+        bool vfoB = m_displayPopup->isVfoBEnabled();
+        // Use A as reference if both selected, else use selected VFO
+        int currentSpan = (vfoB && !vfoA) ? m_radioState->spanHzB() : m_radioState->spanHz();
+        int newSpan = currentSpan - 1000;
+        if (newSpan >= 5000) {
+            // Target whichever VFO(s) are enabled
+            if (vfoA) {
+                m_radioState->setSpanHz(newSpan);
+                m_tcpClient->sendCAT(QString("#SPN%1;").arg(newSpan));
+            }
+            if (vfoB) {
+                m_radioState->setSpanHzB(newSpan);
+                m_tcpClient->sendCAT(QString("#SPN$%1;").arg(newSpan));
+            }
+        }
+    });
 
     // Protocol spectrum data -> Panadapter
     connect(m_tcpClient->protocol(), &Protocol::spectrumDataReady, this, &MainWindow::onSpectrumData);
@@ -318,29 +479,13 @@ void MainWindow::setupUi() {
     connect(m_bottomMenuBar, &BottomMenuBar::fnClicked, this, []() {
         // TODO: Show function key popup
     });
-    connect(m_bottomMenuBar, &BottomMenuBar::displayClicked, this, []() {
-        // TODO: Show display settings
-    });
+    connect(m_bottomMenuBar, &BottomMenuBar::displayClicked, this, &MainWindow::toggleDisplayPopup);
     connect(m_bottomMenuBar, &BottomMenuBar::bandClicked, this, &MainWindow::showBandPopup);
     connect(m_bottomMenuBar, &BottomMenuBar::mainRxClicked, this, []() {
         // TODO: Show main RX settings
     });
-    connect(m_bottomMenuBar, &BottomMenuBar::subRxClicked, this, [this]() {
-        // Cycle through panadapter modes: MainOnly -> Dual -> SubOnly -> MainOnly
-        switch (m_panadapterMode) {
-        case PanadapterMode::MainOnly:
-            setPanadapterMode(PanadapterMode::Dual);
-            qDebug() << "Panadapter mode: Dual";
-            break;
-        case PanadapterMode::Dual:
-            setPanadapterMode(PanadapterMode::SubOnly);
-            qDebug() << "Panadapter mode: SubOnly";
-            break;
-        case PanadapterMode::SubOnly:
-            setPanadapterMode(PanadapterMode::MainOnly);
-            qDebug() << "Panadapter mode: MainOnly";
-            break;
-        }
+    connect(m_bottomMenuBar, &BottomMenuBar::subRxClicked, this, []() {
+        // TODO: Show sub RX settings
     });
     connect(m_bottomMenuBar, &BottomMenuBar::txClicked, this, []() {
         // TODO: Show TX settings
@@ -954,6 +1099,23 @@ void MainWindow::onAuthenticated() {
     } else {
         qWarning() << "Failed to start audio engine";
     }
+
+    // Query display state to initialize popup button faces (LCD and EXT)
+    m_tcpClient->sendCAT("#DPM;");  // Dual panadapter mode (LCD)
+    m_tcpClient->sendCAT("#HDPM;"); // Dual panadapter mode (EXT)
+    m_tcpClient->sendCAT("#DSM;");  // Display mode (LCD)
+    m_tcpClient->sendCAT("#HDSM;"); // Display mode (EXT)
+    m_tcpClient->sendCAT("#WFC;");  // Waterfall color
+    m_tcpClient->sendCAT("#AVG;");  // Averaging
+    m_tcpClient->sendCAT("#PKM;");  // Peak mode
+    m_tcpClient->sendCAT("#FXT;");  // Fixed tune toggle
+    m_tcpClient->sendCAT("#FXA;");  // Fixed tune mode
+    m_tcpClient->sendCAT("#FRZ;");  // Freeze
+    m_tcpClient->sendCAT("#VFA;");  // VFO A cursor
+    m_tcpClient->sendCAT("#VFB;");  // VFO B cursor
+    m_tcpClient->sendCAT("#AR;");   // Auto-ref level
+    m_tcpClient->sendCAT("#NB$;");  // DDC Noise Blanker mode
+    m_tcpClient->sendCAT("#NBL$;"); // DDC Noise Blanker level
 }
 
 void MainWindow::onAuthenticationFailed() {
@@ -1322,16 +1484,30 @@ void MainWindow::setPanadapterMode(PanadapterMode mode) {
 }
 
 void MainWindow::showMenuOverlay() {
-    // Position overlay over the spectrum container
-    if (m_spectrumContainer && m_menuOverlay) {
-        QPoint pos = m_spectrumContainer->mapTo(this, QPoint(0, 0));
-        m_menuOverlay->setGeometry(pos.x(), pos.y(), m_spectrumContainer->width(), m_spectrumContainer->height());
-        m_menuOverlay->show();
-        m_menuOverlay->raise();
+    // Close display popup if visible
+    if (m_displayPopup && m_displayPopup->isVisible()) {
+        m_displayPopup->hidePopup();
+    }
 
-        // Set MENU button to active (inverse colors)
-        if (m_bottomMenuBar) {
-            m_bottomMenuBar->setMenuActive(true);
+    // Toggle menu overlay visibility
+    if (m_spectrumContainer && m_menuOverlay) {
+        if (m_menuOverlay->isVisible()) {
+            // Hide the overlay
+            m_menuOverlay->hide();
+            if (m_bottomMenuBar) {
+                m_bottomMenuBar->setMenuActive(false);
+            }
+        } else {
+            // Show the overlay
+            QPoint pos = m_spectrumContainer->mapTo(this, QPoint(0, 0));
+            m_menuOverlay->setGeometry(pos.x(), pos.y(), m_spectrumContainer->width(), m_spectrumContainer->height());
+            m_menuOverlay->show();
+            m_menuOverlay->raise();
+
+            // Set MENU button to active (inverse colors)
+            if (m_bottomMenuBar) {
+                m_bottomMenuBar->setMenuActive(true);
+            }
         }
     }
 }
@@ -1364,8 +1540,45 @@ void MainWindow::onMenuValueChangeRequested(int menuId, const QString &action) {
 }
 
 void MainWindow::showBandPopup() {
+    // Close menu overlay if visible
+    if (m_menuOverlay && m_menuOverlay->isVisible()) {
+        m_menuOverlay->hide();
+        if (m_bottomMenuBar) {
+            m_bottomMenuBar->setMenuActive(false);
+        }
+    }
+
+    // Close display popup if visible
+    if (m_displayPopup && m_displayPopup->isVisible()) {
+        m_displayPopup->hidePopup();
+    }
+
     if (m_bandPopup && m_bottomMenuBar) {
         m_bandPopup->showAboveButton(m_bottomMenuBar->bandButton());
+    }
+}
+
+void MainWindow::toggleDisplayPopup() {
+    // Close menu overlay if visible
+    if (m_menuOverlay && m_menuOverlay->isVisible()) {
+        m_menuOverlay->hide();
+        if (m_bottomMenuBar) {
+            m_bottomMenuBar->setMenuActive(false);
+        }
+    }
+
+    // Close band popup if visible
+    if (m_bandPopup && m_bandPopup->isVisible()) {
+        m_bandPopup->hidePopup();
+    }
+
+    if (m_displayPopup && m_bottomMenuBar) {
+        if (m_displayPopup->isVisible()) {
+            m_displayPopup->hidePopup();
+        } else {
+            m_displayPopup->showAboveButton(m_bottomMenuBar->displayButton());
+            m_bottomMenuBar->setDisplayActive(true);
+        }
     }
 }
 

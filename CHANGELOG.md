@@ -7,6 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Ref Level A/B support: A/B toggle selects which VFO's ref level value is displayed
+- Ref Level +/- buttons target correct VFO based on A/B toggle selection
+- Ref Level value shows faded grey text when in auto mode (visual indication)
+- AUTO button toggles global auto-ref mode (affects both VFOs simultaneously)
+- Display popup menu now sends CAT commands to K4 radio
+- Button labels update dynamically based on radio state (PAN=A/B/A+B, AVG 1-20, etc.)
+- Fixed Tune mode cycling through all 6 states (SLIDE1, SLIDE2, FIXED1, FIXED2, STATIC, TRACK)
+- VFO cursor mode toggling (A+/A-/A AUTO/A HIDE)
+- Waterfall color cycling (5 colors: Gray, Color, Teal, Blue, Sepia)
+- Peak mode and Freeze toggles via right-click
+- LCD/EXT target selection for display commands
 - Sub RX main panadapter with full spectrum/waterfall display
 - Three panadapter display modes: Main Only, Dual (A+B side-by-side), Sub Only
 - Independent span control buttons (C/+/-) for both panadapters
@@ -14,6 +25,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - SUB RX button cycles through panadapter display modes
 - Mini-Pan for VFO B (Sub RX) with green spectrum line
 - Mode-dependent Mini-Pan bandwidth for VFO B (CW=3kHz, Voice/Data=10kHz)
+- AVERAGE control group in display popup with +/- buttons (cycles 1, 5, 10, 15, 20)
+- DDC NB control group in display popup showing mode (OFF/ON/AUTO) and level (0-14)
+- Passband indicator visibility synced with VFO cursor mode (A+/A-/B+/B-)
+- Span A/B support: A/B toggle selects which VFO's span value is displayed
+- Span +/- buttons target correct VFO based on A/B toggle (A+B targets both simultaneously)
+- Right side panel expanded with 8 new buttons in two 2x2 grids:
+  - PF row: B SET/PF 1, CLR/PF 2, RIT/PF 3, XIT/PF 4
+  - Bottom row: FREQ ENT/SCAN, RATE/KHZ, LOCK A/LOCK B, SUB/DIVERSITY
 
 ### Changed
 - VFO A passband indicator now uses blue color (matching physical K4 display)
@@ -26,8 +45,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Mini-Pan now shows center frequency marker line (darker shade of passband color)
 
 ### Fixed
+- AUTO button now correctly highlights when radio is in auto-ref mode (was parsing #AR response format incorrectly)
 - Mini-Pan VFO B now displays correct Sub RX spectrum (discovered undocumented RX byte at position 4)
 - Dual panadapter mode now shows correct frequency alignment (spectrum was only showing partial range)
+- PAN button face now updates correctly when radio changes panadapter mode (was stuck on "PAN = A")
 
 ---
 

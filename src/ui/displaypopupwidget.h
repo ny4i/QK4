@@ -1,0 +1,302 @@
+#ifndef DISPLAYPOPUPWIDGET_H
+#define DISPLAYPOPUPWIDGET_H
+
+#include <QWidget>
+#include <QPushButton>
+#include <QLabel>
+#include <QStackedWidget>
+#include <QList>
+
+class DisplayMenuButton;
+class ToggleGroupWidget;
+class ControlGroupWidget;
+
+class DisplayPopupWidget : public QWidget {
+    Q_OBJECT
+
+public:
+    enum MenuItem { PanWaterfall = 0, NbWtrClrs, RefLvlScale, SpanCenter, AveragePeak, FixedFreeze, CursAB };
+
+    explicit DisplayPopupWidget(QWidget *parent = nullptr);
+
+    void showAboveButton(QWidget *triggerButton);
+    void hidePopup();
+
+    MenuItem selectedItem() const { return m_selectedItem; }
+    bool isLcdEnabled() const { return m_lcdEnabled; }
+    bool isExtEnabled() const { return m_extEnabled; }
+    bool isVfoAEnabled() const { return m_vfoAEnabled; }
+    bool isVfoBEnabled() const { return m_vfoBEnabled; }
+
+public slots:
+    // Span VALUES are per-VFO (A and B can have different spans)
+    void setSpanValueA(double spanKHz);
+    void setSpanValueB(double spanKHz);
+    void setRefLevelValue(int dB);      // Legacy: sets A
+    void setAutoRefLevel(bool enabled); // GLOBAL - affects both VFOs
+    // Ref level VALUES are per-VFO (A and B can have different levels)
+    void setRefLevelValueA(int dB);
+    void setRefLevelValueB(int dB);
+
+    // State setters for RadioState updates (separate LCD and EXT)
+    void setDualPanModeLcd(int mode);
+    void setDualPanModeExt(int mode);
+    void setDisplayModeLcd(int mode);
+    void setDisplayModeExt(int mode);
+    void setWaterfallColor(int color);
+    void setAveraging(int value);
+    void setPeakMode(bool enabled);
+    void setFixedTuneMode(int fxt, int fxa);
+    void setFreeze(bool enabled);
+    void setVfoACursor(int mode);
+    void setVfoBCursor(int mode);
+    void setDdcNbMode(int mode);   // 0=OFF, 1=ON, 2=AUTO
+    void setDdcNbLevel(int level); // 0-14
+
+signals:
+    void closed();
+
+    // Target toggle signals
+    void lcdToggled(bool enabled);
+    void extToggled(bool enabled);
+    void vfoAToggled(bool enabled);
+    void vfoBToggled(bool enabled);
+
+    // Menu item signals
+    void menuItemSelected(MenuItem item);
+    void alternateItemClicked(MenuItem item);
+
+    // Span control signals
+    void spanIncrementRequested();
+    void spanDecrementRequested();
+
+    // Ref level control signals
+    void refLevelIncrementRequested();
+    void refLevelDecrementRequested();
+    void autoRefLevelToggled(bool enabled);
+
+    // Averaging control signals
+    void averagingIncrementRequested();
+    void averagingDecrementRequested();
+
+    // DDC NB control signals
+    void nbLevelIncrementRequested();
+    void nbLevelDecrementRequested();
+
+    // CAT command signal (for MainWindow to forward to TcpClient)
+    void catCommandRequested(const QString &cmd);
+
+    // Pan mode changed (for MainWindow to update panadapter display)
+    // K4 doesn't echo #DPM commands, so we notify directly
+    void dualPanModeChanged(int mode);
+
+protected:
+    void paintEvent(QPaintEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
+    void focusOutEvent(QFocusEvent *event) override;
+    void hideEvent(QHideEvent *event) override;
+
+private:
+    void setupUi();
+    void setupTopRow();
+    void setupBottomRow();
+
+    QWidget *createSpanControlPage();
+    QWidget *createRefLevelControlPage();
+    QWidget *createAverageControlPage();
+    QWidget *createNbControlPage();
+    QWidget *createDefaultControlPage();
+    void updateNbControlGroupValue();
+
+    void updateToggleStyles();
+    void updateMenuButtonStyles();
+    void updateMenuButtonLabels();
+    void onMenuItemClicked(MenuItem item);
+    void onMenuItemRightClicked(MenuItem item);
+
+    // Helper to get command prefix based on LCD/EXT selection
+    QString getCommandPrefix() const;
+
+    // Target toggle groups (bordered containers with triangle)
+    ToggleGroupWidget *m_lcdExtGroup;
+    ToggleGroupWidget *m_vfoAbGroup;
+    bool m_lcdEnabled = true;
+    bool m_extEnabled = false;
+    bool m_vfoAEnabled = true;
+    bool m_vfoBEnabled = false;
+    bool m_vfoBAvailable = true;
+
+    // Context-dependent controls
+    QStackedWidget *m_controlStack;
+    QWidget *m_spanControlPage;
+    QWidget *m_refLevelControlPage;
+    QWidget *m_averageControlPage;
+    QWidget *m_nbControlPage;
+    QWidget *m_defaultControlPage;
+
+    // Span controls
+    ControlGroupWidget *m_spanControlGroup;
+
+    // Ref level controls
+    ControlGroupWidget *m_refLevelControlGroup;
+
+    // Average controls
+    ControlGroupWidget *m_averageControlGroup;
+
+    // DDC NB controls
+    ControlGroupWidget *m_nbControlGroup;
+
+    // Menu buttons
+    QList<DisplayMenuButton *> m_menuButtons;
+    MenuItem m_selectedItem = SpanCenter;
+
+    // Triangle position offset for when popup is clamped to screen edge
+    int m_triangleXOffset = 0;
+
+    // Span state - values are per-VFO (A and B can have different spans)
+    double m_spanA = 100.0;
+    double m_spanB = 100.0;
+
+    // Helper to update span control group based on A/B selection
+    void updateSpanControlGroup();
+
+    // Legacy ref level (replaced by A/B below)
+    int m_currentRefLevel = -108;
+
+    // Ref level state
+    // Values are per-VFO (A and B can have different levels)
+    int m_refLevelA = -108;
+    int m_refLevelB = -108;
+    // Auto-ref mode is GLOBAL (affects both VFOs simultaneously)
+    bool m_autoRef = true; // Default to auto
+
+    // Helper to update ref level control group based on A/B selection
+    void updateRefLevelControlGroup();
+
+    // Display state tracking (for menu button labels and CAT commands)
+    // Initial values are -1 to ensure first update from radio triggers label refresh
+    // Separate LCD and EXT state
+    int m_dualPanModeLcd = -1; // #DPM: LCD 0=A, 1=B, 2=Dual
+    int m_dualPanModeExt = -1; // #HDPM: EXT 0=A, 1=B, 2=Dual
+    int m_displayModeLcd = -1; // #DSM: LCD 0=spectrum, 1=spectrum+waterfall
+    int m_displayModeExt = -1; // #HDSM: EXT 0=spectrum, 1=spectrum+waterfall
+    int m_waterfallColor = -1; // 0-4
+    int m_averaging = -1;      // 1-20
+    int m_peakMode = -1;       // 0=off, 1=on (int for -1 init)
+    int m_fixedTuneMode = -1;  // Combined FXT+FXA state (0-5: SLIDE1, SLIDE2, FIXED1, FIXED2, STATIC, TRACK)
+    int m_freeze = -1;         // 0=run, 1=freeze (int for -1 init)
+    int m_vfaMode = -1;        // 0=OFF, 1=ON, 2=AUTO, 3=HIDE
+    int m_vfbMode = -1;
+
+    // DDC NB state (#NB$ and #NBL$ commands)
+    int m_ddcNbMode = -1;  // 0=OFF, 1=ON, 2=AUTO
+    int m_ddcNbLevel = -1; // 0-14
+};
+
+// Helper class for dual-line menu buttons
+class DisplayMenuButton : public QWidget {
+    Q_OBJECT
+
+public:
+    explicit DisplayMenuButton(const QString &primaryText, const QString &alternateText, QWidget *parent = nullptr);
+
+    void setSelected(bool selected);
+    bool isSelected() const { return m_selected; }
+
+    QString primaryText() const { return m_primaryText; }
+    QString alternateText() const { return m_alternateText; }
+
+    void setPrimaryText(const QString &text);
+    void setAlternateText(const QString &text);
+
+signals:
+    void clicked();
+    void rightClicked();
+
+protected:
+    void paintEvent(QPaintEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
+    void enterEvent(QEnterEvent *event) override;
+    void leaveEvent(QEvent *event) override;
+
+private:
+    QString m_primaryText;
+    QString m_alternateText;
+    bool m_selected = false;
+    bool m_hovered = false;
+};
+
+// Helper class for control groups (SPAN, REF) with bordered container and demarcation lines
+class ControlGroupWidget : public QWidget {
+    Q_OBJECT
+
+public:
+    explicit ControlGroupWidget(const QString &label, QWidget *parent = nullptr);
+
+    void setValue(const QString &value);
+    QString value() const { return m_value; }
+
+    void setShowAutoButton(bool show);
+    void setAutoEnabled(bool enabled);
+    bool isAutoEnabled() const { return m_autoEnabled; }
+    void setValueFaded(bool faded); // Faded grey text when in auto mode
+    bool isValueFaded() const { return m_valueFaded; }
+
+signals:
+    void incrementClicked();
+    void decrementClicked();
+    void autoClicked();
+
+protected:
+    void paintEvent(QPaintEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
+
+private:
+    QString m_label;
+    QString m_value;
+    bool m_showAutoButton = false;
+    bool m_autoEnabled = false;
+    bool m_valueFaded = false; // Grey text when auto mode
+    QRect m_autoRect;
+    QRect m_minusRect;
+    QRect m_plusRect;
+};
+
+// Helper class for bordered toggle groups with rounded corners
+class ToggleGroupWidget : public QWidget {
+    Q_OBJECT
+
+public:
+    explicit ToggleGroupWidget(const QString &leftLabel, const QString &rightLabel, QWidget *parent = nullptr);
+
+    void setLeftSelected(bool selected);
+    void setRightSelected(bool selected);
+    void setRightEnabled(bool enabled);
+
+    bool isLeftSelected() const { return m_leftSelected; }
+    bool isRightSelected() const { return m_rightSelected; }
+    bool isRightEnabled() const { return m_rightEnabled; }
+
+signals:
+    void leftClicked();
+    void rightClicked();
+    void bothClicked(); // When & is clicked, select both
+
+protected:
+    void paintEvent(QPaintEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
+
+private:
+    QString m_leftLabel;
+    QString m_rightLabel;
+    bool m_leftSelected = true;
+    bool m_rightSelected = false;
+    bool m_rightEnabled = true;
+
+    // Hit test rectangles (calculated in paintEvent)
+    QRect m_leftRect;
+    QRect m_rightRect;
+    QRect m_ampRect;
+};
+
+#endif // DISPLAYPOPUPWIDGET_H

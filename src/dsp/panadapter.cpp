@@ -348,6 +348,13 @@ void PanadapterWidget::setNotchFilter(bool enabled, int pitchHz) {
     }
 }
 
+void PanadapterWidget::setCursorVisible(bool visible) {
+    if (m_cursorVisible != visible) {
+        m_cursorVisible = visible;
+        update();
+    }
+}
+
 void PanadapterWidget::clear() {
     m_currentSpectrum.clear();
     m_rawSpectrum.clear();
@@ -643,7 +650,7 @@ void PanadapterWidget::drawFrequencyMarker(QPainter &painter, const QRect &rect)
 }
 
 void PanadapterWidget::drawFilterPassband(QPainter &painter, const QRect &rect) {
-    if (m_filterBw <= 0)
+    if (!m_cursorVisible || m_filterBw <= 0)
         return;
 
     int carrierX = freqToX(m_tunedFreq, rect.width());

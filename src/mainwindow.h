@@ -23,6 +23,7 @@ class BottomMenuBar;
 class MenuModel;
 class MenuOverlayWidget;
 class BandPopupWidget;
+class DisplayPopupWidget;
 class KpodDevice;
 class KPA1500Client;
 
@@ -81,6 +82,7 @@ private slots:
     void showBandPopup();
     void onBandSelected(const QString &bandName);
     void updateBandSelection(int bandNum);
+    void toggleDisplayPopup();
 
     // KPOD slots
     void onKpodEncoderRotated(int ticks);
@@ -177,6 +179,7 @@ private:
     MenuModel *m_menuModel;
     MenuOverlayWidget *m_menuOverlay;
     BandPopupWidget *m_bandPopup;
+    DisplayPopupWidget *m_displayPopup;
 
     RadioEntry m_currentRadio;
     int m_currentBandNum = -1; // Current band number for VFO A (BN command)
