@@ -73,6 +73,7 @@ public:
     // Processing - Main RX
     int noiseBlankerLevel() const { return m_noiseBlankerLevel; }
     bool noiseBlankerEnabled() const { return m_noiseBlankerEnabled; }
+    int noiseBlankerFilterWidth() const { return m_noiseBlankerFilterWidth; } // 0=NONE, 1=NARROW, 2=WIDE
     int noiseReductionLevel() const { return m_noiseReductionLevel; }
     bool noiseReductionEnabled() const { return m_noiseReductionEnabled; }
     bool autoNotchFilter() const { return m_autoNotchFilter; }
@@ -90,6 +91,7 @@ public:
     // Processing - Sub RX
     int noiseBlankerLevelB() const { return m_noiseBlankerLevelB; }
     bool noiseBlankerEnabledB() const { return m_noiseBlankerEnabledB; }
+    int noiseBlankerFilterWidthB() const { return m_noiseBlankerFilterWidthB; } // 0=NONE, 1=NARROW, 2=WIDE
     int noiseReductionLevelB() const { return m_noiseReductionLevelB; }
     bool noiseReductionEnabledB() const { return m_noiseReductionEnabledB; }
     int preampB() const { return m_preampB; }
@@ -355,6 +357,7 @@ private:
     // Processing - Sub RX
     int m_noiseBlankerLevelB = 0;
     bool m_noiseBlankerEnabledB = false;
+    int m_noiseBlankerFilterWidthB = 0; // 0=NONE, 1=NARROW, 2=WIDE
     int m_noiseReductionLevelB = 0;
     bool m_noiseReductionEnabledB = false;
     int m_preampB = 0;

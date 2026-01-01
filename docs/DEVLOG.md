@@ -51,51 +51,41 @@ Added a reusable menu bar widget that appears above the 7 bottom buttons when al
 
 ---
 
-### TBD: Phase 2 - CAT Command Wiring
+### Feature: Feature Menu Bar CAT Wiring (Phase 2 - Complete)
 
-**Required CAT commands (need documentation from user):**
+**CAT Commands Implemented:**
 
-| Feature | Action | CAT Command | State Parsing |
-|---------|--------|-------------|---------------|
-| **ATTENUATOR** | Toggle ON/OFF | ? | Current on/off state |
-| | Increment | ? | Current dB value |
-| | Decrement | ? | Range (min/max dB) |
-| **NB LEVEL** | Toggle NB ON/OFF | ? (have NB$=0-2 for mode) | Current on/off state |
-| | Increment level | ? | Current level (0-14, have #NBL$) |
-| | Decrement level | ? | |
-| | Filter button | ? | Filter state |
-| **NR ADJUST** | Toggle NR ON/OFF | ? | Current on/off state |
-| | Increment level | ? | Current level |
-| | Decrement level | ? | Range |
-| **MANUAL NOTCH** | Toggle ON/OFF | ? | Current on/off state |
-| | Increment freq | ? | Current Hz value |
-| | Decrement freq | ? | Range (Hz) |
+| Feature | Toggle | Increment | Decrement |
+|---------|--------|-----------|-----------|
+| **ATTENUATOR** | `RA/;` | `RA+;` (3dB step) | `RA-;` (3dB step) |
+| **NB LEVEL** | `NB/;` | `NBnnmf;` (+1 level) | `NBnnmf;` (-1 level) |
+| **NR ADJUST** | `NR/;` | `NRnnm;` (+1 level) | `NRnnm;` (-1 level) |
+| **MANUAL NOTCH** | `NM/;` | `NMnnnnm;` (+10Hz) | `NMnnnnm;` (-10Hz) |
 
-**Existing RadioState parsing (may be relevant):**
-- `m_ddcNbLevel` - #NBL$: 0-14 (NB level for DDC)
-- `m_nb` / `m_nbB` - NB state (0=off, 1=on, 2=auto?)
-- `m_nr` / `m_nrB` - NR state
-- `m_notchAuto` / `m_notchManual` - Notch states
+**NB LEVEL Extra Button:**
+- Cycles filter: NONE(0) → NARROW(1) → WIDE(2) → NONE(0)
+- Command: `NBnnmf;` with updated filter value
 
-**VFO B Targeting (Phase 2):**
-When B SET button is engaged, CAT commands should target VFO B (Sub RX) using `$` suffix variants.
+**RadioState Integration:**
+- Menu bar displays current state from RadioState on open
+- Live updates via `processingChanged` and `notchChanged` signals
+- Added `noiseBlankerFilterWidth()` getter for Main and Sub RX
 
 **Files Modified:**
-- `CMakeLists.txt` - Added featuremenubar source files
-- `src/mainwindow.h` - Added forward declaration and `m_featureMenuBar` member
-- `src/mainwindow.cpp` - Created widget, added to layout above BottomMenuBar, wired signals
+- `src/models/radiostate.h` - Added `noiseBlankerFilterWidth()`, `noiseBlankerFilterWidthB()` getters
+- `src/models/radiostate.cpp` - Updated NB parsing to store filter width for Sub RX
+- `src/ui/featuremenubar.h` - Added `setNbFilter()` method
+- `src/ui/featuremenubar.cpp` - Implemented `setNbFilter()` to update extra button text
+- `src/mainwindow.cpp` - Added CAT command connections for all feature menu actions
 
-**Phase 1 Scope (Completed):**
-- ✅ Create FeatureMenuBar widget with all UI elements
-- ✅ Show correct title/layout for each feature
-- ✅ Show/hide extra button based on feature (NB LEVEL only)
-- ✅ Wire right-click signals to show menu
-- ✅ Wire close button to hide menu
-- ✅ Static encoder hints (⟳ and [A] labels)
+**Phase 2 Scope (Completed):**
+- ✅ CAT commands for toggle (all 4 features)
+- ✅ CAT commands for increment/decrement (all 4 features)
+- ✅ NB filter cycling via extra button
+- ✅ RadioState integration for state display
+- ✅ Live updates from radio state changes
 
-**Phase 2 (TODO):**
-- ⏸️ CAT commands for toggle/increment/decrement
-- ⏸️ RadioState integration for state display
+**Phase 3 (TODO):**
 - ⏸️ B SET state affects VFO targeting ($ suffix commands)
 
 ---

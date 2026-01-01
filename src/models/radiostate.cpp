@@ -230,21 +230,23 @@ void RadioState::parseCATCommand(const QString &command) {
             emit transmitStateChanged(false);
         }
     }
-    // Noise Blanker Sub (NB$)
+    // Noise Blanker Sub (NB$) - Format: NB$nnmf; where nn=level, m=on/off, f=filter(0/1/2)
     else if (cmd.startsWith("NB$") && cmd.length() >= 5) {
         QString nbStr = cmd.mid(3);
         if (nbStr.length() >= 4) {
-            bool ok1, ok2;
+            bool ok1, ok2, ok3;
             int level = nbStr.left(2).toInt(&ok1);
             int enabled = nbStr.mid(2, 1).toInt(&ok2);
-            if (ok1 && ok2) {
-                m_noiseBlankerLevelB = qMin(level, 25);
+            int filter = nbStr.mid(3, 1).toInt(&ok3);
+            if (ok1 && ok2 && ok3) {
+                m_noiseBlankerLevelB = qMin(level, 15);
                 m_noiseBlankerEnabledB = (enabled == 1);
+                m_noiseBlankerFilterWidthB = qMin(filter, 2);
                 emit processingChangedB();
             }
         }
     }
-    // Noise Blanker Main (NB)
+    // Noise Blanker Main (NB) - Format: NBnnmf; where nn=level(0-15), m=on/off, f=filter(0/1/2)
     else if (cmd.startsWith("NB") && cmd.length() >= 4) {
         QString nbStr = cmd.mid(2);
         if (nbStr.length() >= 4) {
@@ -253,7 +255,7 @@ void RadioState::parseCATCommand(const QString &command) {
             int enabled = nbStr.mid(2, 1).toInt(&ok2);
             int filter = nbStr.mid(3, 1).toInt(&ok3);
             if (ok1 && ok2 && ok3) {
-                m_noiseBlankerLevel = qMin(level, 25);
+                m_noiseBlankerLevel = qMin(level, 15);
                 m_noiseBlankerEnabled = (enabled == 1);
                 m_noiseBlankerFilterWidth = qMin(filter, 2);
                 emit processingChanged();

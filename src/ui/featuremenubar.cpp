@@ -224,6 +224,13 @@ void FeatureMenuBar::setValueUnit(const QString &unit) {
     setValue(m_value); // Refresh display
 }
 
+void FeatureMenuBar::setNbFilter(int filter) {
+    m_nbFilter = qBound(0, filter, 2);
+    // Update extra button text to show current filter
+    static const char *filterNames[] = {"FILTER\nNONE", "FILTER\nNARROW", "FILTER\nWIDE"};
+    m_extraBtn->setText(filterNames[m_nbFilter]);
+}
+
 void FeatureMenuBar::paintEvent(QPaintEvent *event) {
     Q_UNUSED(event)
     QPainter painter(this);

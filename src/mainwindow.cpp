@@ -469,6 +469,116 @@ void MainWindow::setupUi() {
     mainLayout->addWidget(m_featureMenuBar); // Uses internal margins to align with bottom menu bar
     connect(m_featureMenuBar, &FeatureMenuBar::closeRequested, m_featureMenuBar, &FeatureMenuBar::hideMenu);
 
+    // Feature Menu Bar CAT commands - send appropriate command based on current feature
+    connect(m_featureMenuBar, &FeatureMenuBar::toggleRequested, this, [this]() {
+        switch (m_featureMenuBar->currentFeature()) {
+        case FeatureMenuBar::Attenuator:
+            m_tcpClient->sendCAT("RA/;");
+            break;
+        case FeatureMenuBar::NbLevel:
+            m_tcpClient->sendCAT("NB/;");
+            break;
+        case FeatureMenuBar::NrAdjust:
+            m_tcpClient->sendCAT("NR/;");
+            break;
+        case FeatureMenuBar::ManualNotch:
+            m_tcpClient->sendCAT("NM/;");
+            break;
+        }
+    });
+    connect(m_featureMenuBar, &FeatureMenuBar::incrementRequested, this, [this]() {
+        switch (m_featureMenuBar->currentFeature()) {
+        case FeatureMenuBar::Attenuator:
+            m_tcpClient->sendCAT("RA+;");
+            break;
+        case FeatureMenuBar::NbLevel: {
+            int newLevel = qMin(m_radioState->noiseBlankerLevel() + 1, 15);
+            int enabled = m_radioState->noiseBlankerEnabled() ? 1 : 0;
+            int filter = m_radioState->noiseBlankerFilterWidth();
+            m_tcpClient->sendCAT(QString("NB%1%2%3;").arg(newLevel, 2, 10, QChar('0')).arg(enabled).arg(filter));
+            break;
+        }
+        case FeatureMenuBar::NrAdjust: {
+            int newLevel = qMin(m_radioState->noiseReductionLevel() + 1, 10);
+            int enabled = m_radioState->noiseReductionEnabled() ? 1 : 0;
+            m_tcpClient->sendCAT(QString("NR%1%2;").arg(newLevel, 2, 10, QChar('0')).arg(enabled));
+            break;
+        }
+        case FeatureMenuBar::ManualNotch: {
+            int newPitch = qMin(m_radioState->manualNotchPitch() + 10, 5000);
+            int enabled = m_radioState->manualNotchEnabled() ? 1 : 0;
+            m_tcpClient->sendCAT(QString("NM%1%2;").arg(newPitch, 4, 10, QChar('0')).arg(enabled));
+            break;
+        }
+        }
+    });
+    connect(m_featureMenuBar, &FeatureMenuBar::decrementRequested, this, [this]() {
+        switch (m_featureMenuBar->currentFeature()) {
+        case FeatureMenuBar::Attenuator:
+            m_tcpClient->sendCAT("RA-;");
+            break;
+        case FeatureMenuBar::NbLevel: {
+            int newLevel = qMax(m_radioState->noiseBlankerLevel() - 1, 0);
+            int enabled = m_radioState->noiseBlankerEnabled() ? 1 : 0;
+            int filter = m_radioState->noiseBlankerFilterWidth();
+            m_tcpClient->sendCAT(QString("NB%1%2%3;").arg(newLevel, 2, 10, QChar('0')).arg(enabled).arg(filter));
+            break;
+        }
+        case FeatureMenuBar::NrAdjust: {
+            int newLevel = qMax(m_radioState->noiseReductionLevel() - 1, 0);
+            int enabled = m_radioState->noiseReductionEnabled() ? 1 : 0;
+            m_tcpClient->sendCAT(QString("NR%1%2;").arg(newLevel, 2, 10, QChar('0')).arg(enabled));
+            break;
+        }
+        case FeatureMenuBar::ManualNotch: {
+            int newPitch = qMax(m_radioState->manualNotchPitch() - 10, 150);
+            int enabled = m_radioState->manualNotchEnabled() ? 1 : 0;
+            m_tcpClient->sendCAT(QString("NM%1%2;").arg(newPitch, 4, 10, QChar('0')).arg(enabled));
+            break;
+        }
+        }
+    });
+    connect(m_featureMenuBar, &FeatureMenuBar::extraButtonClicked, this, [this]() {
+        // Extra button cycles NB filter: NONE(0) -> NARROW(1) -> WIDE(2) -> NONE(0)
+        if (m_featureMenuBar->currentFeature() == FeatureMenuBar::NbLevel) {
+            int newFilter = (m_radioState->noiseBlankerFilterWidth() + 1) % 3;
+            int level = m_radioState->noiseBlankerLevel();
+            int enabled = m_radioState->noiseBlankerEnabled() ? 1 : 0;
+            m_tcpClient->sendCAT(QString("NB%1%2%3;").arg(level, 2, 10, QChar('0')).arg(enabled).arg(newFilter));
+        }
+    });
+
+    // Update feature menu bar from RadioState
+    connect(m_radioState, &RadioState::processingChanged, this, [this]() {
+        if (m_featureMenuBar->isMenuVisible()) {
+            switch (m_featureMenuBar->currentFeature()) {
+            case FeatureMenuBar::Attenuator:
+                m_featureMenuBar->setFeatureEnabled(m_radioState->attenuatorEnabled());
+                m_featureMenuBar->setValue(m_radioState->attenuatorLevel());
+                break;
+            case FeatureMenuBar::NbLevel:
+                m_featureMenuBar->setFeatureEnabled(m_radioState->noiseBlankerEnabled());
+                m_featureMenuBar->setValue(m_radioState->noiseBlankerLevel());
+                m_featureMenuBar->setNbFilter(m_radioState->noiseBlankerFilterWidth());
+                break;
+            case FeatureMenuBar::NrAdjust:
+                m_featureMenuBar->setFeatureEnabled(m_radioState->noiseReductionEnabled());
+                m_featureMenuBar->setValue(m_radioState->noiseReductionLevel());
+                break;
+            case FeatureMenuBar::ManualNotch:
+                // Notch uses notchChanged signal, not processingChanged
+                break;
+            }
+        }
+    });
+    connect(m_radioState, &RadioState::notchChanged, this, [this]() {
+        if (m_featureMenuBar->isMenuVisible() &&
+            m_featureMenuBar->currentFeature() == FeatureMenuBar::ManualNotch) {
+            m_featureMenuBar->setFeatureEnabled(m_radioState->manualNotchEnabled());
+            m_featureMenuBar->setValue(m_radioState->manualNotchPitch());
+        }
+    });
+
     // Bottom Menu Bar
     m_bottomMenuBar = new BottomMenuBar(centralWidget);
     mainLayout->addWidget(m_bottomMenuBar);
@@ -521,6 +631,26 @@ void MainWindow::setupUi() {
             m_featureMenuBar->hideMenu();
         } else {
             m_featureMenuBar->showForFeature(feature);
+            // Populate initial state from RadioState
+            switch (feature) {
+            case FeatureMenuBar::Attenuator:
+                m_featureMenuBar->setFeatureEnabled(m_radioState->attenuatorEnabled());
+                m_featureMenuBar->setValue(m_radioState->attenuatorLevel());
+                break;
+            case FeatureMenuBar::NbLevel:
+                m_featureMenuBar->setFeatureEnabled(m_radioState->noiseBlankerEnabled());
+                m_featureMenuBar->setValue(m_radioState->noiseBlankerLevel());
+                m_featureMenuBar->setNbFilter(m_radioState->noiseBlankerFilterWidth());
+                break;
+            case FeatureMenuBar::NrAdjust:
+                m_featureMenuBar->setFeatureEnabled(m_radioState->noiseReductionEnabled());
+                m_featureMenuBar->setValue(m_radioState->noiseReductionLevel());
+                break;
+            case FeatureMenuBar::ManualNotch:
+                m_featureMenuBar->setFeatureEnabled(m_radioState->manualNotchEnabled());
+                m_featureMenuBar->setValue(m_radioState->manualNotchPitch());
+                break;
+            }
         }
     };
     connect(m_rightSidePanel, &RightSidePanel::attnClicked, this,

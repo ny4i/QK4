@@ -22,6 +22,7 @@ public:
     void setFeatureEnabled(bool enabled);
     void setValue(int value);
     void setValueUnit(const QString &unit);
+    void setNbFilter(int filter); // 0=NONE, 1=NARROW, 2=WIDE
 
 signals:
     void toggleRequested();
@@ -53,6 +54,7 @@ private:
     bool m_featureEnabled = false;
     int m_value = 0;
     QString m_valueUnit;
+    int m_nbFilter = 0; // 0=NONE, 1=NARROW, 2=WIDE
 };
 
 #endif // FEATUREMENUBAR_H

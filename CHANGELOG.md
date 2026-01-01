@@ -24,7 +24,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - B SET (SW44) / PF1 (SW153), CLR (SW64) / PF2 (SW154), RIT (SW54) / PF3 (SW155), XIT (SW74) / PF4 (SW156)
 - RadioState: Filter position tracking for VFO A (FP) and VFO B (FP$) with signals
 - Filter position indicators (FIL1/FIL2/FIL3) below A/B VFO squares, aligned with RIT/XIT display
-- Feature menu bar for ATTN, NB LEVEL, NR ADJUST, MANUAL NOTCH with toggle behavior and custom styling
+- Feature menu bar for ATTN, NB LEVEL, NR ADJUST, MANUAL NOTCH with full CAT command support:
+  - ATTENUATOR: toggle (RA/), +/- in 3dB steps (RA+/RA-)
+  - NB LEVEL: toggle (NB/), level 0-15, filter cycling (NONE/NARROW/WIDE)
+  - NR ADJUST: toggle (NR/), level 0-10
+  - MANUAL NOTCH: toggle (NM/), frequency 150-5000Hz in 10Hz steps
+- Feature menu bar displays live state from radio and updates in real-time
 - GPU-accelerated spectrum and waterfall display via OpenGL (main panadapter and mini-pans)
 - Ref Level A/B support: A/B toggle selects which VFO's ref level value is displayed
 - Ref Level +/- buttons target correct VFO based on A/B toggle selection
