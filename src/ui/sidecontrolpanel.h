@@ -61,6 +61,21 @@ signals:
     // Icon button signals
     void helpClicked();
     void connectClicked();
+
+    // TX Function button signals (left-click = primary, right-click = secondary)
+    void tuneClicked();    // TUNE - SW16;
+    void tuneLpClicked();  // TUNE LP - SW131;
+    void xmitClicked();    // XMIT - SW30;
+    void testClicked();    // TEST - SW132;
+    void atuClicked();     // ATU - SW158;
+    void atuTuneClicked(); // ATU TUNE - SW40;
+    void voxClicked();     // VOX - SW50;
+    void qskClicked();     // QSK - SW134;
+    void antClicked();     // ANT - SW60;
+    void remAntClicked();  // REM ANT - TBD
+    void rxAntClicked();   // RX ANT - SW70;
+    void subAntClicked();  // SUB ANT - SW157;
+
     // Value changed signals (emitted when user scrolls to change value)
     void wpmChanged(int delta);
     void pitchChanged(int delta);
@@ -96,6 +111,10 @@ private slots:
     void onSubSqlBecameActive();
     void onMainRfScrolled(int delta);
     void onSubSqlScrolled(int delta);
+
+protected:
+    // Event filter for right-click handling on TX function buttons
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
     void setupUi();

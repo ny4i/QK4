@@ -1,5 +1,115 @@
 # K4Controller Development Log
 
+## January 1, 2026
+
+### Feature: TX Function Button Wiring and Status Indicators
+
+Wired up the 6 TX function buttons on the left side panel to send CAT commands, with left-click for primary actions and right-click for secondary actions. Added UI indicators for TEST, QSK, and ATU states.
+
+**Button Commands:**
+
+| Button | Left-Click | Right-Click |
+|--------|------------|-------------|
+| TUNE | SW16; | SW131; (TUNE LP) |
+| XMIT | SW30; | SW132; (TEST) |
+| ATU | SW158; | SW40; (ATU TUNE) |
+| VOX | SW50; | SW134; (QSK) |
+| ANT | SW60; | TBD (REM ANT) |
+| RX ANT | SW70; | SW157; (SUB ANT) |
+
+**State Parsing:**
+
+| State | CAT Command | RadioState Member |
+|-------|-------------|-------------------|
+| TEST mode | `TSn;` (n=0/1) | `m_testMode`, `testModeChanged()` |
+| QSK enable | `SDxyzzz;` (x=1 full QSK) | `m_qskEnabled`, `qskEnabledChanged()` |
+| ATU mode | `ATn;` (n=1 bypass, n=2 auto) | `m_atuMode`, `atuModeChanged()` |
+
+**UI Indicators Added:**
+
+1. **QSK indicator** - Next to VOX in antenna row
+   - Grey (#999999) when off, white (#FFFFFF) when enabled
+   - Updates when SD command parsed with QSK flag
+
+2. **TEST indicator** - Above TX label in center column
+   - Red (#FF0000), 14px bold
+   - Visible only when test mode active (TS1;)
+
+3. **ATU indicator** - Below RIT/XIT box in center column
+   - Orange (#FFB000), 12px bold
+   - Visible only when ATU in AUTO mode (AT2;)
+
+**Implementation:**
+
+- SideControlPanel: Added 12 signals for button clicks, event filter for right-click handling
+- RadioState: Added TS parser, modified SD parser to extract QSK flag, added atuModeChanged signal
+- MainWindow: Connected all signals to sendCAT lambdas, created indicator labels, connected state signals
+
+**Files Modified:**
+- `src/models/radiostate.h` - Added m_testMode, m_qskEnabled, getters, signals
+- `src/models/radiostate.cpp` - Added TS parser, modified SD/AT parsers
+- `src/ui/sidecontrolpanel.h` - Added 12 TX button signals, eventFilter override
+- `src/ui/sidecontrolpanel.cpp` - Connected buttons, installed event filters, implemented right-click handling
+- `src/mainwindow.h` - Added onAtuModeChanged slot, m_atuLabel member
+- `src/mainwindow.cpp` - Wired button signals, created indicators, connected state signals
+
+---
+
+### Feature: Right Side Panel Button Wiring
+
+Wired up 14 buttons on the right side panel (5×2 main grid + 2×2 PF grid) to send CAT commands, with left-click for primary actions and right-click for secondary actions.
+
+**Button Commands (Main 5×2 Grid):**
+
+| Button | Left-Click | Right-Click |
+|--------|------------|-------------|
+| PRE | SW61; | SW141; (ATTN) |
+| NB | SW32; | SW142; (LEVEL) |
+| NR | SW62; | SW143; (ADJ) |
+| NTCH | SW31; | SW140; (MANUAL) |
+| FIL | SW33; | SW144; (APF) |
+| A/B | SW41; | SW145; (SPLIT) |
+| REV | TBD | TBD |
+| A→B | SW72; | SW147; (B→A) |
+| SPOT | SW42; | SW146; (AUTO) |
+| MODE | SW43; | SW148; (ALT) |
+
+**Button Commands (PF 2×2 Grid):**
+
+| Button | Left-Click | Right-Click |
+|--------|------------|-------------|
+| B SET | SW44; | SW153; (PF1) |
+| CLR | SW64; | SW154; (PF2) |
+| RIT | SW54; | SW155; (PF3) |
+| XIT | SW74; | SW156; (PF4) |
+
+**Note:** MODE (SW43) targets Main RX by default. When B SET is engaged, MODE targets Sub RX/VFO B.
+
+**State Tracking Added:**
+
+| State | CAT Command | RadioState Changes |
+|-------|-------------|-------------------|
+| Filter Position (A) | FP | Modified to emit `filterPositionChanged(int)` |
+| Filter Position (B) | FP$ | Added `filterPositionB()`, `filterPositionBChanged(int)` |
+
+**Implementation:**
+
+- RadioState: Added FP$ parser (before FP parser), added filterPositionB getter and signals for both A/B
+- RightSidePanel: Added 14 secondary signals for right-click, eventFilter for right-click handling
+- MainWindow: Wired 26 button signals (13 primary + 13 secondary) to sendCAT lambdas
+
+**Files Modified:**
+- `src/models/radiostate.h` - Added filterPositionB(), filterPositionChanged, filterPositionBChanged signals
+- `src/models/radiostate.cpp` - Added FP$ parser, modified FP parser to emit signal
+- `src/ui/rightsidepanel.h` - Added 14 secondary signals, eventFilter override
+- `src/ui/rightsidepanel.cpp` - Installed event filters, implemented right-click handling
+- `src/mainwindow.cpp` - Wired all right side panel button signals to sendCAT
+
+**Open Items:**
+- REV button needs press/release pattern (SW160 down, SW161 up) - TBD
+
+---
+
 ## December 31, 2025
 
 ### Feature: PanadapterWidget OpenGL Migration

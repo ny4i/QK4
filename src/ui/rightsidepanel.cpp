@@ -1,5 +1,7 @@
 #include "rightsidepanel.h"
+#include <QEvent>
 #include <QGridLayout>
+#include <QMouseEvent>
 
 // K4 Color scheme (matching left panel)
 namespace {
@@ -65,6 +67,18 @@ void RightSidePanel::setupUi() {
     connect(m_spotBtn, &QPushButton::clicked, this, &RightSidePanel::spotClicked);
     connect(m_modeBtn, &QPushButton::clicked, this, &RightSidePanel::modeClicked);
 
+    // Install event filters for right-click handling on main 5x2 grid
+    m_preBtn->installEventFilter(this);
+    m_nbBtn->installEventFilter(this);
+    m_nrBtn->installEventFilter(this);
+    m_ntchBtn->installEventFilter(this);
+    m_filBtn->installEventFilter(this);
+    m_abBtn->installEventFilter(this);
+    // m_revBtn - TBD (needs special press/release handling)
+    m_atobBtn->installEventFilter(this);
+    m_spotBtn->installEventFilter(this);
+    m_modeBtn->installEventFilter(this);
+
     // Add spacing between main grid and PF grid
     m_layout->addSpacing(16);
 
@@ -89,6 +103,12 @@ void RightSidePanel::setupUi() {
     connect(m_clrBtn, &QPushButton::clicked, this, &RightSidePanel::clrClicked);
     connect(m_ritBtn, &QPushButton::clicked, this, &RightSidePanel::ritClicked);
     connect(m_xitBtn, &QPushButton::clicked, this, &RightSidePanel::xitClicked);
+
+    // Install event filters for right-click handling on PF row
+    m_bsetBtn->installEventFilter(this);
+    m_clrBtn->installEventFilter(this);
+    m_ritBtn->installEventFilter(this);
+    m_xitBtn->installEventFilter(this);
 
     // Add spacing between PF grid and bottom grid
     m_layout->addSpacing(32);
@@ -166,4 +186,56 @@ QWidget *RightSidePanel::createFunctionButton(const QString &mainText, const QSt
     layout->addWidget(subLabel);
 
     return container;
+}
+
+bool RightSidePanel::eventFilter(QObject *watched, QEvent *event) {
+    if (event->type() == QEvent::MouseButtonPress) {
+        auto *mouseEvent = static_cast<QMouseEvent *>(event);
+        if (mouseEvent->button() == Qt::RightButton) {
+            // Main 5x2 grid right-click signals
+            if (watched == m_preBtn) {
+                emit attnClicked();
+                return true;
+            } else if (watched == m_nbBtn) {
+                emit levelClicked();
+                return true;
+            } else if (watched == m_nrBtn) {
+                emit adjClicked();
+                return true;
+            } else if (watched == m_ntchBtn) {
+                emit manualClicked();
+                return true;
+            } else if (watched == m_filBtn) {
+                emit apfClicked();
+                return true;
+            } else if (watched == m_abBtn) {
+                emit splitClicked();
+                return true;
+            } else if (watched == m_atobBtn) {
+                emit btoaClicked();
+                return true;
+            } else if (watched == m_spotBtn) {
+                emit autoClicked();
+                return true;
+            } else if (watched == m_modeBtn) {
+                emit altClicked();
+                return true;
+            }
+            // PF row right-click signals
+            else if (watched == m_bsetBtn) {
+                emit pf1Clicked();
+                return true;
+            } else if (watched == m_clrBtn) {
+                emit pf2Clicked();
+                return true;
+            } else if (watched == m_ritBtn) {
+                emit pf3Clicked();
+                return true;
+            } else if (watched == m_xitBtn) {
+                emit pf4Clicked();
+                return true;
+            }
+        }
+    }
+    return QWidget::eventFilter(watched, event);
 }

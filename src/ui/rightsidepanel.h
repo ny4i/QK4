@@ -42,7 +42,7 @@ public:
     QVBoxLayout *contentLayout() { return m_layout; }
 
 signals:
-    // Button click signals (main function)
+    // Button click signals (main function - left click)
     void preClicked();
     void nbClicked();
     void nrClicked();
@@ -54,17 +54,38 @@ signals:
     void spotClicked();
     void modeClicked();
 
-    // New button signals (PF row)
+    // Secondary signals (right-click on main 5x2 grid)
+    void attnClicked();   // PRE right-click
+    void levelClicked();  // NB right-click
+    void adjClicked();    // NR right-click
+    void manualClicked(); // NTCH right-click
+    void apfClicked();    // FIL right-click
+    void splitClicked();  // A/B right-click
+    // REV right-click - TBD
+    void btoaClicked();   // A→B right-click
+    void autoClicked();   // SPOT right-click
+    void altClicked();    // MODE right-click
+
+    // PF row signals (left click)
     void bsetClicked();
     void clrClicked();
     void ritClicked();
     void xitClicked();
 
-    // New button signals (bottom row)
+    // PF row secondary signals (right-click)
+    void pf1Clicked(); // B SET right-click
+    void pf2Clicked(); // CLR right-click
+    void pf3Clicked(); // RIT right-click
+    void pf4Clicked(); // XIT right-click
+
+    // Bottom row signals (left click)
     void freqEntClicked();
     void rateClicked();
     void lockAClicked();
     void subClicked();
+
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
     void setupUi();

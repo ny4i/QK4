@@ -33,6 +33,7 @@ public:
     int filterBandwidth() const { return m_filterBandwidth; }
     int filterBandwidthB() const { return m_filterBandwidthB; }
     int filterPosition() const { return m_filterPosition; }
+    int filterPositionB() const { return m_filterPositionB; }
     int ifShift() const { return m_ifShift; }
     int shiftHz() const { return m_ifShift * 10; } // Convert raw IS value to Hz (IS0050 = 500 Hz)
     int cwPitch() const { return m_cwPitch; }
@@ -125,6 +126,15 @@ public:
     bool voxVoice() const { return m_voxVoice; }
     bool voxData() const { return m_voxData; }
     bool voxEnabled() const { return m_voxCW || m_voxVoice || m_voxData; }
+
+    // QSK (full break-in)
+    bool qskEnabled() const { return m_qskEnabled; }
+
+    // TEST mode (TX test)
+    bool testMode() const { return m_testMode; }
+
+    // ATU mode (0=not installed, 1=bypass, 2=auto)
+    int atuMode() const { return m_atuMode; }
     // Returns VOX state for current operating mode
     bool voxForCurrentMode() const {
         switch (m_mode) {
@@ -222,6 +232,8 @@ signals:
     void modeBChanged(Mode mode);
     void filterBandwidthChanged(int bw);
     void filterBandwidthBChanged(int bw);
+    void filterPositionChanged(int position);   // Filter position VFO A (1-3)
+    void filterPositionBChanged(int position);  // Filter position VFO B (1-3)
     void ifShiftChanged(int shiftHz);
     void cwPitchChanged(int pitchHz);
     void sMeterChanged(double value);
@@ -251,6 +263,9 @@ signals:
     void rfGainBChanged(int gain);             // RF gain Sub RX
     void squelchBChanged(int level);           // Squelch Sub RX
     void voxChanged(bool enabled);             // VOX state (any mode)
+    void qskEnabledChanged(bool enabled);      // QSK (full break-in) state
+    void testModeChanged(bool enabled);        // TX test mode state
+    void atuModeChanged(int mode);             // ATU mode (1=bypass, 2=auto)
     void notchChanged();                       // Manual notch state/pitch changed
     void miniPanAEnabledChanged(bool enabled); // Mini-Pan A state (#MP command)
     void miniPanBEnabledChanged(bool enabled); // Mini-Pan B state (#MP$ command)
@@ -286,6 +301,7 @@ private:
     int m_filterBandwidth = 2400;
     int m_filterBandwidthB = 2400;
     int m_filterPosition = 2;
+    int m_filterPositionB = 2;
     int m_ifShift = -1; // IF shift position (0-99, 50=centered) - init to -1 to ensure first emit
     int m_cwPitch = -1; // Init to -1 to ensure first emit
 
@@ -366,6 +382,12 @@ private:
     bool m_voxCW = false;
     bool m_voxVoice = false;
     bool m_voxData = false;
+
+    // QSK (full break-in) - extracted from SD command x flag
+    bool m_qskEnabled = false;
+
+    // TEST mode (TX test)
+    bool m_testMode = false;
 
     // QSK/VOX Delay per mode (in 10ms increments)
     int m_qskDelayCW = -1;

@@ -7,6 +7,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- TX function buttons on left panel now send CAT commands (left-click: primary, right-click: secondary):
+  - TUNE (SW16) / TUNE LP (SW131)
+  - XMIT (SW30) / TEST (SW132)
+  - ATU (SW158) / ATU TUNE (SW40)
+  - VOX (SW50) / QSK (SW134)
+  - ANT (SW60) / RX ANT (SW70) / SUB ANT (SW157)
+- QSK indicator next to VOX (grey when off, white when enabled)
+- TEST indicator in center column (red, visible only when test mode active)
+- ATU indicator below RIT/XIT (orange, visible only when ATU in AUTO mode)
+- RadioState: TEST mode (TS), QSK flag (SD), ATU mode (AT) parsing and signals
+- Right side panel buttons now send CAT commands (left-click: primary, right-click: secondary):
+  - PRE (SW61) / ATTN (SW141), NB (SW32) / LEVEL (SW142), NR (SW62) / ADJ (SW143)
+  - NTCH (SW31) / MANUAL (SW140), FIL (SW33) / APF (SW144), A/B (SW41) / SPLIT (SW145)
+  - A→B (SW72) / B→A (SW147), SPOT (SW42) / AUTO (SW146), MODE (SW43) / ALT (SW148)
+  - B SET (SW44) / PF1 (SW153), CLR (SW64) / PF2 (SW154), RIT (SW54) / PF3 (SW155), XIT (SW74) / PF4 (SW156)
+- RadioState: Filter position tracking for VFO A (FP) and VFO B (FP$) with signals
 - GPU-accelerated spectrum and waterfall display via OpenGL (main panadapter and mini-pans)
 - Ref Level A/B support: A/B toggle selects which VFO's ref level value is displayed
 - Ref Level +/- buttons target correct VFO based on A/B toggle selection

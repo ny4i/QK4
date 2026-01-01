@@ -166,6 +166,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_radioState, &RadioState::antennaChanged, this, &MainWindow::onAntennaChanged);
     connect(m_radioState, &RadioState::antennaNameChanged, this, &MainWindow::onAntennaNameChanged);
     connect(m_radioState, &RadioState::voxChanged, this, &MainWindow::onVoxChanged);
+    connect(m_radioState, &RadioState::qskEnabledChanged, this, &MainWindow::onQskEnabledChanged);
+    connect(m_radioState, &RadioState::testModeChanged, this, &MainWindow::onTestModeChanged);
+    connect(m_radioState, &RadioState::atuModeChanged, this, &MainWindow::onAtuModeChanged);
     connect(m_radioState, &RadioState::ritXitChanged, this, &MainWindow::onRitXitChanged);
     connect(m_radioState, &RadioState::messageBankChanged, this, &MainWindow::onMessageBankChanged);
 
@@ -472,6 +475,130 @@ void MainWindow::setupUi() {
         RadioSettings::instance()->setVolume(value); // Persist setting
     });
 
+    // Connect TX function button signals to CAT commands
+    connect(m_sideControlPanel, &SideControlPanel::tuneClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW16;");
+    });
+    connect(m_sideControlPanel, &SideControlPanel::tuneLpClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW131;");
+    });
+    connect(m_sideControlPanel, &SideControlPanel::xmitClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW30;");
+    });
+    connect(m_sideControlPanel, &SideControlPanel::testClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW132;");
+    });
+    connect(m_sideControlPanel, &SideControlPanel::atuClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW158;");
+    });
+    connect(m_sideControlPanel, &SideControlPanel::atuTuneClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW40;");
+    });
+    connect(m_sideControlPanel, &SideControlPanel::voxClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW50;");
+    });
+    connect(m_sideControlPanel, &SideControlPanel::qskClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW134;");
+    });
+    connect(m_sideControlPanel, &SideControlPanel::antClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW60;");
+    });
+    // remAntClicked - not yet implemented (TBD)
+    connect(m_sideControlPanel, &SideControlPanel::rxAntClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW70;");
+    });
+    connect(m_sideControlPanel, &SideControlPanel::subAntClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW157;");
+    });
+
+    // Connect right side panel button signals to CAT commands
+    // Primary (left-click) signals
+    connect(m_rightSidePanel, &RightSidePanel::preClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW61;");
+    });
+    connect(m_rightSidePanel, &RightSidePanel::nbClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW32;");
+    });
+    connect(m_rightSidePanel, &RightSidePanel::nrClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW62;");
+    });
+    connect(m_rightSidePanel, &RightSidePanel::ntchClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW31;");
+    });
+    connect(m_rightSidePanel, &RightSidePanel::filClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW33;");
+    });
+    connect(m_rightSidePanel, &RightSidePanel::abClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW41;");
+    });
+    // revClicked - TBD (needs press/release pattern)
+    connect(m_rightSidePanel, &RightSidePanel::atobClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW72;");
+    });
+    connect(m_rightSidePanel, &RightSidePanel::spotClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW42;");
+    });
+    connect(m_rightSidePanel, &RightSidePanel::modeClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW43;");
+    });
+
+    // Secondary (right-click) signals
+    connect(m_rightSidePanel, &RightSidePanel::attnClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW141;");
+    });
+    connect(m_rightSidePanel, &RightSidePanel::levelClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW142;");
+    });
+    connect(m_rightSidePanel, &RightSidePanel::adjClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW143;");
+    });
+    connect(m_rightSidePanel, &RightSidePanel::manualClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW140;");
+    });
+    connect(m_rightSidePanel, &RightSidePanel::apfClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW144;");
+    });
+    connect(m_rightSidePanel, &RightSidePanel::splitClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW145;");
+    });
+    connect(m_rightSidePanel, &RightSidePanel::btoaClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW147;");
+    });
+    connect(m_rightSidePanel, &RightSidePanel::autoClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW146;");
+    });
+    connect(m_rightSidePanel, &RightSidePanel::altClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW148;");
+    });
+
+    // PF row primary (left-click) signals
+    connect(m_rightSidePanel, &RightSidePanel::bsetClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW44;");
+    });
+    connect(m_rightSidePanel, &RightSidePanel::clrClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW64;");
+    });
+    connect(m_rightSidePanel, &RightSidePanel::ritClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW54;");
+    });
+    connect(m_rightSidePanel, &RightSidePanel::xitClicked, this, [this]() {
+        m_tcpClient->sendCAT("SW74;");
+    });
+
+    // PF row secondary (right-click) signals
+    connect(m_rightSidePanel, &RightSidePanel::pf1Clicked, this, [this]() {
+        m_tcpClient->sendCAT("SW153;");
+    });
+    connect(m_rightSidePanel, &RightSidePanel::pf2Clicked, this, [this]() {
+        m_tcpClient->sendCAT("SW154;");
+    });
+    connect(m_rightSidePanel, &RightSidePanel::pf3Clicked, this, [this]() {
+        m_tcpClient->sendCAT("SW155;");
+    });
+    connect(m_rightSidePanel, &RightSidePanel::pf4Clicked, this, [this]() {
+        m_tcpClient->sendCAT("SW156;");
+    });
+
     // Connect bottom menu bar signals
     connect(m_bottomMenuBar, &BottomMenuBar::menuClicked, this, &MainWindow::showMenuOverlay);
     connect(m_bottomMenuBar, &BottomMenuBar::fnClicked, this, []() {
@@ -616,26 +743,46 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     txRow->addStretch();   // Push center elements away from A
     txRow->addSpacing(15); // Extra spacing for filter UI room
 
+    // Center TX area container (TEST indicator above TX/triangles)
+    auto *txCenterContainer = new QWidget(centerWidget);
+    auto *txCenterVLayout = new QVBoxLayout(txCenterContainer);
+    txCenterVLayout->setContentsMargins(0, 0, 0, 0);
+    txCenterVLayout->setSpacing(0);
+
+    // TEST indicator - large red, hidden by default
+    m_testLabel = new QLabel("TEST", txCenterContainer);
+    m_testLabel->setAlignment(Qt::AlignCenter);
+    m_testLabel->setStyleSheet("color: #FF0000; font-size: 14px; font-weight: bold;");
+    m_testLabel->setVisible(false); // Hidden until test mode is enabled
+    txCenterVLayout->addWidget(m_testLabel);
+
+    // TX row (triangles + TX label)
+    auto *txIndicatorRow = new QHBoxLayout();
+    txIndicatorRow->setSpacing(0);
+
     // Left triangle space - visible when split is OFF (pointing at A)
     // Uses fixed size container to maintain space even when hidden
-    m_txTriangle = new QLabel("◀", centerWidget);
+    m_txTriangle = new QLabel("◀", txCenterContainer);
     m_txTriangle->setFixedSize(24, 24);
     m_txTriangle->setAlignment(Qt::AlignCenter);
     m_txTriangle->setStyleSheet(QString("color: %1; font-size: 18px;").arg(K4Colors::VfoAAmber));
-    txRow->addWidget(m_txTriangle);
+    txIndicatorRow->addWidget(m_txTriangle);
 
     // TX indicator in orange
-    m_txIndicator = new QLabel("TX", centerWidget);
+    m_txIndicator = new QLabel("TX", txCenterContainer);
     m_txIndicator->setStyleSheet(QString("color: %1; font-size: 18px; font-weight: bold;").arg(K4Colors::VfoAAmber));
-    txRow->addWidget(m_txIndicator);
+    txIndicatorRow->addWidget(m_txIndicator);
 
     // Right triangle space - visible when split is ON (pointing at B)
     // Uses fixed size container to maintain space even when hidden
-    m_txTriangleB = new QLabel("", centerWidget); // Empty by default
+    m_txTriangleB = new QLabel("", txCenterContainer); // Empty by default
     m_txTriangleB->setFixedSize(24, 24);
     m_txTriangleB->setAlignment(Qt::AlignCenter);
     m_txTriangleB->setStyleSheet(QString("color: %1; font-size: 18px;").arg(K4Colors::VfoAAmber));
-    txRow->addWidget(m_txTriangleB);
+    txIndicatorRow->addWidget(m_txTriangleB);
+
+    txCenterVLayout->addLayout(txIndicatorRow);
+    txRow->addWidget(txCenterContainer);
     txRow->addSpacing(15); // Extra spacing for filter UI room
     txRow->addStretch();   // Push center elements away from B
 
@@ -716,6 +863,13 @@ void MainWindow::setupVfoSection(QWidget *parent) {
 
     centerLayout->addWidget(m_ritXitBox, 0, Qt::AlignHCenter);
 
+    // ATU indicator (orange, visible when AT=2/AUTO)
+    m_atuLabel = new QLabel("ATU", centerWidget);
+    m_atuLabel->setAlignment(Qt::AlignCenter);
+    m_atuLabel->setStyleSheet(QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Colors::VfoAAmber));
+    m_atuLabel->setVisible(false);
+    centerLayout->addWidget(m_atuLabel, 0, Qt::AlignHCenter);
+
     centerLayout->addStretch();
     layout->addWidget(centerWidget);
 
@@ -763,7 +917,15 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     m_voxLabel->setStyleSheet("color: #999999; font-size: 11px; font-weight: bold;");
     antennaRow->addWidget(m_voxLabel);
 
-    antennaRow->addSpacing(40); // Spacing between VOX and TX antenna
+    antennaRow->addSpacing(8); // Small gap between VOX and QSK
+
+    // QSK indicator - white when on, grey when off
+    m_qskLabel = new QLabel("QSK", parent);
+    m_qskLabel->setAlignment(Qt::AlignCenter);
+    m_qskLabel->setStyleSheet("color: #999999; font-size: 11px; font-weight: bold;");
+    antennaRow->addWidget(m_qskLabel);
+
+    antennaRow->addSpacing(32); // Spacing between QSK and TX antenna
 
     // TX Antenna - orange color, centered
     m_txAntennaLabel = new QLabel("1:ANT1", parent);
@@ -1307,6 +1469,25 @@ void MainWindow::onVoxChanged(bool enabled) {
     } else {
         m_voxLabel->setStyleSheet("color: #999999; font-size: 11px; font-weight: bold;");
     }
+}
+
+void MainWindow::onQskEnabledChanged(bool enabled) {
+    // QSK indicator: white when enabled, grey when disabled
+    if (enabled) {
+        m_qskLabel->setStyleSheet("color: #FFFFFF; font-size: 11px; font-weight: bold;");
+    } else {
+        m_qskLabel->setStyleSheet("color: #999999; font-size: 11px; font-weight: bold;");
+    }
+}
+
+void MainWindow::onTestModeChanged(bool enabled) {
+    // TEST indicator: visible in red when test mode is on
+    m_testLabel->setVisible(enabled);
+}
+
+void MainWindow::onAtuModeChanged(int mode) {
+    // ATU indicator: visible in orange when ATU is in AUTO mode (2)
+    m_atuLabel->setVisible(mode == 2);
 }
 
 void MainWindow::onRitXitChanged(bool ritEnabled, bool xitEnabled, int offset) {

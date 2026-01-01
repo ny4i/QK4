@@ -67,6 +67,9 @@ private slots:
     void onAntennaChanged(int txAnt, int rxAntMain, int rxAntSub);
     void onAntennaNameChanged(int index, const QString &name);
     void onVoxChanged(bool enabled);
+    void onQskEnabledChanged(bool enabled);
+    void onTestModeChanged(bool enabled);
+    void onAtuModeChanged(int mode);
     void onRitXitChanged(bool ritEnabled, bool xitEnabled, int offset);
     void onMessageBankChanged(int bank);
     void onProcessingChanged();
@@ -149,7 +152,10 @@ private:
     QLabel *m_ritLabel;
     QLabel *m_xitLabel;
     QLabel *m_ritXitValueLabel;
+    QLabel *m_atuLabel;
     QLabel *m_voxLabel;
+    QLabel *m_qskLabel;
+    QLabel *m_testLabel;
     QLabel *m_txAntennaLabel;
 
     // Spectrum/Waterfall displays

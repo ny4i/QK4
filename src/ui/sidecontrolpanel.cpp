@@ -5,6 +5,8 @@
 #include <QHBoxLayout>
 #include <QGridLayout>
 #include <QSpacerItem>
+#include <QEvent>
+#include <QMouseEvent>
 
 SideControlPanel::SideControlPanel(QWidget *parent) : QWidget(parent) {
     setupUi();
@@ -36,6 +38,23 @@ void SideControlPanel::setupUi() {
     txGrid->addWidget(createTxFunctionButton("RX ANT", "SUB ANT", m_rxAntBtn), 2, 1);
 
     layout->addLayout(txGrid);
+
+    // ===== Connect TX function button signals and install event filters =====
+    // Left-click signals
+    connect(m_tuneBtn, &QPushButton::clicked, this, &SideControlPanel::tuneClicked);
+    connect(m_xmitBtn, &QPushButton::clicked, this, &SideControlPanel::xmitClicked);
+    connect(m_atuTuneBtn, &QPushButton::clicked, this, &SideControlPanel::atuClicked);
+    connect(m_voxBtn, &QPushButton::clicked, this, &SideControlPanel::voxClicked);
+    connect(m_antBtn, &QPushButton::clicked, this, &SideControlPanel::antClicked);
+    connect(m_rxAntBtn, &QPushButton::clicked, this, &SideControlPanel::rxAntClicked);
+
+    // Install event filters for right-click handling
+    m_tuneBtn->installEventFilter(this);
+    m_xmitBtn->installEventFilter(this);
+    m_atuTuneBtn->installEventFilter(this);
+    m_voxBtn->installEventFilter(this);
+    m_antBtn->installEventFilter(this);
+    m_rxAntBtn->installEventFilter(this);
 
     // ===== Spacing after TX buttons =====
     layout->addSpacing(16);
@@ -539,4 +558,33 @@ QWidget *SideControlPanel::createTxFunctionButton(const QString &mainText, const
 
 int SideControlPanel::volume() const {
     return m_volumeSlider ? m_volumeSlider->value() : 100;
+}
+
+bool SideControlPanel::eventFilter(QObject *watched, QEvent *event) {
+    // Handle right-click on TX function buttons
+    if (event->type() == QEvent::MouseButtonPress) {
+        auto *mouseEvent = static_cast<QMouseEvent *>(event);
+        if (mouseEvent->button() == Qt::RightButton) {
+            if (watched == m_tuneBtn) {
+                emit tuneLpClicked();
+                return true;
+            } else if (watched == m_xmitBtn) {
+                emit testClicked();
+                return true;
+            } else if (watched == m_atuTuneBtn) {
+                emit atuTuneClicked();
+                return true;
+            } else if (watched == m_voxBtn) {
+                emit qskClicked();
+                return true;
+            } else if (watched == m_antBtn) {
+                emit remAntClicked();
+                return true;
+            } else if (watched == m_rxAntBtn) {
+                emit subAntClicked();
+                return true;
+            }
+        }
+    }
+    return QWidget::eventFilter(watched, event);
 }

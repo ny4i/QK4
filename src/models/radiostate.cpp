@@ -138,14 +138,26 @@ void RadioState::parseCATCommand(const QString &command) {
             emit keyerSpeedChanged(m_keyerSpeed);
         }
     }
-    // QSK/VOX Delay (SD) - SD0Mxxx where M=mode (C/V/D), xxx=delay in 10ms
+    // QSK/VOX Delay (SD) - SDxMzzz where x=QSK flag (0/1), M=mode (C/V/D), zzz=delay in 10ms
     // RDY dump provides: SD0C005;SD0V025;SD0D005; (all three modes)
     // Query response: SDxyzzz where x=QSK flag, y=mode code, zzz=delay
+    // x=1 means full QSK (delay=0), x=0 means use specified delay
     else if (cmd.startsWith("SD") && cmd.length() >= 7) {
+        // Extract QSK flag from position 2 (only for CW mode - QSK is CW-specific)
+        QChar qskFlag = cmd.at(2);
         QChar modeChar = cmd.at(3);
         bool ok;
         int delay = cmd.mid(4, 3).toInt(&ok);
         if (ok) {
+            // Update QSK enabled state (only meaningful for CW mode)
+            if (modeChar == 'C') {
+                bool qskOn = (qskFlag == '1');
+                if (qskOn != m_qskEnabled) {
+                    m_qskEnabled = qskOn;
+                    emit qskEnabledChanged(m_qskEnabled);
+                }
+            }
+
             bool isCurrentMode = false;
             if (modeChar == 'C') {
                 if (m_qskDelayCW != delay) {
@@ -401,12 +413,22 @@ void RadioState::parseCATCommand(const QString &command) {
             emit processingChanged();
         }
     }
-    // Filter Position (FP)
+    // Filter Position Sub RX (FP$) - must check before FP
+    else if (cmd.startsWith("FP$") && cmd.length() > 3) {
+        bool ok;
+        int fp = cmd.mid(3).toInt(&ok);
+        if (ok && fp >= 1 && fp <= 3 && fp != m_filterPositionB) {
+            m_filterPositionB = fp;
+            emit filterPositionBChanged(m_filterPositionB);
+        }
+    }
+    // Filter Position Main RX (FP)
     else if (cmd.startsWith("FP") && cmd.length() > 2) {
         bool ok;
         int fp = cmd.mid(2).toInt(&ok);
-        if (ok && fp >= 1 && fp <= 3) {
+        if (ok && fp >= 1 && fp <= 3 && fp != m_filterPosition) {
             m_filterPosition = fp;
+            emit filterPositionChanged(m_filterPosition);
         }
     }
     // Tuning Step (VT)
@@ -499,12 +521,21 @@ void RadioState::parseCATCommand(const QString &command) {
             emit antennaChanged(m_selectedAntenna, m_receiveAntenna, m_receiveAntennaSub);
         }
     }
-    // ATU Mode (AT)
+    // ATU Mode (AT) - AT0=not installed, AT1=bypass, AT2=auto
     else if (cmd.startsWith("AT") && cmd.length() >= 3) {
         bool ok;
         int at = cmd.mid(2).toInt(&ok);
-        if (ok && at >= 0 && at <= 2) {
+        if (ok && at >= 0 && at <= 2 && at != m_atuMode) {
             m_atuMode = at;
+            emit atuModeChanged(m_atuMode);
+        }
+    }
+    // TX Test Mode (TS) - TS0=off, TS1=on
+    else if (cmd.startsWith("TS") && cmd.length() >= 3) {
+        bool enabled = (cmd.mid(2, 1) == "1");
+        if (enabled != m_testMode) {
+            m_testMode = enabled;
+            emit testModeChanged(m_testMode);
         }
     }
     // Radio ID (ID)
