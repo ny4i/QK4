@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - B SET (SW44) / PF1 (SW153), CLR (SW64) / PF2 (SW154), RIT (SW54) / PF3 (SW155), XIT (SW74) / PF4 (SW156)
 - RadioState: Filter position tracking for VFO A (FP) and VFO B (FP$) with signals
 - Filter position indicators (FIL1/FIL2/FIL3) below A/B VFO squares, aligned with RIT/XIT display
+- Feature menu bar for ATTN, NB LEVEL, NR ADJUST, MANUAL NOTCH with toggle behavior and custom styling
 - GPU-accelerated spectrum and waterfall display via OpenGL (main panadapter and mini-pans)
 - Ref Level A/B support: A/B toggle selects which VFO's ref level value is displayed
 - Ref Level +/- buttons target correct VFO based on A/B toggle selection

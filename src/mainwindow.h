@@ -24,6 +24,7 @@ class MenuModel;
 class MenuOverlayWidget;
 class BandPopupWidget;
 class DisplayPopupWidget;
+class FeatureMenuBar;
 class KpodDevice;
 class KPA1500Client;
 
@@ -188,6 +189,7 @@ private:
     MenuOverlayWidget *m_menuOverlay;
     BandPopupWidget *m_bandPopup;
     DisplayPopupWidget *m_displayPopup;
+    FeatureMenuBar *m_featureMenuBar;
 
     RadioEntry m_currentRadio;
     int m_currentBandNum = -1; // Current band number for VFO A (BN command)

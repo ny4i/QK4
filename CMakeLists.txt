@@ -58,6 +58,7 @@ set(SOURCES
     src/ui/displaypopupwidget.cpp
     src/ui/optionsdialog.cpp
     src/ui/rightsidepanel.cpp
+    src/ui/featuremenubar.cpp
     src/hardware/kpoddevice.cpp
 )
 
@@ -85,6 +86,7 @@ set(HEADERS
     src/ui/displaypopupwidget.h
     src/ui/optionsdialog.h
     src/ui/rightsidepanel.h
+    src/ui/featuremenubar.h
     src/hardware/kpoddevice.h
 )
 

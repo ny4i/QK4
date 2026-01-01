@@ -2,6 +2,104 @@
 
 ## January 1, 2026
 
+### Feature: Feature Menu Bar Widget (Phase 1 - UI Complete)
+
+Added a reusable menu bar widget that appears above the 7 bottom buttons when alternate actions are triggered on PRE, NB, NR, NTCH buttons.
+
+**Menu Configurations:**
+
+| Trigger | Signal | Menu Title | Has Extra Button | Value Unit |
+|---------|--------|------------|------------------|------------|
+| ATTN (right-click PRE) | `attnClicked()` | ATTENUATOR | No | dB |
+| LEVEL (right-click NB) | `levelClicked()` | NB LEVEL | Yes (FILTER NONE) | (none) |
+| ADJ (right-click NR) | `adjClicked()` | NR ADJUST | No | (none) |
+| MANUAL (right-click NTCH) | `manualClicked()` | MANUAL NOTCH | No | Hz |
+
+**Menu Layout:**
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│  [TITLE] │ [OFF] │ [EXTRA?] │ [VALUE] │ [-] │ [+] │ [⟳] │ [A] │ [←] │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+**Elements:**
+1. **Title** - Feature name in framed box (gradient background, border)
+2. **OFF/ON** - Toggle button (shows current state)
+3. **Extra** - Optional button (only NB LEVEL has "FILTER NONE")
+4. **Value** - Current setting value with unit
+5. **-/+** - Decrement/increment buttons
+6. **⟳** - Encoder hint icon (indicates VFO A encoder can adjust value)
+7. **[A]** - Encoder hint label (static indicator, not a button)
+8. **←** - Back/close button
+
+**Visual Styling:**
+- Custom `paintEvent()` for outer border (rounded rect with gradient)
+- Vertical delimiter lines between widget groups
+- Border wraps tightly around content (not full window width)
+- Centered over bottom menu bar (105px left margin to align with side panel)
+
+**Toggle Behavior:**
+- Right-click same button again → hides menu
+- Right-click different button → switches to that menu
+- Close button (←) → hides menu
+
+**Files Created/Modified:**
+- `src/ui/featuremenubar.h` - Widget header with Feature enum, paintEvent override
+- `src/ui/featuremenubar.cpp` - Full implementation with custom painting
+- `src/mainwindow.cpp` - Toggle logic for all 4 feature menus
+
+---
+
+### TBD: Phase 2 - CAT Command Wiring
+
+**Required CAT commands (need documentation from user):**
+
+| Feature | Action | CAT Command | State Parsing |
+|---------|--------|-------------|---------------|
+| **ATTENUATOR** | Toggle ON/OFF | ? | Current on/off state |
+| | Increment | ? | Current dB value |
+| | Decrement | ? | Range (min/max dB) |
+| **NB LEVEL** | Toggle NB ON/OFF | ? (have NB$=0-2 for mode) | Current on/off state |
+| | Increment level | ? | Current level (0-14, have #NBL$) |
+| | Decrement level | ? | |
+| | Filter button | ? | Filter state |
+| **NR ADJUST** | Toggle NR ON/OFF | ? | Current on/off state |
+| | Increment level | ? | Current level |
+| | Decrement level | ? | Range |
+| **MANUAL NOTCH** | Toggle ON/OFF | ? | Current on/off state |
+| | Increment freq | ? | Current Hz value |
+| | Decrement freq | ? | Range (Hz) |
+
+**Existing RadioState parsing (may be relevant):**
+- `m_ddcNbLevel` - #NBL$: 0-14 (NB level for DDC)
+- `m_nb` / `m_nbB` - NB state (0=off, 1=on, 2=auto?)
+- `m_nr` / `m_nrB` - NR state
+- `m_notchAuto` / `m_notchManual` - Notch states
+
+**VFO B Targeting (Phase 2):**
+When B SET button is engaged, CAT commands should target VFO B (Sub RX) using `$` suffix variants.
+
+**Files Modified:**
+- `CMakeLists.txt` - Added featuremenubar source files
+- `src/mainwindow.h` - Added forward declaration and `m_featureMenuBar` member
+- `src/mainwindow.cpp` - Created widget, added to layout above BottomMenuBar, wired signals
+
+**Phase 1 Scope (Completed):**
+- ✅ Create FeatureMenuBar widget with all UI elements
+- ✅ Show correct title/layout for each feature
+- ✅ Show/hide extra button based on feature (NB LEVEL only)
+- ✅ Wire right-click signals to show menu
+- ✅ Wire close button to hide menu
+- ✅ Static encoder hints (⟳ and [A] labels)
+
+**Phase 2 (TODO):**
+- ⏸️ CAT commands for toggle/increment/decrement
+- ⏸️ RadioState integration for state display
+- ⏸️ B SET state affects VFO targeting ($ suffix commands)
+
+---
+
 ### Feature: Filter Position Indicators (FIL1/FIL2/FIL3)
 
 Added filter position indicators below the A/B VFO squares, horizontally aligned with the RIT/XIT display.

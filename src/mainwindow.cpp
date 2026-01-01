@@ -3,6 +3,7 @@
 #include "ui/sidecontrolpanel.h"
 #include "ui/rightsidepanel.h"
 #include "ui/bottommenubar.h"
+#include "ui/featuremenubar.h"
 #include "ui/menuoverlay.h"
 #include "ui/bandpopupwidget.h"
 #include "ui/displaypopupwidget.h"
@@ -463,6 +464,11 @@ void MainWindow::setupUi() {
 
     mainLayout->addWidget(middleWidget, 1);
 
+    // Feature Menu Bar (hidden by default, shown when alternate actions triggered)
+    m_featureMenuBar = new FeatureMenuBar(centralWidget);
+    mainLayout->addWidget(m_featureMenuBar); // Uses internal margins to align with bottom menu bar
+    connect(m_featureMenuBar, &FeatureMenuBar::closeRequested, m_featureMenuBar, &FeatureMenuBar::hideMenu);
+
     // Bottom Menu Bar
     m_bottomMenuBar = new BottomMenuBar(centralWidget);
     mainLayout->addWidget(m_bottomMenuBar);
@@ -508,11 +514,23 @@ void MainWindow::setupUi() {
     connect(m_rightSidePanel, &RightSidePanel::spotClicked, this, [this]() { m_tcpClient->sendCAT("SW42;"); });
     connect(m_rightSidePanel, &RightSidePanel::modeClicked, this, [this]() { m_tcpClient->sendCAT("SW43;"); });
 
-    // Secondary (right-click) signals
-    connect(m_rightSidePanel, &RightSidePanel::attnClicked, this, [this]() { m_tcpClient->sendCAT("SW141;"); });
-    connect(m_rightSidePanel, &RightSidePanel::levelClicked, this, [this]() { m_tcpClient->sendCAT("SW142;"); });
-    connect(m_rightSidePanel, &RightSidePanel::adjClicked, this, [this]() { m_tcpClient->sendCAT("SW143;"); });
-    connect(m_rightSidePanel, &RightSidePanel::manualClicked, this, [this]() { m_tcpClient->sendCAT("SW140;"); });
+    // Secondary (right-click) signals - these show feature menus with toggle behavior
+    // If same menu is open, close it; otherwise switch to the new menu
+    auto toggleFeatureMenu = [this](FeatureMenuBar::Feature feature) {
+        if (m_featureMenuBar->isMenuVisible() && m_featureMenuBar->currentFeature() == feature) {
+            m_featureMenuBar->hideMenu();
+        } else {
+            m_featureMenuBar->showForFeature(feature);
+        }
+    };
+    connect(m_rightSidePanel, &RightSidePanel::attnClicked, this,
+            [=]() { toggleFeatureMenu(FeatureMenuBar::Attenuator); });
+    connect(m_rightSidePanel, &RightSidePanel::levelClicked, this,
+            [=]() { toggleFeatureMenu(FeatureMenuBar::NbLevel); });
+    connect(m_rightSidePanel, &RightSidePanel::adjClicked, this,
+            [=]() { toggleFeatureMenu(FeatureMenuBar::NrAdjust); });
+    connect(m_rightSidePanel, &RightSidePanel::manualClicked, this,
+            [=]() { toggleFeatureMenu(FeatureMenuBar::ManualNotch); });
     connect(m_rightSidePanel, &RightSidePanel::apfClicked, this, [this]() { m_tcpClient->sendCAT("SW144;"); });
     connect(m_rightSidePanel, &RightSidePanel::splitClicked, this, [this]() { m_tcpClient->sendCAT("SW145;"); });
     connect(m_rightSidePanel, &RightSidePanel::btoaClicked, this, [this]() { m_tcpClient->sendCAT("SW147;"); });
