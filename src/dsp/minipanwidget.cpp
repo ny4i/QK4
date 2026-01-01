@@ -152,12 +152,12 @@ void MiniPanWidget::initBuffers() {
     float tMax = static_cast<float>(WATERFALL_HISTORY - 1) / WATERFALL_HISTORY;
     float waterfallQuad[] = {
         // position (x, y), texcoord (s, t)
-        -1.0f, -1.0f, 0.0f, 0.0f,  // bottom-left
-        1.0f,  -1.0f, 1.0f, 0.0f,  // bottom-right
-        1.0f,  1.0f,  1.0f, tMax,  // top-right
-        -1.0f, -1.0f, 0.0f, 0.0f,  // bottom-left
-        1.0f,  1.0f,  1.0f, tMax,  // top-right
-        -1.0f, 1.0f,  0.0f, tMax   // top-left
+        -1.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+        1.0f,  -1.0f, 1.0f, 0.0f, // bottom-right
+        1.0f,  1.0f,  1.0f, tMax, // top-right
+        -1.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+        1.0f,  1.0f,  1.0f, tMax, // top-right
+        -1.0f, 1.0f,  0.0f, tMax  // top-left
     };
 
     m_waterfallVBO.create();
@@ -354,9 +354,8 @@ void MiniPanWidget::drawSpectrumGL(int spectrumHeight) {
     // Draw spectrum line
     m_spectrumShader->bind();
     m_spectrumShader->setUniformValue("viewportSize", QVector2D(w, spectrumHeight));
-    m_spectrumShader->setUniformValue("lineColor",
-                                      QVector4D(m_spectrumColor.redF(), m_spectrumColor.greenF(),
-                                                m_spectrumColor.blueF(), 1.0f));
+    m_spectrumShader->setUniformValue(
+        "lineColor", QVector4D(m_spectrumColor.redF(), m_spectrumColor.greenF(), m_spectrumColor.blueF(), 1.0f));
 
     int posLoc = m_spectrumShader->attributeLocation("position");
     m_spectrumShader->enableAttributeArray(posLoc);
@@ -429,8 +428,8 @@ void MiniPanWidget::drawOverlaysGL() {
                                        static_cast<float>(passbandX),
                                        static_cast<float>(h)};
         m_overlayVBO.allocate(passbandQuad.data(), passbandQuad.size() * sizeof(float));
-        m_overlayShader->setUniformValue("color", QVector4D(fillColor.redF(), fillColor.greenF(), fillColor.blueF(),
-                                                            fillColor.alphaF()));
+        m_overlayShader->setUniformValue(
+            "color", QVector4D(fillColor.redF(), fillColor.greenF(), fillColor.blueF(), fillColor.alphaF()));
         glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 
@@ -442,8 +441,8 @@ void MiniPanWidget::drawOverlaysGL() {
 
     QVector<float> markerLine = {static_cast<float>(centerX), 0, static_cast<float>(centerX), static_cast<float>(h)};
     m_overlayVBO.allocate(markerLine.data(), markerLine.size() * sizeof(float));
-    m_overlayShader->setUniformValue("color", QVector4D(markerColor.redF(), markerColor.greenF(), markerColor.blueF(),
-                                                        1.0f));
+    m_overlayShader->setUniformValue("color",
+                                     QVector4D(markerColor.redF(), markerColor.greenF(), markerColor.blueF(), 1.0f));
     glLineWidth(2.0f);
     glDrawArrays(GL_LINES, 0, 2);
 

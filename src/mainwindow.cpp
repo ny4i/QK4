@@ -213,12 +213,10 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_radioState, &RadioState::vfoBCursorChanged, m_displayPopup, &DisplayPopupWidget::setVfoBCursor);
     // VFO cursor visibility → panadapter passband indicator
     // Visible for ON (1) and AUTO (2), hidden for OFF (0) and HIDE (3)
-    connect(m_radioState, &RadioState::vfoACursorChanged, this, [this](int mode) {
-        m_panadapterA->setCursorVisible(mode == 1 || mode == 2);
-    });
-    connect(m_radioState, &RadioState::vfoBCursorChanged, this, [this](int mode) {
-        m_panadapterB->setCursorVisible(mode == 1 || mode == 2);
-    });
+    connect(m_radioState, &RadioState::vfoACursorChanged, this,
+            [this](int mode) { m_panadapterA->setCursorVisible(mode == 1 || mode == 2); });
+    connect(m_radioState, &RadioState::vfoBCursorChanged, this,
+            [this](int mode) { m_panadapterB->setCursorVisible(mode == 1 || mode == 2); });
     connect(m_radioState, &RadioState::autoRefLevelChanged, m_displayPopup, &DisplayPopupWidget::setAutoRefLevel);
     connect(m_radioState, &RadioState::ddcNbModeChanged, m_displayPopup, &DisplayPopupWidget::setDdcNbMode);
     connect(m_radioState, &RadioState::ddcNbLevelChanged, m_displayPopup, &DisplayPopupWidget::setDdcNbLevel);
