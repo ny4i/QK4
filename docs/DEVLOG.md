@@ -2,6 +2,98 @@
 
 ## December 31, 2025
 
+### Feature: PanadapterWidget OpenGL Migration
+
+Migrated PanadapterWidget from CPU-based QPainter to GPU-accelerated QOpenGLWidget for dramatically improved performance at high resolutions.
+
+**Problem:**
+At high resolutions (2500×1300), the app showed:
+- 114% CPU usage, 0% GPU usage (Activity Monitor)
+- Choppy/sluggish waterfall scrolling
+- Blocky/pixelated spectrum display
+- Per-frame waterfall image rebuilding (~640K float operations)
+
+**Root Cause:**
+QPainter uses macOS raster paint engine - all rendering is CPU-bound. The waterfall QImage was being rebuilt from scratch every frame.
+
+**Solution:**
+Complete OpenGL rewrite using QOpenGLWidget with GLSL shaders.
+
+**Architecture:**
+```
+GPU Memory:
+├─ Waterfall Texture (256 rows × 2048 width, GL_LUMINANCE)
+├─ Color LUT Texture (256×1, RGBA)
+└─ Spectrum VBO (line strip vertices)
+
+Per-Frame:
+├─ Upload new row → glTexSubImage2D (single row)
+├─ Update spectrum vertices
+├─ Draw waterfall quad (scrolling via texture coords)
+└─ Draw spectrum line strip
+```
+
+**Key Technical Decisions:**
+
+1. **GLSL 120 for macOS compatibility** - GLSL 330 not supported on macOS OpenGL
+   - Use `attribute`/`varying` instead of `layout`/`in`/`out`
+   - Use `sampler2D` instead of `sampler1D` for color LUT
+
+2. **GL_LUMINANCE texture format** - `GL_R8` not supported in OpenGL 2.1
+   - Single-channel texture stores normalized dB values (0-255)
+
+3. **Texture coordinate wraparound fix** - Range `[0, 1]` caused top/bottom to sample same row
+   - Changed to `[0, (N-1)/N]` = `[0, 0.996]` for 256 rows
+   - Prevents GL_REPEAT aliasing at texture boundaries
+
+4. **Device pixel ratio for HiDPI** - macOS Retina displays have DPR=2.0
+   - `width()` returns logical pixels, but OpenGL needs physical pixels
+   - All viewport and coordinate calculations multiply by `devicePixelRatioF()`
+
+**Shaders:**
+- **Waterfall shader**: Samples dB texture, looks up color in LUT texture
+- **Spectrum shader**: Transforms pixel coords to NDC, draws line strip
+- **Overlay shader**: Draws grid, passband, frequency marker, notch filter
+
+**Files Modified:**
+- `CMakeLists.txt` - Added Qt::OpenGL, Qt::OpenGLWidgets dependencies
+- `src/dsp/panadapter.h` - Changed QWidget → QOpenGLWidget, added GL members
+- `src/dsp/panadapter.cpp` - Complete rewrite with OpenGL rendering
+
+**Performance Results:**
+| Metric | Before (QPainter) | After (OpenGL) |
+|--------|-------------------|----------------|
+| CPU usage | ~114% | ~15-25% |
+| GPU usage | 0% | ~5-10% |
+| Scaling | Degrades with size | Constant |
+
+---
+
+### Feature: MiniPanWidget OpenGL Migration
+
+Migrated compact VFO-area spectrum widget to OpenGL using same pattern as PanadapterWidget.
+
+**Changes:**
+- Base class: QWidget → QOpenGLWidget, protected QOpenGLFunctions
+- Same GLSL 120 shaders as main panadapter
+- Smaller textures: 100 rows × 512 width (vs 256 × 2048)
+- Device pixel ratio support for HiDPI displays
+- Peak-hold downsampling for spectrum, average downsampling for waterfall
+
+**Features Preserved:**
+- Filter passband overlay
+- Center frequency marker
+- Notch filter marker (red line)
+- Mode-dependent bandwidth (CW=3kHz, Voice/Data=10kHz)
+- Click-to-toggle signal
+- VFO A/B color customization
+
+**Files Modified:**
+- `src/dsp/minipanwidget.h` - Changed to QOpenGLWidget, added GL members
+- `src/dsp/minipanwidget.cpp` - Complete rewrite with OpenGL rendering
+
+---
+
 ### Feature: Right Side Panel Button Expansion
 
 Added 8 new buttons to RightSidePanel below the existing 5x2 grid.

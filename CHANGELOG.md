@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- GPU-accelerated spectrum and waterfall display via OpenGL (main panadapter and mini-pans)
 - Ref Level A/B support: A/B toggle selects which VFO's ref level value is displayed
 - Ref Level +/- buttons target correct VFO based on A/B toggle selection
 - Ref Level value shows faded grey text when in auto mode (visual indication)
@@ -35,6 +36,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Bottom row: FREQ ENT/SCAN, RATE/KHZ, LOCK A/LOCK B, SUB/DIVERSITY
 
 ### Changed
+- Spectrum/waterfall rendering now uses GPU (OpenGL) instead of CPU (QPainter)
+- Dramatically improved performance at high resolutions (CPU usage reduced from ~114% to ~15-25%)
+- Smoother waterfall scrolling and spectrum updates
 - VFO A passband indicator now uses blue color (matching physical K4 display)
 - VFO B passband indicator uses green color for visual distinction
 - Frequency markers use darker shades (blue for A, green for B) for clarity

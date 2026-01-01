@@ -1,50 +1,78 @@
 #include "panadapter.h"
-#include <QPainter>
-#include <QPainterPath>
 #include <QMouseEvent>
-#include <QLinearGradient>
-#include <QRadialGradient>
+#include <QtMath>
 #include <cmath>
 
-// K4 Color scheme (matching mainwindow.cpp)
-namespace K4Colors {
-const QColor Background("#1a1a1a");
-const QColor DarkBackground("#0d0d0d");
-const QColor VfoAAmber("#FFB000");
-const QColor VfoBCyan("#00BFFF");
-const QColor TxRed("#FF0000");
-const QColor AgcGreen("#00FF00");
-const QColor InactiveGray("#666666");
-const QColor TextWhite("#FFFFFF");
-const QColor TextGray("#999999");
-const QColor GridLine("#333333");
-} // namespace K4Colors
+// Shader source code (GLSL 120 for macOS compatibility)
+static const char *waterfallVertexShader = R"(
+attribute vec2 position;
+attribute vec2 texCoord;
+varying vec2 fragTexCoord;
+uniform float scrollOffset;
+
+void main() {
+    gl_Position = vec4(position, 0.0, 1.0);
+    fragTexCoord = vec2(texCoord.x, texCoord.y + scrollOffset);
+}
+)";
+
+static const char *waterfallFragmentShader = R"(
+varying vec2 fragTexCoord;
+uniform sampler2D waterfallTex;
+uniform sampler2D colorLutTex;
+
+void main() {
+    float dbValue = texture2D(waterfallTex, fragTexCoord).r;
+    gl_FragColor = texture2D(colorLutTex, vec2(dbValue, 0.5));
+}
+)";
+
+static const char *spectrumVertexShader = R"(
+attribute vec2 position;
+uniform vec2 viewportSize;
+
+void main() {
+    vec2 ndc = (position / viewportSize) * 2.0 - 1.0;
+    ndc.y = -ndc.y;  // Flip Y for Qt coordinate system
+    gl_Position = vec4(ndc, 0.0, 1.0);
+}
+)";
+
+static const char *spectrumFragmentShader = R"(
+uniform vec4 lineColor;
+
+void main() {
+    gl_FragColor = lineColor;
+}
+)";
+
+static const char *overlayVertexShader = R"(
+attribute vec2 position;
+uniform vec2 viewportSize;
+
+void main() {
+    vec2 ndc = (position / viewportSize) * 2.0 - 1.0;
+    ndc.y = -ndc.y;
+    gl_Position = vec4(ndc, 0.0, 1.0);
+}
+)";
+
+static const char *overlayFragmentShader = R"(
+uniform vec4 color;
+
+void main() {
+    gl_FragColor = color;
+}
+)";
 
 PanadapterWidget::PanadapterWidget(QWidget *parent)
-    : QWidget(parent), m_waterfallWriteIndex(0), m_centerFreq(0), m_sampleRate(192000), m_noiseFloor(-130.0f),
-      m_tunedFreq(0), m_filterBw(2400), m_mode("USB"), m_minDb(-138.0f) // REF-28 for default REF=-110
-      ,
-      m_maxDb(-58.0f) // REF+52 for default REF=-110 (80 dB range)
-      ,
-      m_spectrumRatio(0.30f) // 30% spectrum, 70% waterfall (matching K4Mobile)
-      ,
-      m_smoothingAlpha(0.80f) // Higher = less averaging, more responsive
-      ,
-      m_spectrumColor(K4Colors::VfoAAmber), m_passbandColor(0, 128, 255), m_frequencyMarkerColor(0, 80, 200),
-      m_gridEnabled(true), m_peakHoldEnabled(true), m_refLevel(-110) // Default REF level from K4
-      ,
-      m_spanHz(10000) // Default 10 kHz span (from #SPN command)
-      ,
-      m_peakDecayTimer(new QTimer(this)), m_waterfallMarkerTimer(new QTimer(this)), m_showWaterfallMarker(false) {
+    : QOpenGLWidget(parent), m_spectrumVBO(QOpenGLBuffer::VertexBuffer), m_waterfallVBO(QOpenGLBuffer::VertexBuffer),
+      m_overlayVBO(QOpenGLBuffer::VertexBuffer) {
     setMinimumHeight(200);
     setMouseTracking(true);
 
-    initColorLUT();
-
-    // Initialize waterfall circular buffer
-    m_waterfallHistory.resize(WATERFALL_HISTORY);
-
     // Peak hold decay timer
+    m_peakDecayTimer = new QTimer(this);
     connect(m_peakDecayTimer, &QTimer::timeout, this, [this]() {
         if (!m_peakHold.isEmpty()) {
             for (int i = 0; i < m_peakHold.size(); ++i) {
@@ -56,9 +84,10 @@ PanadapterWidget::PanadapterWidget(QWidget *parent)
             update();
         }
     });
-    m_peakDecayTimer->start(50); // 20 Hz decay rate
+    m_peakDecayTimer->start(50);
 
-    // Waterfall marker timer - hides marker in waterfall after tuning stops
+    // Waterfall marker timer
+    m_waterfallMarkerTimer = new QTimer(this);
     m_waterfallMarkerTimer->setSingleShot(true);
     connect(m_waterfallMarkerTimer, &QTimer::timeout, this, [this]() {
         m_showWaterfallMarker = false;
@@ -66,63 +95,440 @@ PanadapterWidget::PanadapterWidget(QWidget *parent)
     });
 }
 
-PanadapterWidget::~PanadapterWidget() {}
+PanadapterWidget::~PanadapterWidget() {
+    makeCurrent();
+    if (m_waterfallTexture)
+        glDeleteTextures(1, &m_waterfallTexture);
+    if (m_colorLutTexture)
+        glDeleteTextures(1, &m_colorLutTexture);
+    delete m_waterfallShader;
+    delete m_spectrumShader;
+    delete m_overlayShader;
+    doneCurrent();
+}
+
+void PanadapterWidget::initializeGL() {
+    initializeOpenGLFunctions();
+
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    initColorLUT();
+    initShaders();
+    initTextures();
+    initBuffers();
+
+    m_glInitialized = true;
+}
+
+void PanadapterWidget::initShaders() {
+    // Waterfall shader
+    m_waterfallShader = new QOpenGLShaderProgram(this);
+    m_waterfallShader->addShaderFromSourceCode(QOpenGLShader::Vertex, waterfallVertexShader);
+    m_waterfallShader->addShaderFromSourceCode(QOpenGLShader::Fragment, waterfallFragmentShader);
+    m_waterfallShader->link();
+
+    // Spectrum shader
+    m_spectrumShader = new QOpenGLShaderProgram(this);
+    m_spectrumShader->addShaderFromSourceCode(QOpenGLShader::Vertex, spectrumVertexShader);
+    m_spectrumShader->addShaderFromSourceCode(QOpenGLShader::Fragment, spectrumFragmentShader);
+    m_spectrumShader->link();
+
+    // Overlay shader (grid, markers)
+    m_overlayShader = new QOpenGLShaderProgram(this);
+    m_overlayShader->addShaderFromSourceCode(QOpenGLShader::Vertex, overlayVertexShader);
+    m_overlayShader->addShaderFromSourceCode(QOpenGLShader::Fragment, overlayFragmentShader);
+    m_overlayShader->link();
+}
+
+void PanadapterWidget::initTextures() {
+    // Waterfall texture (256 rows x textureWidth, single channel for dB values)
+    glGenTextures(1, &m_waterfallTexture);
+    glBindTexture(GL_TEXTURE_2D, m_waterfallTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); // Wrap for scrolling
+
+    // Allocate texture storage (LUMINANCE for OpenGL 2.1 compatibility)
+    QVector<GLubyte> zeros(m_textureWidth * WATERFALL_HISTORY, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, m_textureWidth, WATERFALL_HISTORY, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE,
+                 zeros.data());
+
+    // Color LUT texture (256x1 2D texture for GLSL 120 compatibility)
+    glGenTextures(1, &m_colorLutTexture);
+    glBindTexture(GL_TEXTURE_2D, m_colorLutTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, m_colorLUT.data());
+}
+
+void PanadapterWidget::initBuffers() {
+    m_vao.create();
+    m_vao.bind();
+
+    // Waterfall quad vertices (full screen quad in NDC)
+    // Texture coord t ranges from 0 to (WATERFALL_HISTORY-1)/WATERFALL_HISTORY
+    // This prevents top/bottom from sampling the same row due to GL_REPEAT wrapping
+    // With scrollOffset addition: top shows newest row, bottom shows oldest
+    float tMax = static_cast<float>(WATERFALL_HISTORY - 1) / WATERFALL_HISTORY;
+    float waterfallQuad[] = {
+        // position (x, y), texcoord (s, t)
+        -1.0f, -1.0f, 0.0f, 0.0f, // bottom-left, t=0 (oldest)
+        1.0f,  -1.0f, 1.0f, 0.0f, // bottom-right
+        1.0f,  1.0f,  1.0f, tMax, // top-right, t=tMax (newest)
+        -1.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+        1.0f,  1.0f,  1.0f, tMax, // top-right
+        -1.0f, 1.0f,  0.0f, tMax  // top-left, t=tMax (newest)
+    };
+
+    m_waterfallVBO.create();
+    m_waterfallVBO.bind();
+    m_waterfallVBO.allocate(waterfallQuad, sizeof(waterfallQuad));
+
+    // Spectrum VBO - will be resized dynamically
+    m_spectrumVBO.create();
+    m_spectrumVBO.setUsagePattern(QOpenGLBuffer::DynamicDraw);
+
+    // Overlay VBO - for grid lines and markers
+    m_overlayVBO.create();
+    m_overlayVBO.setUsagePattern(QOpenGLBuffer::DynamicDraw);
+
+    m_vao.release();
+}
 
 void PanadapterWidget::initColorLUT() {
-    // Create 256-entry color LUT for waterfall
-    // 8-stage color progression matching K4Mobile:
-    // Black → Dark Blue → Royal Blue → Cyan → Green → Yellow → Red
-    m_colorLUT.resize(256);
+    // Create 256-entry RGBA color LUT for waterfall
+    // 8-stage color progression: Black → Dark Blue → Royal Blue → Cyan → Green → Yellow → Red
+    m_colorLUT.resize(256 * 4);
 
     for (int i = 0; i < 256; ++i) {
         float value = i / 255.0f;
         int r, g, b;
 
         if (value < 0.10f) {
-            // Stage 1: Black (noise floor)
             r = 0;
             g = 0;
             b = 0;
         } else if (value < 0.25f) {
-            // Stage 2: Black → Dark Blue
             float t = (value - 0.10f) / 0.15f;
             r = 0;
             g = 0;
-            b = static_cast<int>(t * 51); // 0.2 * 255
+            b = static_cast<int>(t * 51);
         } else if (value < 0.40f) {
-            // Stage 3: Dark Blue → Royal Blue
             float t = (value - 0.25f) / 0.15f;
             r = 0;
             g = 0;
-            b = static_cast<int>(51 + t * 102); // 0.2 + 0.4 * 255
+            b = static_cast<int>(51 + t * 102);
         } else if (value < 0.55f) {
-            // Stage 4: Royal Blue → Cyan
             float t = (value - 0.40f) / 0.15f;
             r = 0;
-            g = static_cast<int>(t * 128);       // 0 → 0.5
-            b = static_cast<int>(153 + t * 102); // 0.6 → 1.0
+            g = static_cast<int>(t * 128);
+            b = static_cast<int>(153 + t * 102);
         } else if (value < 0.70f) {
-            // Stage 5: Cyan → Green
             float t = (value - 0.55f) / 0.15f;
             r = 0;
-            g = static_cast<int>(128 + t * 127);    // 0.5 → 1.0
-            b = static_cast<int>(255 * (1.0f - t)); // 1.0 → 0
+            g = static_cast<int>(128 + t * 127);
+            b = static_cast<int>(255 * (1.0f - t));
         } else if (value < 0.85f) {
-            // Stage 6: Green → Yellow
             float t = (value - 0.70f) / 0.15f;
             r = static_cast<int>(t * 255);
             g = 255;
             b = 0;
         } else {
-            // Stage 7: Yellow → Red
             float t = (value - 0.85f) / 0.15f;
             r = 255;
             g = static_cast<int>(255 * (1.0f - t));
             b = 0;
         }
 
-        m_colorLUT[i] = qRgb(qBound(0, r, 255), qBound(0, g, 255), qBound(0, b, 255));
+        m_colorLUT[i * 4 + 0] = static_cast<GLubyte>(qBound(0, r, 255));
+        m_colorLUT[i * 4 + 1] = static_cast<GLubyte>(qBound(0, g, 255));
+        m_colorLUT[i * 4 + 2] = static_cast<GLubyte>(qBound(0, b, 255));
+        m_colorLUT[i * 4 + 3] = 255;
     }
+}
+
+void PanadapterWidget::resizeGL(int w, int h) {
+    glViewport(0, 0, w, h);
+}
+
+void PanadapterWidget::paintGL() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // On HiDPI/Retina displays, framebuffer size differs from logical widget size
+    // Must use device pixel ratio for correct OpenGL viewport sizing
+    qreal dpr = devicePixelRatioF();
+    int w = static_cast<int>(width() * dpr);
+    int h = static_cast<int>(height() * dpr);
+    int spectrumHeight = static_cast<int>(h * m_spectrumRatio);
+    int waterfallHeight = h - spectrumHeight;
+
+    // In OpenGL, Y=0 is at BOTTOM of framebuffer
+    // - Spectrum at top: viewport starts at waterfallHeight
+    // - Waterfall below: viewport starts at 0
+
+    // Draw spectrum (top portion of widget)
+    glViewport(0, waterfallHeight, w, spectrumHeight);
+    drawSpectrum(spectrumHeight);
+
+    // Draw waterfall (bottom portion of widget)
+    glViewport(0, 0, w, waterfallHeight);
+    drawWaterfall();
+
+    // Draw overlays (grid, markers) - full viewport
+    glViewport(0, 0, w, h);
+    drawOverlays();
+}
+
+void PanadapterWidget::drawWaterfall() {
+    if (!m_waterfallShader || m_currentSpectrum.isEmpty())
+        return;
+
+    m_waterfallShader->bind();
+
+    // Bind waterfall texture
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_waterfallTexture);
+    m_waterfallShader->setUniformValue("waterfallTex", 0);
+
+    // Bind color LUT texture (2D texture for GLSL 120 compatibility)
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, m_colorLutTexture);
+    m_waterfallShader->setUniformValue("colorLutTex", 1);
+
+    // Set scroll offset for circular buffer
+    float scrollOffset = static_cast<float>(m_waterfallWriteRow) / WATERFALL_HISTORY;
+    m_waterfallShader->setUniformValue("scrollOffset", scrollOffset);
+
+    // Draw waterfall quad
+    m_waterfallVBO.bind();
+    int posLoc = m_waterfallShader->attributeLocation("position");
+    int texLoc = m_waterfallShader->attributeLocation("texCoord");
+    m_waterfallShader->enableAttributeArray(posLoc);
+    m_waterfallShader->enableAttributeArray(texLoc);
+    m_waterfallShader->setAttributeBuffer(posLoc, GL_FLOAT, 0, 2, 4 * sizeof(float));
+    m_waterfallShader->setAttributeBuffer(texLoc, GL_FLOAT, 2 * sizeof(float), 2, 4 * sizeof(float));
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    m_waterfallShader->disableAttributeArray(posLoc);
+    m_waterfallShader->disableAttributeArray(texLoc);
+    m_waterfallShader->release();
+}
+
+void PanadapterWidget::drawSpectrum(int spectrumHeight) {
+    if (!m_spectrumShader || m_currentSpectrum.isEmpty())
+        return;
+
+    // Use DPR-scaled width to match viewport
+    qreal dpr = devicePixelRatioF();
+    int w = static_cast<int>(width() * dpr);
+
+    // Build spectrum line vertices
+    QVector<float> vertices;
+    vertices.reserve(m_currentSpectrum.size() * 2);
+
+    // Find smoothed baseline for stable display
+    float frameMinNormalized = 1.0f;
+    for (int i = 0; i < m_currentSpectrum.size(); ++i) {
+        float normalized = normalizeDb(m_currentSpectrum[i]);
+        if (normalized < frameMinNormalized) {
+            frameMinNormalized = normalized;
+        }
+    }
+
+    const float baselineAlpha = 0.05f;
+    if (m_smoothedBaseline < 0.001f) {
+        m_smoothedBaseline = frameMinNormalized;
+    } else {
+        m_smoothedBaseline = baselineAlpha * frameMinNormalized + (1.0f - baselineAlpha) * m_smoothedBaseline;
+    }
+
+    for (int i = 0; i < m_currentSpectrum.size(); ++i) {
+        float x = (static_cast<float>(i) / (m_currentSpectrum.size() - 1)) * w;
+        float normalized = normalizeDb(m_currentSpectrum[i]);
+        float adjusted = qMax(0.0f, normalized - m_smoothedBaseline);
+        float y = spectrumHeight * (1.0f - adjusted * 0.95f);
+
+        vertices.append(x);
+        vertices.append(y);
+    }
+
+    // Upload vertices
+    m_spectrumVBO.bind();
+    m_spectrumVBO.allocate(vertices.data(), vertices.size() * sizeof(float));
+
+    // Draw spectrum line
+    m_spectrumShader->bind();
+    m_spectrumShader->setUniformValue("viewportSize", QVector2D(w, spectrumHeight));
+    m_spectrumShader->setUniformValue("lineColor", QVector4D(0.2f, 1.0f, 0.2f, 1.0f)); // Lime green
+
+    int posLoc = m_spectrumShader->attributeLocation("position");
+    m_spectrumShader->enableAttributeArray(posLoc);
+    m_spectrumShader->setAttributeBuffer(posLoc, GL_FLOAT, 0, 2, 2 * sizeof(float));
+
+    glLineWidth(1.5f);
+    glDrawArrays(GL_LINE_STRIP, 0, vertices.size() / 2);
+
+    // Draw peak hold if enabled
+    if (m_peakHoldEnabled && !m_peakHold.isEmpty()) {
+        QVector<float> peakVertices;
+        peakVertices.reserve(m_peakHold.size() * 2);
+
+        for (int i = 0; i < m_peakHold.size(); ++i) {
+            float x = (static_cast<float>(i) / (m_peakHold.size() - 1)) * w;
+            float normalized = normalizeDb(m_peakHold[i]);
+            float adjusted = qMax(0.0f, normalized - m_smoothedBaseline);
+            float y = spectrumHeight * (1.0f - adjusted * 0.95f);
+
+            peakVertices.append(x);
+            peakVertices.append(y);
+        }
+
+        m_spectrumVBO.allocate(peakVertices.data(), peakVertices.size() * sizeof(float));
+        m_spectrumShader->setUniformValue("lineColor", QVector4D(1.0f, 1.0f, 1.0f, 0.4f)); // White, semi-transparent
+        glDrawArrays(GL_LINE_STRIP, 0, peakVertices.size() / 2);
+    }
+
+    m_spectrumShader->disableAttributeArray(posLoc);
+    m_spectrumShader->release();
+}
+
+void PanadapterWidget::drawOverlays() {
+    if (!m_overlayShader)
+        return;
+
+    // Use DPR-scaled dimensions to match viewport
+    qreal dpr = devicePixelRatioF();
+    int w = static_cast<int>(width() * dpr);
+    int h = static_cast<int>(height() * dpr);
+    int spectrumHeight = static_cast<int>(h * m_spectrumRatio);
+
+    m_overlayShader->bind();
+    m_overlayShader->setUniformValue("viewportSize", QVector2D(w, h));
+
+    int posLoc = m_overlayShader->attributeLocation("position");
+    QVector<float> lines;
+
+    // Grid lines (spectrum area only)
+    if (m_gridEnabled) {
+        m_overlayShader->setUniformValue("color", QVector4D(1.0f, 1.0f, 1.0f, 0.15f));
+
+        // Vertical grid lines
+        int vertDivisions = qMax(12, w / 50);
+        for (int i = 0; i <= vertDivisions; ++i) {
+            float x = (w * i) / vertDivisions;
+            lines.append(x);
+            lines.append(0);
+            lines.append(x);
+            lines.append(static_cast<float>(spectrumHeight));
+        }
+
+        // Horizontal grid lines
+        int horzDivisions = qMax(8, spectrumHeight / 40);
+        for (int i = 0; i <= horzDivisions; ++i) {
+            float y = (spectrumHeight * i) / horzDivisions;
+            lines.append(0);
+            lines.append(y);
+            lines.append(static_cast<float>(w));
+            lines.append(y);
+        }
+
+        if (!lines.isEmpty()) {
+            m_overlayVBO.bind();
+            m_overlayVBO.allocate(lines.data(), lines.size() * sizeof(float));
+            m_overlayShader->enableAttributeArray(posLoc);
+            m_overlayShader->setAttributeBuffer(posLoc, GL_FLOAT, 0, 2, 2 * sizeof(float));
+            glLineWidth(1.0f);
+            glDrawArrays(GL_LINES, 0, lines.size() / 2);
+        }
+    }
+
+    // Filter passband
+    if (m_cursorVisible && m_filterBw > 0 && m_centerFreq > 0) {
+        float carrierNorm = freqToNormalized(m_tunedFreq);
+        float bwNorm = static_cast<float>(m_filterBw) / m_spanHz;
+
+        float passbandLeft, passbandRight;
+        if (m_mode == "CW" || m_mode == "CW-R") {
+            int shiftHz = m_ifShift * 10;
+            int shiftOffsetHz = shiftHz - m_cwPitch;
+            float shiftNorm = static_cast<float>(shiftOffsetHz) / m_spanHz;
+            float centerNorm = carrierNorm + shiftNorm;
+            passbandLeft = centerNorm - bwNorm / 2;
+            passbandRight = centerNorm + bwNorm / 2;
+        } else if (m_mode == "LSB") {
+            passbandLeft = carrierNorm - bwNorm;
+            passbandRight = carrierNorm;
+        } else {
+            passbandLeft = carrierNorm;
+            passbandRight = carrierNorm + bwNorm;
+        }
+
+        // Draw passband quad (semi-transparent blue)
+        float x1 = passbandLeft * w;
+        float x2 = passbandRight * w;
+
+        m_overlayShader->setUniformValue(
+            "color", QVector4D(m_passbandColor.redF(), m_passbandColor.greenF(), m_passbandColor.blueF(), 0.25f));
+
+        QVector<float> quad = {
+            x1, 0, x2, 0, x2, static_cast<float>(h), x1, 0, x2, static_cast<float>(h), x1, static_cast<float>(h)};
+
+        m_overlayVBO.bind();
+        m_overlayVBO.allocate(quad.data(), quad.size() * sizeof(float));
+        m_overlayShader->enableAttributeArray(posLoc);
+        m_overlayShader->setAttributeBuffer(posLoc, GL_FLOAT, 0, 2, 2 * sizeof(float));
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
+
+    // Frequency marker (tuned frequency line)
+    if (m_centerFreq > 0) {
+        float markerNorm = freqToNormalized(m_tunedFreq);
+        float x = markerNorm * w;
+
+        m_overlayShader->setUniformValue("color",
+                                         QVector4D(m_frequencyMarkerColor.redF(), m_frequencyMarkerColor.greenF(),
+                                                   m_frequencyMarkerColor.blueF(), 1.0f));
+
+        QVector<float> markerLine = {x, 0, x, static_cast<float>(h)};
+        m_overlayVBO.bind();
+        m_overlayVBO.allocate(markerLine.data(), markerLine.size() * sizeof(float));
+        m_overlayShader->enableAttributeArray(posLoc);
+        m_overlayShader->setAttributeBuffer(posLoc, GL_FLOAT, 0, 2, 2 * sizeof(float));
+        glLineWidth(2.0f);
+        glDrawArrays(GL_LINES, 0, 2);
+    }
+
+    // Notch filter marker
+    if (m_notchEnabled && m_notchPitchHz > 0) {
+        qint64 notchFreq;
+        if (m_mode == "LSB") {
+            notchFreq = m_tunedFreq - m_notchPitchHz;
+        } else {
+            notchFreq = m_tunedFreq + m_notchPitchHz;
+        }
+
+        float notchNorm = freqToNormalized(notchFreq);
+        float x = notchNorm * w;
+
+        m_overlayShader->setUniformValue("color", QVector4D(1.0f, 0.0f, 0.0f, 1.0f)); // Red
+
+        QVector<float> notchLine = {x, 0, x, static_cast<float>(h)};
+        m_overlayVBO.bind();
+        m_overlayVBO.allocate(notchLine.data(), notchLine.size() * sizeof(float));
+        m_overlayShader->enableAttributeArray(posLoc);
+        m_overlayShader->setAttributeBuffer(posLoc, GL_FLOAT, 0, 2, 2 * sizeof(float));
+        glLineWidth(2.0f);
+        glDrawArrays(GL_LINES, 0, 2);
+    }
+
+    m_overlayShader->disableAttributeArray(posLoc);
+    m_overlayShader->release();
 }
 
 void PanadapterWidget::updateSpectrum(const QByteArray &bins, qint64 centerFreq, qint32 sampleRate, float noiseFloor) {
@@ -130,19 +536,15 @@ void PanadapterWidget::updateSpectrum(const QByteArray &bins, qint64 centerFreq,
     m_sampleRate = sampleRate;
     m_noiseFloor = noiseFloor;
 
-    // K4 tier span = sampleRate * 1000 Hz (24kHz, 48kHz, 96kHz, etc.)
+    // K4 tier span = sampleRate * 1000 Hz
     qint32 tierSpanHz = sampleRate * 1000;
     int totalBins = bins.size();
 
     // Extract center bins if tier span > commanded span
-    // K4 sends full tier data, we only display the portion matching #SPN span
     QByteArray binsToUse;
     if (tierSpanHz > m_spanHz && totalBins > 100 && m_spanHz > 0) {
-        // Calculate how many bins correspond to commanded span
         int requestedBins = (static_cast<qint64>(m_spanHz) * totalBins) / tierSpanHz;
         requestedBins = qBound(50, requestedBins, totalBins);
-
-        // Extract center portion
         int centerStart = (totalBins - requestedBins) / 2;
         binsToUse = bins.mid(centerStart, requestedBins);
     } else {
@@ -168,26 +570,24 @@ void PanadapterWidget::updateSpectrum(const QByteArray &bins, qint64 centerFreq,
         }
     }
 
-    // Update waterfall
-    updateWaterfall(m_currentSpectrum);
+    // Update waterfall texture
+    updateWaterfallTexture(m_currentSpectrum);
 
     update();
 }
 
 void PanadapterWidget::updateMiniSpectrum(const QByteArray &bins) {
-    // MiniPAN uses simpler decompression: dB = byte * 10
     m_rawSpectrum.resize(bins.size());
     for (int i = 0; i < bins.size(); ++i) {
         m_rawSpectrum[i] = static_cast<quint8>(bins[i]) * 10.0f - 160.0f;
     }
 
     applySmoothing(m_rawSpectrum, m_currentSpectrum);
-    updateWaterfall(m_currentSpectrum);
+    updateWaterfallTexture(m_currentSpectrum);
     update();
 }
 
 void PanadapterWidget::decompressBins(const QByteArray &bins, QVector<float> &out) {
-    // K4 PAN compression: dB = byte_value - 160
     out.resize(bins.size());
     for (int i = 0; i < bins.size(); ++i) {
         out[i] = static_cast<quint8>(bins[i]) - 160.0f;
@@ -195,7 +595,6 @@ void PanadapterWidget::decompressBins(const QByteArray &bins, QVector<float> &ou
 }
 
 void PanadapterWidget::applySmoothing(const QVector<float> &input, QVector<float> &output) {
-    // Exponential Moving Average smoothing
     if (output.size() != input.size()) {
         output = input;
         return;
@@ -206,47 +605,43 @@ void PanadapterWidget::applySmoothing(const QVector<float> &input, QVector<float
     }
 }
 
-void PanadapterWidget::upsampleSpectrum(const QVector<float> &input, QVector<float> &output, int targetWidth) {
-    // Resample spectrum to match display width (handles both upsampling and downsampling)
-    if (input.isEmpty() || targetWidth <= 0) {
-        output = input;
-        return;
-    }
-
-    output.resize(targetWidth);
-    float scale = static_cast<float>(input.size() - 1) / (targetWidth - 1);
-
-    for (int i = 0; i < targetWidth; ++i) {
-        float srcPos = i * scale;
-        int idx = qRound(srcPos); // Nearest-neighbor for sharp peaks
-        idx = qBound(0, idx, input.size() - 1);
-        output[i] = input[idx];
-    }
-}
-
-void PanadapterWidget::updateWaterfall(const QVector<float> &spectrum) {
-    if (spectrum.isEmpty())
+void PanadapterWidget::updateWaterfallTexture(const QVector<float> &spectrum) {
+    if (spectrum.isEmpty() || !m_glInitialized)
         return;
 
-    // Add spectrum to circular buffer (newest at current write index)
-    m_waterfallHistory[m_waterfallWriteIndex] = spectrum;
+    makeCurrent();
 
-    // Advance write index (wraps around)
-    m_waterfallWriteIndex = (m_waterfallWriteIndex + 1) % WATERFALL_HISTORY;
+    // Resample spectrum to texture width
+    QVector<GLubyte> row(m_textureWidth);
+    for (int i = 0; i < m_textureWidth; ++i) {
+        float srcPos = static_cast<float>(i) / (m_textureWidth - 1) * (spectrum.size() - 1);
+        int idx = qBound(0, qRound(srcPos), spectrum.size() - 1);
+        float normalized = normalizeDb(spectrum[idx]);
+        row[i] = static_cast<GLubyte>(qBound(0, static_cast<int>(normalized * 255), 255));
+    }
 
-    // Mark image as needing rebuild
-    m_waterfallImage = QImage();
-}
+    // Upload single row to texture
+    glBindTexture(GL_TEXTURE_2D, m_waterfallTexture);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, m_waterfallWriteRow, m_textureWidth, 1, GL_LUMINANCE, GL_UNSIGNED_BYTE,
+                    row.data());
 
-QRgb PanadapterWidget::dbToColor(float db) {
-    int index = static_cast<int>(normalizeDb(db) * 255.0f);
-    index = qBound(0, index, 255);
-    return m_colorLUT[index];
+    m_waterfallWriteRow = (m_waterfallWriteRow + 1) % WATERFALL_HISTORY;
+
+    doneCurrent();
 }
 
 float PanadapterWidget::normalizeDb(float db) {
-    // Normalize dB to 0.0-1.0 range
     return qBound(0.0f, (db - m_minDb) / (m_maxDb - m_minDb), 1.0f);
+}
+
+float PanadapterWidget::freqToNormalized(qint64 freq) {
+    qint64 startFreq = m_centerFreq - m_spanHz / 2;
+    return static_cast<float>(freq - startFreq) / m_spanHz;
+}
+
+qint64 PanadapterWidget::xToFreq(int x, int w) {
+    qint64 startFreq = m_centerFreq - m_spanHz / 2;
+    return startFreq + (static_cast<qint64>(x) * m_spanHz) / w;
 }
 
 void PanadapterWidget::setDbRange(float minDb, float maxDb) {
@@ -263,8 +658,8 @@ void PanadapterWidget::setSpectrumRatio(float ratio) {
 void PanadapterWidget::setTunedFrequency(qint64 freq) {
     if (m_tunedFreq != freq) {
         m_tunedFreq = freq;
-        m_showWaterfallMarker = true;       // Show marker in waterfall while tuning
-        m_waterfallMarkerTimer->start(500); // Hide after 500ms of no changes
+        m_showWaterfallMarker = true;
+        m_waterfallMarkerTimer->start(500);
         update();
     }
 }
@@ -324,9 +719,6 @@ void PanadapterWidget::setPeakHoldEnabled(bool enabled) {
 void PanadapterWidget::setRefLevel(int level) {
     if (m_refLevel != level) {
         m_refLevel = level;
-        // Update dB range based on REF level (K4Mobile pattern)
-        // REF level is noise floor, mapped to ~35% of color gradient
-        // 80 dB total range: [REF-28, REF+52]
         m_minDb = static_cast<float>(level - 28);
         m_maxDb = static_cast<float>(level + 52);
         update();
@@ -359,385 +751,18 @@ void PanadapterWidget::clear() {
     m_currentSpectrum.clear();
     m_rawSpectrum.clear();
     m_peakHold.clear();
-    m_waterfallImage = QImage();
-    m_waterfallWriteIndex = 0;
-    // Clear all history rows
-    for (int i = 0; i < m_waterfallHistory.size(); ++i) {
-        m_waterfallHistory[i].clear();
+    m_waterfallWriteRow = 0;
+
+    if (m_glInitialized) {
+        makeCurrent();
+        QVector<GLubyte> zeros(m_textureWidth * WATERFALL_HISTORY, 0);
+        glBindTexture(GL_TEXTURE_2D, m_waterfallTexture);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_textureWidth, WATERFALL_HISTORY, GL_LUMINANCE, GL_UNSIGNED_BYTE,
+                        zeros.data());
+        doneCurrent();
     }
+
     update();
-}
-
-void PanadapterWidget::paintEvent(QPaintEvent *event) {
-    Q_UNUSED(event)
-    QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing);
-
-    // Background - radial gradient from darker edges to lighter center
-    QRadialGradient gradient(rect().center(), qMax(rect().width(), rect().height()) / 2.0);
-    gradient.setColorAt(0.0, QColor(61, 61, 61)); // Center - lighter
-    gradient.setColorAt(1.0, QColor(47, 47, 47)); // Edges - darker
-    painter.fillRect(rect(), gradient);
-
-    int w = width();
-    int h = height();
-
-    // Calculate regions - 30% spectrum, 70% waterfall (matching K4Mobile)
-    int spectrumHeight = static_cast<int>(h * m_spectrumRatio);
-    int waterfallHeight = h - spectrumHeight;
-
-    QRect spectrumRect(0, 0, w, spectrumHeight);
-    QRect waterfallRect(0, spectrumHeight, w, waterfallHeight);
-
-    // Draw waterfall first (behind spectrum)
-    drawWaterfall(painter, waterfallRect);
-
-    // Draw spectrum
-    drawSpectrum(painter, spectrumRect);
-
-    // Draw grid overlay (panadapter area only)
-    if (m_gridEnabled) {
-        drawGrid(painter, spectrumRect);
-    }
-
-    // Draw filter passband and frequency marker in spectrum area (only when connected/receiving data)
-    if (m_centerFreq > 0) {
-        drawFilterPassband(painter, spectrumRect);
-        drawFrequencyMarker(painter, spectrumRect);
-        drawNotchFilter(painter, spectrumRect);
-    }
-
-    // Draw filter passband and frequency marker in waterfall area (only while tuning)
-    if (m_showWaterfallMarker && m_centerFreq > 0) {
-        drawFilterPassband(painter, waterfallRect);
-        drawFrequencyMarker(painter, waterfallRect);
-        drawNotchFilter(painter, waterfallRect);
-    }
-
-    // Draw separator line between spectrum and waterfall
-    painter.setPen(QPen(K4Colors::GridLine, 1.5));
-    painter.drawLine(0, spectrumHeight, w, spectrumHeight);
-}
-
-void PanadapterWidget::drawSpectrum(QPainter &painter, const QRect &rect) {
-    if (m_currentSpectrum.isEmpty())
-        return;
-
-    int x0 = rect.left();
-    int y0 = rect.top();
-    int w = rect.width();
-    int h = rect.height();
-
-    // Upsample spectrum to match display width for smooth rendering
-    QVector<float> displaySpectrum;
-    upsampleSpectrum(m_currentSpectrum, displaySpectrum, w);
-
-    // Find current frame's minimum normalized value (noise floor)
-    float frameMinNormalized = 1.0f;
-    for (int x = 0; x < w; ++x) {
-        float normalized = normalizeDb(displaySpectrum[x]);
-        if (normalized < frameMinNormalized) {
-            frameMinNormalized = normalized;
-        }
-    }
-
-    // Smooth the baseline using EMA to prevent bouncing
-    // This ensures stable spectrum display while still adapting to band changes
-    const float baselineAlpha = 0.05f; // Slow smoothing for stability
-    if (m_smoothedBaseline < 0.001f) {
-        m_smoothedBaseline = frameMinNormalized; // Initialize on first frame
-    } else {
-        m_smoothedBaseline = baselineAlpha * frameMinNormalized + (1.0f - baselineAlpha) * m_smoothedBaseline;
-    }
-
-    // Build spectrum path with smoothed baseline correction
-    QPainterPath path;
-    float heightScale = 0.95f; // Use 95% of height for headroom at top
-
-    for (int x = 0; x < w; ++x) {
-        float normalized = normalizeDb(displaySpectrum[x]);
-        // Subtract smoothed baseline so noise floor maps to 0 (sits at demarcation line)
-        // Clamp to non-negative to prevent spectrum bleeding into waterfall area
-        float adjusted = qMax(0.0f, normalized - m_smoothedBaseline);
-        float lineHeight = adjusted * h * heightScale;
-        float y = y0 + h - lineHeight;
-
-        if (x == 0) {
-            path.moveTo(x0 + x, y);
-        } else {
-            path.lineTo(x0 + x, y);
-        }
-    }
-
-    // Create filled path (close the path along the bottom edge of spectrum area)
-    QPainterPath fillPath = path;
-    fillPath.lineTo(x0 + w - 1, y0 + h); // Bottom right corner
-    fillPath.lineTo(x0, y0 + h);         // Bottom left corner
-    fillPath.closeSubpath();
-
-    // Gradient fill: bright lime at top, richer green at base
-    QLinearGradient gradient(0, y0, 0, y0 + h);
-    gradient.setColorAt(0.0, QColor(140, 255, 140, 230)); // Bright lime at top
-    gradient.setColorAt(0.4, QColor(60, 220, 60, 200));   // Strong green
-    gradient.setColorAt(0.7, QColor(30, 180, 30, 170));   // Medium green
-    gradient.setColorAt(1.0, QColor(0, 140, 0, 150));     // Deep green base, more opaque
-
-    painter.fillPath(fillPath, QBrush(gradient));
-
-    // Draw spectrum line (lime green)
-    painter.setPen(QPen(QColor("#32FF32"), 1.0));
-    painter.drawPath(path);
-
-    // Draw peak hold if enabled (filled gradient shadow)
-    if (m_peakHoldEnabled && !m_peakHold.isEmpty()) {
-        QVector<float> displayPeakHold;
-        upsampleSpectrum(m_peakHold, displayPeakHold, w);
-
-        QPainterPath peakPath;
-        peakPath.moveTo(x0, y0 + h); // Start at bottom-left
-
-        for (int x = 0; x < w; ++x) {
-            float normalized = normalizeDb(displayPeakHold[x]);
-            // Use same smoothed baseline correction for peak hold
-            // Clamp to non-negative to prevent bleeding into waterfall area
-            float adjusted = qMax(0.0f, normalized - m_smoothedBaseline);
-            float lineHeight = adjusted * h * heightScale;
-            float y = y0 + h - lineHeight;
-            peakPath.lineTo(x0 + x, y);
-        }
-
-        // Close the path back to baseline
-        peakPath.lineTo(x0 + w - 1, y0 + h);
-        peakPath.closeSubpath();
-
-        // White gradient fill (fades from top to bottom)
-        QLinearGradient peakGradient(0, y0, 0, y0 + h);
-        peakGradient.setColorAt(0.0, QColor(255, 255, 255, 140)); // White at top
-        peakGradient.setColorAt(0.5, QColor(255, 255, 255, 70));  // Fade
-        peakGradient.setColorAt(1.0, QColor(255, 255, 255, 0));   // Transparent at bottom
-
-        painter.setPen(Qt::NoPen);
-        painter.setBrush(peakGradient);
-        painter.drawPath(peakPath);
-    }
-}
-
-void PanadapterWidget::drawWaterfall(QPainter &painter, const QRect &rect) {
-    // Build waterfall image from circular buffer
-    // Upsample each row to display width for smooth rendering at any size
-    int displayWidth = rect.width();
-
-    // Find bin count from first non-empty row
-    int binCount = 0;
-    for (int i = 0; i < WATERFALL_HISTORY; ++i) {
-        if (!m_waterfallHistory[i].isEmpty()) {
-            binCount = m_waterfallHistory[i].size();
-            break;
-        }
-    }
-
-    if (binCount == 0) {
-        painter.fillRect(rect, Qt::black);
-        return;
-    }
-
-    // Create image at display width for crisp rendering
-    // Each row is upsampled from bin data to display pixels
-    m_waterfallImage = QImage(displayWidth, WATERFALL_HISTORY, QImage::Format_RGB32);
-
-    for (int displayRow = 0; displayRow < WATERFALL_HISTORY; ++displayRow) {
-        // Map display row to circular buffer index
-        // displayRow 0 = top of waterfall = newest data = writeIndex - 1
-        // displayRow 255 = bottom = oldest data = writeIndex
-        int bufferIndex = (m_waterfallWriteIndex - 1 - displayRow + WATERFALL_HISTORY) % WATERFALL_HISTORY;
-
-        const QVector<float> &row = m_waterfallHistory[bufferIndex];
-        QRgb *scanLine = reinterpret_cast<QRgb *>(m_waterfallImage.scanLine(displayRow));
-
-        if (row.isEmpty()) {
-            // Empty row = black
-            for (int x = 0; x < displayWidth; ++x) {
-                scanLine[x] = qRgb(0, 0, 0);
-            }
-        } else {
-            // Upsample row to display width for smooth rendering
-            QVector<float> upsampledRow;
-            upsampleSpectrum(row, upsampledRow, displayWidth);
-
-            // Convert upsampled dB values to colors
-            for (int x = 0; x < displayWidth; ++x) {
-                scanLine[x] = dbToColor(upsampledRow[x]);
-            }
-        }
-    }
-
-    // Draw waterfall image (already at display width, just scale height)
-    painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
-    painter.drawImage(rect, m_waterfallImage);
-}
-
-void PanadapterWidget::drawGrid(QPainter &painter, const QRect &rect) {
-    painter.setPen(QPen(QColor(255, 255, 255, 38), 1)); // 15% opacity white
-
-    int w = rect.width();
-    int h = rect.height();
-
-    // Finer vertical grid - approximately one line every 50 pixels, minimum 12 divisions
-    int vertDivisions = qMax(12, w / 50);
-    for (int i = 0; i <= vertDivisions; ++i) {
-        int x = (w * i) / vertDivisions;
-        painter.drawLine(x, rect.top(), x, rect.bottom());
-    }
-
-    // Finer horizontal grid - approximately one line every 40 pixels, minimum 8 divisions
-    int horzDivisions = qMax(8, h / 40);
-    for (int i = 0; i <= horzDivisions; ++i) {
-        int y = rect.top() + (h * i) / horzDivisions;
-        painter.drawLine(0, y, w, y);
-    }
-
-    // Calculate frequency values using PAN center frequency
-    qint64 startFreq = m_centerFreq - m_spanHz / 2;
-    qint64 endFreq = m_centerFreq + m_spanHz / 2;
-
-    // Draw REF level indicator (top-left, yellow)
-    QFont labelFont = font();
-    labelFont.setPointSize(10);
-    painter.setFont(labelFont);
-    painter.setPen(QColor("#FFFF00")); // Yellow
-    QString refStr = QString("REF %1 dB").arg(m_refLevel);
-    painter.drawText(4, rect.top() + 14, refStr);
-
-    // Draw semi-transparent frequency label bar at bottom (K4Mobile pattern)
-    QRect labelBar(0, height() - 20, w, 20);
-    painter.fillRect(labelBar, QColor(0, 0, 0, 178)); // 70% opacity black
-
-    labelFont.setPointSize(10);
-    painter.setFont(labelFont);
-
-    // Left frequency (white 80% opacity)
-    painter.setPen(QColor(255, 255, 255, 204));
-    double startMHz = startFreq / 1000000.0;
-    QString startStr = QString::number(startMHz, 'f', 3);
-    painter.drawText(4, height() - 5, startStr);
-
-    // Center frequency (orange, bold) - use PAN center frequency
-    QFont boldFont = labelFont;
-    boldFont.setBold(true);
-    painter.setFont(boldFont);
-    painter.setPen(QColor("#FF8C00")); // Orange
-    double centerMHz = m_centerFreq / 1000000.0;
-    QString centerStr = QString::number(centerMHz, 'f', 3);
-    int centerWidth = painter.fontMetrics().horizontalAdvance(centerStr);
-    painter.drawText((w - centerWidth) / 2, height() - 5, centerStr);
-
-    // Right frequency (white 80% opacity)
-    painter.setFont(labelFont);
-    painter.setPen(QColor(255, 255, 255, 204));
-    double endMHz = endFreq / 1000000.0;
-    QString endStr = QString::number(endMHz, 'f', 3);
-    int endWidth = painter.fontMetrics().horizontalAdvance(endStr);
-    painter.drawText(w - endWidth - 4, height() - 5, endStr);
-}
-
-void PanadapterWidget::drawFrequencyMarker(QPainter &painter, const QRect &rect) {
-    // Draw vertical line at tuned frequency (panadapter section only)
-    int x = freqToX(m_tunedFreq, rect.width());
-    if (x >= 0 && x < rect.width()) {
-        painter.setPen(QPen(m_frequencyMarkerColor, 2));
-        painter.drawLine(x, rect.top(), x, rect.bottom());
-    }
-}
-
-void PanadapterWidget::drawFilterPassband(QPainter &painter, const QRect &rect) {
-    if (!m_cursorVisible || m_filterBw <= 0)
-        return;
-
-    int carrierX = freqToX(m_tunedFreq, rect.width());
-
-    // Convert bandwidth to pixels
-    int bwPixels = static_cast<int>((static_cast<double>(m_filterBw) / m_spanHz) * rect.width());
-
-    // Calculate IF shift offset in Hz
-    // K4 IF shift: IS0050 displayed as "0.50" means 500 Hz
-    // Value is in units of 10 Hz, so IS0050 = 500 Hz
-    // Center position (no shift) is when displayed value equals pitch (e.g., 0.50 = 500 Hz)
-    // Shift offset = (shift_value - pitch_value) * 10 Hz
-    // When shift equals pitch, filter is centered on VFO
-    int shiftHz = m_ifShift * 10;            // Convert IS value to Hz
-    int shiftOffsetHz = shiftHz - m_cwPitch; // Offset from center (pitch)
-    int shiftPixels = static_cast<int>((static_cast<double>(shiftOffsetHz) / m_spanHz) * rect.width());
-
-    // Calculate passband position based on mode
-    int passbandX;
-
-    if (m_mode == "CW" || m_mode == "CW-R") {
-        // CW modes: filter is centered on VFO marker when shift equals pitch
-        // Shift moves the passband left/right from center
-        int centerX = carrierX + shiftPixels;
-        passbandX = centerX - bwPixels / 2;
-    } else if (m_mode == "LSB") {
-        // LSB: filter is below carrier
-        passbandX = carrierX - bwPixels;
-    } else {
-        // USB, DATA, DATA-R, AM, FM: filter is above carrier
-        passbandX = carrierX;
-    }
-
-    // Draw semi-transparent passband overlay (25% opacity)
-    QColor fillColor = m_passbandColor;
-    fillColor.setAlpha(64); // 25% opacity
-    painter.fillRect(passbandX, rect.top(), bwPixels, rect.height(), fillColor);
-}
-
-void PanadapterWidget::drawNotchFilter(QPainter &painter, const QRect &rect) {
-    if (!m_notchEnabled || m_notchPitchHz <= 0)
-        return;
-
-    // Calculate RF frequency from audio pitch
-    // USB/DATA: notch is above carrier (add pitch)
-    // LSB: notch is below carrier (subtract pitch)
-    qint64 notchFreq;
-    if (m_mode == "LSB") {
-        notchFreq = m_tunedFreq - m_notchPitchHz;
-    } else {
-        // USB, DATA, DATA-R, CW, CW-R, AM, FM
-        notchFreq = m_tunedFreq + m_notchPitchHz;
-    }
-
-    int notchX = freqToX(notchFreq, rect.width());
-    if (notchX >= 0 && notchX < rect.width()) {
-        // Draw red vertical line for notch filter
-        painter.setPen(QPen(QColor("#FF0000"), 2.0)); // Red, 2px wide
-        painter.drawLine(notchX, rect.top(), notchX, rect.bottom());
-    }
-}
-
-int PanadapterWidget::freqToX(qint64 freq, int w) {
-    // Use PAN packet center frequency for display positioning
-    qint64 startFreq = m_centerFreq - m_spanHz / 2;
-    qint64 endFreq = m_centerFreq + m_spanHz / 2;
-
-    if (freq < startFreq || freq > endFreq) {
-        // Allow off-screen but clamp for drawing
-        if (freq < startFreq)
-            return -10;
-        return w + 10;
-    }
-
-    return static_cast<int>((static_cast<double>(freq - startFreq) / m_spanHz) * w);
-}
-
-qint64 PanadapterWidget::xToFreq(int x, int w) {
-    // Use PAN packet center frequency for display positioning
-    qint64 startFreq = m_centerFreq - m_spanHz / 2;
-
-    return startFreq + (static_cast<qint64>(x) * m_spanHz) / w;
-}
-
-void PanadapterWidget::resizeEvent(QResizeEvent *event) {
-    Q_UNUSED(event)
-    // Waterfall image will be recreated on next update with new dimensions
 }
 
 void PanadapterWidget::mousePressEvent(QMouseEvent *event) {
@@ -755,9 +780,8 @@ void PanadapterWidget::mouseMoveEvent(QMouseEvent *event) {
 }
 
 void PanadapterWidget::wheelEvent(QWheelEvent *event) {
-    // Standard mouse wheel: 120 units per "click"
     int degrees = event->angleDelta().y() / 8;
-    int steps = degrees / 15; // Each step = 15 degrees
+    int steps = degrees / 15;
 
     if (steps != 0) {
         emit frequencyScrolled(steps);
