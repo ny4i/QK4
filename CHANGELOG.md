@@ -30,6 +30,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - NR ADJUST: toggle (NR/), level 0-10
   - MANUAL NOTCH: toggle (NM/), frequency 150-5000Hz in 10Hz steps
 - Feature menu bar displays live state from radio and updates in real-time
+- Feature menu bar B SET support: when B SET is enabled, commands target Sub RX using $ suffix (RA$, NB$, NR$, NM$)
+- RadioState: B SET (TB) command parsing with bSetEnabled() getter and bSetChanged() signal
 - GPU-accelerated spectrum and waterfall display via OpenGL (main panadapter and mini-pans)
 - Ref Level A/B support: A/B toggle selects which VFO's ref level value is displayed
 - Ref Level +/- buttons target correct VFO based on A/B toggle selection

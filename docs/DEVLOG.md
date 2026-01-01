@@ -85,8 +85,37 @@ Added a reusable menu bar widget that appears above the 7 bottom buttons when al
 - ✅ RadioState integration for state display
 - ✅ Live updates from radio state changes
 
-**Phase 3 (TODO):**
-- ⏸️ B SET state affects VFO targeting ($ suffix commands)
+---
+
+### Feature: Feature Menu Bar B SET VFO Targeting (Phase 3 - Complete)
+
+When B SET is enabled, feature menu bar commands now target Sub RX instead of Main RX.
+
+**RadioState Changes:**
+- Added `m_bSetEnabled` member to track B SET state
+- Added `bSetEnabled()` getter
+- Added `bSetChanged(bool)` signal
+- Added parsing for `TB` command (TB0=off, TB1=on)
+
+**CAT Command Targeting:**
+| B SET | Attenuator | NB | NR | Manual Notch |
+|-------|------------|----|----|--------------|
+| OFF | `RA/;`, `RA+;`, `RA-;` | `NBnnmf;` | `NRnnm;` | `NMnnnnm;` |
+| ON | `RA$/;`, `RA$+;`, `RA$-;` | `NB$nnmf;` | `NR$nnm;` | `NM$nnnnm;` |
+
+**State Display:**
+- When B SET is enabled, display reads from Sub RX state (e.g., `attenuatorLevelB()` instead of `attenuatorLevel()`)
+- Connected `processingChangedB` signal to update menu bar when Sub RX state changes
+- Connected `bSetChanged` signal to refresh display when B SET toggles
+
+**Optimistic Updates:**
+- All button handlers read current state from correct VFO based on B SET
+- Increment/decrement calculate new values from correct source
+
+**Files Modified:**
+- `src/models/radiostate.h` - Added `m_bSetEnabled`, `bSetEnabled()`, `bSetChanged()`
+- `src/models/radiostate.cpp` - Added `TB` command parsing
+- `src/mainwindow.cpp` - Updated all feature menu handlers and state display for B SET
 
 ---
 

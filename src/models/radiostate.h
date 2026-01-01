@@ -137,6 +137,9 @@ public:
 
     // ATU mode (0=not installed, 1=bypass, 2=auto)
     int atuMode() const { return m_atuMode; }
+
+    // B SET (Target B) - controls whether feature menu commands target Sub RX
+    bool bSetEnabled() const { return m_bSetEnabled; }
     // Returns VOX state for current operating mode
     bool voxForCurrentMode() const {
         switch (m_mode) {
@@ -268,6 +271,7 @@ signals:
     void qskEnabledChanged(bool enabled);      // QSK (full break-in) state
     void testModeChanged(bool enabled);        // TX test mode state
     void atuModeChanged(int mode);             // ATU mode (1=bypass, 2=auto)
+    void bSetChanged(bool enabled);            // B SET (Target B) state
     void notchChanged();                       // Manual notch state/pitch changed
     void miniPanAEnabledChanged(bool enabled); // Mini-Pan A state (#MP command)
     void miniPanBEnabledChanged(bool enabled); // Mini-Pan B state (#MP$ command)
@@ -391,6 +395,9 @@ private:
 
     // TEST mode (TX test)
     bool m_testMode = false;
+
+    // B SET (Target B) - feature menu commands target Sub RX when enabled
+    bool m_bSetEnabled = false;
 
     // QSK/VOX Delay per mode (in 10ms increments)
     int m_qskDelayCW = -1;

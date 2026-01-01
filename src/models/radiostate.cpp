@@ -540,6 +540,14 @@ void RadioState::parseCATCommand(const QString &command) {
             emit testModeChanged(m_testMode);
         }
     }
+    // B SET / Target B (TB) - TB0=off, TB1=on (controls feature menu VFO targeting)
+    else if (cmd.startsWith("TB") && cmd.length() >= 3) {
+        bool enabled = (cmd.mid(2, 1) == "1");
+        if (enabled != m_bSetEnabled) {
+            m_bSetEnabled = enabled;
+            emit bSetChanged(m_bSetEnabled);
+        }
+    }
     // Radio ID (ID)
     else if (cmd.startsWith("ID") && cmd.length() > 2) {
         m_radioID = cmd.mid(2);

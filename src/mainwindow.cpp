@@ -471,69 +471,124 @@ void MainWindow::setupUi() {
 
     // Feature Menu Bar CAT commands - send appropriate command based on current feature
     connect(m_featureMenuBar, &FeatureMenuBar::toggleRequested, this, [this]() {
+        bool bSet = m_radioState->bSetEnabled();
         switch (m_featureMenuBar->currentFeature()) {
-        case FeatureMenuBar::Attenuator:
-            m_tcpClient->sendCAT("RA/;");
-            break;
-        case FeatureMenuBar::NbLevel:
-            m_tcpClient->sendCAT("NB/;");
-            break;
-        case FeatureMenuBar::NrAdjust:
-            m_tcpClient->sendCAT("NR/;");
-            break;
-        case FeatureMenuBar::ManualNotch:
-            m_tcpClient->sendCAT("NM/;");
+        case FeatureMenuBar::Attenuator: {
+            // Optimistic UI update - flip enabled state (use Sub RX state if B SET)
+            bool newState = bSet ? !m_radioState->attenuatorEnabledB() : !m_radioState->attenuatorEnabled();
+            m_featureMenuBar->setFeatureEnabled(newState);
+            m_tcpClient->sendCAT(bSet ? "RA$/;" : "RA/;");
             break;
         }
-    });
-    connect(m_featureMenuBar, &FeatureMenuBar::incrementRequested, this, [this]() {
-        switch (m_featureMenuBar->currentFeature()) {
-        case FeatureMenuBar::Attenuator:
-            m_tcpClient->sendCAT("RA+;");
-            break;
         case FeatureMenuBar::NbLevel: {
-            int newLevel = qMin(m_radioState->noiseBlankerLevel() + 1, 15);
-            int enabled = m_radioState->noiseBlankerEnabled() ? 1 : 0;
-            int filter = m_radioState->noiseBlankerFilterWidth();
-            m_tcpClient->sendCAT(QString("NB%1%2%3;").arg(newLevel, 2, 10, QChar('0')).arg(enabled).arg(filter));
+            bool newState = bSet ? !m_radioState->noiseBlankerEnabledB() : !m_radioState->noiseBlankerEnabled();
+            m_featureMenuBar->setFeatureEnabled(newState);
+            m_tcpClient->sendCAT(bSet ? "NB$/;" : "NB/;");
             break;
         }
         case FeatureMenuBar::NrAdjust: {
-            int newLevel = qMin(m_radioState->noiseReductionLevel() + 1, 10);
-            int enabled = m_radioState->noiseReductionEnabled() ? 1 : 0;
-            m_tcpClient->sendCAT(QString("NR%1%2;").arg(newLevel, 2, 10, QChar('0')).arg(enabled));
+            bool newState = bSet ? !m_radioState->noiseReductionEnabledB() : !m_radioState->noiseReductionEnabled();
+            m_featureMenuBar->setFeatureEnabled(newState);
+            m_tcpClient->sendCAT(bSet ? "NR$/;" : "NR/;");
             break;
         }
         case FeatureMenuBar::ManualNotch: {
+            // Manual notch doesn't have separate Sub RX state
+            bool newState = !m_radioState->manualNotchEnabled();
+            m_featureMenuBar->setFeatureEnabled(newState);
+            m_tcpClient->sendCAT(bSet ? "NM$/;" : "NM/;");
+            break;
+        }
+        }
+    });
+    connect(m_featureMenuBar, &FeatureMenuBar::incrementRequested, this, [this]() {
+        bool bSet = m_radioState->bSetEnabled();
+        switch (m_featureMenuBar->currentFeature()) {
+        case FeatureMenuBar::Attenuator: {
+            // Optimistic: show next step (RA+ adds 3dB, max 21)
+            int curLevel = bSet ? m_radioState->attenuatorLevelB() : m_radioState->attenuatorLevel();
+            int newLevel = qMin(curLevel + 3, 21);
+            m_featureMenuBar->setValue(newLevel);
+            m_tcpClient->sendCAT(bSet ? "RA$+;" : "RA+;");
+            break;
+        }
+        case FeatureMenuBar::NbLevel: {
+            int curLevel = bSet ? m_radioState->noiseBlankerLevelB() : m_radioState->noiseBlankerLevel();
+            int newLevel = qMin(curLevel + 1, 15);
+            int enabled = bSet ? (m_radioState->noiseBlankerEnabledB() ? 1 : 0)
+                               : (m_radioState->noiseBlankerEnabled() ? 1 : 0);
+            int filter = bSet ? m_radioState->noiseBlankerFilterWidthB() : m_radioState->noiseBlankerFilterWidth();
+            // Optimistic UI update
+            m_featureMenuBar->setValue(newLevel);
+            QString prefix = bSet ? "NB$" : "NB";
+            m_tcpClient->sendCAT(QString("%1%2%3%4;").arg(prefix).arg(newLevel, 2, 10, QChar('0')).arg(enabled).arg(filter));
+            break;
+        }
+        case FeatureMenuBar::NrAdjust: {
+            int curLevel = bSet ? m_radioState->noiseReductionLevelB() : m_radioState->noiseReductionLevel();
+            int newLevel = qMin(curLevel + 1, 10);
+            int enabled = bSet ? (m_radioState->noiseReductionEnabledB() ? 1 : 0)
+                               : (m_radioState->noiseReductionEnabled() ? 1 : 0);
+            // Optimistic UI update
+            m_featureMenuBar->setValue(newLevel);
+            QString prefix = bSet ? "NR$" : "NR";
+            m_tcpClient->sendCAT(QString("%1%2%3;").arg(prefix).arg(newLevel, 2, 10, QChar('0')).arg(enabled));
+            break;
+        }
+        case FeatureMenuBar::ManualNotch: {
+            // Manual notch doesn't have separate Sub RX state
             int newPitch = qMin(m_radioState->manualNotchPitch() + 10, 5000);
             int enabled = m_radioState->manualNotchEnabled() ? 1 : 0;
-            m_tcpClient->sendCAT(QString("NM%1%2;").arg(newPitch, 4, 10, QChar('0')).arg(enabled));
+            // Optimistic UI update
+            m_featureMenuBar->setValue(newPitch);
+            QString prefix = bSet ? "NM$" : "NM";
+            m_tcpClient->sendCAT(QString("%1%2%3;").arg(prefix).arg(newPitch, 4, 10, QChar('0')).arg(enabled));
             break;
         }
         }
     });
     connect(m_featureMenuBar, &FeatureMenuBar::decrementRequested, this, [this]() {
+        bool bSet = m_radioState->bSetEnabled();
         switch (m_featureMenuBar->currentFeature()) {
-        case FeatureMenuBar::Attenuator:
-            m_tcpClient->sendCAT("RA-;");
+        case FeatureMenuBar::Attenuator: {
+            // Optimistic: show next step (RA- subtracts 3dB, min 0)
+            int curLevel = bSet ? m_radioState->attenuatorLevelB() : m_radioState->attenuatorLevel();
+            int newLevel = qMax(curLevel - 3, 0);
+            m_featureMenuBar->setValue(newLevel);
+            m_tcpClient->sendCAT(bSet ? "RA$-;" : "RA-;");
             break;
+        }
         case FeatureMenuBar::NbLevel: {
-            int newLevel = qMax(m_radioState->noiseBlankerLevel() - 1, 0);
-            int enabled = m_radioState->noiseBlankerEnabled() ? 1 : 0;
-            int filter = m_radioState->noiseBlankerFilterWidth();
-            m_tcpClient->sendCAT(QString("NB%1%2%3;").arg(newLevel, 2, 10, QChar('0')).arg(enabled).arg(filter));
+            int curLevel = bSet ? m_radioState->noiseBlankerLevelB() : m_radioState->noiseBlankerLevel();
+            int newLevel = qMax(curLevel - 1, 0);
+            int enabled = bSet ? (m_radioState->noiseBlankerEnabledB() ? 1 : 0)
+                               : (m_radioState->noiseBlankerEnabled() ? 1 : 0);
+            int filter = bSet ? m_radioState->noiseBlankerFilterWidthB() : m_radioState->noiseBlankerFilterWidth();
+            // Optimistic UI update
+            m_featureMenuBar->setValue(newLevel);
+            QString prefix = bSet ? "NB$" : "NB";
+            m_tcpClient->sendCAT(QString("%1%2%3%4;").arg(prefix).arg(newLevel, 2, 10, QChar('0')).arg(enabled).arg(filter));
             break;
         }
         case FeatureMenuBar::NrAdjust: {
-            int newLevel = qMax(m_radioState->noiseReductionLevel() - 1, 0);
-            int enabled = m_radioState->noiseReductionEnabled() ? 1 : 0;
-            m_tcpClient->sendCAT(QString("NR%1%2;").arg(newLevel, 2, 10, QChar('0')).arg(enabled));
+            int curLevel = bSet ? m_radioState->noiseReductionLevelB() : m_radioState->noiseReductionLevel();
+            int newLevel = qMax(curLevel - 1, 0);
+            int enabled = bSet ? (m_radioState->noiseReductionEnabledB() ? 1 : 0)
+                               : (m_radioState->noiseReductionEnabled() ? 1 : 0);
+            // Optimistic UI update
+            m_featureMenuBar->setValue(newLevel);
+            QString prefix = bSet ? "NR$" : "NR";
+            m_tcpClient->sendCAT(QString("%1%2%3;").arg(prefix).arg(newLevel, 2, 10, QChar('0')).arg(enabled));
             break;
         }
         case FeatureMenuBar::ManualNotch: {
+            // Manual notch doesn't have separate Sub RX state
             int newPitch = qMax(m_radioState->manualNotchPitch() - 10, 150);
             int enabled = m_radioState->manualNotchEnabled() ? 1 : 0;
-            m_tcpClient->sendCAT(QString("NM%1%2;").arg(newPitch, 4, 10, QChar('0')).arg(enabled));
+            // Optimistic UI update
+            m_featureMenuBar->setValue(newPitch);
+            QString prefix = bSet ? "NM$" : "NM";
+            m_tcpClient->sendCAT(QString("%1%2%3;").arg(prefix).arg(newPitch, 4, 10, QChar('0')).arg(enabled));
             break;
         }
         }
@@ -541,43 +596,67 @@ void MainWindow::setupUi() {
     connect(m_featureMenuBar, &FeatureMenuBar::extraButtonClicked, this, [this]() {
         // Extra button cycles NB filter: NONE(0) -> NARROW(1) -> WIDE(2) -> NONE(0)
         if (m_featureMenuBar->currentFeature() == FeatureMenuBar::NbLevel) {
-            int newFilter = (m_radioState->noiseBlankerFilterWidth() + 1) % 3;
-            int level = m_radioState->noiseBlankerLevel();
-            int enabled = m_radioState->noiseBlankerEnabled() ? 1 : 0;
-            m_tcpClient->sendCAT(QString("NB%1%2%3;").arg(level, 2, 10, QChar('0')).arg(enabled).arg(newFilter));
+            bool bSet = m_radioState->bSetEnabled();
+            int curFilter = bSet ? m_radioState->noiseBlankerFilterWidthB() : m_radioState->noiseBlankerFilterWidth();
+            int newFilter = (curFilter + 1) % 3;
+            int level = bSet ? m_radioState->noiseBlankerLevelB() : m_radioState->noiseBlankerLevel();
+            int enabled = bSet ? (m_radioState->noiseBlankerEnabledB() ? 1 : 0)
+                               : (m_radioState->noiseBlankerEnabled() ? 1 : 0);
+            // Optimistic UI update
+            m_featureMenuBar->setNbFilter(newFilter);
+            QString prefix = bSet ? "NB$" : "NB";
+            m_tcpClient->sendCAT(QString("%1%2%3%4;").arg(prefix).arg(level, 2, 10, QChar('0')).arg(enabled).arg(newFilter));
         }
     });
 
-    // Update feature menu bar from RadioState
-    connect(m_radioState, &RadioState::processingChanged, this, [this]() {
-        if (m_featureMenuBar->isMenuVisible()) {
-            switch (m_featureMenuBar->currentFeature()) {
-            case FeatureMenuBar::Attenuator:
+    // Update feature menu bar from RadioState - helper lambda
+    auto updateFeatureMenuBarState = [this]() {
+        if (!m_featureMenuBar->isMenuVisible())
+            return;
+        bool bSet = m_radioState->bSetEnabled();
+        switch (m_featureMenuBar->currentFeature()) {
+        case FeatureMenuBar::Attenuator:
+            if (bSet) {
+                m_featureMenuBar->setFeatureEnabled(m_radioState->attenuatorEnabledB());
+                m_featureMenuBar->setValue(m_radioState->attenuatorLevelB());
+            } else {
                 m_featureMenuBar->setFeatureEnabled(m_radioState->attenuatorEnabled());
                 m_featureMenuBar->setValue(m_radioState->attenuatorLevel());
-                break;
-            case FeatureMenuBar::NbLevel:
+            }
+            break;
+        case FeatureMenuBar::NbLevel:
+            if (bSet) {
+                m_featureMenuBar->setFeatureEnabled(m_radioState->noiseBlankerEnabledB());
+                m_featureMenuBar->setValue(m_radioState->noiseBlankerLevelB());
+                m_featureMenuBar->setNbFilter(m_radioState->noiseBlankerFilterWidthB());
+            } else {
                 m_featureMenuBar->setFeatureEnabled(m_radioState->noiseBlankerEnabled());
                 m_featureMenuBar->setValue(m_radioState->noiseBlankerLevel());
                 m_featureMenuBar->setNbFilter(m_radioState->noiseBlankerFilterWidth());
-                break;
-            case FeatureMenuBar::NrAdjust:
+            }
+            break;
+        case FeatureMenuBar::NrAdjust:
+            if (bSet) {
+                m_featureMenuBar->setFeatureEnabled(m_radioState->noiseReductionEnabledB());
+                m_featureMenuBar->setValue(m_radioState->noiseReductionLevelB());
+            } else {
                 m_featureMenuBar->setFeatureEnabled(m_radioState->noiseReductionEnabled());
                 m_featureMenuBar->setValue(m_radioState->noiseReductionLevel());
-                break;
-            case FeatureMenuBar::ManualNotch:
-                // Notch uses notchChanged signal, not processingChanged
-                break;
             }
-        }
-    });
-    connect(m_radioState, &RadioState::notchChanged, this, [this]() {
-        if (m_featureMenuBar->isMenuVisible() &&
-            m_featureMenuBar->currentFeature() == FeatureMenuBar::ManualNotch) {
+            break;
+        case FeatureMenuBar::ManualNotch:
+            // Manual notch doesn't have separate Sub RX state
             m_featureMenuBar->setFeatureEnabled(m_radioState->manualNotchEnabled());
             m_featureMenuBar->setValue(m_radioState->manualNotchPitch());
+            break;
         }
-    });
+    };
+    // Connect both Main and Sub RX processing changes
+    connect(m_radioState, &RadioState::processingChanged, this, updateFeatureMenuBarState);
+    connect(m_radioState, &RadioState::processingChangedB, this, updateFeatureMenuBarState);
+    connect(m_radioState, &RadioState::notchChanged, this, updateFeatureMenuBarState);
+    // Also update when B SET changes to refresh display with correct VFO's state
+    connect(m_radioState, &RadioState::bSetChanged, this, updateFeatureMenuBarState);
 
     // Bottom Menu Bar
     m_bottomMenuBar = new BottomMenuBar(centralWidget);
@@ -631,22 +710,40 @@ void MainWindow::setupUi() {
             m_featureMenuBar->hideMenu();
         } else {
             m_featureMenuBar->showForFeature(feature);
-            // Populate initial state from RadioState
+            // Populate initial state from RadioState (use Sub RX state if B SET enabled)
+            bool bSet = m_radioState->bSetEnabled();
             switch (feature) {
             case FeatureMenuBar::Attenuator:
-                m_featureMenuBar->setFeatureEnabled(m_radioState->attenuatorEnabled());
-                m_featureMenuBar->setValue(m_radioState->attenuatorLevel());
+                if (bSet) {
+                    m_featureMenuBar->setFeatureEnabled(m_radioState->attenuatorEnabledB());
+                    m_featureMenuBar->setValue(m_radioState->attenuatorLevelB());
+                } else {
+                    m_featureMenuBar->setFeatureEnabled(m_radioState->attenuatorEnabled());
+                    m_featureMenuBar->setValue(m_radioState->attenuatorLevel());
+                }
                 break;
             case FeatureMenuBar::NbLevel:
-                m_featureMenuBar->setFeatureEnabled(m_radioState->noiseBlankerEnabled());
-                m_featureMenuBar->setValue(m_radioState->noiseBlankerLevel());
-                m_featureMenuBar->setNbFilter(m_radioState->noiseBlankerFilterWidth());
+                if (bSet) {
+                    m_featureMenuBar->setFeatureEnabled(m_radioState->noiseBlankerEnabledB());
+                    m_featureMenuBar->setValue(m_radioState->noiseBlankerLevelB());
+                    m_featureMenuBar->setNbFilter(m_radioState->noiseBlankerFilterWidthB());
+                } else {
+                    m_featureMenuBar->setFeatureEnabled(m_radioState->noiseBlankerEnabled());
+                    m_featureMenuBar->setValue(m_radioState->noiseBlankerLevel());
+                    m_featureMenuBar->setNbFilter(m_radioState->noiseBlankerFilterWidth());
+                }
                 break;
             case FeatureMenuBar::NrAdjust:
-                m_featureMenuBar->setFeatureEnabled(m_radioState->noiseReductionEnabled());
-                m_featureMenuBar->setValue(m_radioState->noiseReductionLevel());
+                if (bSet) {
+                    m_featureMenuBar->setFeatureEnabled(m_radioState->noiseReductionEnabledB());
+                    m_featureMenuBar->setValue(m_radioState->noiseReductionLevelB());
+                } else {
+                    m_featureMenuBar->setFeatureEnabled(m_radioState->noiseReductionEnabled());
+                    m_featureMenuBar->setValue(m_radioState->noiseReductionLevel());
+                }
                 break;
             case FeatureMenuBar::ManualNotch:
+                // Manual notch doesn't have separate Sub RX state
                 m_featureMenuBar->setFeatureEnabled(m_radioState->manualNotchEnabled());
                 m_featureMenuBar->setValue(m_radioState->manualNotchPitch());
                 break;
