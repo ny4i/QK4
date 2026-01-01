@@ -153,6 +153,8 @@ private:
     QLabel *m_xitLabel;
     QLabel *m_ritXitValueLabel;
     QLabel *m_atuLabel;
+    QLabel *m_filterALabel; // VFO A filter position (FIL1/FIL2/FIL3)
+    QLabel *m_filterBLabel; // VFO B filter position (FIL1/FIL2/FIL3)
     QLabel *m_voxLabel;
     QLabel *m_qskLabel;
     QLabel *m_testLabel;

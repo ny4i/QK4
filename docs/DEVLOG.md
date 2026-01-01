@@ -2,6 +2,33 @@
 
 ## January 1, 2026
 
+### Feature: Filter Position Indicators (FIL1/FIL2/FIL3)
+
+Added filter position indicators below the A/B VFO squares, horizontally aligned with the RIT/XIT display.
+
+**Layout:**
+- Created `filterRitXitRow` horizontal layout containing:
+  - VFO A filter label (45px container, aligned with A square)
+  - Stretch
+  - RIT/XIT box (centered)
+  - Stretch
+  - VFO B filter label (45px container, aligned with B square)
+
+**Styling:**
+- Color: `#FFD040` (lighter golden yellow, distinct from TX SPLIT amber)
+- Font: 10px bold (matches RIT/XIT labels)
+- Text: "FIL1", "FIL2", or "FIL3" based on filter position
+
+**Signal Connections:**
+- `RadioState::filterPositionChanged` → updates `m_filterALabel`
+- `RadioState::filterPositionBChanged` → updates `m_filterBLabel`
+
+**Files Modified:**
+- `src/mainwindow.h` - Added `m_filterALabel`, `m_filterBLabel` members
+- `src/mainwindow.cpp` - Created filter layout in `setupVfoSection()`, connected signals
+
+---
+
 ### Feature: TX Function Button Wiring and Status Indicators
 
 Wired up the 6 TX function buttons on the left side panel to send CAT commands, with left-click for primary actions and right-click for secondary actions. Added UI indicators for TEST, QSK, and ATU states.

@@ -172,6 +172,12 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_radioState, &RadioState::ritXitChanged, this, &MainWindow::onRitXitChanged);
     connect(m_radioState, &RadioState::messageBankChanged, this, &MainWindow::onMessageBankChanged);
 
+    // Filter position indicators
+    connect(m_radioState, &RadioState::filterPositionChanged, this,
+            [this](int pos) { m_filterALabel->setText(QString("FIL%1").arg(pos)); });
+    connect(m_radioState, &RadioState::filterPositionBChanged, this,
+            [this](int pos) { m_filterBLabel->setText(QString("FIL%1").arg(pos)); });
+
     // RadioState signals -> Processing state updates (AGC, PRE, ATT, NB, NR)
     connect(m_radioState, &RadioState::processingChanged, this, &MainWindow::onProcessingChanged);
     connect(m_radioState, &RadioState::processingChangedB, this, &MainWindow::onProcessingChangedB);
@@ -476,128 +482,54 @@ void MainWindow::setupUi() {
     });
 
     // Connect TX function button signals to CAT commands
-    connect(m_sideControlPanel, &SideControlPanel::tuneClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW16;");
-    });
-    connect(m_sideControlPanel, &SideControlPanel::tuneLpClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW131;");
-    });
-    connect(m_sideControlPanel, &SideControlPanel::xmitClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW30;");
-    });
-    connect(m_sideControlPanel, &SideControlPanel::testClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW132;");
-    });
-    connect(m_sideControlPanel, &SideControlPanel::atuClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW158;");
-    });
-    connect(m_sideControlPanel, &SideControlPanel::atuTuneClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW40;");
-    });
-    connect(m_sideControlPanel, &SideControlPanel::voxClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW50;");
-    });
-    connect(m_sideControlPanel, &SideControlPanel::qskClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW134;");
-    });
-    connect(m_sideControlPanel, &SideControlPanel::antClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW60;");
-    });
+    connect(m_sideControlPanel, &SideControlPanel::tuneClicked, this, [this]() { m_tcpClient->sendCAT("SW16;"); });
+    connect(m_sideControlPanel, &SideControlPanel::tuneLpClicked, this, [this]() { m_tcpClient->sendCAT("SW131;"); });
+    connect(m_sideControlPanel, &SideControlPanel::xmitClicked, this, [this]() { m_tcpClient->sendCAT("SW30;"); });
+    connect(m_sideControlPanel, &SideControlPanel::testClicked, this, [this]() { m_tcpClient->sendCAT("SW132;"); });
+    connect(m_sideControlPanel, &SideControlPanel::atuClicked, this, [this]() { m_tcpClient->sendCAT("SW158;"); });
+    connect(m_sideControlPanel, &SideControlPanel::atuTuneClicked, this, [this]() { m_tcpClient->sendCAT("SW40;"); });
+    connect(m_sideControlPanel, &SideControlPanel::voxClicked, this, [this]() { m_tcpClient->sendCAT("SW50;"); });
+    connect(m_sideControlPanel, &SideControlPanel::qskClicked, this, [this]() { m_tcpClient->sendCAT("SW134;"); });
+    connect(m_sideControlPanel, &SideControlPanel::antClicked, this, [this]() { m_tcpClient->sendCAT("SW60;"); });
     // remAntClicked - not yet implemented (TBD)
-    connect(m_sideControlPanel, &SideControlPanel::rxAntClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW70;");
-    });
-    connect(m_sideControlPanel, &SideControlPanel::subAntClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW157;");
-    });
+    connect(m_sideControlPanel, &SideControlPanel::rxAntClicked, this, [this]() { m_tcpClient->sendCAT("SW70;"); });
+    connect(m_sideControlPanel, &SideControlPanel::subAntClicked, this, [this]() { m_tcpClient->sendCAT("SW157;"); });
 
     // Connect right side panel button signals to CAT commands
     // Primary (left-click) signals
-    connect(m_rightSidePanel, &RightSidePanel::preClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW61;");
-    });
-    connect(m_rightSidePanel, &RightSidePanel::nbClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW32;");
-    });
-    connect(m_rightSidePanel, &RightSidePanel::nrClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW62;");
-    });
-    connect(m_rightSidePanel, &RightSidePanel::ntchClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW31;");
-    });
-    connect(m_rightSidePanel, &RightSidePanel::filClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW33;");
-    });
-    connect(m_rightSidePanel, &RightSidePanel::abClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW41;");
-    });
+    connect(m_rightSidePanel, &RightSidePanel::preClicked, this, [this]() { m_tcpClient->sendCAT("SW61;"); });
+    connect(m_rightSidePanel, &RightSidePanel::nbClicked, this, [this]() { m_tcpClient->sendCAT("SW32;"); });
+    connect(m_rightSidePanel, &RightSidePanel::nrClicked, this, [this]() { m_tcpClient->sendCAT("SW62;"); });
+    connect(m_rightSidePanel, &RightSidePanel::ntchClicked, this, [this]() { m_tcpClient->sendCAT("SW31;"); });
+    connect(m_rightSidePanel, &RightSidePanel::filClicked, this, [this]() { m_tcpClient->sendCAT("SW33;"); });
+    connect(m_rightSidePanel, &RightSidePanel::abClicked, this, [this]() { m_tcpClient->sendCAT("SW41;"); });
     // revClicked - TBD (needs press/release pattern)
-    connect(m_rightSidePanel, &RightSidePanel::atobClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW72;");
-    });
-    connect(m_rightSidePanel, &RightSidePanel::spotClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW42;");
-    });
-    connect(m_rightSidePanel, &RightSidePanel::modeClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW43;");
-    });
+    connect(m_rightSidePanel, &RightSidePanel::atobClicked, this, [this]() { m_tcpClient->sendCAT("SW72;"); });
+    connect(m_rightSidePanel, &RightSidePanel::spotClicked, this, [this]() { m_tcpClient->sendCAT("SW42;"); });
+    connect(m_rightSidePanel, &RightSidePanel::modeClicked, this, [this]() { m_tcpClient->sendCAT("SW43;"); });
 
     // Secondary (right-click) signals
-    connect(m_rightSidePanel, &RightSidePanel::attnClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW141;");
-    });
-    connect(m_rightSidePanel, &RightSidePanel::levelClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW142;");
-    });
-    connect(m_rightSidePanel, &RightSidePanel::adjClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW143;");
-    });
-    connect(m_rightSidePanel, &RightSidePanel::manualClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW140;");
-    });
-    connect(m_rightSidePanel, &RightSidePanel::apfClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW144;");
-    });
-    connect(m_rightSidePanel, &RightSidePanel::splitClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW145;");
-    });
-    connect(m_rightSidePanel, &RightSidePanel::btoaClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW147;");
-    });
-    connect(m_rightSidePanel, &RightSidePanel::autoClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW146;");
-    });
-    connect(m_rightSidePanel, &RightSidePanel::altClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW148;");
-    });
+    connect(m_rightSidePanel, &RightSidePanel::attnClicked, this, [this]() { m_tcpClient->sendCAT("SW141;"); });
+    connect(m_rightSidePanel, &RightSidePanel::levelClicked, this, [this]() { m_tcpClient->sendCAT("SW142;"); });
+    connect(m_rightSidePanel, &RightSidePanel::adjClicked, this, [this]() { m_tcpClient->sendCAT("SW143;"); });
+    connect(m_rightSidePanel, &RightSidePanel::manualClicked, this, [this]() { m_tcpClient->sendCAT("SW140;"); });
+    connect(m_rightSidePanel, &RightSidePanel::apfClicked, this, [this]() { m_tcpClient->sendCAT("SW144;"); });
+    connect(m_rightSidePanel, &RightSidePanel::splitClicked, this, [this]() { m_tcpClient->sendCAT("SW145;"); });
+    connect(m_rightSidePanel, &RightSidePanel::btoaClicked, this, [this]() { m_tcpClient->sendCAT("SW147;"); });
+    connect(m_rightSidePanel, &RightSidePanel::autoClicked, this, [this]() { m_tcpClient->sendCAT("SW146;"); });
+    connect(m_rightSidePanel, &RightSidePanel::altClicked, this, [this]() { m_tcpClient->sendCAT("SW148;"); });
 
     // PF row primary (left-click) signals
-    connect(m_rightSidePanel, &RightSidePanel::bsetClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW44;");
-    });
-    connect(m_rightSidePanel, &RightSidePanel::clrClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW64;");
-    });
-    connect(m_rightSidePanel, &RightSidePanel::ritClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW54;");
-    });
-    connect(m_rightSidePanel, &RightSidePanel::xitClicked, this, [this]() {
-        m_tcpClient->sendCAT("SW74;");
-    });
+    connect(m_rightSidePanel, &RightSidePanel::bsetClicked, this, [this]() { m_tcpClient->sendCAT("SW44;"); });
+    connect(m_rightSidePanel, &RightSidePanel::clrClicked, this, [this]() { m_tcpClient->sendCAT("SW64;"); });
+    connect(m_rightSidePanel, &RightSidePanel::ritClicked, this, [this]() { m_tcpClient->sendCAT("SW54;"); });
+    connect(m_rightSidePanel, &RightSidePanel::xitClicked, this, [this]() { m_tcpClient->sendCAT("SW74;"); });
 
     // PF row secondary (right-click) signals
-    connect(m_rightSidePanel, &RightSidePanel::pf1Clicked, this, [this]() {
-        m_tcpClient->sendCAT("SW153;");
-    });
-    connect(m_rightSidePanel, &RightSidePanel::pf2Clicked, this, [this]() {
-        m_tcpClient->sendCAT("SW154;");
-    });
-    connect(m_rightSidePanel, &RightSidePanel::pf3Clicked, this, [this]() {
-        m_tcpClient->sendCAT("SW155;");
-    });
-    connect(m_rightSidePanel, &RightSidePanel::pf4Clicked, this, [this]() {
-        m_tcpClient->sendCAT("SW156;");
-    });
+    connect(m_rightSidePanel, &RightSidePanel::pf1Clicked, this, [this]() { m_tcpClient->sendCAT("SW153;"); });
+    connect(m_rightSidePanel, &RightSidePanel::pf2Clicked, this, [this]() { m_tcpClient->sendCAT("SW154;"); });
+    connect(m_rightSidePanel, &RightSidePanel::pf3Clicked, this, [this]() { m_tcpClient->sendCAT("SW155;"); });
+    connect(m_rightSidePanel, &RightSidePanel::pf4Clicked, this, [this]() { m_tcpClient->sendCAT("SW156;"); });
 
     // Connect bottom menu bar signals
     connect(m_bottomMenuBar, &BottomMenuBar::menuClicked, this, &MainWindow::showMenuOverlay);
@@ -861,7 +793,46 @@ void MainWindow::setupVfoSection(QWidget *parent) {
         QString("color: %1; font-size: 14px; font-weight: bold; border: none;").arg(K4Colors::TextWhite));
     ritXitLayout->addWidget(m_ritXitValueLabel);
 
-    centerLayout->addWidget(m_ritXitBox, 0, Qt::AlignHCenter);
+    // Create filter/RIT/XIT row - filter indicators flanking the RIT/XIT box
+    auto *filterRitXitRow = new QHBoxLayout();
+    filterRitXitRow->setContentsMargins(0, 0, 0, 0);
+    filterRitXitRow->setSpacing(0);
+
+    // VFO A filter indicator (left side, 45px to match A square above)
+    auto *filterAContainer = new QWidget(centerWidget);
+    filterAContainer->setFixedWidth(45);
+    auto *filterALayout = new QVBoxLayout(filterAContainer);
+    filterALayout->setContentsMargins(0, 0, 0, 0);
+    filterALayout->setSpacing(0);
+
+    m_filterALabel = new QLabel("FIL2", filterAContainer);
+    m_filterALabel->setAlignment(Qt::AlignCenter);
+    m_filterALabel->setStyleSheet("color: #FFD040; font-size: 10px; font-weight: bold;");
+    filterALayout->addWidget(m_filterALabel);
+
+    filterRitXitRow->addWidget(filterAContainer);
+    filterRitXitRow->addStretch();
+
+    // RIT/XIT box (centered)
+    filterRitXitRow->addWidget(m_ritXitBox);
+
+    filterRitXitRow->addStretch();
+
+    // VFO B filter indicator (right side, 45px to match B square above)
+    auto *filterBContainer = new QWidget(centerWidget);
+    filterBContainer->setFixedWidth(45);
+    auto *filterBLayout = new QVBoxLayout(filterBContainer);
+    filterBLayout->setContentsMargins(0, 0, 0, 0);
+    filterBLayout->setSpacing(0);
+
+    m_filterBLabel = new QLabel("FIL2", filterBContainer);
+    m_filterBLabel->setAlignment(Qt::AlignCenter);
+    m_filterBLabel->setStyleSheet("color: #FFD040; font-size: 10px; font-weight: bold;");
+    filterBLayout->addWidget(m_filterBLabel);
+
+    filterRitXitRow->addWidget(filterBContainer);
+
+    centerLayout->addLayout(filterRitXitRow);
 
     // ATU indicator (orange, visible when AT=2/AUTO)
     m_atuLabel = new QLabel("ATU", centerWidget);

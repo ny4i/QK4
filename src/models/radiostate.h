@@ -232,8 +232,8 @@ signals:
     void modeBChanged(Mode mode);
     void filterBandwidthChanged(int bw);
     void filterBandwidthBChanged(int bw);
-    void filterPositionChanged(int position);   // Filter position VFO A (1-3)
-    void filterPositionBChanged(int position);  // Filter position VFO B (1-3)
+    void filterPositionChanged(int position);  // Filter position VFO A (1-3)
+    void filterPositionBChanged(int position); // Filter position VFO B (1-3)
     void ifShiftChanged(int shiftHz);
     void cwPitchChanged(int pitchHz);
     void sMeterChanged(double value);

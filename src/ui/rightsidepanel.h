@@ -62,9 +62,9 @@ signals:
     void apfClicked();    // FIL right-click
     void splitClicked();  // A/B right-click
     // REV right-click - TBD
-    void btoaClicked();   // A→B right-click
-    void autoClicked();   // SPOT right-click
-    void altClicked();    // MODE right-click
+    void btoaClicked(); // A→B right-click
+    void autoClicked(); // SPOT right-click
+    void altClicked();  // MODE right-click
 
     // PF row signals (left click)
     void bsetClicked();
