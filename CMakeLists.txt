@@ -7,7 +7,28 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network Multimedia ShaderTools Gui GuiPrivate)
+# Core Qt components (GuiPrivate handled separately for cross-platform compatibility)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network Multimedia ShaderTools Gui)
+
+# GuiPrivate is needed for QRhi access but may not have CMake config on all platforms
+if(APPLE)
+    # macOS Homebrew Qt includes GuiPrivate CMake config
+    find_package(Qt6 REQUIRED COMPONENTS GuiPrivate)
+    set(QT_GUI_PRIVATE_FOUND TRUE)
+elseif(WIN32)
+    # Windows aqtinstall binary packages may not include GuiPrivate CMake config
+    # Try to find it, but fall back to manual include paths if not found
+    find_package(Qt6 COMPONENTS GuiPrivate QUIET)
+    if(Qt6GuiPrivate_FOUND)
+        set(QT_GUI_PRIVATE_FOUND TRUE)
+    else()
+        message(STATUS "Qt6GuiPrivate CMake config not found, using manual include paths")
+        set(QT_GUI_PRIVATE_FOUND FALSE)
+    endif()
+else()
+    find_package(Qt6 REQUIRED COMPONENTS GuiPrivate)
+    set(QT_GUI_PRIVATE_FOUND TRUE)
+endif()
 
 # Platform-specific dependency handling
 if(APPLE)
@@ -113,10 +134,14 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Network
     Qt6::Multimedia
     Qt6::Gui
-    Qt6::GuiPrivate
     ${OPUS_LIBRARIES}
     ${HIDAPI_LIBRARIES}
 )
+
+# Link GuiPrivate if found via CMake, otherwise private headers are included manually
+if(QT_GUI_PRIVATE_FOUND)
+    target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::GuiPrivate)
+endif()
 
 # Compile shaders for QRhi (Metal/DirectX/Vulkan/OpenGL)
 qt6_add_shaders(${PROJECT_NAME} "panadapter_shaders"

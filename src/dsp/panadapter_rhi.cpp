@@ -686,9 +686,9 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
                 highFreq = m_tunedFreq + m_filterBw / 2;
             }
 
-            // Convert to pixel coordinates
-            float x1 = freqToNormalized(lowFreq) * w;
-            float x2 = freqToNormalized(highFreq) * w;
+            // Convert to pixel coordinates (w-1 for consistent coordinate mapping)
+            float x1 = freqToNormalized(lowFreq) * (w - 1);
+            float x2 = freqToNormalized(highFreq) * (w - 1);
 
             // Clamp to visible area
             x1 = qBound(0.0f, x1, w);
@@ -736,7 +736,7 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
             } else if (m_mode == "CW-R") {
                 markerFreq = m_tunedFreq - m_cwPitch;
             }
-            float markerX = freqToNormalized(markerFreq) * w;
+            float markerX = freqToNormalized(markerFreq) * (w - 1);
             if (markerX >= 0 && markerX <= w) {
                 QVector<float> markerVerts = {markerX, 0.0f, markerX, spectrumHeight};
 
@@ -776,7 +776,7 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
                     notchFreq = m_tunedFreq + m_notchPitchHz;
                 }
 
-                float notchX = freqToNormalized(notchFreq) * w;
+                float notchX = freqToNormalized(notchFreq) * (w - 1);
                 if (notchX >= 0 && notchX <= w) {
                     QVector<float> notchVerts = {notchX, 0.0f, notchX, spectrumHeight};
 
@@ -896,13 +896,23 @@ float PanadapterRhiWidget::normalizeDb(float db) {
 }
 
 float PanadapterRhiWidget::freqToNormalized(qint64 freq) {
+    // Map frequency to normalized range [0.0, 1.0] where:
+    // - 0.0 = left edge (startFreq)
+    // - 1.0 = right edge (startFreq + spanHz)
     qint64 startFreq = m_centerFreq - m_spanHz / 2;
-    return static_cast<float>(freq - startFreq) / m_spanHz;
+    return static_cast<float>(freq - startFreq) / static_cast<float>(m_spanHz);
 }
 
 qint64 PanadapterRhiWidget::xToFreq(int x, int w) {
+    // Map pixel position to frequency:
+    // - x=0 → startFreq (left edge)
+    // - x=w-1 → startFreq + spanHz (right edge)
+    // Use floating point for precision to avoid integer truncation errors
+    if (w <= 1)
+        return m_centerFreq;
     qint64 startFreq = m_centerFreq - m_spanHz / 2;
-    return startFreq + (static_cast<qint64>(x) * m_spanHz) / w;
+    double normalized = static_cast<double>(x) / static_cast<double>(w - 1);
+    return startFreq + static_cast<qint64>(normalized * m_spanHz);
 }
 
 QColor PanadapterRhiWidget::interpolateColor(const QColor &a, const QColor &b, float t) {
