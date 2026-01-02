@@ -99,6 +99,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Button faces now update immediately after scroll wheel changes
 - BW command format corrected (now sends value/10 as K4 expects)
 - PC command format corrected (uses PCnnnL for QRP, PCnnnH for QRO mode)
+- RF Gain command format corrected (RG-nn; and RG$-nn; with minus sign, range 0-60)
+- RF Gain button faces now display with minus sign (e.g., "-0", "-30")
+- Power button face shows decimals for QRP mode (≤10W: "9.9"), whole numbers for QRO (>10W: "50")
+- Power transitions smoothly between QRP (0.1W steps) and QRO (1W steps) at 10W threshold
 
 ---
 

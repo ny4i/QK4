@@ -199,7 +199,7 @@ MainWindow::MainWindow(QWidget *parent)
         m_sideControlPanel->setPitch(pitch / 1000.0); // Hz to kHz (500Hz = 0.50)
     });
     connect(m_radioState, &RadioState::rfPowerChanged, this,
-            [this](double watts, bool) { m_sideControlPanel->setPower(static_cast<int>(watts)); });
+            [this](double watts, bool) { m_sideControlPanel->setPower(watts); });
     connect(m_radioState, &RadioState::qskDelayChanged, this, [this](int delay) {
         m_sideControlPanel->setDelay(delay / 100.0); // 10ms units to seconds (20 -> 0.20)
     });
@@ -776,21 +776,39 @@ void MainWindow::setupUi() {
         m_radioState->setCompression(newComp);
     });
     // Group 1: PWR/DLY
-    // PC command uses PCnnnr; format: L=QRP (0.1-10W), H=QRO (1-110W), X=mW
+    // PC command uses PCnnnr; format: L=QRP (0.1-10W), H=QRO (11-110W)
+    // QRP (≤10W): 0.1W increments, e.g., 10.0, 9.9, 9.8, ... 0.1
+    // QRO (>10W): 1W increments, e.g., 11, 12, 13, ... 110
     connect(m_sideControlPanel, &SideControlPanel::powerChanged, this, [this](int delta) {
         double currentPower = m_radioState->rfPower();
-        bool isQrp = m_radioState->isQrpMode();
         double newPower;
-        if (isQrp) {
-            // QRP: 0.1W increments, range 0.1-10.0W
-            newPower = qBound(0.1, currentPower + (delta * 0.1), 10.0);
-            int powerVal = static_cast<int>(newPower * 10); // 5.0W = 050
-            m_tcpClient->sendCAT(QString("PC%1L;").arg(powerVal, 3, 10, QChar('0')));
+
+        if (currentPower <= 10.0) {
+            // Currently in QRP range: 0.1W increments
+            newPower = currentPower + (delta * 0.1);
+            if (newPower > 10.0) {
+                // Transition to QRO at 11W
+                newPower = 11.0;
+                int powerVal = static_cast<int>(newPower);
+                m_tcpClient->sendCAT(QString("PC%1H;").arg(powerVal, 3, 10, QChar('0')));
+            } else {
+                newPower = qBound(0.1, newPower, 10.0);
+                int powerVal = static_cast<int>(qRound(newPower * 10)); // 9.9W = 099
+                m_tcpClient->sendCAT(QString("PC%1L;").arg(powerVal, 3, 10, QChar('0')));
+            }
         } else {
-            // QRO: 1W increments, range 1-110W
-            newPower = qBound(1.0, currentPower + delta, 110.0);
-            int powerVal = static_cast<int>(newPower); // 50W = 050
-            m_tcpClient->sendCAT(QString("PC%1H;").arg(powerVal, 3, 10, QChar('0')));
+            // Currently in QRO range: 1W increments
+            newPower = currentPower + delta;
+            if (newPower <= 10.0) {
+                // Transition to QRP at 10.0W
+                newPower = 10.0;
+                int powerVal = static_cast<int>(qRound(newPower * 10)); // 10.0W = 100
+                m_tcpClient->sendCAT(QString("PC%1L;").arg(powerVal, 3, 10, QChar('0')));
+            } else {
+                newPower = qBound(11.0, newPower, 110.0);
+                int powerVal = static_cast<int>(newPower);
+                m_tcpClient->sendCAT(QString("PC%1H;").arg(powerVal, 3, 10, QChar('0')));
+            }
         }
         m_radioState->setRfPower(newPower);
     });
@@ -831,9 +849,11 @@ void MainWindow::setupUi() {
         m_radioState->setIfShift(newShift);
     });
     // Group 3: M.RF/M.SQL and S.RF/S.SQL
+    // RF Gain uses RG-nn; format where nn is 00-60 (representing -0 to -60 dB attenuation)
+    // Scroll up = less attenuation = decrease value, scroll down = more attenuation = increase value
     connect(m_sideControlPanel, &SideControlPanel::mainRfGainChanged, this, [this](int delta) {
-        int newGain = qBound(0, m_radioState->rfGain() + delta, 100);
-        m_tcpClient->sendCAT(QString("RG%1;").arg(newGain, 3, 10, QChar('0')));
+        int newGain = qBound(0, m_radioState->rfGain() - delta, 60);
+        m_tcpClient->sendCAT(QString("RG-%1;").arg(newGain, 2, 10, QChar('0')));
         m_radioState->setRfGain(newGain);
     });
     connect(m_sideControlPanel, &SideControlPanel::mainSquelchChanged, this, [this](int delta) {
@@ -842,8 +862,8 @@ void MainWindow::setupUi() {
         m_radioState->setSquelchLevel(newSql);
     });
     connect(m_sideControlPanel, &SideControlPanel::subRfGainChanged, this, [this](int delta) {
-        int newGain = qBound(0, m_radioState->rfGainB() + delta, 100);
-        m_tcpClient->sendCAT(QString("RG$%1;").arg(newGain, 3, 10, QChar('0')));
+        int newGain = qBound(0, m_radioState->rfGainB() - delta, 60);
+        m_tcpClient->sendCAT(QString("RG$-%1;").arg(newGain, 2, 10, QChar('0')));
         m_radioState->setRfGainB(newGain);
     });
     connect(m_sideControlPanel, &SideControlPanel::subSquelchChanged, this, [this](int delta) {

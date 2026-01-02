@@ -40,7 +40,7 @@ public:
     // Voice mode values
     void setMicGain(int gain);     // 0-80
     void setCompression(int comp); // 0-30
-    void setPower(int power);
+    void setPower(double power);
     void setDelay(double delay);
     void setBandwidth(double bw);
     void setHighCut(double hi); // kHz

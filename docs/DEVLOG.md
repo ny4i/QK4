@@ -2,6 +2,27 @@
 
 ## January 1, 2026
 
+### Fix: RF Gain and Power Command Formats
+
+**RF Gain (Main & Sub):**
+- Fixed command format to `RG-nn;` and `RG$-nn;` (with minus sign)
+- Range corrected to 0-60 (was incorrectly 0-100)
+- Button faces now display with minus sign (e.g., "-0", "-30", "-60")
+- Scroll direction: up = less attenuation, down = more attenuation
+
+**Power (QRP/QRO Modes):**
+- QRP (≤10W): Uses 0.1W increments with `PCnnnL;` format
+- QRO (>10W): Uses 1W increments with `PCnnnH;` format
+- Smooth transitions: 10.0W ↔ 11W when crossing threshold
+- Button face shows decimals for QRP ("9.9"), whole numbers for QRO ("50")
+
+**Files Modified:**
+- `src/mainwindow.cpp` - Fixed RG/RG$ format, power mode transitions
+- `src/ui/sidecontrolpanel.h` - Changed `setPower(int)` to `setPower(double)`
+- `src/ui/sidecontrolpanel.cpp` - RF gain displays minus sign, power shows decimals for QRP
+
+---
+
 ### Fix: Scroll Values Continue Changing and Button Faces Update
 
 **Problem:** When scrolling DualControlButtons, values would only change once then stop. Button faces didn't update to show new values.

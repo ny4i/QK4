@@ -405,11 +405,13 @@ void SideControlPanel::setCompression(int comp) {
     }
 }
 
-void SideControlPanel::setPower(int power) {
+void SideControlPanel::setPower(double power) {
+    // Show decimal for QRP (≤10W), whole number for QRO (>10W)
+    QString powerStr = (power <= 10.0) ? QString::number(power, 'f', 1) : QString::number(static_cast<int>(power));
     if (m_pwrIsPrimary) {
-        m_pwrBtn->setPrimaryValue(QString::number(power));
+        m_pwrBtn->setPrimaryValue(powerStr);
     } else {
-        m_pwrBtn->setAlternateValue(QString::number(power));
+        m_pwrBtn->setAlternateValue(powerStr);
     }
 }
 
@@ -459,10 +461,11 @@ void SideControlPanel::setLowCut(double lo) {
 }
 
 void SideControlPanel::setMainRfGain(int gain) {
+    QString value = QString("-%1").arg(gain);
     if (m_mainRfIsPrimary) {
-        m_mainRfBtn->setPrimaryValue(QString::number(gain));
+        m_mainRfBtn->setPrimaryValue(value);
     } else {
-        m_mainRfBtn->setAlternateValue(QString::number(gain));
+        m_mainRfBtn->setAlternateValue(value);
     }
 }
 
@@ -483,10 +486,11 @@ void SideControlPanel::setSubSquelch(int sql) {
 }
 
 void SideControlPanel::setSubRfGain(int gain) {
+    QString value = QString("-%1").arg(gain);
     if (!m_subSqlIsPrimary) {
-        m_subSqlBtn->setPrimaryValue(QString::number(gain));
+        m_subSqlBtn->setPrimaryValue(value);
     } else {
-        m_subSqlBtn->setAlternateValue(QString::number(gain));
+        m_subSqlBtn->setAlternateValue(value);
     }
 }
 
