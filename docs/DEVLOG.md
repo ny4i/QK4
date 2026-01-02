@@ -1,5 +1,143 @@
 # K4Controller Development Log
 
+## January 2, 2026
+
+### Major: OpenGL to Metal/RHI Migration for Panadapter Overlays
+
+**Summary:** Migrated PanadapterRhiWidget overlay rendering (grid, passband, frequency marker) to properly work with Qt RHI Metal backend. This required significant changes to buffer management to avoid GPU conflicts.
+
+**Problem:** After the initial Metal migration, overlay elements (grid, passband, marker) were rendering incorrectly:
+- Grid turning blue instead of gray
+- Passband rendering as opaque triangles instead of translucent rectangles
+- VFO B passband fully opaque green instead of translucent
+- Overlays extending into waterfall area instead of only spectrum area
+- CW mode passband/marker not positioned at CW pitch offset
+
+**Root Cause:** Multiple overlay draw calls were sharing the same GPU buffers (`m_overlayVbo`, `m_overlayUniformBuffer`), causing corruption when data from one draw was overwritten before the GPU consumed it.
+
+**Solution:** Created separate RHI buffers and shader resource bindings for each overlay element:
+- `m_passbandVbo`, `m_passbandUniformBuffer`, `m_passbandSrb` - Filter passband quad
+- `m_markerVbo`, `m_markerUniformBuffer`, `m_markerSrb` - Frequency marker line
+
+**Additional Fixes:**
+1. **Passband height**: Changed from full widget height `h` to `spectrumHeight` so passband only appears in spectrum area
+2. **VFO B translucency**: Fixed color from `QColor(0, 200, 0)` to `QColor(0, 200, 0, 64)` for proper alpha
+3. **Marker height**: Changed to `spectrumHeight` to not extend into waterfall
+4. **CW mode positioning**: Added pitch offset to marker frequency calculation:
+   ```cpp
+   qint64 markerFreq = m_tunedFreq;
+   if (m_mode == "CW") {
+       markerFreq = m_tunedFreq + m_cwPitch;
+   } else if (m_mode == "CW-R") {
+       markerFreq = m_tunedFreq - m_cwPitch;
+   }
+   ```
+
+**Missing VFO B Connections:** Added 6 missing signal connections for VFO B panadapters:
+- `ifShiftBChanged` → `setIfShift` (main panadapter B)
+- `cwPitchChanged` → `setCwPitch` (main panadapter B)
+- `notchChanged` → `setNotchFilter` (main panadapter B)
+- Same three connections for mini-pan B
+
+**Files Modified:**
+- `src/dsp/panadapter_rhi.h` - Added separate buffer/SRB members for passband and marker
+- `src/dsp/panadapter_rhi.cpp` - Buffer creation, SRB creation, height fixes, CW pitch offset
+- `src/mainwindow.cpp` - VFO B passband color alpha, 6 missing VFO B connections
+
+**Known Bug - Notch Filter Indicator:**
+The notch filter indicator (red vertical line) was attempted but renders incorrectly - it creates the "entire grid in red" instead of a single vertical line. The code reuses `m_overlayVbo`/`m_overlayUniformBuffer` after other draws complete, but something is still causing the corruption. Needs dedicated buffers like passband/marker.
+
+**Status:** Passband, marker, grid all working correctly. Notch indicator is a known bug requiring further investigation.
+
+---
+
+### Fix: QRhiWidget Metal Initialization (Qt 6.10.1 + macOS Tahoe)
+
+**Problem:** Panadapter displayed black screen with two distinct failure modes:
+1. "QRhiWidget: No QRhi" - initialize() never called
+2. "QMetalSwapChain only supports MetalSurface windows" - crash after initialize()
+
+**Root Cause:** Two Qt 6.10.1 bugs on macOS Tahoe 26.2:
+
+1. **menuBar() Order**: Calling `menuBar()` before creating QRhiWidget prevents the RHI backing store from being set up correctly on the top-level window.
+
+2. **WA_NativeWindow Attribute**: Setting `Qt::WA_NativeWindow` forces native window creation before QRhiWidget can configure it for MetalSurface, causing a swapchain crash.
+
+**Fix 1 - menuBar Order** (already applied):
+```cpp
+// In MainWindow constructor:
+// IMPORTANT: setupUi() MUST be called BEFORE setupMenuBar()!
+setupUi();      // Creates QRhiWidgets first
+setupMenuBar(); // Menu bar after - no interference
+```
+
+**Fix 2 - Remove WA_NativeWindow**:
+```cpp
+// REMOVED from setupUi():
+// setAttribute(Qt::WA_NativeWindow, true);  // Causes Metal swapchain crash
+```
+
+Added explanatory comments in code to prevent regression.
+
+**Files Modified:**
+- `src/mainwindow.cpp` - Swapped setupUi/setupMenuBar order, removed WA_NativeWindow
+
+**Test Files Created (for reproduction):**
+- `test_with_menubar.cpp` - Proves menuBar-first fails
+- `test_menubar_after.cpp` - Proves panadapter-first works
+- `test_minimal_mainwindow.cpp` - Proves WA_NativeWindow causes crash
+
+**Result:** All 4 QRhiWidgets (PanadapterA, PanadapterB, MiniPanA, MiniPanB) now initialize with Metal backend on macOS.
+
+---
+
+### Enhancement: Panadapter Raw Data, Alignment Fix, UI Restoration
+
+**Changes:**
+
+1. **Removed EMA Smoothing** - Spectrum and waterfall now display raw K4 data without client-side smoothing. This allows testing whether the K4 server sends already-averaged data or raw data that clients must process.
+
+2. **Fixed Frequency Alignment (~25Hz offset)** - Integer division truncation in bin extraction caused asymmetric extraction when `(totalBins - requestedBins)` was odd. Changed from truncating to rounding:
+   ```cpp
+   // Before: int centerStart = (totalBins - requestedBins) / 2;
+   // After:  int centerStart = (totalBins - requestedBins + 1) / 2;
+   ```
+
+3. **Restored UI Elements (lost in OpenGL conversion)**:
+   - Reference level display in upper left ("REF: -10 dBm")
+   - Gradient background (light center → dark edges) in spectrum area
+   - Frequency indicators on waterfall: lower (left), center, upper (right) frequencies
+
+**Files Modified:**
+- `src/dsp/panadapter.cpp` - Removed smoothing, fixed alignment, added UI overlays
+- `src/dsp/minipanwidget.cpp` - Removed smoothing
+
+---
+
+### Fix: B SET Filter Targeting
+
+**Problem:** When B SET was enabled, adjusting BW/SHFT/HI/LO controls via scroll wheel still targeted VFO A instead of VFO B.
+
+**Root Cause:** The filter control handlers in `mainwindow.cpp` did not check `bSetEnabled()` state. They always:
+1. Read VFO A values (`filterBandwidth()`, `ifShift()`)
+2. Sent VFO A CAT commands (`BW`, `IS`)
+3. Updated VFO A state optimistically
+
+**Fix:**
+- Added `setFilterBandwidthB()` and `setIfShiftB()` optimistic setters to RadioState
+- Updated all 4 filter handlers (bandwidthChanged, highCutChanged, shiftChanged, lowCutChanged) to:
+  - Check `bSetEnabled()` state
+  - Use VFO B getters when B SET is active
+  - Send VFO B commands with `$` suffix (`BW$`, `IS$`) when B SET is active
+  - Update VFO B state optimistically when B SET is active
+
+**Files Modified:**
+- `src/models/radiostate.h` - Added `setFilterBandwidthB()`, `setIfShiftB()` declarations
+- `src/models/radiostate.cpp` - Added setter implementations
+- `src/mainwindow.cpp` - Updated filter control handlers (lines 823-872)
+
+---
+
 ## January 1, 2026
 
 ### Fix: RF Gain and Power Command Formats
@@ -1758,4 +1896,4 @@ Wire up tap/hold actions for each button to send CAT commands:
 
 ---
 
-*Last updated: December 29, 2025*
+*Last updated: January 2, 2026*

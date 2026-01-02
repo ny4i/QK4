@@ -58,6 +58,8 @@ public:
     void setRfPower(double watts);
     void setFilterBandwidth(int bwHz);
     void setIfShift(int shift);
+    void setFilterBandwidthB(int bwHz);
+    void setIfShiftB(int shift);
     void setRfGain(int gain);
     void setSquelchLevel(int level);
     void setRfGainB(int gain);

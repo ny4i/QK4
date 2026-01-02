@@ -14,7 +14,7 @@
 #include "models/radiostate.h"
 #include "ui/vfowidget.h"
 
-class PanadapterWidget;
+class PanadapterRhiWidget;
 class AudioEngine;
 class OpusDecoder;
 class SideControlPanel;
@@ -44,6 +44,7 @@ public:
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
+    void showEvent(QShowEvent *event) override;
 
 private slots:
     void onConnectClicked();
@@ -168,9 +169,9 @@ private:
     QLabel *m_testLabel;
     QLabel *m_txAntennaLabel;
 
-    // Spectrum/Waterfall displays
-    PanadapterWidget *m_panadapterA; // VFO A (Main RX)
-    PanadapterWidget *m_panadapterB; // VFO B (Sub RX) - for future use
+    // Spectrum/Waterfall displays (QRhiWidget - Metal/DirectX/Vulkan)
+    PanadapterRhiWidget *m_panadapterA; // VFO A (Main RX)
+    PanadapterRhiWidget *m_panadapterB; // VFO B (Sub RX) - for future use
     QWidget *m_spectrumContainer;
 
     // Span control buttons (overlay on panadapter A)

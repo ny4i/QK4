@@ -1,6 +1,6 @@
 #include "vfowidget.h"
 #include "smeterwidget.h"
-#include "../dsp/minipanwidget.h"
+#include "../dsp/minipan_rhi.h"
 #include <QMouseEvent>
 
 // K4 Color constants
@@ -120,12 +120,12 @@ void VFOWidget::setupUi() {
 
     m_stackedWidget->addWidget(m_normalContent); // Index 0
 
-    // Page 1: Mini-Pan widget
-    m_miniPan = new MiniPanWidget(m_stackedWidget);
-    m_stackedWidget->addWidget(m_miniPan); // Index 1
-
-    // Connect mini-pan click to show normal view
-    connect(m_miniPan, &MiniPanWidget::clicked, this, &VFOWidget::showNormal);
+    // Page 1: Placeholder for Mini-Pan widget
+    // IMPORTANT: MiniPan is created lazily in showMiniPan() to avoid
+    // breaking QRhiWidget initialization for other widgets.
+    // Having a non-visible QRhiWidget in a QStackedWidget prevents
+    // ALL QRhiWidgets in the window from initializing properly.
+    m_miniPan = nullptr; // Will be created on first showMiniPan() call
 
     // Wrap stacked widget in HBox for edge alignment
     // VFO A: left-aligned (stretch on right)
@@ -203,11 +203,82 @@ void VFOWidget::setNotch(bool autoEnabled, bool manualEnabled) {
 }
 
 void VFOWidget::updateMiniPan(const QByteArray &data) {
-    m_miniPan->updateSpectrum(data);
+    // Only update if mini-pan exists and is visible
+    if (m_miniPan && m_stackedWidget->currentIndex() == 1) {
+        m_miniPan->updateSpectrum(data);
+    }
 }
 
 void VFOWidget::showMiniPan() {
+    // Lazily create MiniPan on first show
+    // This avoids breaking QRhiWidget initialization - see note in setupUi()
+    if (!m_miniPan) {
+        m_miniPan = new MiniPanRhiWidget(m_stackedWidget);
+        m_stackedWidget->addWidget(m_miniPan); // Index 1
+
+        // Apply pending configuration
+        if (m_pendingSpectrumColor.isValid()) {
+            m_miniPan->setSpectrumColor(m_pendingSpectrumColor);
+        } else {
+            // Default color based on VFO type
+            m_miniPan->setSpectrumColor(
+                QColor(m_type == VFO_A ? K4Colors::VfoAAmber : "#00FF00"));
+        }
+        if (m_pendingPassbandColor.isValid()) {
+            m_miniPan->setPassbandColor(m_pendingPassbandColor);
+        }
+        if (!m_pendingMode.isEmpty()) {
+            m_miniPan->setMode(m_pendingMode);
+        }
+        m_miniPan->setFilterBandwidth(m_pendingFilterBw);
+        m_miniPan->setIfShift(m_pendingIfShift);
+        m_miniPan->setCwPitch(m_pendingCwPitch);
+        m_miniPan->setNotchFilter(m_pendingNotchEnabled, m_pendingNotchPitchHz);
+
+        // Connect mini-pan click to show normal view and emit signal
+        connect(m_miniPan, &MiniPanRhiWidget::clicked, this, [this]() {
+            showNormal();
+            emit miniPanClicked();
+        });
+    }
     m_stackedWidget->setCurrentIndex(1);
+}
+
+// Mini-pan configuration methods - store pending or apply immediately
+void VFOWidget::setMiniPanMode(const QString &mode) {
+    m_pendingMode = mode;
+    if (m_miniPan) m_miniPan->setMode(mode);
+}
+
+void VFOWidget::setMiniPanFilterBandwidth(int bw) {
+    m_pendingFilterBw = bw;
+    if (m_miniPan) m_miniPan->setFilterBandwidth(bw);
+}
+
+void VFOWidget::setMiniPanIfShift(int shift) {
+    m_pendingIfShift = shift;
+    if (m_miniPan) m_miniPan->setIfShift(shift);
+}
+
+void VFOWidget::setMiniPanCwPitch(int pitch) {
+    m_pendingCwPitch = pitch;
+    if (m_miniPan) m_miniPan->setCwPitch(pitch);
+}
+
+void VFOWidget::setMiniPanNotchFilter(bool enabled, int pitchHz) {
+    m_pendingNotchEnabled = enabled;
+    m_pendingNotchPitchHz = pitchHz;
+    if (m_miniPan) m_miniPan->setNotchFilter(enabled, pitchHz);
+}
+
+void VFOWidget::setMiniPanSpectrumColor(const QColor &color) {
+    m_pendingSpectrumColor = color;
+    if (m_miniPan) m_miniPan->setSpectrumColor(color);
+}
+
+void VFOWidget::setMiniPanPassbandColor(const QColor &color) {
+    m_pendingPassbandColor = color;
+    if (m_miniPan) m_miniPan->setPassbandColor(color);
 }
 
 void VFOWidget::showNormal() {

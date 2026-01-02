@@ -461,7 +461,7 @@ void SideControlPanel::setLowCut(double lo) {
 }
 
 void SideControlPanel::setMainRfGain(int gain) {
-    QString value = QString("-%1").arg(gain);
+    QString value = gain > 0 ? QString("-%1").arg(gain) : "0";
     if (m_mainRfIsPrimary) {
         m_mainRfBtn->setPrimaryValue(value);
     } else {
@@ -486,7 +486,7 @@ void SideControlPanel::setSubSquelch(int sql) {
 }
 
 void SideControlPanel::setSubRfGain(int gain) {
-    QString value = QString("-%1").arg(gain);
+    QString value = gain > 0 ? QString("-%1").arg(gain) : "0";
     if (!m_subSqlIsPrimary) {
         m_subSqlBtn->setPrimaryValue(value);
     } else {

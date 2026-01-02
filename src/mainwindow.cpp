@@ -10,8 +10,8 @@
 #include "ui/buttonrowpopup.h"
 #include "ui/optionsdialog.h"
 #include "models/menumodel.h"
-#include "dsp/panadapter.h"
-#include "dsp/minipanwidget.h"
+#include "dsp/panadapter_rhi.h"
+#include "dsp/minipan_rhi.h"
 #include "audio/audioengine.h"
 #include "audio/opusdecoder.h"
 #include "hardware/kpoddevice.h"
@@ -29,6 +29,7 @@
 #include <QEvent>
 #include <QResizeEvent>
 #include <QMouseEvent>
+#include <QShowEvent>
 
 // K4 Color scheme
 namespace K4Colors {
@@ -51,8 +52,13 @@ MainWindow::MainWindow(QWidget *parent)
       m_menuModel(new MenuModel(this)), m_menuOverlay(nullptr) {
     // Initialize Opus decoder (K4 sends 12kHz stereo: left=Main, right=Sub)
     m_opusDecoder->initialize(12000, 2);
-    setupMenuBar();
+
+    // IMPORTANT: setupUi() MUST be called BEFORE setupMenuBar()!
+    // Qt 6.10.1 bug on macOS Tahoe: calling menuBar() before creating QRhiWidget
+    // prevents the RHI backing store from being set up correctly, causing
+    // "QRhiWidget: No QRhi" errors and blank panadapter display.
     setupUi();
+    setupMenuBar();
 
     // Menu items are populated from MEDF responses in onCatResponse()
     // when the radio sends RDY; after connection
@@ -397,9 +403,9 @@ MainWindow::MainWindow(QWidget *parent)
     m_clockTimer->start(1000);
     updateDateTime();
 
-    // KPOD device
-    m_kpodDevice = new KpodDevice(this);
-
+    // KPOD device - TEMPORARILY DISABLED FOR QRhi DEBUG
+    m_kpodDevice = nullptr; // new KpodDevice(this);
+#if 0
     // Connect KPOD signals
     connect(m_kpodDevice, &KpodDevice::encoderRotated, this, &MainWindow::onKpodEncoderRotated);
     connect(m_kpodDevice, &KpodDevice::rockerPositionChanged, this,
@@ -413,10 +419,11 @@ MainWindow::MainWindow(QWidget *parent)
     if (RadioSettings::instance()->kpodEnabled() && m_kpodDevice->isDetected()) {
         m_kpodDevice->startPolling();
     }
+#endif
 
-    // KPA1500 amplifier client
-    m_kpa1500Client = new KPA1500Client(this);
-
+    // KPA1500 amplifier client - TEMPORARILY DISABLED FOR QRhi DEBUG
+    m_kpa1500Client = nullptr; // new KPA1500Client(this);
+#if 0
     // Connect KPA1500 signals
     connect(m_kpa1500Client, &KPA1500Client::connected, this, &MainWindow::onKpa1500Connected);
     connect(m_kpa1500Client, &KPA1500Client::disconnected, this, &MainWindow::onKpa1500Disconnected);
@@ -436,9 +443,10 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Initialize KPA1500 status display
     updateKpa1500Status();
+#endif
 
-    // Defer resize to after layouts are finalized (fixes initial window size issue)
-    QTimer::singleShot(0, this, [this]() { resize(1340, 800); });
+    // resize directly instead of deferring - testing if deferred resize affects QRhi
+    // QTimer::singleShot(0, this, [this]() { resize(1340, 800); });
 }
 
 MainWindow::~MainWindow() {}
@@ -477,6 +485,12 @@ void MainWindow::setupUi() {
     setWindowTitle("K4Controller");
     setMinimumSize(1340, 800);
     resize(1340, 800); // Default to minimum size on launch
+
+    // NOTE: Do NOT set WA_NativeWindow here!
+    // Qt 6.10.1 bug on macOS Tahoe: WA_NativeWindow forces native window creation
+    // before QRhiWidget can configure it for MetalSurface, causing
+    // "QMetalSwapChain only supports MetalSurface windows" crash.
+
     setStyleSheet(QString("QMainWindow { background-color: %1; }").arg(K4Colors::Background));
 
     auto *centralWidget = new QWidget(this);
@@ -527,7 +541,7 @@ void MainWindow::setupUi() {
 
     // Feature Menu Bar (hidden by default, shown when alternate actions triggered)
     m_featureMenuBar = new FeatureMenuBar(centralWidget);
-    mainLayout->addWidget(m_featureMenuBar); // Uses internal margins to align with bottom menu bar
+    mainLayout->addWidget(m_featureMenuBar);
     connect(m_featureMenuBar, &FeatureMenuBar::closeRequested, m_featureMenuBar, &FeatureMenuBar::hideMenu);
 
     // Feature Menu Bar CAT commands - send appropriate command based on current feature
@@ -821,32 +835,56 @@ void MainWindow::setupUi() {
     // Group 2: BW/HI and SHFT/LO
     // BW command uses 10Hz units (divide by 10)
     connect(m_sideControlPanel, &SideControlPanel::bandwidthChanged, this, [this](int delta) {
-        int newBw = qBound(50, m_radioState->filterBandwidth() + (delta * 50), 5000);
-        m_tcpClient->sendCAT(QString("BW%1;").arg(newBw / 10, 4, 10, QChar('0')));
-        m_radioState->setFilterBandwidth(newBw);
+        bool bSet = m_radioState->bSetEnabled();
+        int currentBw = bSet ? m_radioState->filterBandwidthB() : m_radioState->filterBandwidth();
+        int newBw = qBound(50, currentBw + (delta * 50), 5000);
+        QString cmd = bSet ? "BW$" : "BW";
+        m_tcpClient->sendCAT(QString("%1%2;").arg(cmd).arg(newBw / 10, 4, 10, QChar('0')));
+        if (bSet) {
+            m_radioState->setFilterBandwidthB(newBw);
+        } else {
+            m_radioState->setFilterBandwidth(newBw);
+        }
     });
     connect(m_sideControlPanel, &SideControlPanel::highCutChanged, this, [this](int delta) {
-        int newBw = qBound(50, m_radioState->filterBandwidth() + (delta * 50), 5000);
-        m_tcpClient->sendCAT(QString("BW%1;").arg(newBw / 10, 4, 10, QChar('0')));
-        m_radioState->setFilterBandwidth(newBw);
+        bool bSet = m_radioState->bSetEnabled();
+        int currentBw = bSet ? m_radioState->filterBandwidthB() : m_radioState->filterBandwidth();
+        int newBw = qBound(50, currentBw + (delta * 50), 5000);
+        QString cmd = bSet ? "BW$" : "BW";
+        m_tcpClient->sendCAT(QString("%1%2;").arg(cmd).arg(newBw / 10, 4, 10, QChar('0')));
+        if (bSet) {
+            m_radioState->setFilterBandwidthB(newBw);
+        } else {
+            m_radioState->setFilterBandwidth(newBw);
+        }
     });
     connect(m_sideControlPanel, &SideControlPanel::shiftChanged, this, [this](int delta) {
-        int currentShift = m_radioState->ifShift();
+        bool bSet = m_radioState->bSetEnabled();
+        int currentShift = bSet ? m_radioState->ifShiftB() : m_radioState->ifShift();
         int newShift = qBound(-999, currentShift + delta, 999);
-        QString cmd = QString("IS%1%2;").arg(newShift >= 0 ? "+" : "").arg(qAbs(newShift), 4, 10, QChar('0'));
-        if (newShift < 0)
-            cmd = QString("IS-%1;").arg(qAbs(newShift), 4, 10, QChar('0'));
+        QString prefix = bSet ? "IS$" : "IS";
+        QString cmd =
+            QString("%1%2%3;").arg(prefix).arg(newShift >= 0 ? "+" : "-").arg(qAbs(newShift), 4, 10, QChar('0'));
         m_tcpClient->sendCAT(cmd);
-        m_radioState->setIfShift(newShift);
+        if (bSet) {
+            m_radioState->setIfShiftB(newShift);
+        } else {
+            m_radioState->setIfShift(newShift);
+        }
     });
     connect(m_sideControlPanel, &SideControlPanel::lowCutChanged, this, [this](int delta) {
-        int currentShift = m_radioState->ifShift();
+        bool bSet = m_radioState->bSetEnabled();
+        int currentShift = bSet ? m_radioState->ifShiftB() : m_radioState->ifShift();
         int newShift = qBound(-999, currentShift + delta, 999);
-        QString cmd = QString("IS%1%2;").arg(newShift >= 0 ? "+" : "").arg(qAbs(newShift), 4, 10, QChar('0'));
-        if (newShift < 0)
-            cmd = QString("IS-%1;").arg(qAbs(newShift), 4, 10, QChar('0'));
+        QString prefix = bSet ? "IS$" : "IS";
+        QString cmd =
+            QString("%1%2%3;").arg(prefix).arg(newShift >= 0 ? "+" : "-").arg(qAbs(newShift), 4, 10, QChar('0'));
         m_tcpClient->sendCAT(cmd);
-        m_radioState->setIfShift(newShift);
+        if (bSet) {
+            m_radioState->setIfShiftB(newShift);
+        } else {
+            m_radioState->setIfShift(newShift);
+        }
     });
     // Group 3: M.RF/M.SQL and S.RF/S.SQL
     // RF Gain uses RG-nn; format where nn is 00-60 (representing -0 to -60 dB attenuation)
@@ -1058,14 +1096,14 @@ void MainWindow::setupVfoSection(QWidget *parent) {
         m_radioState->setMiniPanAEnabled(true); // Set state BEFORE sending CAT (K4 doesn't echo)
         m_tcpClient->sendCAT("#MP1;");          // Enable Mini-Pan A streaming
     });
-    connect(m_vfoA->miniPan(), &MiniPanWidget::clicked, this, [this]() {
+    connect(m_vfoA, &VFOWidget::miniPanClicked, this, [this]() {
         m_radioState->setMiniPanAEnabled(false); // Set state BEFORE sending CAT
         m_tcpClient->sendCAT("#MP0;");           // Disable Mini-Pan A streaming
     });
 
     // Set Mini-Pan A colors to blue (matching main panadapter A passband)
-    m_vfoA->miniPan()->setSpectrumColor(QColor(0, 128, 255));     // Blue spectrum
-    m_vfoA->miniPan()->setPassbandColor(QColor(0, 128, 255, 64)); // Blue passband
+    m_vfoA->setMiniPanSpectrumColor(QColor(0, 128, 255));     // Blue spectrum
+    m_vfoA->setMiniPanPassbandColor(QColor(0, 128, 255, 64)); // Blue passband
 
     layout->addWidget(m_vfoA, 1);
 
@@ -1193,7 +1231,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
                                "border-radius: 4px;"
                                "padding: 2px 8px;");
     m_bSetLabel->setVisible(false);
-    centerLayout->addWidget(m_bSetLabel);
+    centerLayout->addWidget(m_bSetLabel, 0, Qt::AlignHCenter);
 
     // Message Bank indicator
     m_msgBankLabel = new QLabel("MSG: I", centerWidget);
@@ -1207,10 +1245,11 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     m_ritXitBox->setMaximumWidth(80);
     m_ritXitBox->setMaximumHeight(40);
     auto *ritXitLayout = new QVBoxLayout(m_ritXitBox);
-    ritXitLayout->setContentsMargins(4, 2, 4, 2);
+    ritXitLayout->setContentsMargins(1, 2, 1, 2);
     ritXitLayout->setSpacing(1);
 
     auto *ritXitLabelsRow = new QHBoxLayout();
+    ritXitLabelsRow->setContentsMargins(11, 0, 11, 0);
     ritXitLabelsRow->setSpacing(8);
 
     m_ritLabel = new QLabel("RIT", m_ritXitBox);
@@ -1224,7 +1263,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     ritXitLabelsRow->setAlignment(Qt::AlignCenter);
     ritXitLayout->addLayout(ritXitLabelsRow);
 
-    // Separator line between labels and value
+    // Separator line between labels and value (spans full width)
     auto *ritXitSeparator = new QFrame(m_ritXitBox);
     ritXitSeparator->setFrameShape(QFrame::HLine);
     ritXitSeparator->setFrameShadow(QFrame::Plain);
@@ -1235,7 +1274,8 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     m_ritXitValueLabel = new QLabel("+0.00", m_ritXitBox);
     m_ritXitValueLabel->setAlignment(Qt::AlignCenter);
     m_ritXitValueLabel->setStyleSheet(
-        QString("color: %1; font-size: 14px; font-weight: bold; border: none;").arg(K4Colors::TextWhite));
+        QString("color: %1; font-size: 14px; font-weight: bold; border: none; padding: 0 11px;")
+            .arg(K4Colors::TextWhite));
     ritXitLayout->addWidget(m_ritXitValueLabel);
 
     // Create filter/RIT/XIT row - filter indicators flanking the RIT/XIT box
@@ -1293,8 +1333,8 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     m_vfoB = new VFOWidget(VFOWidget::VFO_B, parent);
 
     // Set Mini-Pan B colors to green (matching main panadapter B passband)
-    m_vfoB->miniPan()->setSpectrumColor(QColor(0, 200, 0));     // Green spectrum
-    m_vfoB->miniPan()->setPassbandColor(QColor(0, 255, 0, 64)); // Green passband
+    m_vfoB->setMiniPanSpectrumColor(QColor(0, 200, 0));     // Green spectrum
+    m_vfoB->setMiniPanPassbandColor(QColor(0, 255, 0, 64)); // Green passband
 
     // Connect VFO B click to toggle mini-pan (send CAT to enable Mini-Pan streaming)
     connect(m_vfoB, &VFOWidget::normalContentClicked, this, [this]() {
@@ -1302,7 +1342,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
         m_radioState->setMiniPanBEnabled(true); // Set state BEFORE sending CAT (K4 doesn't echo)
         m_tcpClient->sendCAT("#MP$1;");         // Enable Mini-Pan B (Sub RX) streaming
     });
-    connect(m_vfoB->miniPan(), &MiniPanWidget::clicked, this, [this]() {
+    connect(m_vfoB, &VFOWidget::miniPanClicked, this, [this]() {
         m_radioState->setMiniPanBEnabled(false); // Set state BEFORE sending CAT
         m_tcpClient->sendCAT("#MP$0;");          // Disable Mini-Pan B streaming
     });
@@ -1373,21 +1413,21 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(2); // Small gap between panadapters
 
-    // Main panadapter for VFO A (left side)
-    m_panadapterA = new PanadapterWidget(m_spectrumContainer);
-    m_panadapterA->setSpectrumColor(QColor(K4Colors::VfoAAmber));
+    // Main panadapter for VFO A (left side) - QRhiWidget with Metal/DirectX/Vulkan
+    m_panadapterA = new PanadapterRhiWidget(m_spectrumContainer);
+    m_panadapterA->setSpectrumLineColor(QColor(K4Colors::VfoAAmber));
     m_panadapterA->setDbRange(-140.0f, -20.0f);
     m_panadapterA->setSpectrumRatio(0.35f);
     m_panadapterA->setGridEnabled(true);
     layout->addWidget(m_panadapterA);
 
-    // Sub panadapter for VFO B (right side)
-    m_panadapterB = new PanadapterWidget(m_spectrumContainer);
-    m_panadapterB->setSpectrumColor(QColor(K4Colors::VfoBCyan));
+    // Sub panadapter for VFO B (right side) - QRhiWidget with Metal/DirectX/Vulkan
+    m_panadapterB = new PanadapterRhiWidget(m_spectrumContainer);
+    m_panadapterB->setSpectrumLineColor(QColor(K4Colors::VfoBCyan));
     m_panadapterB->setDbRange(-140.0f, -20.0f);
     m_panadapterB->setSpectrumRatio(0.35f);
     m_panadapterB->setGridEnabled(true);
-    m_panadapterB->setPassbandColor(QColor(0, 200, 0));        // Green passband for VFO B
+    m_panadapterB->setPassbandColor(QColor(0, 200, 0, 64));     // Green passband for VFO B (25% alpha)
     m_panadapterB->setFrequencyMarkerColor(QColor(0, 140, 0)); // Darker green marker for VFO B
     layout->addWidget(m_panadapterB);
     m_panadapterB->hide(); // Start hidden (MainOnly mode)
@@ -1499,6 +1539,14 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     m_panadapterA->installEventFilter(this);
     m_panadapterB->installEventFilter(this);
 
+    // Debug: Connect to renderFailed signal to diagnose QRhiWidget issues
+    connect(m_panadapterA, &QRhiWidget::renderFailed, this, []() {
+        qCritical() << "!!! PanadapterA renderFailed() emitted - QRhi could not be obtained !!!";
+    });
+    connect(m_panadapterB, &QRhiWidget::renderFailed, this, []() {
+        qCritical() << "!!! PanadapterB renderFailed() emitted - QRhi could not be obtained !!!";
+    });
+
     // Update panadapter when frequency/mode changes
     connect(m_radioState, &RadioState::frequencyChanged, this,
             [this](quint64 freq) { m_panadapterA->setTunedFrequency(freq); });
@@ -1514,25 +1562,25 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
         bool enabled = m_radioState->manualNotchEnabled();
         int pitch = m_radioState->manualNotchPitch();
         m_panadapterA->setNotchFilter(enabled, pitch);
-        // Update mini-pan too
-        m_vfoA->miniPan()->setNotchFilter(enabled, pitch);
+        // Update mini-pan too (using forwarding method that handles lazy creation)
+        m_vfoA->setMiniPanNotchFilter(enabled, pitch);
         // Update NTCH indicator in VFO processing row
         m_vfoA->setNotch(m_radioState->autoNotchEnabled(), m_radioState->manualNotchEnabled());
     });
     // Also update mini-pan mode when mode changes
     connect(m_radioState, &RadioState::modeChanged, this,
-            [this](RadioState::Mode mode) { m_vfoA->miniPan()->setMode(RadioState::modeToString(mode)); });
+            [this](RadioState::Mode mode) { m_vfoA->setMiniPanMode(RadioState::modeToString(mode)); });
 
-    // Mini-pan filter passband visualization
+    // Mini-pan filter passband visualization (using forwarding methods)
     connect(m_radioState, &RadioState::filterBandwidthChanged, this,
-            [this](int bw) { m_vfoA->miniPan()->setFilterBandwidth(bw); });
+            [this](int bw) { m_vfoA->setMiniPanFilterBandwidth(bw); });
     connect(m_radioState, &RadioState::ifShiftChanged, this,
-            [this](int shift) { m_vfoA->miniPan()->setIfShift(shift); });
+            [this](int shift) { m_vfoA->setMiniPanIfShift(shift); });
     connect(m_radioState, &RadioState::cwPitchChanged, this,
-            [this](int pitch) { m_vfoA->miniPan()->setCwPitch(pitch); });
+            [this](int pitch) { m_vfoA->setMiniPanCwPitch(pitch); });
 
     // Mouse control: click to tune
-    connect(m_panadapterA, &PanadapterWidget::frequencyClicked, this, [this](qint64 freq) {
+    connect(m_panadapterA, &PanadapterRhiWidget::frequencyClicked, this, [this](qint64 freq) {
         // Guard: only send if connected and frequency is valid
         if (!m_tcpClient->isConnected() || freq <= 0)
             return;
@@ -1543,7 +1591,7 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     });
 
     // Mouse control: scroll wheel to adjust frequency using K4's native step
-    connect(m_panadapterA, &PanadapterWidget::frequencyScrolled, this, [this](int steps) {
+    connect(m_panadapterA, &PanadapterRhiWidget::frequencyScrolled, this, [this](int steps) {
         // Guard: only send if connected
         if (!m_tcpClient->isConnected())
             return;
@@ -1564,15 +1612,33 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
             [this](RadioState::Mode mode) { m_panadapterB->setMode(RadioState::modeToString(mode)); });
     connect(m_radioState, &RadioState::filterBandwidthBChanged, this,
             [this](int bw) { m_panadapterB->setFilterBandwidth(bw); });
+    connect(m_radioState, &RadioState::ifShiftBChanged, this,
+            [this](int shift) { m_panadapterB->setIfShift(shift); });
+    connect(m_radioState, &RadioState::cwPitchChanged, this,
+            [this](int pitch) { m_panadapterB->setCwPitch(pitch); });
+    connect(m_radioState, &RadioState::notchChanged, this, [this]() {
+        bool enabled = m_radioState->manualNotchEnabled();
+        int pitch = m_radioState->manualNotchPitch();
+        m_panadapterB->setNotchFilter(enabled, pitch);
+    });
 
-    // VFO B Mini-Pan connections (mode-dependent bandwidth)
+    // VFO B Mini-Pan connections (mode-dependent bandwidth, using forwarding methods)
     connect(m_radioState, &RadioState::modeBChanged, this,
-            [this](RadioState::Mode mode) { m_vfoB->miniPan()->setMode(RadioState::modeToString(mode)); });
+            [this](RadioState::Mode mode) { m_vfoB->setMiniPanMode(RadioState::modeToString(mode)); });
     connect(m_radioState, &RadioState::filterBandwidthBChanged, this,
-            [this](int bw) { m_vfoB->miniPan()->setFilterBandwidth(bw); });
+            [this](int bw) { m_vfoB->setMiniPanFilterBandwidth(bw); });
+    connect(m_radioState, &RadioState::ifShiftBChanged, this,
+            [this](int shift) { m_vfoB->setMiniPanIfShift(shift); });
+    connect(m_radioState, &RadioState::cwPitchChanged, this,
+            [this](int pitch) { m_vfoB->setMiniPanCwPitch(pitch); });
+    connect(m_radioState, &RadioState::notchChanged, this, [this]() {
+        bool enabled = m_radioState->manualNotchEnabled();
+        int pitch = m_radioState->manualNotchPitch();
+        m_vfoB->setMiniPanNotchFilter(enabled, pitch);
+    });
 
     // Mouse control for VFO B: click to tune
-    connect(m_panadapterB, &PanadapterWidget::frequencyClicked, this, [this](qint64 freq) {
+    connect(m_panadapterB, &PanadapterRhiWidget::frequencyClicked, this, [this](qint64 freq) {
         // Guard: only send if connected and frequency is valid
         if (!m_tcpClient->isConnected() || freq <= 0)
             return;
@@ -1583,7 +1649,7 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     });
 
     // Mouse control for VFO B: scroll wheel to adjust frequency using K4's native step
-    connect(m_panadapterB, &PanadapterWidget::frequencyScrolled, this, [this](int steps) {
+    connect(m_panadapterB, &PanadapterRhiWidget::frequencyScrolled, this, [this](int steps) {
         // Guard: only send if connected
         if (!m_tcpClient->isConnected())
             return;
@@ -2061,6 +2127,11 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
     }
 
     return QMainWindow::eventFilter(watched, event);
+}
+
+void MainWindow::showEvent(QShowEvent *event) {
+    QMainWindow::showEvent(event);
+    qDebug() << "MainWindow::showEvent called";
 }
 
 void MainWindow::setPanadapterMode(PanadapterMode mode) {

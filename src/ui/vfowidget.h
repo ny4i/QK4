@@ -9,7 +9,7 @@
 #include <QColor>
 
 class SMeterWidget;
-class MiniPanWidget;
+class MiniPanRhiWidget;
 
 class VFOWidget : public QWidget {
     Q_OBJECT
@@ -35,14 +35,24 @@ public:
     void showNormal();
     bool isMiniPanVisible() const;
 
-    // Access to mini-pan for direct data updates
-    MiniPanWidget *miniPan() const { return m_miniPan; }
+    // Mini-pan configuration (applied when miniPan is created, or immediately if it exists)
+    void setMiniPanMode(const QString &mode);
+    void setMiniPanFilterBandwidth(int bw);
+    void setMiniPanIfShift(int shift);
+    void setMiniPanCwPitch(int pitch);
+    void setMiniPanNotchFilter(bool enabled, int pitchHz);
+    void setMiniPanSpectrumColor(const QColor &color);
+    void setMiniPanPassbandColor(const QColor &color);
+
+    // Access to mini-pan (may return nullptr if not yet created)
+    MiniPanRhiWidget *miniPan() const { return m_miniPan; }
 
     // Get type
     VFOType type() const { return m_type; }
 
 signals:
-    void normalContentClicked(); // For mini-pan toggle
+    void normalContentClicked(); // User clicked normal view → show mini-pan
+    void miniPanClicked();       // User clicked mini-pan → show normal view
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -67,7 +77,17 @@ private:
     // Stacked widget for normal/mini-pan toggle
     QStackedWidget *m_stackedWidget;
     QWidget *m_normalContent;
-    MiniPanWidget *m_miniPan;
+    MiniPanRhiWidget *m_miniPan;
+
+    // Pending mini-pan configuration (applied when created)
+    QString m_pendingMode;
+    int m_pendingFilterBw = 2400;
+    int m_pendingIfShift = 50;
+    int m_pendingCwPitch = 600;
+    bool m_pendingNotchEnabled = false;
+    int m_pendingNotchPitchHz = 0;
+    QColor m_pendingSpectrumColor;
+    QColor m_pendingPassbandColor;
 };
 
 #endif // VFOWIDGET_H

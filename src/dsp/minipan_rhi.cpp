@@ -1,0 +1,680 @@
+#include "minipan_rhi.h"
+#include <QFile>
+#include <QMouseEvent>
+#include <QtMath>
+#include <cmath>
+
+MiniPanRhiWidget::MiniPanRhiWidget(QWidget *parent) : QRhiWidget(parent) {
+    setFixedHeight(110);
+    setMinimumWidth(180);
+    setMaximumWidth(200);
+
+    // Force Metal API on macOS
+#ifdef Q_OS_MACOS
+    qDebug() << "=== MiniPanRhiWidget Constructor ===";
+    qDebug() << "Requesting Metal API...";
+    setApi(QRhiWidget::Api::Metal);
+    qDebug() << "API after setApi:" << static_cast<int>(api());
+#endif
+
+    // Initialize color LUT
+    initColorLUT();
+
+    // Allocate waterfall data buffer
+    m_waterfallData.resize(TEXTURE_WIDTH * WATERFALL_HISTORY);
+    m_waterfallData.fill(0);
+}
+
+MiniPanRhiWidget::~MiniPanRhiWidget() {
+    // QRhi resources are automatically cleaned up
+}
+
+void MiniPanRhiWidget::initColorLUT() {
+    // Create 256-entry RGBA color LUT for waterfall
+    m_colorLUT.resize(256 * 4);
+
+    for (int i = 0; i < 256; ++i) {
+        float t = i / 255.0f;
+        int r, g, b;
+
+        if (t < 0.2f) {
+            // Black to dark blue
+            float s = t / 0.2f;
+            r = 0;
+            g = 0;
+            b = static_cast<int>(60 * s);
+        } else if (t < 0.4f) {
+            // Dark blue to cyan
+            float s = (t - 0.2f) / 0.2f;
+            r = 0;
+            g = static_cast<int>(180 * s);
+            b = 60 + static_cast<int>(140 * s);
+        } else if (t < 0.6f) {
+            // Cyan to yellow
+            float s = (t - 0.4f) / 0.2f;
+            r = static_cast<int>(255 * s);
+            g = 180 + static_cast<int>(75 * s);
+            b = 200 - static_cast<int>(200 * s);
+        } else if (t < 0.8f) {
+            // Yellow to orange/red
+            float s = (t - 0.6f) / 0.2f;
+            r = 255;
+            g = 255 - static_cast<int>(155 * s);
+            b = 0;
+        } else {
+            // Orange/red to white
+            float s = (t - 0.8f) / 0.2f;
+            r = 255;
+            g = 100 + static_cast<int>(155 * s);
+            b = static_cast<int>(255 * s);
+        }
+
+        m_colorLUT[i * 4 + 0] = static_cast<quint8>(qBound(0, r, 255));
+        m_colorLUT[i * 4 + 1] = static_cast<quint8>(qBound(0, g, 255));
+        m_colorLUT[i * 4 + 2] = static_cast<quint8>(qBound(0, b, 255));
+        m_colorLUT[i * 4 + 3] = 255;
+    }
+}
+
+void MiniPanRhiWidget::initialize(QRhiCommandBuffer *cb) {
+    qDebug() << "=== MiniPanRhiWidget::initialize() ===";
+    qDebug() << "Already initialized:" << m_rhiInitialized;
+    qDebug() << "Widget visible:" << isVisible();
+    qDebug() << "Widget size:" << size();
+    qDebug() << "API requested:" << static_cast<int>(api());
+
+    if (m_rhiInitialized)
+        return;
+
+    m_rhi = rhi();
+    qDebug() << "rhi() returned:" << m_rhi;
+    if (!m_rhi) {
+        qWarning() << "!!! MiniPan: QRhi is NULL - Metal backend failed !!!";
+        return;
+    }
+    qDebug() << "MiniPan QRhi backend:" << m_rhi->backendName();
+
+    // Load shaders from compiled .qsb resources (shared with main panadapter)
+    auto loadShader = [](const QString &path) -> QShader {
+        QFile f(path);
+        if (f.open(QIODevice::ReadOnly))
+            return QShader::fromSerialized(f.readAll());
+        qWarning() << "MiniPan: Failed to load shader:" << path;
+        return QShader();
+    };
+
+    m_spectrumVert = loadShader(":/shaders/src/dsp/shaders/spectrum.vert.qsb");
+    m_spectrumFrag = loadShader(":/shaders/src/dsp/shaders/spectrum.frag.qsb");
+    m_waterfallVert = loadShader(":/shaders/src/dsp/shaders/waterfall.vert.qsb");
+    m_waterfallFrag = loadShader(":/shaders/src/dsp/shaders/waterfall.frag.qsb");
+    m_overlayVert = loadShader(":/shaders/src/dsp/shaders/overlay.vert.qsb");
+    m_overlayFrag = loadShader(":/shaders/src/dsp/shaders/overlay.frag.qsb");
+
+    // Create waterfall texture (single channel for dB values)
+    m_waterfallTexture.reset(m_rhi->newTexture(QRhiTexture::R8, QSize(TEXTURE_WIDTH, WATERFALL_HISTORY), 1,
+                                               QRhiTexture::UsedAsTransferSource));
+    m_waterfallTexture->create();
+
+    // Create color LUT texture (256x1 RGBA)
+    m_colorLutTexture.reset(m_rhi->newTexture(QRhiTexture::RGBA8, QSize(256, 1)));
+    m_colorLutTexture->create();
+
+    // Upload color LUT data
+    QRhiResourceUpdateBatch *rub = m_rhi->nextResourceUpdateBatch();
+    QRhiTextureSubresourceUploadDescription lutUpload(m_colorLUT.constData(), m_colorLUT.size());
+    rub->uploadTexture(m_colorLutTexture.get(), QRhiTextureUploadEntry(0, 0, lutUpload));
+
+    // Upload initial zeroed waterfall data (prevents uninitialized texture garbage)
+    QRhiTextureSubresourceUploadDescription waterfallUpload(m_waterfallData.constData(), m_waterfallData.size());
+    rub->uploadTexture(m_waterfallTexture.get(), QRhiTextureUploadEntry(0, 0, waterfallUpload));
+
+    // Create sampler
+    m_sampler.reset(m_rhi->newSampler(QRhiSampler::Linear, QRhiSampler::Linear, QRhiSampler::None,
+                                      QRhiSampler::ClampToEdge, QRhiSampler::Repeat));
+    m_sampler->create();
+
+    // Create vertex buffers (dynamic)
+    m_spectrumVbo.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::VertexBuffer, 2048 * 6 * sizeof(float)));
+    m_spectrumVbo->create();
+
+    // Waterfall quad (static)
+    float tMax = static_cast<float>(WATERFALL_HISTORY - 1) / WATERFALL_HISTORY;
+    float waterfallQuad[] = {
+        // position (x, y), texcoord (s, t)
+        -1.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+        1.0f,  -1.0f, 1.0f, 0.0f, // bottom-right
+        1.0f,  1.0f,  1.0f, tMax, // top-right
+        -1.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+        1.0f,  1.0f,  1.0f, tMax, // top-right
+        -1.0f, 1.0f,  0.0f, tMax  // top-left
+    };
+    m_waterfallVbo.reset(m_rhi->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer, sizeof(waterfallQuad)));
+    m_waterfallVbo->create();
+    rub->uploadStaticBuffer(m_waterfallVbo.get(), waterfallQuad);
+
+    m_overlayVbo.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::VertexBuffer, 1024 * 2 * sizeof(float)));
+    m_overlayVbo->create();
+
+    // Create uniform buffers
+    m_spectrumUniformBuffer.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, 16));
+    m_spectrumUniformBuffer->create();
+
+    m_waterfallUniformBuffer.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, 16));
+    m_waterfallUniformBuffer->create();
+
+    m_overlayUniformBuffer.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, 32));
+    m_overlayUniformBuffer->create();
+
+    cb->resourceUpdate(rub);
+
+    m_rhiInitialized = true;
+}
+
+void MiniPanRhiWidget::createPipelines() {
+    if (m_pipelinesCreated)
+        return;
+
+    if (!m_spectrumVert.isValid() || !m_spectrumFrag.isValid())
+        return;
+
+    m_rpDesc = renderTarget()->renderPassDescriptor();
+
+    // Spectrum pipeline (triangle strip with per-vertex color)
+    {
+        m_spectrumSrb.reset(m_rhi->newShaderResourceBindings());
+        m_spectrumSrb->setBindings({QRhiShaderResourceBinding::uniformBuffer(0, QRhiShaderResourceBinding::VertexStage,
+                                                                             m_spectrumUniformBuffer.get())});
+        m_spectrumSrb->create();
+
+        m_spectrumPipeline.reset(m_rhi->newGraphicsPipeline());
+        m_spectrumPipeline->setShaderStages(
+            {{QRhiShaderStage::Vertex, m_spectrumVert}, {QRhiShaderStage::Fragment, m_spectrumFrag}});
+
+        QRhiVertexInputLayout inputLayout;
+        inputLayout.setBindings({{6 * sizeof(float)}});                         // position(2) + color(4)
+        inputLayout.setAttributes({{0, 0, QRhiVertexInputAttribute::Float2, 0}, // position
+                                   {0, 1, QRhiVertexInputAttribute::Float4, 2 * sizeof(float)}}); // color
+        m_spectrumPipeline->setVertexInputLayout(inputLayout);
+        m_spectrumPipeline->setTopology(QRhiGraphicsPipeline::TriangleStrip);
+        m_spectrumPipeline->setShaderResourceBindings(m_spectrumSrb.get());
+        m_spectrumPipeline->setRenderPassDescriptor(m_rpDesc);
+
+        QRhiGraphicsPipeline::TargetBlend blend;
+        blend.enable = true;
+        blend.srcColor = QRhiGraphicsPipeline::SrcAlpha;
+        blend.dstColor = QRhiGraphicsPipeline::OneMinusSrcAlpha;
+        m_spectrumPipeline->setTargetBlends({blend});
+
+        m_spectrumPipeline->create();
+    }
+
+    // Waterfall pipeline
+    {
+        m_waterfallSrb.reset(m_rhi->newShaderResourceBindings());
+        m_waterfallSrb->setBindings(
+            {QRhiShaderResourceBinding::uniformBuffer(0, QRhiShaderResourceBinding::VertexStage,
+                                                      m_waterfallUniformBuffer.get()),
+             QRhiShaderResourceBinding::sampledTexture(1, QRhiShaderResourceBinding::FragmentStage,
+                                                       m_waterfallTexture.get(), m_sampler.get()),
+             QRhiShaderResourceBinding::sampledTexture(2, QRhiShaderResourceBinding::FragmentStage,
+                                                       m_colorLutTexture.get(), m_sampler.get())});
+        m_waterfallSrb->create();
+
+        m_waterfallPipeline.reset(m_rhi->newGraphicsPipeline());
+        m_waterfallPipeline->setShaderStages(
+            {{QRhiShaderStage::Vertex, m_waterfallVert}, {QRhiShaderStage::Fragment, m_waterfallFrag}});
+
+        QRhiVertexInputLayout inputLayout;
+        inputLayout.setBindings({{4 * sizeof(float)}});                         // position(2) + texcoord(2)
+        inputLayout.setAttributes({{0, 0, QRhiVertexInputAttribute::Float2, 0}, // position
+                                   {0, 1, QRhiVertexInputAttribute::Float2, 2 * sizeof(float)}}); // texcoord
+        m_waterfallPipeline->setVertexInputLayout(inputLayout);
+        m_waterfallPipeline->setTopology(QRhiGraphicsPipeline::Triangles);
+        m_waterfallPipeline->setShaderResourceBindings(m_waterfallSrb.get());
+        m_waterfallPipeline->setRenderPassDescriptor(m_rpDesc);
+        m_waterfallPipeline->create();
+    }
+
+    // Overlay pipeline (lines)
+    {
+        m_overlaySrb.reset(m_rhi->newShaderResourceBindings());
+        m_overlaySrb->setBindings({QRhiShaderResourceBinding::uniformBuffer(
+            0, QRhiShaderResourceBinding::VertexStage | QRhiShaderResourceBinding::FragmentStage,
+            m_overlayUniformBuffer.get())});
+        m_overlaySrb->create();
+
+        m_overlayLinePipeline.reset(m_rhi->newGraphicsPipeline());
+        m_overlayLinePipeline->setShaderStages(
+            {{QRhiShaderStage::Vertex, m_overlayVert}, {QRhiShaderStage::Fragment, m_overlayFrag}});
+
+        QRhiVertexInputLayout inputLayout;
+        inputLayout.setBindings({{2 * sizeof(float)}});
+        inputLayout.setAttributes({{0, 0, QRhiVertexInputAttribute::Float2, 0}});
+        m_overlayLinePipeline->setVertexInputLayout(inputLayout);
+        m_overlayLinePipeline->setTopology(QRhiGraphicsPipeline::Lines);
+        m_overlayLinePipeline->setShaderResourceBindings(m_overlaySrb.get());
+        m_overlayLinePipeline->setRenderPassDescriptor(m_rpDesc);
+
+        QRhiGraphicsPipeline::TargetBlend blend;
+        blend.enable = true;
+        blend.srcColor = QRhiGraphicsPipeline::SrcAlpha;
+        blend.dstColor = QRhiGraphicsPipeline::OneMinusSrcAlpha;
+        m_overlayLinePipeline->setTargetBlends({blend});
+
+        m_overlayLinePipeline->create();
+
+        // Triangle version for filled shapes
+        m_overlayTrianglePipeline.reset(m_rhi->newGraphicsPipeline());
+        m_overlayTrianglePipeline->setShaderStages(
+            {{QRhiShaderStage::Vertex, m_overlayVert}, {QRhiShaderStage::Fragment, m_overlayFrag}});
+        m_overlayTrianglePipeline->setVertexInputLayout(inputLayout);
+        m_overlayTrianglePipeline->setTopology(QRhiGraphicsPipeline::Triangles);
+        m_overlayTrianglePipeline->setShaderResourceBindings(m_overlaySrb.get());
+        m_overlayTrianglePipeline->setRenderPassDescriptor(m_rpDesc);
+        m_overlayTrianglePipeline->setTargetBlends({blend});
+        m_overlayTrianglePipeline->create();
+    }
+
+    m_pipelinesCreated = true;
+}
+
+void MiniPanRhiWidget::render(QRhiCommandBuffer *cb) {
+    // Always clear to black even if not initialized (prevents white/garbage showing)
+    if (!m_rhiInitialized) {
+        cb->beginPass(renderTarget(), Qt::black, {1.0f, 0}, nullptr);
+        cb->endPass();
+        return;
+    }
+
+    // Create pipelines on first render (need render pass descriptor)
+    if (!m_pipelinesCreated) {
+        createPipelines();
+        if (!m_pipelinesCreated) {
+            cb->beginPass(renderTarget(), Qt::black, {1.0f, 0}, nullptr);
+            cb->endPass();
+            return;
+        }
+    }
+
+    const QSize outputSize = renderTarget()->pixelSize();
+    const float w = outputSize.width();
+    const float h = outputSize.height();
+    const float spectrumHeight = h * m_spectrumRatio;
+    const float waterfallHeight = h - spectrumHeight;
+
+    QRhiResourceUpdateBatch *rub = m_rhi->nextResourceUpdateBatch();
+
+    // Update waterfall texture if needed
+    if (m_waterfallNeedsUpdate && !m_smoothedSpectrum.isEmpty()) {
+        // Resample spectrum to texture width
+        int dataSize = m_smoothedSpectrum.size();
+        int row = m_waterfallWriteRow;
+        for (int i = 0; i < TEXTURE_WIDTH; ++i) {
+            // Average downsampling for waterfall
+            int startBin = static_cast<int>(static_cast<float>(i) / TEXTURE_WIDTH * dataSize);
+            int endBin = static_cast<int>(static_cast<float>(i + 1) / TEXTURE_WIDTH * dataSize);
+            startBin = qBound(0, startBin, dataSize - 1);
+            endBin = qBound(startBin + 1, endBin, dataSize);
+
+            float sum = 0.0f;
+            int count = endBin - startBin;
+            for (int j = startBin; j < endBin; ++j) {
+                sum += m_smoothedSpectrum[j];
+            }
+            float avgDb = sum / count;
+
+            float normalized = normalizeDb(avgDb);
+            m_waterfallData[row * TEXTURE_WIDTH + i] =
+                static_cast<quint8>(qBound(0, static_cast<int>(normalized * 255), 255));
+        }
+
+        QRhiTextureSubresourceUploadDescription rowUpload(m_waterfallData.constData() + m_waterfallWriteRow * TEXTURE_WIDTH,
+                                                          TEXTURE_WIDTH);
+        rowUpload.setDestinationTopLeft(QPoint(0, m_waterfallWriteRow));
+        rowUpload.setSourceSize(QSize(TEXTURE_WIDTH, 1));
+        rub->uploadTexture(m_waterfallTexture.get(), QRhiTextureUploadEntry(0, 0, rowUpload));
+        m_waterfallWriteRow = (m_waterfallWriteRow + 1) % WATERFALL_HISTORY;
+        m_waterfallNeedsUpdate = false;
+    }
+
+    // Update spectrum uniform buffer
+    struct {
+        float viewportWidth;
+        float viewportHeight;
+        float padding[2];
+    } spectrumUniforms = {w, spectrumHeight, {0, 0}};
+    rub->updateDynamicBuffer(m_spectrumUniformBuffer.get(), 0, sizeof(spectrumUniforms), &spectrumUniforms);
+
+    // Update waterfall uniform buffer
+    float scrollOffset = static_cast<float>(m_waterfallWriteRow) / WATERFALL_HISTORY;
+    struct {
+        float scrollOffset;
+        float padding[3];
+    } waterfallUniforms = {scrollOffset, {0, 0, 0}};
+    rub->updateDynamicBuffer(m_waterfallUniformBuffer.get(), 0, sizeof(waterfallUniforms), &waterfallUniforms);
+
+    // Build spectrum vertices with peak-hold downsampling
+    if (!m_smoothedSpectrum.isEmpty()) {
+        QVector<float> vertices;
+        int dataSize = m_smoothedSpectrum.size();
+        float scale = static_cast<float>(dataSize) / w;
+
+        // Find smoothed baseline
+        float frameMin = 1.0f;
+        for (int x = 0; x < static_cast<int>(w); ++x) {
+            int startBin = static_cast<int>(x * scale);
+            int endBin = static_cast<int>((x + 1) * scale);
+            startBin = qBound(0, startBin, dataSize - 1);
+            endBin = qBound(startBin + 1, endBin, dataSize);
+
+            float peak = m_smoothedSpectrum[startBin];
+            for (int i = startBin + 1; i < endBin; ++i) {
+                if (m_smoothedSpectrum[i] > peak) {
+                    peak = m_smoothedSpectrum[i];
+                }
+            }
+
+            float normalized = normalizeDb(peak);
+            if (normalized < frameMin) {
+                frameMin = normalized;
+            }
+        }
+
+        // Smooth the baseline
+        const float baselineAlpha = 0.05f;
+        if (m_smoothedBaseline < 0.001f) {
+            m_smoothedBaseline = frameMin;
+        } else {
+            m_smoothedBaseline = baselineAlpha * frameMin + (1.0f - baselineAlpha) * m_smoothedBaseline;
+        }
+
+        // Build vertices (triangle strip)
+        for (int x = 0; x < static_cast<int>(w); ++x) {
+            int startBin = static_cast<int>(x * scale);
+            int endBin = static_cast<int>((x + 1) * scale);
+            startBin = qBound(0, startBin, dataSize - 1);
+            endBin = qBound(startBin + 1, endBin, dataSize);
+
+            float peak = m_smoothedSpectrum[startBin];
+            for (int i = startBin + 1; i < endBin; ++i) {
+                if (m_smoothedSpectrum[i] > peak) {
+                    peak = m_smoothedSpectrum[i];
+                }
+            }
+
+            float normalized = normalizeDb(peak);
+            float adjusted = normalized - m_smoothedBaseline;
+            float lineHeight = adjusted * spectrumHeight * 0.95f * m_heightBoost;
+            float y = spectrumHeight - lineHeight;
+
+            // Bottom vertex (baseline) - spectrum color with transparency
+            vertices.append(static_cast<float>(x));
+            vertices.append(spectrumHeight);
+            vertices.append(m_spectrumColor.redF() * 0.3f);
+            vertices.append(m_spectrumColor.greenF() * 0.3f);
+            vertices.append(m_spectrumColor.blueF() * 0.3f);
+            vertices.append(0.5f);
+
+            // Top vertex (signal) - full spectrum color
+            vertices.append(static_cast<float>(x));
+            vertices.append(y);
+            vertices.append(m_spectrumColor.redF());
+            vertices.append(m_spectrumColor.greenF());
+            vertices.append(m_spectrumColor.blueF());
+            vertices.append(1.0f);
+        }
+
+        if (!vertices.isEmpty()) {
+            rub->updateDynamicBuffer(m_spectrumVbo.get(), 0, vertices.size() * sizeof(float), vertices.constData());
+        }
+    }
+
+    cb->resourceUpdate(rub);
+
+    // Begin render pass
+    cb->beginPass(renderTarget(), QColor::fromRgbF(0.04f, 0.04f, 0.04f, 1.0f), {1.0f, 0}, nullptr);
+
+    // Draw waterfall (bottom portion)
+    if (m_waterfallPipeline) {
+        cb->setViewport({0, 0, w, waterfallHeight});
+        cb->setGraphicsPipeline(m_waterfallPipeline.get());
+        cb->setShaderResources(m_waterfallSrb.get());
+        const QRhiCommandBuffer::VertexInput waterfallVbufBinding(m_waterfallVbo.get(), 0);
+        cb->setVertexInput(0, 1, &waterfallVbufBinding);
+        cb->draw(6);
+    }
+
+    // Draw spectrum fill (top portion)
+    if (m_spectrumPipeline && !m_smoothedSpectrum.isEmpty()) {
+        cb->setViewport({0, waterfallHeight, w, spectrumHeight});
+        cb->setGraphicsPipeline(m_spectrumPipeline.get());
+        cb->setShaderResources(m_spectrumSrb.get());
+        const QRhiCommandBuffer::VertexInput spectrumVbufBinding(m_spectrumVbo.get(), 0);
+        cb->setVertexInput(0, 1, &spectrumVbufBinding);
+        cb->draw(static_cast<int>(w) * 2);
+    }
+
+    // Draw overlays (full viewport)
+    cb->setViewport({0, 0, w, h});
+
+    // Draw separator line, passband, center marker, notch, and border using overlay pipeline
+    if (m_overlayLinePipeline && m_overlayTrianglePipeline) {
+        // Helper lambda to draw filled quad
+        auto drawFilledQuad = [&](float x1, float y1, float x2, float y2, const QColor &color) {
+            QVector<float> quadVerts = {x1, y1, x2, y1, x2, y2, x1, y1, x2, y2, x1, y2};
+
+            QRhiResourceUpdateBatch *rub2 = m_rhi->nextResourceUpdateBatch();
+            rub2->updateDynamicBuffer(m_overlayVbo.get(), 0, quadVerts.size() * sizeof(float), quadVerts.constData());
+
+            struct {
+                float viewportWidth;
+                float viewportHeight;
+                float r, g, b, a;
+                float padding[2];
+            } overlayUniforms = {w, h, static_cast<float>(color.redF()), static_cast<float>(color.greenF()),
+                                 static_cast<float>(color.blueF()), static_cast<float>(color.alphaF()), {0, 0}};
+            rub2->updateDynamicBuffer(m_overlayUniformBuffer.get(), 0, sizeof(overlayUniforms), &overlayUniforms);
+
+            cb->resourceUpdate(rub2);
+            cb->setGraphicsPipeline(m_overlayTrianglePipeline.get());
+            cb->setShaderResources(m_overlaySrb.get());
+            const QRhiCommandBuffer::VertexInput overlayVbufBinding(m_overlayVbo.get(), 0);
+            cb->setVertexInput(0, 1, &overlayVbufBinding);
+            cb->draw(6);
+        };
+
+        // Helper lambda to draw lines
+        auto drawLines = [&](const QVector<float> &lineVerts, const QColor &color) {
+            QRhiResourceUpdateBatch *rub2 = m_rhi->nextResourceUpdateBatch();
+            rub2->updateDynamicBuffer(m_overlayVbo.get(), 0, lineVerts.size() * sizeof(float), lineVerts.constData());
+
+            struct {
+                float viewportWidth;
+                float viewportHeight;
+                float r, g, b, a;
+                float padding[2];
+            } overlayUniforms = {w, h, static_cast<float>(color.redF()), static_cast<float>(color.greenF()),
+                                 static_cast<float>(color.blueF()), static_cast<float>(color.alphaF()), {0, 0}};
+            rub2->updateDynamicBuffer(m_overlayUniformBuffer.get(), 0, sizeof(overlayUniforms), &overlayUniforms);
+
+            cb->resourceUpdate(rub2);
+            cb->setGraphicsPipeline(m_overlayLinePipeline.get());
+            cb->setShaderResources(m_overlaySrb.get());
+            const QRhiCommandBuffer::VertexInput overlayVbufBinding(m_overlayVbo.get(), 0);
+            cb->setVertexInput(0, 1, &overlayVbufBinding);
+            cb->draw(lineVerts.size() / 2);
+        };
+
+        // Draw filter passband
+        if (m_filterBw > 0) {
+            float centerX = w / 2;
+            float bwPixels = (static_cast<float>(m_filterBw) * w) / m_bandwidthHz;
+
+            // Calculate shift offset for CW modes
+            int shiftHz = m_ifShift * 10;
+            int shiftOffsetHz = shiftHz - m_cwPitch;
+            float shiftPixels = (static_cast<float>(shiftOffsetHz) * w) / m_bandwidthHz;
+
+            float passbandX;
+            if (m_mode == "CW" || m_mode == "CW-R") {
+                passbandX = centerX + shiftPixels - bwPixels / 2;
+            } else if (m_mode == "LSB") {
+                passbandX = centerX - bwPixels;
+            } else {
+                passbandX = centerX;
+            }
+
+            // Draw passband quad
+            QColor fillColor = m_passbandColor;
+            fillColor.setAlpha(64);
+            drawFilledQuad(passbandX, 0, passbandX + bwPixels, h, fillColor);
+        }
+
+        // Draw frequency marker (center line)
+        float centerX = w / 2;
+        QColor markerColor = m_passbandColor;
+        markerColor.setAlpha(255);
+        markerColor = markerColor.darker(150);
+
+        QVector<float> markerLine = {centerX, 0, centerX, h};
+        drawLines(markerLine, markerColor);
+
+        // Draw notch filter marker
+        if (m_notchEnabled && m_notchPitchHz > 0) {
+            int offsetHz;
+            if (m_mode == "LSB") {
+                offsetHz = -m_notchPitchHz;
+            } else {
+                offsetHz = m_notchPitchHz;
+            }
+
+            float notchX = centerX + (static_cast<float>(offsetHz) * w) / m_bandwidthHz;
+
+            if (notchX >= 0 && notchX < w) {
+                QVector<float> notchLine = {notchX, 0, notchX, h};
+                drawLines(notchLine, QColor(255, 0, 0)); // Red
+            }
+        }
+
+        // Draw separator line
+        QVector<float> separatorLine = {0, spectrumHeight, w, spectrumHeight};
+        drawLines(separatorLine, QColor(51, 51, 51)); // #333333
+
+        // Draw border
+        QVector<float> border = {0,     0,     w - 1, 0,     w - 1, 0, w - 1, h - 1,
+                                 w - 1, h - 1, 0,     h - 1, 0,     h - 1, 0, 0};
+        drawLines(border, QColor(68, 68, 68)); // #444444
+    }
+
+    cb->endPass();
+}
+
+void MiniPanRhiWidget::updateSpectrum(const QByteArray &bins) {
+    if (bins.isEmpty())
+        return;
+
+    // Decompress MiniPAN data: byte / 10 (different from main panadapter)
+    m_spectrum.resize(bins.size());
+    for (int i = 0; i < bins.size(); ++i) {
+        m_spectrum[i] = static_cast<quint8>(bins[i]) / 10.0f;
+    }
+
+    // Skip bins at edges to remove blank areas
+    const int SKIP_START = 75;
+    const int SKIP_END = 75;
+
+    if (m_spectrum.size() > SKIP_START + SKIP_END + 10) {
+        int validSize = m_spectrum.size() - SKIP_START - SKIP_END;
+        QVector<float> trimmed(validSize);
+        for (int i = 0; i < validSize; ++i) {
+            trimmed[i] = m_spectrum[SKIP_START + i];
+        }
+        m_spectrum = trimmed;
+    }
+
+    // Use raw spectrum directly (no smoothing)
+    m_smoothedSpectrum = m_spectrum;
+
+    m_waterfallNeedsUpdate = true;
+    update();
+}
+
+void MiniPanRhiWidget::clear() {
+    m_spectrum.clear();
+    m_smoothedSpectrum.clear();
+    m_waterfallWriteRow = 0;
+    m_smoothedBaseline = 0.0f;
+    m_waterfallData.fill(0);
+    update();
+}
+
+float MiniPanRhiWidget::normalizeDb(float db) {
+    return qBound(0.0f, (db - m_minDb) / (m_maxDb - m_minDb), 1.0f);
+}
+
+int MiniPanRhiWidget::bandwidthForMode(const QString &mode) const {
+    if (mode == "CW" || mode == "CW-R") {
+        return 3000;
+    }
+    return 10000;
+}
+
+void MiniPanRhiWidget::setSpectrumColor(const QColor &color) {
+    if (m_spectrumColor != color) {
+        m_spectrumColor = color;
+        update();
+    }
+}
+
+void MiniPanRhiWidget::setPassbandColor(const QColor &color) {
+    if (m_passbandColor != color) {
+        m_passbandColor = color;
+        update();
+    }
+}
+
+void MiniPanRhiWidget::setNotchFilter(bool enabled, int pitchHz) {
+    if (m_notchEnabled != enabled || m_notchPitchHz != pitchHz) {
+        m_notchEnabled = enabled;
+        m_notchPitchHz = pitchHz;
+        update();
+    }
+}
+
+void MiniPanRhiWidget::setMode(const QString &mode) {
+    if (m_mode != mode) {
+        m_mode = mode;
+        m_bandwidthHz = bandwidthForMode(mode);
+        update();
+    }
+}
+
+void MiniPanRhiWidget::setFilterBandwidth(int bwHz) {
+    if (m_filterBw != bwHz) {
+        m_filterBw = bwHz;
+        update();
+    }
+}
+
+void MiniPanRhiWidget::setIfShift(int shift) {
+    if (m_ifShift != shift) {
+        m_ifShift = shift;
+        update();
+    }
+}
+
+void MiniPanRhiWidget::setCwPitch(int pitchHz) {
+    if (m_cwPitch != pitchHz) {
+        m_cwPitch = pitchHz;
+        update();
+    }
+}
+
+void MiniPanRhiWidget::mousePressEvent(QMouseEvent *event) {
+    if (event->button() == Qt::LeftButton) {
+        emit clicked();
+        event->accept();
+    } else {
+        QRhiWidget::mousePressEvent(event);
+    }
+}

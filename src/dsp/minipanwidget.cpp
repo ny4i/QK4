@@ -516,15 +516,8 @@ void MiniPanWidget::updateSpectrum(const QByteArray &bins) {
         m_spectrum = trimmed;
     }
 
-    // Apply smoothing
-    if (m_smoothedSpectrum.size() != m_spectrum.size()) {
-        m_smoothedSpectrum = m_spectrum;
-    } else {
-        for (int i = 0; i < m_spectrum.size(); ++i) {
-            m_smoothedSpectrum[i] =
-                m_smoothingAlpha * m_spectrum[i] + (1.0f - m_smoothingAlpha) * m_smoothedSpectrum[i];
-        }
-    }
+    // Use raw spectrum directly (no smoothing)
+    m_smoothedSpectrum = m_spectrum;
 
     // Update waterfall texture
     if (m_glInitialized && !m_smoothedSpectrum.isEmpty()) {

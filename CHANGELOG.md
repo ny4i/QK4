@@ -7,6 +7,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **Metal/RHI panadapter overlays**: Grid, passband, and frequency marker rendering fixed for Qt RHI Metal backend
+- Separate GPU buffer management for each overlay element to prevent rendering corruption
+- CW mode passband/marker positioning now accounts for CW pitch offset
+- VFO B panadapter connections for IF shift, CW pitch, and notch filter state
 - Mode-dependent left panel controls: WPM/PTCH in CW modes, MIC/CMP in Voice/Data modes
   - Automatically switches when operating mode changes
   - Scroll wheel adjusts values and sends CAT commands (MG/CP)
@@ -73,8 +77,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Right side panel expanded with 8 new buttons in two 2x2 grids:
   - PF row: B SET/PF 1, CLR/PF 2, RIT/PF 3, XIT/PF 4
   - Bottom row: FREQ ENT/SCAN, RATE/KHZ, LOCK A/LOCK B, SUB/DIVERSITY
+- Panadapter UI overlays restored:
+  - Reference level display in upper left corner (e.g., "REF: -10 dBm")
+  - Gradient background (lighter gray center → darker gray edges)
+  - Frequency indicators at bottom of waterfall (lower/center/upper frequencies)
 
 ### Changed
+- Panadapter now displays raw K4 spectrum data (removed client-side EMA smoothing)
 - Spectrum/waterfall rendering now uses GPU (OpenGL) instead of CPU (QPainter)
 - Dramatically improved performance at high resolutions (CPU usage reduced from ~114% to ~15-25%)
 - Smoother waterfall scrolling and spectrum updates
@@ -88,6 +97,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Mini-Pan now shows center frequency marker line (darker shade of passband color)
 
 ### Fixed
+- **Metal overlay rendering**: Fixed passband showing as opaque triangles instead of translucent rectangles
+- **Metal overlay rendering**: Fixed grid turning blue instead of proper gray color
+- **Metal overlay height**: Passband and marker now correctly stop at spectrum area boundary (don't extend into waterfall)
+- **VFO B passband alpha**: Fixed VFO B passband color from opaque green to translucent (25% alpha)
+- **CW mode marker position**: Frequency marker now positioned at CW pitch offset (not at VFO frequency)
+- **VFO B state sync**: Added missing connections for IF shift, CW pitch, and notch filter to VFO B panadapters
+- Panadapter frequency alignment: Fixed ~25Hz offset caused by integer truncation in bin extraction (now rounds for symmetric extraction)
+- RF Gain button faces now show "0" instead of "-0" when value is zero
+- B SET filter targeting: BW/SHFT/HI/LO controls now correctly adjust VFO B filter when B SET is enabled
 - AUTO button now correctly highlights when radio is in auto-ref mode (was parsing #AR response format incorrectly)
 - Mini-Pan VFO B now displays correct Sub RX spectrum (discovered undocumented RX byte at position 4)
 - Dual panadapter mode now shows correct frequency alignment (spectrum was only showing partial range)
@@ -103,6 +121,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - RF Gain button faces now display with minus sign (e.g., "-0", "-30")
 - Power button face shows decimals for QRP mode (≤10W: "9.9"), whole numbers for QRO (>10W: "50")
 - Power transitions smoothly between QRP (0.1W steps) and QRO (1W steps) at 10W threshold
+
+### Known Issues
+- **Notch filter indicator**: Red vertical line renders entire grid red instead of single line (needs dedicated GPU buffers)
 
 ---
 

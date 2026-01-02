@@ -1,5 +1,6 @@
 #include "panadapter.h"
 #include <QMouseEvent>
+#include <QPainter>
 #include <QtMath>
 #include <cmath>
 
@@ -282,6 +283,51 @@ void PanadapterWidget::paintGL() {
     // Draw overlays (grid, markers) - full viewport
     glViewport(0, 0, w, h);
     drawOverlays();
+
+    // Draw text overlays using QPainter (after GL rendering)
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing);
+
+    // Reference level in upper left (spectrum area)
+    QFont refFont("Monospace", 10);
+    refFont.setBold(true);
+    painter.setFont(refFont);
+    painter.setPen(QColor(200, 200, 200));
+    QString refText = QString("REF: %1 dBm").arg(m_refLevel);
+    painter.drawText(8, 16, refText);
+
+    // Frequency indicators on waterfall (lower left, center, right)
+    int logicalH = height();
+    int waterfallTop = static_cast<int>(logicalH * m_spectrumRatio);
+    int waterfallBottom = logicalH - 4;
+
+    if (m_centerFreq > 0 && m_spanHz > 0) {
+        qint64 lowerFreq = m_centerFreq - m_spanHz / 2;
+        qint64 upperFreq = m_centerFreq + m_spanHz / 2;
+
+        QFont freqFont("Monospace", 9);
+        painter.setFont(freqFont);
+        painter.setPen(QColor(255, 176, 0)); // Orange (#FFB000) to stand out
+
+        // Format frequencies (kHz for edges, full for center)
+        QString lowerText = QString::number(lowerFreq / 1000.0, 'f', 3);
+        QString centerText = QString::number(m_centerFreq);
+        QString upperText = QString::number(upperFreq / 1000.0, 'f', 3);
+
+        // Draw lower frequency (left aligned)
+        painter.drawText(4, waterfallBottom, lowerText);
+
+        // Draw center frequency (centered)
+        QFontMetrics fm(freqFont);
+        int centerWidth = fm.horizontalAdvance(centerText);
+        painter.drawText((width() - centerWidth) / 2, waterfallBottom, centerText);
+
+        // Draw upper frequency (right aligned)
+        int upperWidth = fm.horizontalAdvance(upperText);
+        painter.drawText(width() - upperWidth - 4, waterfallBottom, upperText);
+    }
+
+    painter.end();
 }
 
 void PanadapterWidget::drawWaterfall() {
@@ -328,6 +374,42 @@ void PanadapterWidget::drawSpectrum(int spectrumHeight) {
     qreal dpr = devicePixelRatioF();
     int w = static_cast<int>(width() * dpr);
 
+    // Draw gradient background (light center → dark edges)
+    if (m_overlayShader) {
+        m_overlayShader->bind();
+        int posLoc = m_overlayShader->attributeLocation("position");
+
+        const int NUM_STRIPS = 20;
+        float centerGray = 0.22f; // Lighter gray at center (visible gradient)
+        float edgeGray = 0.08f;   // Darker gray at edges
+
+        for (int i = 0; i < NUM_STRIPS; ++i) {
+            // Calculate strip bounds (symmetric from center)
+            float stripStart = static_cast<float>(i) / NUM_STRIPS;
+            float stripEnd = static_cast<float>(i + 1) / NUM_STRIPS;
+
+            // Distance from center (0 at center, 1 at edge)
+            float distFromCenter = qAbs(0.5f - (stripStart + stripEnd) / 2.0f) * 2.0f;
+            float gray = centerGray + (edgeGray - centerGray) * distFromCenter;
+
+            m_overlayShader->setUniformValue("color", QVector4D(gray, gray, gray, 1.0f));
+
+            // Convert to NDC coordinates (-1 to 1)
+            float x1 = stripStart * 2.0f - 1.0f;
+            float x2 = stripEnd * 2.0f - 1.0f;
+
+            QVector<float> quad = {x1, -1.0f, x2, -1.0f, x2, 1.0f, x1, -1.0f, x2, 1.0f, x1, 1.0f};
+
+            m_overlayVBO.bind();
+            m_overlayVBO.allocate(quad.data(), quad.size() * sizeof(float));
+            m_overlayShader->enableAttributeArray(posLoc);
+            m_overlayShader->setAttributeBuffer(posLoc, GL_FLOAT, 0, 2, 2 * sizeof(float));
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
+        m_overlayShader->disableAttributeArray(posLoc);
+        m_overlayShader->release();
+    }
+
     // Build spectrum line vertices
     QVector<float> vertices;
     vertices.reserve(m_currentSpectrum.size() * 2);
@@ -365,7 +447,7 @@ void PanadapterWidget::drawSpectrum(int spectrumHeight) {
     // Draw spectrum line
     m_spectrumShader->bind();
     m_spectrumShader->setUniformValue("viewportSize", QVector2D(w, spectrumHeight));
-    m_spectrumShader->setUniformValue("lineColor", QVector4D(0.2f, 1.0f, 0.2f, 1.0f)); // Lime green
+    m_spectrumShader->setUniformValue("lineColor", QVector4D(0.196f, 1.0f, 0.196f, 1.0f)); // Lime green #32FF32
 
     int posLoc = m_spectrumShader->attributeLocation("position");
     m_spectrumShader->enableAttributeArray(posLoc);
@@ -416,7 +498,7 @@ void PanadapterWidget::drawOverlays() {
 
     // Grid lines (spectrum area only)
     if (m_gridEnabled) {
-        m_overlayShader->setUniformValue("color", QVector4D(1.0f, 1.0f, 1.0f, 0.15f));
+        m_overlayShader->setUniformValue("color", QVector4D(0.4f, 0.4f, 0.4f, 0.3f)); // Subtle gray
 
         // Vertical grid lines
         int vertDivisions = qMax(12, w / 50);
@@ -545,7 +627,7 @@ void PanadapterWidget::updateSpectrum(const QByteArray &bins, qint64 centerFreq,
     if (tierSpanHz > m_spanHz && totalBins > 100 && m_spanHz > 0) {
         int requestedBins = (static_cast<qint64>(m_spanHz) * totalBins) / tierSpanHz;
         requestedBins = qBound(50, requestedBins, totalBins);
-        int centerStart = (totalBins - requestedBins) / 2;
+        int centerStart = (totalBins - requestedBins + 1) / 2; // Round up for symmetric extraction
         binsToUse = bins.mid(centerStart, requestedBins);
     } else {
         binsToUse = bins;
@@ -554,8 +636,8 @@ void PanadapterWidget::updateSpectrum(const QByteArray &bins, qint64 centerFreq,
     // Decompress bins to dB values
     decompressBins(binsToUse, m_rawSpectrum);
 
-    // Apply EMA smoothing
-    applySmoothing(m_rawSpectrum, m_currentSpectrum);
+    // Use raw spectrum directly (no smoothing)
+    m_currentSpectrum = m_rawSpectrum;
 
     // Update peak hold
     if (m_peakHoldEnabled) {
@@ -582,7 +664,8 @@ void PanadapterWidget::updateMiniSpectrum(const QByteArray &bins) {
         m_rawSpectrum[i] = static_cast<quint8>(bins[i]) * 10.0f - 160.0f;
     }
 
-    applySmoothing(m_rawSpectrum, m_currentSpectrum);
+    // Use raw spectrum directly (no smoothing)
+    m_currentSpectrum = m_rawSpectrum;
     updateWaterfallTexture(m_currentSpectrum);
     update();
 }

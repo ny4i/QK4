@@ -1021,6 +1021,20 @@ void RadioState::setIfShift(int shift) {
     }
 }
 
+void RadioState::setFilterBandwidthB(int bwHz) {
+    if (m_filterBandwidthB != bwHz) {
+        m_filterBandwidthB = bwHz;
+        emit filterBandwidthBChanged(m_filterBandwidthB);
+    }
+}
+
+void RadioState::setIfShiftB(int shift) {
+    if (m_ifShiftB != shift) {
+        m_ifShiftB = shift;
+        emit ifShiftBChanged(m_ifShiftB);
+    }
+}
+
 void RadioState::setRfGain(int gain) {
     if (m_rfGain != gain) {
         m_rfGain = gain;
