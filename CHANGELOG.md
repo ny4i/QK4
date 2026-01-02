@@ -7,6 +7,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Mode-dependent left panel controls: WPM/PTCH in CW modes, MIC/CMP in Voice/Data modes
+  - Automatically switches when operating mode changes
+  - Scroll wheel adjusts values and sends CAT commands (MG/CP)
+- RadioState: MG (mic gain) and CP (compression) command parsing with signals
 - B SET indicator in center column (green rounded rectangle with black text)
   - Appears when B SET is enabled (BS1), hides SPLIT label
   - Side panel BW/SHFT indicator changes from cyan to green when B SET active

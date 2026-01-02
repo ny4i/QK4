@@ -39,12 +39,14 @@ public:
     int ifShiftB() const { return m_ifShiftB; }
     int shiftBHz() const { return m_ifShiftB * 10; } // Sub RX IF shift in Hz
     int cwPitch() const { return m_cwPitch; }
+    int keyerSpeed() const { return m_keyerSpeed; }
 
     // Power and levels
     double rfPower() const { return m_rfPower; }
     bool isQrpMode() const { return m_isQrpMode; }
     QString rfPowerString() const;
     int micGain() const { return m_micGain; }
+    int compression() const { return m_compression; }
     int rfGain() const { return m_rfGain; }
     int squelchLevel() const { return m_squelchLevel; }
     int rfGainB() const { return m_rfGainB; }
@@ -280,6 +282,8 @@ signals:
     void squelchChanged(int level);            // Squelch level
     void rfGainBChanged(int gain);             // RF gain Sub RX
     void squelchBChanged(int level);           // Squelch Sub RX
+    void micGainChanged(int gain);             // Mic gain (0-80)
+    void compressionChanged(int level);        // Speech compression (0-30, SSB only)
     void voxChanged(bool enabled);             // VOX state (any mode)
     void qskEnabledChanged(bool enabled);      // QSK (full break-in) state
     void testModeChanged(bool enabled);        // TX test mode state
@@ -328,7 +332,8 @@ private:
     // Power and levels
     double m_rfPower = 50.0;
     bool m_isQrpMode = false;
-    int m_micGain = 50;
+    int m_micGain = -1;       // Init to invalid to ensure first emit (0-80)
+    int m_compression = -1;   // Init to invalid to ensure first emit (0-30, SSB only)
     int m_rfGain = -999;      // Init to invalid to ensure first emit
     int m_squelchLevel = -1;  // Init to invalid to ensure first emit
     int m_rfGainB = -999;     // Sub RX RF gain

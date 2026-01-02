@@ -251,10 +251,20 @@ void SideControlPanel::onPwrBecameActive() {
 }
 
 void SideControlPanel::onWpmScrolled(int delta) {
-    if (m_wpmIsPrimary) {
-        emit wpmChanged(delta);
+    if (m_isCWMode) {
+        // CW mode: WPM/PTCH
+        if (m_wpmIsPrimary) {
+            emit wpmChanged(delta);
+        } else {
+            emit pitchChanged(delta);
+        }
     } else {
-        emit pitchChanged(delta);
+        // Voice mode: MIC/CMP
+        if (m_wpmIsPrimary) {
+            emit micGainChanged(delta);
+        } else {
+            emit compressionChanged(delta);
+        }
     }
 }
 
@@ -332,9 +342,29 @@ void SideControlPanel::onSubSqlScrolled(int delta) {
     }
 }
 
+// ===== Mode Switching =====
+
+void SideControlPanel::setDisplayMode(bool isCWMode) {
+    if (m_isCWMode == isCWMode) return;
+    m_isCWMode = isCWMode;
+
+    if (isCWMode) {
+        m_wpmBtn->setPrimaryLabel("WPM");
+        m_wpmBtn->setAlternateLabel("PTCH");
+    } else {
+        m_wpmBtn->setPrimaryLabel("MIC");
+        m_wpmBtn->setAlternateLabel("CMP");
+    }
+    // Reset to show primary value
+    m_wpmIsPrimary = true;
+    m_wpmBtn->setPrimaryValue("--");
+    m_wpmBtn->setAlternateValue("--");
+}
+
 // ===== Value Setters =====
 
 void SideControlPanel::setWpm(int wpm) {
+    if (!m_isCWMode) return; // Only set in CW mode
     if (m_wpmIsPrimary) {
         m_wpmBtn->setPrimaryValue(QString::number(wpm));
     } else {
@@ -343,11 +373,30 @@ void SideControlPanel::setWpm(int wpm) {
 }
 
 void SideControlPanel::setPitch(double pitch) {
+    if (!m_isCWMode) return; // Only set in CW mode
     QString pitchStr = QString::number(pitch, 'f', 2);
     if (!m_wpmIsPrimary) {
         m_wpmBtn->setPrimaryValue(pitchStr);
     } else {
         m_wpmBtn->setAlternateValue(pitchStr);
+    }
+}
+
+void SideControlPanel::setMicGain(int gain) {
+    if (m_isCWMode) return; // Only set in Voice mode
+    if (m_wpmIsPrimary) {
+        m_wpmBtn->setPrimaryValue(QString::number(gain));
+    } else {
+        m_wpmBtn->setAlternateValue(QString::number(gain));
+    }
+}
+
+void SideControlPanel::setCompression(int comp) {
+    if (m_isCWMode) return; // Only set in Voice mode
+    if (!m_wpmIsPrimary) {
+        m_wpmBtn->setPrimaryValue(QString::number(comp));
+    } else {
+        m_wpmBtn->setAlternateValue(QString::number(comp));
     }
 }
 

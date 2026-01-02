@@ -207,6 +207,21 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_radioState, &RadioState::squelchChanged, m_sideControlPanel, &SideControlPanel::setMainSquelch);
     connect(m_radioState, &RadioState::rfGainBChanged, m_sideControlPanel, &SideControlPanel::setSubRfGain);
     connect(m_radioState, &RadioState::squelchBChanged, m_sideControlPanel, &SideControlPanel::setSubSquelch);
+    connect(m_radioState, &RadioState::micGainChanged, m_sideControlPanel, &SideControlPanel::setMicGain);
+    connect(m_radioState, &RadioState::compressionChanged, m_sideControlPanel, &SideControlPanel::setCompression);
+    // Mode-dependent WPM/PTCH vs MIC/CMP display
+    connect(m_radioState, &RadioState::modeChanged, this, [this](RadioState::Mode mode) {
+        bool isCW = (mode == RadioState::CW || mode == RadioState::CW_R);
+        m_sideControlPanel->setDisplayMode(isCW);
+        // Refresh values after mode switch
+        if (isCW) {
+            m_sideControlPanel->setWpm(m_radioState->keyerSpeed());
+            m_sideControlPanel->setPitch(m_radioState->cwPitch() / 1000.0);
+        } else {
+            m_sideControlPanel->setMicGain(m_radioState->micGain());
+            m_sideControlPanel->setCompression(m_radioState->compression());
+        }
+    });
 
     // RadioState signals -> Center section updates
     connect(m_radioState, &RadioState::splitChanged, this, &MainWindow::onSplitChanged);
@@ -734,6 +749,16 @@ void MainWindow::setupUi() {
             m_audioEngine->setVolume(value / 100.0f);
         }
         RadioSettings::instance()->setVolume(value); // Persist setting
+    });
+
+    // Connect side control panel scroll signals to CAT commands
+    connect(m_sideControlPanel, &SideControlPanel::micGainChanged, this, [this](int delta) {
+        int newGain = qBound(0, m_radioState->micGain() + delta, 80);
+        m_tcpClient->sendCAT(QString("MG%1;").arg(newGain, 3, 10, QChar('0')));
+    });
+    connect(m_sideControlPanel, &SideControlPanel::compressionChanged, this, [this](int delta) {
+        int newComp = qBound(0, m_radioState->compression() + delta, 30);
+        m_tcpClient->sendCAT(QString("CP%1;").arg(newComp, 3, 10, QChar('0')));
     });
 
     // Connect TX function button signals to CAT commands
@@ -1556,6 +1581,8 @@ void MainWindow::onAuthenticated() {
     m_tcpClient->sendCAT("#AR;");   // Auto-ref level
     m_tcpClient->sendCAT("#NB$;");  // DDC Noise Blanker mode
     m_tcpClient->sendCAT("#NBL$;"); // DDC Noise Blanker level
+    m_tcpClient->sendCAT("MG;");    // Mic gain
+    m_tcpClient->sendCAT("CP;");    // Compression
     // NOTE: B SET state is tracked internally (no TB query command exists)
 }
 

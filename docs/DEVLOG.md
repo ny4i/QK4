@@ -2,6 +2,32 @@
 
 ## January 1, 2026
 
+### Feature: Mode-Dependent WPM/PTCH vs MIC/CMP Display
+
+The left side panel's first button group now switches between CW and Voice mode controls based on the current operating mode.
+
+**Behavior:**
+- **CW/CW-R modes**: Shows WPM/PTCH (keyer speed / CW pitch)
+- **Voice/Data modes (LSB, USB, AM, FM, DATA, DATA-R)**: Shows MIC/CMP (mic gain / compression)
+
+**CAT Commands:**
+- `MG;` / `MGxxx;` - Mic gain query/set (000-080)
+- `CP;` / `CPnnn;` - Compression query/set (000-030, SSB only)
+
+**Implementation Details:**
+- `setDisplayMode(bool isCWMode)` switches button labels between WPM/PTCH and MIC/CMP
+- Mode change triggers value refresh from RadioState to populate current values
+- Scroll wheel adjusts active value and sends CAT commands
+
+**Files Modified:**
+- `src/models/radiostate.h` - Added `keyerSpeed()`, `compression()`, `micGainChanged`, `compressionChanged` signals
+- `src/models/radiostate.cpp` - Added CP parsing, fixed MG to emit signal
+- `src/ui/sidecontrolpanel.h` - Added `setDisplayMode()`, `setMicGain()`, `setCompression()`, new signals
+- `src/ui/sidecontrolpanel.cpp` - Implemented mode switching, updated scroll handler
+- `src/mainwindow.cpp` - Connected mode changes, MG/CP signals, added CAT queries
+
+---
+
 ### Feature: B SET Indicator and Sub RX Filter Integration
 
 When B SET is enabled (BS1), a green "B SET" indicator appears in the center column and the side panel BW/SHFT filter controls switch to display VFO B (Sub RX) values with green indicator color.

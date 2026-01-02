@@ -85,12 +85,22 @@ void RadioState::parseCATCommand(const QString &command) {
             }
         }
     }
-    // Mic Gain (MG 0-60)
+    // Mic Gain (MG 0-80)
     else if (cmd.startsWith("MG") && cmd.length() > 2) {
         bool ok;
         int gain = cmd.mid(2).toInt(&ok);
-        if (ok) {
-            m_micGain = (gain * 100) / 60;
+        if (ok && gain != m_micGain) {
+            m_micGain = gain;
+            emit micGainChanged(m_micGain);
+        }
+    }
+    // Speech Compression (CP 0-30) - SSB modes only
+    else if (cmd.startsWith("CP") && cmd.length() > 2) {
+        bool ok;
+        int comp = cmd.mid(2).toInt(&ok);
+        if (ok && comp != m_compression) {
+            m_compression = comp;
+            emit compressionChanged(m_compression);
         }
     }
     // RF Gain Sub RX (RG$)

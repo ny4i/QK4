@@ -30,9 +30,16 @@ public:
     explicit SideControlPanel(QWidget *parent = nullptr);
     ~SideControlPanel() = default;
 
+    // Mode-dependent display (CW mode shows WPM/PTCH, Voice mode shows MIC/CMP)
+    void setDisplayMode(bool isCWMode);
+
     // Update displayed values (call with current radio state)
+    // CW mode values
     void setWpm(int wpm);
     void setPitch(double pitch);
+    // Voice mode values
+    void setMicGain(int gain);      // 0-80
+    void setCompression(int comp);  // 0-30
     void setPower(int power);
     void setDelay(double delay);
     void setBandwidth(double bw);
@@ -77,8 +84,12 @@ signals:
     void subAntClicked();  // SUB ANT - SW157;
 
     // Value changed signals (emitted when user scrolls to change value)
+    // CW mode signals
     void wpmChanged(int delta);
     void pitchChanged(int delta);
+    // Voice mode signals
+    void micGainChanged(int delta);
+    void compressionChanged(int delta);
     void powerChanged(int delta);
     void delayChanged(int delta);
     void bandwidthChanged(int delta);
@@ -124,9 +135,12 @@ private:
     QPushButton *createIconButton(const QString &text);
     QWidget *createTxFunctionButton(const QString &mainText, const QString &subText, QPushButton *&btnOut);
 
+    // Track mode (CW shows WPM/PTCH, Voice shows MIC/CMP)
+    bool m_isCWMode = true;
+
     // Track which function is currently primary for each button
     // (needed to emit correct signal on scroll)
-    bool m_wpmIsPrimary = true;    // WPM or PTCH
+    bool m_wpmIsPrimary = true;    // WPM/PTCH (CW) or MIC/CMP (Voice)
     bool m_pwrIsPrimary = true;    // PWR or DLY
     bool m_bwIsPrimary = true;     // BW or HI
     bool m_shiftIsPrimary = true;  // SHFT or LO
