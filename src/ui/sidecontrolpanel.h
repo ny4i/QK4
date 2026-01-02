@@ -38,8 +38,8 @@ public:
     void setWpm(int wpm);
     void setPitch(double pitch);
     // Voice mode values
-    void setMicGain(int gain);      // 0-80
-    void setCompression(int comp);  // 0-30
+    void setMicGain(int gain);     // 0-80
+    void setCompression(int comp); // 0-30
     void setPower(int power);
     void setDelay(double delay);
     void setBandwidth(double bw);

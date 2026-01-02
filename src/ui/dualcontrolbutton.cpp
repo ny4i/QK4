@@ -161,12 +161,14 @@ void DualControlButton::paintEvent(QPaintEvent *event) {
 
 void DualControlButton::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
-        // If we don't have the indicator, we want to become active
         if (!m_showIndicator) {
+            // First click on inactive button: just activate, don't swap
             emit becameActive();
+        } else {
+            // Already active: swap functions
+            swapFunctions();
+            emit swapped();
         }
-        // Always swap functions on click
-        swapFunctions();
         emit clicked();
         event->accept();
     } else {

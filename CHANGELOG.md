@@ -92,6 +92,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Mini-Pan VFO B now displays correct Sub RX spectrum (discovered undocumented RX byte at position 4)
 - Dual panadapter mode now shows correct frequency alignment (spectrum was only showing partial range)
 - PAN button face now updates correctly when radio changes panadapter mode (was stuck on "PAN = A")
+- DualControlButton click behavior: first click on inactive button now only activates it, subsequent clicks swap labels
+- Left panel scroll wheel now adjusts values and sends CAT commands for all controls:
+  - WPM/PTCH (KS, CW), PWR/DLY (PC, SD), BW/SHFT (BW, IS), M.RF/M.SQL (RG, SQ), S.RF/S.SQL (RG$, SQ$)
 
 ---
 

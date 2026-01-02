@@ -145,8 +145,7 @@ public:
     // B SET (Target B) - controls whether feature menu commands target Sub RX
     // State is tracked internally (toggled when SW44 is sent)
     bool bSetEnabled() const { return m_bSetEnabled; }
-    void setBSetEnabled(bool enabled)
-    {
+    void setBSetEnabled(bool enabled) {
         if (enabled != m_bSetEnabled) {
             m_bSetEnabled = enabled;
             emit bSetChanged(m_bSetEnabled);

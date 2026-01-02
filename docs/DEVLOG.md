@@ -2,6 +2,49 @@
 
 ## January 1, 2026
 
+### Fix: DualControlButton Click Behavior and Scroll Signal Wiring
+
+Fixed two issues with the left side panel DualControlButtons:
+
+**Issue 1: Click always swapped labels**
+Clicking an inactive button immediately swapped primary/alternate labels. This was wrong - the first click should only activate the button (show the indicator bar), and subsequent clicks should swap.
+
+**Fix:**
+- Changed `mousePressEvent()` to check `m_showIndicator` before swapping
+- Added new `swapped()` signal that only emits when an actual swap occurs
+- Updated SideControlPanel to connect to `swapped()` instead of `clicked()` for tracking primary/alternate state
+
+**Issue 2: Scroll wheel didn't change values**
+Mouse wheel over buttons didn't adjust values or send CAT commands. The `valueScrolled` signals were never connected in MainWindow.
+
+**Fix:**
+Added all 14 scroll signal connections in MainWindow:
+- **Group 1 (Global):** WPM→KS, PTCH→CW, MIC→MG, CMP→CP, PWR→PC, DLY→SD
+- **Group 2 (MainRx):** BW→BW, HI→BW, SHFT→IS, LO→IS
+- **Group 3 (RF/SQL):** M.RF→RG, M.SQL→SQ, S.RF→RG$, S.SQL→SQ$
+
+**CAT Command Reference:**
+| Signal | Command | Range | Description |
+|--------|---------|-------|-------------|
+| wpmChanged | KSnnn; | 008-050 | Keyer speed WPM |
+| pitchChanged | CWnn; | 30-99 | CW pitch (×10 = Hz) |
+| powerChanged | PCnnn; | 000-110 | Power control watts |
+| delayChanged | SDnnnn; | 0000-2500 | QSK/VOX delay (×10ms) |
+| bandwidthChanged | BWnnnn; | 0050-5000 | Filter bandwidth Hz |
+| shiftChanged | IS±nnnn; | -9999 to +9999 | IF shift (×10Hz) |
+| mainRfGainChanged | RGnnn; | 000-100 | RF gain |
+| mainSquelchChanged | SQnnn; | 000-029 | Squelch level |
+| subRfGainChanged | RG$nnn; | 000-100 | Sub RX RF gain |
+| subSquelchChanged | SQ$nnn; | 000-029 | Sub RX squelch |
+
+**Files Modified:**
+- `src/ui/dualcontrolbutton.h` - Added `swapped()` signal
+- `src/ui/dualcontrolbutton.cpp` - Only swap when already active
+- `src/ui/sidecontrolpanel.cpp` - Changed from `clicked` to `swapped`
+- `src/mainwindow.cpp` - Added all 14 scroll signal → CAT command connections
+
+---
+
 ### Feature: Mode-Dependent WPM/PTCH vs MIC/CMP Display
 
 The left side panel's first button group now switches between CW and Voice mode controls based on the current operating mode.

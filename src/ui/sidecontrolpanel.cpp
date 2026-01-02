@@ -195,10 +195,10 @@ void SideControlPanel::setupUi() {
     connect(m_pwrBtn, &DualControlButton::becameActive, this, &SideControlPanel::onPwrBecameActive);
     connect(m_wpmBtn, &DualControlButton::valueScrolled, this, &SideControlPanel::onWpmScrolled);
     connect(m_pwrBtn, &DualControlButton::valueScrolled, this, &SideControlPanel::onPwrScrolled);
-    connect(m_wpmBtn, &DualControlButton::clicked, this, [this]() {
+    connect(m_wpmBtn, &DualControlButton::swapped, this, [this]() {
         m_wpmIsPrimary = !m_wpmIsPrimary; // Track swap
     });
-    connect(m_pwrBtn, &DualControlButton::clicked, this, [this]() {
+    connect(m_pwrBtn, &DualControlButton::swapped, this, [this]() {
         m_pwrIsPrimary = !m_pwrIsPrimary; // Track swap
     });
 
@@ -207,18 +207,18 @@ void SideControlPanel::setupUi() {
     connect(m_shiftBtn, &DualControlButton::becameActive, this, &SideControlPanel::onShiftBecameActive);
     connect(m_bwBtn, &DualControlButton::valueScrolled, this, &SideControlPanel::onBwScrolled);
     connect(m_shiftBtn, &DualControlButton::valueScrolled, this, &SideControlPanel::onShiftScrolled);
-    connect(m_bwBtn, &DualControlButton::clicked, this, &SideControlPanel::onBwClicked);
-    connect(m_shiftBtn, &DualControlButton::clicked, this, &SideControlPanel::onShiftClicked);
+    connect(m_bwBtn, &DualControlButton::swapped, this, &SideControlPanel::onBwClicked);
+    connect(m_shiftBtn, &DualControlButton::swapped, this, &SideControlPanel::onShiftClicked);
 
     // ===== Connect Group 3 signals (MainRf/SubSql) =====
     connect(m_mainRfBtn, &DualControlButton::becameActive, this, &SideControlPanel::onMainRfBecameActive);
     connect(m_subSqlBtn, &DualControlButton::becameActive, this, &SideControlPanel::onSubSqlBecameActive);
     connect(m_mainRfBtn, &DualControlButton::valueScrolled, this, &SideControlPanel::onMainRfScrolled);
     connect(m_subSqlBtn, &DualControlButton::valueScrolled, this, &SideControlPanel::onSubSqlScrolled);
-    connect(m_mainRfBtn, &DualControlButton::clicked, this, [this]() {
+    connect(m_mainRfBtn, &DualControlButton::swapped, this, [this]() {
         m_mainRfIsPrimary = !m_mainRfIsPrimary; // Track swap
     });
-    connect(m_subSqlBtn, &DualControlButton::clicked, this, [this]() {
+    connect(m_subSqlBtn, &DualControlButton::swapped, this, [this]() {
         m_subSqlIsPrimary = !m_subSqlIsPrimary; // Track swap
     });
 }
@@ -345,7 +345,8 @@ void SideControlPanel::onSubSqlScrolled(int delta) {
 // ===== Mode Switching =====
 
 void SideControlPanel::setDisplayMode(bool isCWMode) {
-    if (m_isCWMode == isCWMode) return;
+    if (m_isCWMode == isCWMode)
+        return;
     m_isCWMode = isCWMode;
 
     if (isCWMode) {
@@ -364,7 +365,8 @@ void SideControlPanel::setDisplayMode(bool isCWMode) {
 // ===== Value Setters =====
 
 void SideControlPanel::setWpm(int wpm) {
-    if (!m_isCWMode) return; // Only set in CW mode
+    if (!m_isCWMode)
+        return; // Only set in CW mode
     if (m_wpmIsPrimary) {
         m_wpmBtn->setPrimaryValue(QString::number(wpm));
     } else {
@@ -373,7 +375,8 @@ void SideControlPanel::setWpm(int wpm) {
 }
 
 void SideControlPanel::setPitch(double pitch) {
-    if (!m_isCWMode) return; // Only set in CW mode
+    if (!m_isCWMode)
+        return; // Only set in CW mode
     QString pitchStr = QString::number(pitch, 'f', 2);
     if (!m_wpmIsPrimary) {
         m_wpmBtn->setPrimaryValue(pitchStr);
@@ -383,7 +386,8 @@ void SideControlPanel::setPitch(double pitch) {
 }
 
 void SideControlPanel::setMicGain(int gain) {
-    if (m_isCWMode) return; // Only set in Voice mode
+    if (m_isCWMode)
+        return; // Only set in Voice mode
     if (m_wpmIsPrimary) {
         m_wpmBtn->setPrimaryValue(QString::number(gain));
     } else {
@@ -392,7 +396,8 @@ void SideControlPanel::setMicGain(int gain) {
 }
 
 void SideControlPanel::setCompression(int comp) {
-    if (m_isCWMode) return; // Only set in Voice mode
+    if (m_isCWMode)
+        return; // Only set in Voice mode
     if (!m_wpmIsPrimary) {
         m_wpmBtn->setPrimaryValue(QString::number(comp));
     } else {

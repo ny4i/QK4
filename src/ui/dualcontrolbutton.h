@@ -65,7 +65,8 @@ public:
 
 signals:
     void valueScrolled(int delta); // Scroll wheel changed value (only when indicator shown)
-    void clicked();                // Button was clicked (triggers swap)
+    void clicked();                // Button was clicked
+    void swapped();                // Primary/alternate were swapped (only when already active)
     void becameActive();           // User clicked to activate this button
 
 protected:
