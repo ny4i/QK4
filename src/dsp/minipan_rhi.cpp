@@ -328,8 +328,8 @@ void MiniPanRhiWidget::render(QRhiCommandBuffer *cb) {
                 static_cast<quint8>(qBound(0, static_cast<int>(normalized * 255), 255));
         }
 
-        QRhiTextureSubresourceUploadDescription rowUpload(m_waterfallData.constData() + m_waterfallWriteRow * TEXTURE_WIDTH,
-                                                          TEXTURE_WIDTH);
+        QRhiTextureSubresourceUploadDescription rowUpload(
+            m_waterfallData.constData() + m_waterfallWriteRow * TEXTURE_WIDTH, TEXTURE_WIDTH);
         rowUpload.setDestinationTopLeft(QPoint(0, m_waterfallWriteRow));
         rowUpload.setSourceSize(QSize(TEXTURE_WIDTH, 1));
         rub->uploadTexture(m_waterfallTexture.get(), QRhiTextureUploadEntry(0, 0, rowUpload));
@@ -471,8 +471,13 @@ void MiniPanRhiWidget::render(QRhiCommandBuffer *cb) {
                 float viewportHeight;
                 float r, g, b, a;
                 float padding[2];
-            } overlayUniforms = {w, h, static_cast<float>(color.redF()), static_cast<float>(color.greenF()),
-                                 static_cast<float>(color.blueF()), static_cast<float>(color.alphaF()), {0, 0}};
+            } overlayUniforms = {w,
+                                 h,
+                                 static_cast<float>(color.redF()),
+                                 static_cast<float>(color.greenF()),
+                                 static_cast<float>(color.blueF()),
+                                 static_cast<float>(color.alphaF()),
+                                 {0, 0}};
             rub2->updateDynamicBuffer(m_overlayUniformBuffer.get(), 0, sizeof(overlayUniforms), &overlayUniforms);
 
             cb->resourceUpdate(rub2);
@@ -493,8 +498,13 @@ void MiniPanRhiWidget::render(QRhiCommandBuffer *cb) {
                 float viewportHeight;
                 float r, g, b, a;
                 float padding[2];
-            } overlayUniforms = {w, h, static_cast<float>(color.redF()), static_cast<float>(color.greenF()),
-                                 static_cast<float>(color.blueF()), static_cast<float>(color.alphaF()), {0, 0}};
+            } overlayUniforms = {w,
+                                 h,
+                                 static_cast<float>(color.redF()),
+                                 static_cast<float>(color.greenF()),
+                                 static_cast<float>(color.blueF()),
+                                 static_cast<float>(color.alphaF()),
+                                 {0, 0}};
             rub2->updateDynamicBuffer(m_overlayUniformBuffer.get(), 0, sizeof(overlayUniforms), &overlayUniforms);
 
             cb->resourceUpdate(rub2);
@@ -561,8 +571,7 @@ void MiniPanRhiWidget::render(QRhiCommandBuffer *cb) {
         drawLines(separatorLine, QColor(51, 51, 51)); // #333333
 
         // Draw border
-        QVector<float> border = {0,     0,     w - 1, 0,     w - 1, 0, w - 1, h - 1,
-                                 w - 1, h - 1, 0,     h - 1, 0,     h - 1, 0, 0};
+        QVector<float> border = {0, 0, w - 1, 0, w - 1, 0, w - 1, h - 1, w - 1, h - 1, 0, h - 1, 0, h - 1, 0, 0};
         drawLines(border, QColor(68, 68, 68)); // #444444
     }
 

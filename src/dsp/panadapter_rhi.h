@@ -82,6 +82,7 @@ private:
     float freqToNormalized(qint64 freq);
     qint64 xToFreq(int x, int w);
     QColor interpolateColor(const QColor &a, const QColor &b, float t);
+    QColor spectrumGradientColor(float t); // 5-stop teal-to-white gradient
 
     // RHI resources
     QRhi *m_rhi = nullptr;
@@ -97,12 +98,17 @@ private:
     std::unique_ptr<QRhiBuffer> m_markerUniformBuffer;
     std::unique_ptr<QRhiTexture> m_waterfallTexture;
     std::unique_ptr<QRhiTexture> m_colorLutTexture;
+    std::unique_ptr<QRhiTexture> m_spectrumDataTexture; // 1D texture for spectrum values
     std::unique_ptr<QRhiSampler> m_sampler;
     std::unique_ptr<QRhiGraphicsPipeline> m_spectrumPipeline;
+    std::unique_ptr<QRhiGraphicsPipeline> m_spectrumFillPipeline; // Fragment shader spectrum
     std::unique_ptr<QRhiGraphicsPipeline> m_waterfallPipeline;
     std::unique_ptr<QRhiGraphicsPipeline> m_overlayLinePipeline;
     std::unique_ptr<QRhiGraphicsPipeline> m_overlayTrianglePipeline;
     std::unique_ptr<QRhiShaderResourceBindings> m_spectrumSrb;
+    std::unique_ptr<QRhiShaderResourceBindings> m_spectrumFillSrb;
+    std::unique_ptr<QRhiBuffer> m_spectrumFillVbo;
+    std::unique_ptr<QRhiBuffer> m_spectrumFillUniformBuffer;
     std::unique_ptr<QRhiShaderResourceBindings> m_waterfallSrb;
     std::unique_ptr<QRhiShaderResourceBindings> m_overlaySrb;
     std::unique_ptr<QRhiShaderResourceBindings> m_passbandSrb;
@@ -116,6 +122,8 @@ private:
     // Shader stages (loaded from .qsb files)
     QShader m_spectrumVert;
     QShader m_spectrumFrag;
+    QShader m_spectrumFillVert;
+    QShader m_spectrumFillFrag;
     QShader m_waterfallVert;
     QShader m_waterfallFrag;
     QShader m_overlayVert;
@@ -160,16 +168,18 @@ private:
     bool m_cursorVisible = true;
 
     // Colors (all configurable)
-    QColor m_spectrumBaseColor{0, 100, 0};      // Deep green at baseline
-    QColor m_spectrumPeakColor{200, 255, 200};  // Light green/white at peaks
-    QColor m_spectrumLineColor{50, 255, 50};    // Lime green line on top
-    QColor m_gridColor{102, 102, 102, 77};      // Gray with 30% alpha
-    QColor m_peakHoldColor{255, 255, 255, 102}; // White with 40% alpha
-    QColor m_passbandColor{0, 128, 255, 64};    // Blue with 25% alpha
-    QColor m_frequencyMarkerColor{0, 80, 200};  // Dark blue
-    QColor m_notchColor{255, 0, 0};             // Red
-    QColor m_bgCenterColor{56, 56, 56};         // Lighter gray at center
-    QColor m_bgEdgeColor{20, 20, 20};           // Darker at edges
+    // Spectrum gradient uses spectrumGradientColor() for 5-stop lime-to-white
+    QColor m_spectrumBaseColor{20, 60, 20, 128};    // Visible dark lime (gradient stop 0.0)
+    QColor m_spectrumPeakColor{255, 255, 255, 255}; // Pure white peak (gradient stop 1.0)
+    QColor m_spectrumLineColor{50, 255, 50};        // Lime green line on top
+    QColor m_peakTrailColor{60, 140, 60};           // Dim lime green for peak trail
+    QColor m_gridColor{102, 102, 102, 77};          // Gray with 30% alpha
+    QColor m_peakHoldColor{255, 255, 255, 102};     // White with 40% alpha
+    QColor m_passbandColor{0, 128, 255, 64};        // Blue with 25% alpha
+    QColor m_frequencyMarkerColor{0, 80, 200};      // Dark blue
+    QColor m_notchColor{255, 0, 0};                 // Red
+    QColor m_bgCenterColor{56, 56, 56};             // Lighter gray at center
+    QColor m_bgEdgeColor{20, 20, 20};               // Darker at edges
 
     // Peak hold decay
     QTimer *m_peakDecayTimer = nullptr;

@@ -2,6 +2,44 @@
 
 ## January 2, 2026
 
+### Enhancement: Fragment Shader Spectrum Rendering
+
+**Summary:** Replaced triangle strip spectrum rendering with a fragment shader approach for per-pixel control of spectrum fill. This eliminates the "flashing columns" artifact when strong signals appeared.
+
+**Problem:** Triangle strip spectrum rendering caused entire vertical columns to flash bright when strong signals appeared. This happened because triangle strips connect adjacent samples horizontally, causing the GPU to interpolate colors between peaks of different heights. There was no way to have independent per-column control with this approach.
+
+**Solution:** Fragment shader spectrum rendering:
+1. Upload spectrum data as a 1D texture (R32F format, 2048 texels)
+2. Render a fullscreen quad covering the spectrum area
+3. Fragment shader samples the texture at each X position
+4. Discard pixels above the spectrum value, fill pixels below
+5. Color based on absolute Y position (higher = brighter)
+
+**Key Implementation Details:**
+- Texture uploads must happen BEFORE `beginPass()` in Metal (via `resourceUpdate()`)
+- Color gradient based on absolute screen position, not relative to each signal
+- Signals that reach high get bright colors; signals at noise floor stay dim
+- Smooth gradient using `smoothstep()` for natural color transitions
+
+**New Files:**
+- `src/dsp/shaders/spectrum_fill.vert` - Vertex shader for fullscreen quad
+- `src/dsp/shaders/spectrum_fill.frag` - Fragment shader with per-pixel spectrum sampling
+
+**Files Modified:**
+- `src/dsp/panadapter_rhi.h` - Added m_spectrumDataTexture, m_spectrumFillPipeline, m_spectrumFillSrb, m_spectrumFillVbo, m_spectrumFillUniformBuffer
+- `src/dsp/panadapter_rhi.cpp` - Initialize texture/pipeline, upload spectrum data before render pass, draw with new pipeline
+- `CMakeLists.txt` - Added spectrum_fill shaders to all qt6_add_shaders blocks
+
+**Color Configuration:**
+- Peak color: Bright lime (100, 255, 100) at full alpha
+- Base color: Visible green (30, 100, 30) at 70% alpha
+- Gradient reaches peak brightness at 40% height
+- Gentle fade at bottom edge with 15% minimum visibility
+
+**Result:** Smooth, professional spectrum fill where color intensity properly corresponds to signal strength. No more flashing artifacts.
+
+---
+
 ### Major: OpenGL to Metal/RHI Migration for Panadapter Overlays
 
 **Summary:** Migrated PanadapterRhiWidget overlay rendering (grid, passband, frequency marker) to properly work with Qt RHI Metal backend. This required significant changes to buffer management to avoid GPU conflicts.

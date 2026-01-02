@@ -7,6 +7,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **Fragment shader spectrum rendering**: Per-pixel spectrum fill using GPU fragment shader for smooth, professional appearance
+  - Color intensity based on absolute screen position (higher signals = brighter)
+  - Eliminates "flashing columns" artifact from previous triangle strip approach
+  - Smooth gradient from dark green at noise floor to bright lime at strong signals
 - **Metal/RHI panadapter overlays**: Grid, passband, and frequency marker rendering fixed for Qt RHI Metal backend
 - Separate GPU buffer management for each overlay element to prevent rendering corruption
 - CW mode passband/marker positioning now accounts for CW pitch offset

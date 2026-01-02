@@ -221,8 +221,7 @@ void VFOWidget::showMiniPan() {
             m_miniPan->setSpectrumColor(m_pendingSpectrumColor);
         } else {
             // Default color based on VFO type
-            m_miniPan->setSpectrumColor(
-                QColor(m_type == VFO_A ? K4Colors::VfoAAmber : "#00FF00"));
+            m_miniPan->setSpectrumColor(QColor(m_type == VFO_A ? K4Colors::VfoAAmber : "#00FF00"));
         }
         if (m_pendingPassbandColor.isValid()) {
             m_miniPan->setPassbandColor(m_pendingPassbandColor);
@@ -247,38 +246,45 @@ void VFOWidget::showMiniPan() {
 // Mini-pan configuration methods - store pending or apply immediately
 void VFOWidget::setMiniPanMode(const QString &mode) {
     m_pendingMode = mode;
-    if (m_miniPan) m_miniPan->setMode(mode);
+    if (m_miniPan)
+        m_miniPan->setMode(mode);
 }
 
 void VFOWidget::setMiniPanFilterBandwidth(int bw) {
     m_pendingFilterBw = bw;
-    if (m_miniPan) m_miniPan->setFilterBandwidth(bw);
+    if (m_miniPan)
+        m_miniPan->setFilterBandwidth(bw);
 }
 
 void VFOWidget::setMiniPanIfShift(int shift) {
     m_pendingIfShift = shift;
-    if (m_miniPan) m_miniPan->setIfShift(shift);
+    if (m_miniPan)
+        m_miniPan->setIfShift(shift);
 }
 
 void VFOWidget::setMiniPanCwPitch(int pitch) {
     m_pendingCwPitch = pitch;
-    if (m_miniPan) m_miniPan->setCwPitch(pitch);
+    if (m_miniPan)
+        m_miniPan->setCwPitch(pitch);
 }
 
 void VFOWidget::setMiniPanNotchFilter(bool enabled, int pitchHz) {
     m_pendingNotchEnabled = enabled;
     m_pendingNotchPitchHz = pitchHz;
-    if (m_miniPan) m_miniPan->setNotchFilter(enabled, pitchHz);
+    if (m_miniPan)
+        m_miniPan->setNotchFilter(enabled, pitchHz);
 }
 
 void VFOWidget::setMiniPanSpectrumColor(const QColor &color) {
     m_pendingSpectrumColor = color;
-    if (m_miniPan) m_miniPan->setSpectrumColor(color);
+    if (m_miniPan)
+        m_miniPan->setSpectrumColor(color);
 }
 
 void VFOWidget::setMiniPanPassbandColor(const QColor &color) {
     m_pendingPassbandColor = color;
-    if (m_miniPan) m_miniPan->setPassbandColor(color);
+    if (m_miniPan)
+        m_miniPan->setPassbandColor(color);
 }
 
 void VFOWidget::showNormal() {

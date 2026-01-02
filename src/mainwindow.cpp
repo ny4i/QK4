@@ -1427,7 +1427,7 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     m_panadapterB->setDbRange(-140.0f, -20.0f);
     m_panadapterB->setSpectrumRatio(0.35f);
     m_panadapterB->setGridEnabled(true);
-    m_panadapterB->setPassbandColor(QColor(0, 200, 0, 64));     // Green passband for VFO B (25% alpha)
+    m_panadapterB->setPassbandColor(QColor(0, 200, 0, 64));    // Green passband for VFO B (25% alpha)
     m_panadapterB->setFrequencyMarkerColor(QColor(0, 140, 0)); // Darker green marker for VFO B
     layout->addWidget(m_panadapterB);
     m_panadapterB->hide(); // Start hidden (MainOnly mode)
@@ -1540,12 +1540,10 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     m_panadapterB->installEventFilter(this);
 
     // Debug: Connect to renderFailed signal to diagnose QRhiWidget issues
-    connect(m_panadapterA, &QRhiWidget::renderFailed, this, []() {
-        qCritical() << "!!! PanadapterA renderFailed() emitted - QRhi could not be obtained !!!";
-    });
-    connect(m_panadapterB, &QRhiWidget::renderFailed, this, []() {
-        qCritical() << "!!! PanadapterB renderFailed() emitted - QRhi could not be obtained !!!";
-    });
+    connect(m_panadapterA, &QRhiWidget::renderFailed, this,
+            []() { qCritical() << "!!! PanadapterA renderFailed() emitted - QRhi could not be obtained !!!"; });
+    connect(m_panadapterB, &QRhiWidget::renderFailed, this,
+            []() { qCritical() << "!!! PanadapterB renderFailed() emitted - QRhi could not be obtained !!!"; });
 
     // Update panadapter when frequency/mode changes
     connect(m_radioState, &RadioState::frequencyChanged, this,
@@ -1574,10 +1572,8 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     // Mini-pan filter passband visualization (using forwarding methods)
     connect(m_radioState, &RadioState::filterBandwidthChanged, this,
             [this](int bw) { m_vfoA->setMiniPanFilterBandwidth(bw); });
-    connect(m_radioState, &RadioState::ifShiftChanged, this,
-            [this](int shift) { m_vfoA->setMiniPanIfShift(shift); });
-    connect(m_radioState, &RadioState::cwPitchChanged, this,
-            [this](int pitch) { m_vfoA->setMiniPanCwPitch(pitch); });
+    connect(m_radioState, &RadioState::ifShiftChanged, this, [this](int shift) { m_vfoA->setMiniPanIfShift(shift); });
+    connect(m_radioState, &RadioState::cwPitchChanged, this, [this](int pitch) { m_vfoA->setMiniPanCwPitch(pitch); });
 
     // Mouse control: click to tune
     connect(m_panadapterA, &PanadapterRhiWidget::frequencyClicked, this, [this](qint64 freq) {
@@ -1612,10 +1608,8 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
             [this](RadioState::Mode mode) { m_panadapterB->setMode(RadioState::modeToString(mode)); });
     connect(m_radioState, &RadioState::filterBandwidthBChanged, this,
             [this](int bw) { m_panadapterB->setFilterBandwidth(bw); });
-    connect(m_radioState, &RadioState::ifShiftBChanged, this,
-            [this](int shift) { m_panadapterB->setIfShift(shift); });
-    connect(m_radioState, &RadioState::cwPitchChanged, this,
-            [this](int pitch) { m_panadapterB->setCwPitch(pitch); });
+    connect(m_radioState, &RadioState::ifShiftBChanged, this, [this](int shift) { m_panadapterB->setIfShift(shift); });
+    connect(m_radioState, &RadioState::cwPitchChanged, this, [this](int pitch) { m_panadapterB->setCwPitch(pitch); });
     connect(m_radioState, &RadioState::notchChanged, this, [this]() {
         bool enabled = m_radioState->manualNotchEnabled();
         int pitch = m_radioState->manualNotchPitch();
@@ -1627,10 +1621,8 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
             [this](RadioState::Mode mode) { m_vfoB->setMiniPanMode(RadioState::modeToString(mode)); });
     connect(m_radioState, &RadioState::filterBandwidthBChanged, this,
             [this](int bw) { m_vfoB->setMiniPanFilterBandwidth(bw); });
-    connect(m_radioState, &RadioState::ifShiftBChanged, this,
-            [this](int shift) { m_vfoB->setMiniPanIfShift(shift); });
-    connect(m_radioState, &RadioState::cwPitchChanged, this,
-            [this](int pitch) { m_vfoB->setMiniPanCwPitch(pitch); });
+    connect(m_radioState, &RadioState::ifShiftBChanged, this, [this](int shift) { m_vfoB->setMiniPanIfShift(shift); });
+    connect(m_radioState, &RadioState::cwPitchChanged, this, [this](int pitch) { m_vfoB->setMiniPanCwPitch(pitch); });
     connect(m_radioState, &RadioState::notchChanged, this, [this]() {
         bool enabled = m_radioState->manualNotchEnabled();
         int pitch = m_radioState->manualNotchPitch();

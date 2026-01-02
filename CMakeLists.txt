@@ -126,6 +126,8 @@ qt6_add_shaders(${PROJECT_NAME} "panadapter_shaders"
     FILES
         src/dsp/shaders/spectrum.vert
         src/dsp/shaders/spectrum.frag
+        src/dsp/shaders/spectrum_fill.vert
+        src/dsp/shaders/spectrum_fill.frag
         src/dsp/shaders/waterfall.vert
         src/dsp/shaders/waterfall.frag
         src/dsp/shaders/overlay.vert
@@ -185,6 +187,8 @@ qt6_add_shaders(test_real_panadapter "test_panadapter_shaders"
     FILES
         src/dsp/shaders/spectrum.vert
         src/dsp/shaders/spectrum.frag
+        src/dsp/shaders/spectrum_fill.vert
+        src/dsp/shaders/spectrum_fill.frag
         src/dsp/shaders/waterfall.vert
         src/dsp/shaders/waterfall.frag
         src/dsp/shaders/overlay.vert
@@ -217,6 +221,8 @@ qt6_add_shaders(test_with_audio "test_audio_shaders"
     FILES
         src/dsp/shaders/spectrum.vert
         src/dsp/shaders/spectrum.frag
+        src/dsp/shaders/spectrum_fill.vert
+        src/dsp/shaders/spectrum_fill.frag
         src/dsp/shaders/waterfall.vert
         src/dsp/shaders/waterfall.frag
         src/dsp/shaders/overlay.vert
@@ -243,6 +249,8 @@ qt6_add_shaders(test_menubar_after "test_menubar_after_shaders"
     FILES
         src/dsp/shaders/spectrum.vert
         src/dsp/shaders/spectrum.frag
+        src/dsp/shaders/spectrum_fill.vert
+        src/dsp/shaders/spectrum_fill.frag
         src/dsp/shaders/waterfall.vert
         src/dsp/shaders/waterfall.frag
         src/dsp/shaders/overlay.vert
@@ -269,6 +277,8 @@ qt6_add_shaders(test_with_menubar "test_menubar_shaders"
     FILES
         src/dsp/shaders/spectrum.vert
         src/dsp/shaders/spectrum.frag
+        src/dsp/shaders/spectrum_fill.vert
+        src/dsp/shaders/spectrum_fill.frag
         src/dsp/shaders/waterfall.vert
         src/dsp/shaders/waterfall.frag
         src/dsp/shaders/overlay.vert
@@ -305,6 +315,8 @@ qt6_add_shaders(test_minimal_mainwindow "test_minimal_mainwindow_shaders"
     FILES
         src/dsp/shaders/spectrum.vert
         src/dsp/shaders/spectrum.frag
+        src/dsp/shaders/spectrum_fill.vert
+        src/dsp/shaders/spectrum_fill.frag
         src/dsp/shaders/waterfall.vert
         src/dsp/shaders/waterfall.frag
         src/dsp/shaders/overlay.vert
@@ -334,6 +346,8 @@ qt6_add_shaders(test_with_vfo "test_vfo_shaders"
     FILES
         src/dsp/shaders/spectrum.vert
         src/dsp/shaders/spectrum.frag
+        src/dsp/shaders/spectrum_fill.vert
+        src/dsp/shaders/spectrum_fill.frag
         src/dsp/shaders/waterfall.vert
         src/dsp/shaders/waterfall.frag
         src/dsp/shaders/overlay.vert

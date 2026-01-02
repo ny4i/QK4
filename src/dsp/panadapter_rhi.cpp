@@ -139,6 +139,8 @@ void PanadapterRhiWidget::initialize(QRhiCommandBuffer *cb) {
 
     m_spectrumVert = loadShader(":/shaders/src/dsp/shaders/spectrum.vert.qsb");
     m_spectrumFrag = loadShader(":/shaders/src/dsp/shaders/spectrum.frag.qsb");
+    m_spectrumFillVert = loadShader(":/shaders/src/dsp/shaders/spectrum_fill.vert.qsb");
+    m_spectrumFillFrag = loadShader(":/shaders/src/dsp/shaders/spectrum_fill.frag.qsb");
     m_waterfallVert = loadShader(":/shaders/src/dsp/shaders/waterfall.vert.qsb");
     m_waterfallFrag = loadShader(":/shaders/src/dsp/shaders/waterfall.frag.qsb");
     m_overlayVert = loadShader(":/shaders/src/dsp/shaders/overlay.vert.qsb");
@@ -152,6 +154,10 @@ void PanadapterRhiWidget::initialize(QRhiCommandBuffer *cb) {
     // Create color LUT texture (256x1 RGBA)
     m_colorLutTexture.reset(m_rhi->newTexture(QRhiTexture::RGBA8, QSize(256, 1)));
     m_colorLutTexture->create();
+
+    // Create spectrum data texture (1D texture for fragment shader spectrum)
+    m_spectrumDataTexture.reset(m_rhi->newTexture(QRhiTexture::R32F, QSize(TEXTURE_WIDTH, 1)));
+    m_spectrumDataTexture->create();
 
     // Upload color LUT data
     QRhiResourceUpdateBatch *rub = m_rhi->nextResourceUpdateBatch();
@@ -198,6 +204,26 @@ void PanadapterRhiWidget::initialize(QRhiCommandBuffer *cb) {
 
     m_overlayUniformBuffer.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, 32));
     m_overlayUniformBuffer->create();
+
+    // Spectrum fill quad (fullscreen quad for fragment shader spectrum)
+    // Position (x, y) + texCoord (s, t) - covers normalized -1 to 1 range
+    float spectrumFillQuad[] = {
+        // position (x, y), texcoord (s, t)
+        -1.0f, -1.0f, 0.0f, 1.0f, // bottom-left (texCoord y=1 = bottom)
+        1.0f,  -1.0f, 1.0f, 1.0f, // bottom-right
+        1.0f,  1.0f,  1.0f, 0.0f, // top-right (texCoord y=0 = top)
+        -1.0f, -1.0f, 0.0f, 1.0f, // bottom-left
+        1.0f,  1.0f,  1.0f, 0.0f, // top-right
+        -1.0f, 1.0f,  0.0f, 0.0f  // top-left
+    };
+    m_spectrumFillVbo.reset(
+        m_rhi->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer, sizeof(spectrumFillQuad)));
+    m_spectrumFillVbo->create();
+    rub->uploadStaticBuffer(m_spectrumFillVbo.get(), spectrumFillQuad);
+
+    // Spectrum fill uniform buffer: spectrumHeight, frostHeight, pad, pad, peakColor(4), baseColor(4)
+    m_spectrumFillUniformBuffer.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, 48));
+    m_spectrumFillUniformBuffer->create();
 
     // Separate buffers for passband to avoid GPU buffer conflicts
     m_passbandVbo.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::VertexBuffer, 256 * sizeof(float)));
@@ -254,6 +280,38 @@ void PanadapterRhiWidget::createPipelines() {
         m_spectrumPipeline->setTargetBlends({blend});
 
         m_spectrumPipeline->create();
+    }
+
+    // Spectrum fill pipeline (fragment shader per-pixel spectrum)
+    {
+        m_spectrumFillSrb.reset(m_rhi->newShaderResourceBindings());
+        m_spectrumFillSrb->setBindings(
+            {QRhiShaderResourceBinding::uniformBuffer(0, QRhiShaderResourceBinding::FragmentStage,
+                                                      m_spectrumFillUniformBuffer.get()),
+             QRhiShaderResourceBinding::sampledTexture(1, QRhiShaderResourceBinding::FragmentStage,
+                                                       m_spectrumDataTexture.get(), m_sampler.get())});
+        m_spectrumFillSrb->create();
+
+        m_spectrumFillPipeline.reset(m_rhi->newGraphicsPipeline());
+        m_spectrumFillPipeline->setShaderStages(
+            {{QRhiShaderStage::Vertex, m_spectrumFillVert}, {QRhiShaderStage::Fragment, m_spectrumFillFrag}});
+
+        QRhiVertexInputLayout inputLayout;
+        inputLayout.setBindings({{4 * sizeof(float)}});                         // position(2) + texcoord(2)
+        inputLayout.setAttributes({{0, 0, QRhiVertexInputAttribute::Float2, 0}, // position
+                                   {0, 1, QRhiVertexInputAttribute::Float2, 2 * sizeof(float)}}); // texcoord
+        m_spectrumFillPipeline->setVertexInputLayout(inputLayout);
+        m_spectrumFillPipeline->setTopology(QRhiGraphicsPipeline::Triangles);
+        m_spectrumFillPipeline->setShaderResourceBindings(m_spectrumFillSrb.get());
+        m_spectrumFillPipeline->setRenderPassDescriptor(m_rpDesc);
+
+        QRhiGraphicsPipeline::TargetBlend blend;
+        blend.enable = true;
+        blend.srcColor = QRhiGraphicsPipeline::SrcAlpha;
+        blend.dstColor = QRhiGraphicsPipeline::OneMinusSrcAlpha;
+        m_spectrumFillPipeline->setTargetBlends({blend});
+
+        m_spectrumFillPipeline->create();
     }
 
     // Waterfall pipeline
@@ -394,12 +452,8 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
     } waterfallUniforms = {scrollOffset, {0, 0, 0}};
     rub->updateDynamicBuffer(m_waterfallUniformBuffer.get(), 0, sizeof(waterfallUniforms), &waterfallUniforms);
 
-    // Build spectrum vertices with gradient fill
+    // Calculate smoothed baseline for spectrum normalization
     if (!m_currentSpectrum.isEmpty()) {
-        QVector<float> vertices;
-        vertices.reserve(m_currentSpectrum.size() * 2 * 6); // 2 verts per sample, 6 floats each
-
-        // Calculate smoothed baseline
         float frameMinNormalized = 1.0f;
         for (int i = 0; i < m_currentSpectrum.size(); ++i) {
             float normalized = normalizeDb(m_currentSpectrum[i]);
@@ -412,33 +466,39 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
         else
             m_smoothedBaseline = baselineAlpha * frameMinNormalized + (1.0f - baselineAlpha) * m_smoothedBaseline;
 
-        for (int i = 0; i < m_currentSpectrum.size(); ++i) {
-            float x = (static_cast<float>(i) / (m_currentSpectrum.size() - 1)) * w;
-            float normalized = normalizeDb(m_currentSpectrum[i]);
+        // Upload spectrum data to 1D texture (must be done before beginPass)
+        QVector<float> normalizedSpectrum(TEXTURE_WIDTH);
+        for (int i = 0; i < TEXTURE_WIDTH; ++i) {
+            float srcPos = static_cast<float>(i) / (TEXTURE_WIDTH - 1) * (m_currentSpectrum.size() - 1);
+            int idx = qBound(0, qRound(srcPos), m_currentSpectrum.size() - 1);
+            float normalized = normalizeDb(m_currentSpectrum[idx]);
             float adjusted = qMax(0.0f, normalized - m_smoothedBaseline);
-            float y = spectrumHeight * (1.0f - adjusted * 0.95f);
-
-            // Bottom vertex (baseline) - base color with some transparency
-            vertices.append(x);
-            vertices.append(spectrumHeight);
-            vertices.append(m_spectrumBaseColor.redF());
-            vertices.append(m_spectrumBaseColor.greenF());
-            vertices.append(m_spectrumBaseColor.blueF());
-            vertices.append(0.7f);
-
-            // Top vertex (signal level) - interpolate to peak color based on amplitude
-            QColor peakColor = interpolateColor(m_spectrumBaseColor, m_spectrumPeakColor, adjusted);
-            vertices.append(x);
-            vertices.append(y);
-            vertices.append(peakColor.redF());
-            vertices.append(peakColor.greenF());
-            vertices.append(peakColor.blueF());
-            vertices.append(1.0f);
+            normalizedSpectrum[i] = adjusted * 0.95f;
         }
 
-        if (!vertices.isEmpty()) {
-            rub->updateDynamicBuffer(m_spectrumVbo.get(), 0, vertices.size() * sizeof(float), vertices.constData());
-        }
+        QRhiTextureSubresourceUploadDescription specDataUpload(normalizedSpectrum.constData(),
+                                                               normalizedSpectrum.size() * sizeof(float));
+        specDataUpload.setSourceSize(QSize(TEXTURE_WIDTH, 1));
+        rub->uploadTexture(m_spectrumDataTexture.get(), QRhiTextureUploadEntry(0, 0, specDataUpload));
+
+        // Update spectrum fill uniform buffer (before beginPass)
+        // Colors: gradient from visible green at noise floor to bright lime at peaks
+        struct {
+            float spectrumHeight;
+            float frostHeight;
+            float padding1;
+            float padding2;
+            float peakColor[4];
+            float baseColor[4];
+        } specFillUniforms = {
+            spectrumHeight,
+            40.0f,
+            0.0f,
+            0.0f,
+            {100.0f / 255.0f, 255.0f / 255.0f, 100.0f / 255.0f, 1.0f}, // Bright lime at peaks
+            {30.0f / 255.0f, 100.0f / 255.0f, 30.0f / 255.0f, 0.7f}    // Visible green at base
+        };
+        rub->updateDynamicBuffer(m_spectrumFillUniformBuffer.get(), 0, sizeof(specFillUniforms), &specFillUniforms);
     }
 
     cb->resourceUpdate(rub);
@@ -456,14 +516,68 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
         cb->draw(6);
     }
 
-    // Draw spectrum fill (top portion)
-    if (m_spectrumPipeline && !m_currentSpectrum.isEmpty()) {
+    // Peak trail disabled - now using line-only spectrum rendering
+    // TODO: Re-implement peak trail as a separate dimmer line if needed
+    if (false && m_spectrumPipeline && m_peakHoldEnabled && !m_peakHold.isEmpty() &&
+        m_peakHold.size() == m_currentSpectrum.size()) {
+        QVector<float> peakTrailVerts;
+        peakTrailVerts.reserve(m_peakHold.size() * 6);
+
+        // Dim lime green for peak trail (matches spectrum theme)
+        const float trailR = 60.0f / 255.0f;
+        const float trailG = 140.0f / 255.0f;
+        const float trailB = 60.0f / 255.0f;
+
+        for (int i = 0; i < m_peakHold.size(); ++i) {
+            float x = (static_cast<float>(i) / (m_peakHold.size() - 1)) * w;
+            float peakNorm = normalizeDb(m_peakHold[i]);
+            float currNorm = normalizeDb(m_currentSpectrum[i]);
+
+            // Only draw trail where peak > current (the "ghost" part)
+            float peakAdj = qMax(0.0f, peakNorm - m_smoothedBaseline);
+            float currAdj = qMax(0.0f, currNorm - m_smoothedBaseline);
+
+            if (peakAdj > currAdj + 0.02f) { // Threshold to avoid flicker
+                float peakY = spectrumHeight * (1.0f - peakAdj * 0.95f);
+
+                // Calculate alpha based on difference (larger diff = more visible)
+                float diff = peakAdj - currAdj;
+                float alpha = qBound(0.3f, diff * 3.0f, 0.9f);
+
+                // Single vertex at peak hold position
+                peakTrailVerts.append(x);
+                peakTrailVerts.append(peakY);
+                peakTrailVerts.append(trailR);
+                peakTrailVerts.append(trailG);
+                peakTrailVerts.append(trailB);
+                peakTrailVerts.append(alpha * 0.6f);
+            }
+        }
+
+        if (!peakTrailVerts.isEmpty()) {
+            QRhiResourceUpdateBatch *peakRub = m_rhi->nextResourceUpdateBatch();
+            peakRub->updateDynamicBuffer(m_spectrumVbo.get(), 0, peakTrailVerts.size() * sizeof(float),
+                                         peakTrailVerts.constData());
+            cb->resourceUpdate(peakRub);
+
+            cb->setViewport({0, waterfallHeight, w, spectrumHeight});
+            cb->setGraphicsPipeline(m_spectrumPipeline.get());
+            cb->setShaderResources(m_spectrumSrb.get());
+            const QRhiCommandBuffer::VertexInput peakVbufBinding(m_spectrumVbo.get(), 0);
+            cb->setVertexInput(0, 1, &peakVbufBinding);
+            cb->draw(peakTrailVerts.size() / 6); // 6 floats per vertex (pos2 + color4)
+        }
+    }
+
+    // Draw spectrum fill using fragment shader (per-pixel spectrum sampling)
+    // (Texture and uniform buffer were uploaded before beginPass)
+    if (m_spectrumFillPipeline && !m_currentSpectrum.isEmpty()) {
         cb->setViewport({0, waterfallHeight, w, spectrumHeight});
-        cb->setGraphicsPipeline(m_spectrumPipeline.get());
-        cb->setShaderResources(m_spectrumSrb.get());
-        const QRhiCommandBuffer::VertexInput spectrumVbufBinding(m_spectrumVbo.get(), 0);
-        cb->setVertexInput(0, 1, &spectrumVbufBinding);
-        cb->draw(m_currentSpectrum.size() * 2);
+        cb->setGraphicsPipeline(m_spectrumFillPipeline.get());
+        cb->setShaderResources(m_spectrumFillSrb.get());
+        const QRhiCommandBuffer::VertexInput specFillVbufBinding(m_spectrumFillVbo.get(), 0);
+        cb->setVertexInput(0, 1, &specFillVbufBinding);
+        cb->draw(6); // Fullscreen quad (2 triangles)
     }
 
     // Draw overlays (full viewport for grid, markers, passband)
@@ -480,10 +594,16 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
             struct {
                 float viewportWidth;
                 float viewportHeight;
-                float pad0, pad1;  // Matches shader's vec2 padding (std140 layout)
-                float r, g, b, a;  // Matches shader's vec4 color at offset 16
-            } overlayUniforms = {w, h, 0, 0, static_cast<float>(color.redF()), static_cast<float>(color.greenF()),
-                                 static_cast<float>(color.blueF()), static_cast<float>(color.alphaF())};
+                float pad0, pad1; // Matches shader's vec2 padding (std140 layout)
+                float r, g, b, a; // Matches shader's vec4 color at offset 16
+            } overlayUniforms = {w,
+                                 h,
+                                 0,
+                                 0,
+                                 static_cast<float>(color.redF()),
+                                 static_cast<float>(color.greenF()),
+                                 static_cast<float>(color.blueF()),
+                                 static_cast<float>(color.alphaF())};
             rub2->updateDynamicBuffer(m_overlayUniformBuffer.get(), 0, sizeof(overlayUniforms), &overlayUniforms);
 
             cb->resourceUpdate(rub2);
@@ -504,10 +624,16 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
             struct {
                 float viewportWidth;
                 float viewportHeight;
-                float pad0, pad1;  // Matches shader's vec2 padding (std140 layout)
-                float r, g, b, a;  // Matches shader's vec4 color at offset 16
-            } overlayUniforms = {w, h, 0, 0, static_cast<float>(color.redF()), static_cast<float>(color.greenF()),
-                                 static_cast<float>(color.blueF()), static_cast<float>(color.alphaF())};
+                float pad0, pad1; // Matches shader's vec2 padding (std140 layout)
+                float r, g, b, a; // Matches shader's vec4 color at offset 16
+            } overlayUniforms = {w,
+                                 h,
+                                 0,
+                                 0,
+                                 static_cast<float>(color.redF()),
+                                 static_cast<float>(color.greenF()),
+                                 static_cast<float>(color.blueF()),
+                                 static_cast<float>(color.alphaF())};
             rub2->updateDynamicBuffer(m_overlayUniformBuffer.get(), 0, sizeof(overlayUniforms), &overlayUniforms);
 
             cb->resourceUpdate(rub2);
@@ -571,7 +697,8 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
             if (x2 > x1) {
                 // Draw passband quad using SEPARATE buffers (m_passbandVbo, m_passbandUniformBuffer)
                 // Use spectrumHeight not h - passband should only appear in spectrum area, not waterfall
-                QVector<float> quadVerts = {x1, 0, x2, 0, x2, spectrumHeight, x1, 0, x2, spectrumHeight, x1, spectrumHeight};
+                QVector<float> quadVerts = {
+                    x1, 0, x2, 0, x2, spectrumHeight, x1, 0, x2, spectrumHeight, x1, spectrumHeight};
 
                 QRhiResourceUpdateBatch *pbRub = m_rhi->nextResourceUpdateBatch();
                 pbRub->updateDynamicBuffer(m_passbandVbo.get(), 0, quadVerts.size() * sizeof(float),
@@ -582,7 +709,11 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
                     float viewportHeight;
                     float pad0, pad1;
                     float r, g, b, a;
-                } pbUniforms = {w, h, 0, 0, static_cast<float>(m_passbandColor.redF()),
+                } pbUniforms = {w,
+                                h,
+                                0,
+                                0,
+                                static_cast<float>(m_passbandColor.redF()),
                                 static_cast<float>(m_passbandColor.greenF()),
                                 static_cast<float>(m_passbandColor.blueF()),
                                 static_cast<float>(m_passbandColor.alphaF())};
@@ -618,7 +749,11 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
                     float viewportHeight;
                     float pad0, pad1;
                     float r, g, b, a;
-                } mkUniforms = {w, h, 0, 0, static_cast<float>(m_frequencyMarkerColor.redF()),
+                } mkUniforms = {w,
+                                h,
+                                0,
+                                0,
+                                static_cast<float>(m_frequencyMarkerColor.redF()),
                                 static_cast<float>(m_frequencyMarkerColor.greenF()),
                                 static_cast<float>(m_frequencyMarkerColor.blueF()),
                                 static_cast<float>(m_frequencyMarkerColor.alphaF())};
@@ -654,7 +789,11 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
                         float viewportHeight;
                         float pad0, pad1;
                         float r, g, b, a;
-                    } notchUniforms = {w, h, 0, 0, static_cast<float>(m_notchColor.redF()),
+                    } notchUniforms = {w,
+                                       h,
+                                       0,
+                                       0,
+                                       static_cast<float>(m_notchColor.redF()),
                                        static_cast<float>(m_notchColor.greenF()),
                                        static_cast<float>(m_notchColor.blueF()),
                                        static_cast<float>(m_notchColor.alphaF())};
@@ -770,6 +909,35 @@ QColor PanadapterRhiWidget::interpolateColor(const QColor &a, const QColor &b, f
     t = qBound(0.0f, t, 1.0f);
     return QColor::fromRgbF(a.redF() + (b.redF() - a.redF()) * t, a.greenF() + (b.greenF() - a.greenF()) * t,
                             a.blueF() + (b.blueF() - a.blueF()) * t, a.alphaF() + (b.alphaF() - a.alphaF()) * t);
+}
+
+QColor PanadapterRhiWidget::spectrumGradientColor(float t) {
+    // 5-stop gradient: visible dark lime → lime green → bright lime → light lime → white
+    // Creates a lime green spectrum fill with visible base color
+    struct GradientStop {
+        float pos;
+        int r, g, b, a;
+    };
+    static const GradientStop stops[] = {
+        {0.00f, 20, 60, 20, 128},    // Visible dark lime (50% alpha)
+        {0.15f, 40, 120, 30, 180},   // Translucent lime green
+        {0.50f, 80, 200, 60, 220},   // Bright lime green
+        {0.75f, 160, 255, 120, 245}, // Light lime with yellow hint
+        {1.00f, 255, 255, 255, 255}  // Pure white peak
+    };
+
+    t = qBound(0.0f, t, 1.0f);
+
+    // Find surrounding stops and interpolate
+    for (int i = 0; i < 4; ++i) {
+        if (t <= stops[i + 1].pos) {
+            float localT = (t - stops[i].pos) / (stops[i + 1].pos - stops[i].pos);
+            QColor c1(stops[i].r, stops[i].g, stops[i].b, stops[i].a);
+            QColor c2(stops[i + 1].r, stops[i + 1].g, stops[i + 1].b, stops[i + 1].a);
+            return interpolateColor(c1, c2, localT);
+        }
+    }
+    return QColor(255, 255, 255, 255); // Clamp to white
 }
 
 // Configuration setters
