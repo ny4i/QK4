@@ -686,9 +686,9 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
                 highFreq = m_tunedFreq + m_filterBw / 2;
             }
 
-            // Convert to pixel coordinates (w-1 for consistent coordinate mapping)
-            float x1 = freqToNormalized(lowFreq) * (w - 1);
-            float x2 = freqToNormalized(highFreq) * (w - 1);
+            // Convert to pixel coordinates
+            float x1 = freqToNormalized(lowFreq) * w;
+            float x2 = freqToNormalized(highFreq) * w;
 
             // Clamp to visible area
             x1 = qBound(0.0f, x1, w);
@@ -736,7 +736,7 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
             } else if (m_mode == "CW-R") {
                 markerFreq = m_tunedFreq - m_cwPitch;
             }
-            float markerX = freqToNormalized(markerFreq) * (w - 1);
+            float markerX = freqToNormalized(markerFreq) * w;
             if (markerX >= 0 && markerX <= w) {
                 QVector<float> markerVerts = {markerX, 0.0f, markerX, spectrumHeight};
 
@@ -776,7 +776,7 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
                     notchFreq = m_tunedFreq + m_notchPitchHz;
                 }
 
-                float notchX = freqToNormalized(notchFreq) * (w - 1);
+                float notchX = freqToNormalized(notchFreq) * w;
                 if (notchX >= 0 && notchX <= w) {
                     QVector<float> notchVerts = {notchX, 0.0f, notchX, spectrumHeight};
 
@@ -904,14 +904,12 @@ float PanadapterRhiWidget::freqToNormalized(qint64 freq) {
 }
 
 qint64 PanadapterRhiWidget::xToFreq(int x, int w) {
-    // Map pixel position to frequency:
-    // - x=0 → startFreq (left edge)
-    // - x=w-1 → startFreq + spanHz (right edge)
-    // Use floating point for precision to avoid integer truncation errors
-    if (w <= 1)
+    // Map pixel position to frequency using same coordinate system as spectrum rendering
+    // Use floating point for precision
+    if (w <= 0)
         return m_centerFreq;
     qint64 startFreq = m_centerFreq - m_spanHz / 2;
-    double normalized = static_cast<double>(x) / static_cast<double>(w - 1);
+    double normalized = static_cast<double>(x) / static_cast<double>(w);
     return startFreq + static_cast<qint64>(normalized * m_spanHz);
 }
 

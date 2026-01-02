@@ -3,8 +3,10 @@
 #include <QSysInfo>
 #include <QGuiApplication>
 #include <rhi/qrhi.h>
+#ifdef Q_OS_MACOS
 #include <QtGui/private/qguiapplication_p.h>
 #include <QtGui/qpa/qplatformintegration.h>
+#endif
 #include "mainwindow.h"
 
 int main(int argc, char *argv[]) {
