@@ -88,27 +88,23 @@ void Protocol::processPacket(const QByteArray &payload) {
         break;
     }
     case K4Protocol::PAN: {
-        // PAN Type 2 payload structure (from K4Protocol.swift)
-        // Payload includes TYPE at byte 0:
-        // Byte 0: TYPE (0x02 for PAN)
-        // Byte 1: VER (version)
-        // Byte 2: SEQ (sequence)
-        // Byte 3: PAN Type
-        // Byte 4: RX (0=Main, 1=Sub)
-        // Bytes 5-6: PAN Data Length (uint16 LE)
-        // Bytes 7-10: Reserved
-        // Bytes 11-18: Center Frequency (int64 LE, Hz)
-        // Bytes 19-22: Sample Rate (int32 LE) - tier indicator (24/48/96/192/384)
-        // Bytes 23-26: Noise Floor (int32 LE, divide by 10 for dB)
-        // Bytes 27+: Compressed bin data
-        if (payload.size() > 27) {
-            int receiver = static_cast<quint8>(payload[4]); // 0=Main, 1=Sub
-            qint64 centerFreq = qFromLittleEndian<qint64>(reinterpret_cast<const uchar *>(payload.constData() + 11));
-            qint32 sampleRate = qFromLittleEndian<qint32>(reinterpret_cast<const uchar *>(payload.constData() + 19));
-            qint32 noiseFloorRaw = qFromLittleEndian<qint32>(reinterpret_cast<const uchar *>(payload.constData() + 23));
+        // PAN Type 2 payload structure (from K4-Remote Protocol Rev. A1 draft):
+        // Byte 0: Type (0x02 for PAN)
+        // Byte 1: RX (0=Main, 1=Sub)
+        // Bytes 2-3: PAN Data Byte Length (uint16)
+        // Bytes 4-7: Reserved
+        // Bytes 8-15: Center Frequency (int64 LE, Hz)
+        // Bytes 16-19: Sample Rate (int32 LE) - tier indicator
+        // Bytes 20-23: Noise Floor (int32 LE, divide by 10 for dB)
+        // Bytes 24+: Compressed bin data
+        if (payload.size() > 24) {
+            int receiver = static_cast<quint8>(payload[1]); // 0=Main, 1=Sub
+            qint64 centerFreq = qFromLittleEndian<qint64>(reinterpret_cast<const uchar *>(payload.constData() + 8));
+            qint32 sampleRate = qFromLittleEndian<qint32>(reinterpret_cast<const uchar *>(payload.constData() + 16));
+            qint32 noiseFloorRaw = qFromLittleEndian<qint32>(reinterpret_cast<const uchar *>(payload.constData() + 20));
             float noiseFloor = noiseFloorRaw / 10.0f;
 
-            QByteArray bins = payload.mid(27);
+            QByteArray bins = payload.mid(24);
             emit spectrumDataReady(receiver, bins, centerFreq, sampleRate, noiseFloor);
         }
         break;
