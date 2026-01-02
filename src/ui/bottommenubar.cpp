@@ -120,3 +120,43 @@ void BottomMenuBar::setDisplayActive(bool active) {
         m_displayBtn->setStyleSheet(buttonStyleSheet());
     }
 }
+
+void BottomMenuBar::setBandActive(bool active) {
+    if (active) {
+        m_bandBtn->setStyleSheet(activeButtonStyleSheet());
+    } else {
+        m_bandBtn->setStyleSheet(buttonStyleSheet());
+    }
+}
+
+void BottomMenuBar::setFnActive(bool active) {
+    if (active) {
+        m_fnBtn->setStyleSheet(activeButtonStyleSheet());
+    } else {
+        m_fnBtn->setStyleSheet(buttonStyleSheet());
+    }
+}
+
+void BottomMenuBar::setMainRxActive(bool active) {
+    if (active) {
+        m_mainRxBtn->setStyleSheet(activeButtonStyleSheet());
+    } else {
+        m_mainRxBtn->setStyleSheet(buttonStyleSheet());
+    }
+}
+
+void BottomMenuBar::setSubRxActive(bool active) {
+    if (active) {
+        m_subRxBtn->setStyleSheet(activeButtonStyleSheet());
+    } else {
+        m_subRxBtn->setStyleSheet(buttonStyleSheet());
+    }
+}
+
+void BottomMenuBar::setTxActive(bool active) {
+    if (active) {
+        m_txBtn->setStyleSheet(activeButtonStyleSheet());
+    } else {
+        m_txBtn->setStyleSheet(buttonStyleSheet());
+    }
+}

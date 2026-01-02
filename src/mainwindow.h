@@ -23,6 +23,7 @@ class BottomMenuBar;
 class MenuModel;
 class MenuOverlayWidget;
 class BandPopupWidget;
+class ButtonRowPopup;
 class DisplayPopupWidget;
 class FeatureMenuBar;
 class KpodDevice;
@@ -83,10 +84,15 @@ private slots:
     void updateDateTime();
     void showMenuOverlay();
     void onMenuValueChangeRequested(int menuId, const QString &action);
-    void showBandPopup();
     void onBandSelected(const QString &bandName);
     void updateBandSelection(int bandNum);
     void toggleDisplayPopup();
+    void toggleBandPopup();
+    void toggleFnPopup();
+    void toggleMainRxPopup();
+    void toggleSubRxPopup();
+    void toggleTxPopup();
+    void closeAllPopups();
 
     // KPOD slots
     void onKpodEncoderRotated(int ticks);
@@ -148,6 +154,7 @@ private:
     QLabel *m_txIndicator;
     QLabel *m_vfoBSquare;
     QLabel *m_splitLabel;
+    QLabel *m_bSetLabel;
     QLabel *m_msgBankLabel;
     QWidget *m_ritXitBox;
     QLabel *m_ritLabel;
@@ -189,6 +196,10 @@ private:
     MenuOverlayWidget *m_menuOverlay;
     BandPopupWidget *m_bandPopup;
     DisplayPopupWidget *m_displayPopup;
+    ButtonRowPopup *m_fnPopup;
+    ButtonRowPopup *m_mainRxPopup;
+    ButtonRowPopup *m_subRxPopup;
+    ButtonRowPopup *m_txPopup;
     FeatureMenuBar *m_featureMenuBar;
 
     RadioEntry m_currentRadio;

@@ -4,6 +4,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QKeyEvent>
+#include <QHideEvent>
 #include <QApplication>
 
 namespace {
@@ -229,6 +230,11 @@ void BandPopupWidget::showAboveButton(QWidget *triggerButton) {
 
 void BandPopupWidget::hidePopup() {
     hide();
+    // closed() signal is emitted by hideEvent()
+}
+
+void BandPopupWidget::hideEvent(QHideEvent *event) {
+    QWidget::hideEvent(event);
     emit closed();
 }
 

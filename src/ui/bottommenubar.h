@@ -23,10 +23,19 @@ public:
     // Getters for button positioning (for popup placement)
     QPushButton *bandButton() const { return m_bandBtn; }
     QPushButton *displayButton() const { return m_displayBtn; }
+    QPushButton *fnButton() const { return m_fnBtn; }
+    QPushButton *mainRxButton() const { return m_mainRxBtn; }
+    QPushButton *subRxButton() const { return m_subRxBtn; }
+    QPushButton *txButton() const { return m_txBtn; }
 
 public slots:
     void setMenuActive(bool active);    // Toggle MENU button inverse colors
     void setDisplayActive(bool active); // Toggle DISPLAY button inverse colors
+    void setBandActive(bool active);    // Toggle BAND button inverse colors
+    void setFnActive(bool active);      // Toggle Fn button inverse colors
+    void setMainRxActive(bool active);  // Toggle MAIN RX button inverse colors
+    void setSubRxActive(bool active);   // Toggle SUB RX button inverse colors
+    void setTxActive(bool active);      // Toggle TX button inverse colors
 
 signals:
     void menuClicked();

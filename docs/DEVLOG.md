@@ -2,6 +2,83 @@
 
 ## January 1, 2026
 
+### Feature: B SET Indicator and Sub RX Filter Integration
+
+When B SET is enabled (BS1), a green "B SET" indicator appears in the center column and the side panel BW/SHFT filter controls switch to display VFO B (Sub RX) values with green indicator color.
+
+**Features:**
+- B SET indicator: Green rounded rectangle with black "B SET" text
+- Position: In center column, replaces SPLIT label when B SET is active
+- Side panel indicator: BW/SHFT bar changes from cyan to green when B SET enabled
+- Filter values: Display VFO B bandwidth and shift values when B SET is active
+- IS$ parsing: Added Sub RX IF shift command parsing
+- BS command parsing: B SET state (BS0=off, BS1=on) parsed from RDY; response
+
+**Implementation Details:**
+- B SET label created in setupVfoSection() with green background (#00FF00), black text, 4px border-radius
+- When B SET enabled: Show B SET label, hide SPLIT label, change side panel indicator color via `setActiveReceiver(true)`
+- When B SET disabled: Hide B SET label, show SPLIT label, reset indicator color via `setActiveReceiver(false)`
+- `updateFilterDisplay` lambda now checks `bSetEnabled()` to select VFO A or B filter values
+- B SET is toggled via SW44; command, radio responds with BS0/BS1 state
+
+**CAT Commands:**
+- `SW44;` - Toggle B SET on/off
+- `BS0;` / `BS1;` - Radio response indicating B SET state (included in RDY;)
+
+**Files Modified:**
+- `src/models/radiostate.h` - Added `m_ifShiftB`, `ifShiftB()`, `shiftBHz()`, `ifShiftBChanged` signal, `setBSetEnabled()`, `toggleBSet()`
+- `src/models/radiostate.cpp` - Added IS$ and BS command parsing
+- `src/mainwindow.h` - Added `QLabel *m_bSetLabel;`
+- `src/mainwindow.cpp` - Created B SET label, connected bSetChanged for visibility/color, updated filter display logic
+
+---
+
+### Feature: Bottom Menu Bar Popup Widgets
+
+Added popup menus for Fn, MAIN RX, SUB RX, and TX buttons in the bottom menu bar. These popups use the same visual style as the BAND popup but with a single row of 7 buttons.
+
+**Features:**
+- ButtonRowPopup widget: Single-row popup with 7 buttons
+- Same styling as BandPopupWidget (dark gradient, gray bottom strip, triangle indicator)
+- Triangle indicator points to the triggering button
+- Toggle behavior: second press closes popup, switching buttons auto-closes previous popup
+- All bottom menu popups now use consistent toggle behavior including BAND
+
+**Popup Layout:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  [ 1 ]  [ 2 ]  [ 3 ]  [ 4 ]  [ 5 ]  [ 6 ]  [ 7 ]               │
+│─────────────────────────────────────────────────────────────────│
+│                            ▼                                    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Button Sizing:**
+- Button: 70x44px (same as BAND)
+- Spacing: 8px between buttons
+- Margins: 12px
+- Bottom strip: 8px
+- Triangle: 24x12px
+- Total width: 562px, height: ~88px
+
+**Implementation Details:**
+- `closeAllPopups()` helper closes all open popups (menu overlay, band, display, Fn, Main RX, Sub RX, TX)
+- Each toggle method checks if popup was visible before closing all, then opens if it wasn't
+- Active button state (inverse colors) syncs with popup visibility
+
+**Files Created:**
+- `src/ui/buttonrowpopup.h` - Single-row popup widget header
+- `src/ui/buttonrowpopup.cpp` - Implementation based on BandPopupWidget
+
+**Files Modified:**
+- `src/ui/bottommenubar.h` - Added button getters, setActive methods for all buttons
+- `src/ui/bottommenubar.cpp` - Implemented setActive methods
+- `src/mainwindow.h` - Added 4 popup members, toggle methods, closeAllPopups()
+- `src/mainwindow.cpp` - Created popups, wired signals, implemented toggle methods
+- `CMakeLists.txt` - Added buttonrowpopup.cpp/h to build
+
+---
+
 ### Feature: Feature Menu Bar Widget (Phase 1 - UI Complete)
 
 Added a reusable menu bar widget that appears above the 7 bottom buttons when alternate actions are triggered on PRE, NB, NR, NTCH buttons.

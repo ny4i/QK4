@@ -36,6 +36,8 @@ public:
     int filterPositionB() const { return m_filterPositionB; }
     int ifShift() const { return m_ifShift; }
     int shiftHz() const { return m_ifShift * 10; } // Convert raw IS value to Hz (IS0050 = 500 Hz)
+    int ifShiftB() const { return m_ifShiftB; }
+    int shiftBHz() const { return m_ifShiftB * 10; } // Sub RX IF shift in Hz
     int cwPitch() const { return m_cwPitch; }
 
     // Power and levels
@@ -139,7 +141,17 @@ public:
     int atuMode() const { return m_atuMode; }
 
     // B SET (Target B) - controls whether feature menu commands target Sub RX
+    // State is tracked internally (toggled when SW44 is sent)
     bool bSetEnabled() const { return m_bSetEnabled; }
+    void setBSetEnabled(bool enabled)
+    {
+        if (enabled != m_bSetEnabled) {
+            m_bSetEnabled = enabled;
+            emit bSetChanged(m_bSetEnabled);
+        }
+    }
+    void toggleBSet() { setBSetEnabled(!m_bSetEnabled); }
+
     // Returns VOX state for current operating mode
     bool voxForCurrentMode() const {
         switch (m_mode) {
@@ -240,6 +252,7 @@ signals:
     void filterPositionChanged(int position);  // Filter position VFO A (1-3)
     void filterPositionBChanged(int position); // Filter position VFO B (1-3)
     void ifShiftChanged(int shiftHz);
+    void ifShiftBChanged(int shiftHz);
     void cwPitchChanged(int pitchHz);
     void sMeterChanged(double value);
     void sMeterBChanged(double value);
@@ -308,8 +321,9 @@ private:
     int m_filterBandwidthB = 2400;
     int m_filterPosition = 2;
     int m_filterPositionB = 2;
-    int m_ifShift = -1; // IF shift position (0-99, 50=centered) - init to -1 to ensure first emit
-    int m_cwPitch = -1; // Init to -1 to ensure first emit
+    int m_ifShift = -1;  // IF shift position (0-99, 50=centered) - init to -1 to ensure first emit
+    int m_ifShiftB = -1; // Sub RX IF shift
+    int m_cwPitch = -1;  // Init to -1 to ensure first emit
 
     // Power and levels
     double m_rfPower = 50.0;

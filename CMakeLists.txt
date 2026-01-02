@@ -55,6 +55,7 @@ set(SOURCES
     src/ui/smeterwidget.cpp
     src/ui/vfowidget.cpp
     src/ui/bandpopupwidget.cpp
+    src/ui/buttonrowpopup.cpp
     src/ui/displaypopupwidget.cpp
     src/ui/optionsdialog.cpp
     src/ui/rightsidepanel.cpp
@@ -83,6 +84,7 @@ set(HEADERS
     src/ui/smeterwidget.h
     src/ui/vfowidget.h
     src/ui/bandpopupwidget.h
+    src/ui/buttonrowpopup.h
     src/ui/displaypopupwidget.h
     src/ui/optionsdialog.h
     src/ui/rightsidepanel.h

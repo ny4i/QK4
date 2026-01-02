@@ -7,6 +7,7 @@
 #include "ui/menuoverlay.h"
 #include "ui/bandpopupwidget.h"
 #include "ui/displaypopupwidget.h"
+#include "ui/buttonrowpopup.h"
 #include "ui/optionsdialog.h"
 #include "models/menumodel.h"
 #include "dsp/panadapter.h"
@@ -71,6 +72,11 @@ MainWindow::MainWindow(QWidget *parent)
     // Create band selection popup
     m_bandPopup = new BandPopupWidget(this);
     connect(m_bandPopup, &BandPopupWidget::bandSelected, this, &MainWindow::onBandSelected);
+    connect(m_bandPopup, &BandPopupWidget::closed, this, [this]() {
+        if (m_bottomMenuBar) {
+            m_bottomMenuBar->setBandActive(false);
+        }
+    });
 
     // Create display popup
     m_displayPopup = new DisplayPopupWidget(this);
@@ -97,6 +103,39 @@ MainWindow::MainWindow(QWidget *parent)
 
     // DisplayPopup CAT commands -> TcpClient
     connect(m_displayPopup, &DisplayPopupWidget::catCommandRequested, m_tcpClient, &TcpClient::sendCAT);
+
+    // Create button row popups for Fn, MAIN RX, SUB RX, TX
+    m_fnPopup = new ButtonRowPopup(this);
+    m_fnPopup->setButtonLabels({"1", "2", "3", "4", "5", "6", "7"});
+    connect(m_fnPopup, &ButtonRowPopup::closed, this, [this]() {
+        if (m_bottomMenuBar) {
+            m_bottomMenuBar->setFnActive(false);
+        }
+    });
+
+    m_mainRxPopup = new ButtonRowPopup(this);
+    m_mainRxPopup->setButtonLabels({"1", "2", "3", "4", "5", "6", "7"});
+    connect(m_mainRxPopup, &ButtonRowPopup::closed, this, [this]() {
+        if (m_bottomMenuBar) {
+            m_bottomMenuBar->setMainRxActive(false);
+        }
+    });
+
+    m_subRxPopup = new ButtonRowPopup(this);
+    m_subRxPopup->setButtonLabels({"1", "2", "3", "4", "5", "6", "7"});
+    connect(m_subRxPopup, &ButtonRowPopup::closed, this, [this]() {
+        if (m_bottomMenuBar) {
+            m_bottomMenuBar->setSubRxActive(false);
+        }
+    });
+
+    m_txPopup = new ButtonRowPopup(this);
+    m_txPopup->setButtonLabels({"1", "2", "3", "4", "5", "6", "7"});
+    connect(m_txPopup, &ButtonRowPopup::closed, this, [this]() {
+        if (m_bottomMenuBar) {
+            m_bottomMenuBar->setTxActive(false);
+        }
+    });
 
     // TcpClient signals
     connect(m_tcpClient, &TcpClient::stateChanged, this, &MainWindow::onStateChanged);
@@ -130,9 +169,13 @@ MainWindow::MainWindow(QWidget *parent)
 
     // RadioState signals -> Side control panel updates (BW/SHFT/HI/LO)
     // Helper to update all 4 filter display values (called on BW or SHFT change)
+    // When B SET is enabled, shows VFO B (Sub RX) filter values instead of VFO A
     auto updateFilterDisplay = [this]() {
-        int bwHz = m_radioState->filterBandwidth();
-        int shiftHz = m_radioState->shiftHz(); // raw IS value × 10
+        bool bSet = m_radioState->bSetEnabled();
+
+        // Get bandwidth and shift from correct VFO
+        int bwHz = bSet ? m_radioState->filterBandwidthB() : m_radioState->filterBandwidth();
+        int shiftHz = bSet ? m_radioState->shiftBHz() : m_radioState->shiftHz();
 
         // BW/SHFT in kHz
         m_sideControlPanel->setBandwidth(bwHz / 1000.0);
@@ -148,6 +191,9 @@ MainWindow::MainWindow(QWidget *parent)
     };
     connect(m_radioState, &RadioState::filterBandwidthChanged, this, updateFilterDisplay);
     connect(m_radioState, &RadioState::ifShiftChanged, this, updateFilterDisplay);
+    connect(m_radioState, &RadioState::filterBandwidthBChanged, this, updateFilterDisplay);
+    connect(m_radioState, &RadioState::ifShiftBChanged, this, updateFilterDisplay);
+    connect(m_radioState, &RadioState::bSetChanged, this, updateFilterDisplay);
     connect(m_radioState, &RadioState::keyerSpeedChanged, m_sideControlPanel, &SideControlPanel::setWpm);
     connect(m_radioState, &RadioState::cwPitchChanged, this, [this](int pitch) {
         m_sideControlPanel->setPitch(pitch / 1000.0); // Hz to kHz (500Hz = 0.50)
@@ -515,13 +561,14 @@ void MainWindow::setupUi() {
         case FeatureMenuBar::NbLevel: {
             int curLevel = bSet ? m_radioState->noiseBlankerLevelB() : m_radioState->noiseBlankerLevel();
             int newLevel = qMin(curLevel + 1, 15);
-            int enabled = bSet ? (m_radioState->noiseBlankerEnabledB() ? 1 : 0)
-                               : (m_radioState->noiseBlankerEnabled() ? 1 : 0);
+            int enabled =
+                bSet ? (m_radioState->noiseBlankerEnabledB() ? 1 : 0) : (m_radioState->noiseBlankerEnabled() ? 1 : 0);
             int filter = bSet ? m_radioState->noiseBlankerFilterWidthB() : m_radioState->noiseBlankerFilterWidth();
             // Optimistic UI update
             m_featureMenuBar->setValue(newLevel);
             QString prefix = bSet ? "NB$" : "NB";
-            m_tcpClient->sendCAT(QString("%1%2%3%4;").arg(prefix).arg(newLevel, 2, 10, QChar('0')).arg(enabled).arg(filter));
+            m_tcpClient->sendCAT(
+                QString("%1%2%3%4;").arg(prefix).arg(newLevel, 2, 10, QChar('0')).arg(enabled).arg(filter));
             break;
         }
         case FeatureMenuBar::NrAdjust: {
@@ -561,13 +608,14 @@ void MainWindow::setupUi() {
         case FeatureMenuBar::NbLevel: {
             int curLevel = bSet ? m_radioState->noiseBlankerLevelB() : m_radioState->noiseBlankerLevel();
             int newLevel = qMax(curLevel - 1, 0);
-            int enabled = bSet ? (m_radioState->noiseBlankerEnabledB() ? 1 : 0)
-                               : (m_radioState->noiseBlankerEnabled() ? 1 : 0);
+            int enabled =
+                bSet ? (m_radioState->noiseBlankerEnabledB() ? 1 : 0) : (m_radioState->noiseBlankerEnabled() ? 1 : 0);
             int filter = bSet ? m_radioState->noiseBlankerFilterWidthB() : m_radioState->noiseBlankerFilterWidth();
             // Optimistic UI update
             m_featureMenuBar->setValue(newLevel);
             QString prefix = bSet ? "NB$" : "NB";
-            m_tcpClient->sendCAT(QString("%1%2%3%4;").arg(prefix).arg(newLevel, 2, 10, QChar('0')).arg(enabled).arg(filter));
+            m_tcpClient->sendCAT(
+                QString("%1%2%3%4;").arg(prefix).arg(newLevel, 2, 10, QChar('0')).arg(enabled).arg(filter));
             break;
         }
         case FeatureMenuBar::NrAdjust: {
@@ -600,12 +648,13 @@ void MainWindow::setupUi() {
             int curFilter = bSet ? m_radioState->noiseBlankerFilterWidthB() : m_radioState->noiseBlankerFilterWidth();
             int newFilter = (curFilter + 1) % 3;
             int level = bSet ? m_radioState->noiseBlankerLevelB() : m_radioState->noiseBlankerLevel();
-            int enabled = bSet ? (m_radioState->noiseBlankerEnabledB() ? 1 : 0)
-                               : (m_radioState->noiseBlankerEnabled() ? 1 : 0);
+            int enabled =
+                bSet ? (m_radioState->noiseBlankerEnabledB() ? 1 : 0) : (m_radioState->noiseBlankerEnabled() ? 1 : 0);
             // Optimistic UI update
             m_featureMenuBar->setNbFilter(newFilter);
             QString prefix = bSet ? "NB$" : "NB";
-            m_tcpClient->sendCAT(QString("%1%2%3%4;").arg(prefix).arg(level, 2, 10, QChar('0')).arg(enabled).arg(newFilter));
+            m_tcpClient->sendCAT(
+                QString("%1%2%3%4;").arg(prefix).arg(level, 2, 10, QChar('0')).arg(enabled).arg(newFilter));
         }
     });
 
@@ -657,6 +706,17 @@ void MainWindow::setupUi() {
     connect(m_radioState, &RadioState::notchChanged, this, updateFeatureMenuBarState);
     // Also update when B SET changes to refresh display with correct VFO's state
     connect(m_radioState, &RadioState::bSetChanged, this, updateFeatureMenuBarState);
+
+    // B SET indicator visibility and side panel indicator color
+    connect(m_radioState, &RadioState::bSetChanged, this, [this](bool enabled) {
+        qDebug() << "B SET changed:" << enabled;
+        // Show/hide B SET indicator (hide SPLIT when B SET active)
+        m_bSetLabel->setVisible(enabled);
+        m_splitLabel->setVisible(!enabled);
+
+        // Change side panel BW/SHFT indicator color (cyan=MainRx, green=SubRx)
+        m_sideControlPanel->setActiveReceiver(enabled);
+    });
 
     // Bottom Menu Bar
     m_bottomMenuBar = new BottomMenuBar(centralWidget);
@@ -778,20 +838,12 @@ void MainWindow::setupUi() {
 
     // Connect bottom menu bar signals
     connect(m_bottomMenuBar, &BottomMenuBar::menuClicked, this, &MainWindow::showMenuOverlay);
-    connect(m_bottomMenuBar, &BottomMenuBar::fnClicked, this, []() {
-        // TODO: Show function key popup
-    });
+    connect(m_bottomMenuBar, &BottomMenuBar::fnClicked, this, &MainWindow::toggleFnPopup);
     connect(m_bottomMenuBar, &BottomMenuBar::displayClicked, this, &MainWindow::toggleDisplayPopup);
-    connect(m_bottomMenuBar, &BottomMenuBar::bandClicked, this, &MainWindow::showBandPopup);
-    connect(m_bottomMenuBar, &BottomMenuBar::mainRxClicked, this, []() {
-        // TODO: Show main RX settings
-    });
-    connect(m_bottomMenuBar, &BottomMenuBar::subRxClicked, this, []() {
-        // TODO: Show sub RX settings
-    });
-    connect(m_bottomMenuBar, &BottomMenuBar::txClicked, this, []() {
-        // TODO: Show TX settings
-    });
+    connect(m_bottomMenuBar, &BottomMenuBar::bandClicked, this, &MainWindow::toggleBandPopup);
+    connect(m_bottomMenuBar, &BottomMenuBar::mainRxClicked, this, &MainWindow::toggleMainRxPopup);
+    connect(m_bottomMenuBar, &BottomMenuBar::subRxClicked, this, &MainWindow::toggleSubRxPopup);
+    connect(m_bottomMenuBar, &BottomMenuBar::txClicked, this, &MainWindow::toggleTxPopup);
 }
 
 void MainWindow::setupTopStatusBar(QWidget *parent) {
@@ -994,6 +1046,18 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     m_splitLabel->setAlignment(Qt::AlignCenter);
     m_splitLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(K4Colors::VfoAAmber));
     centerLayout->addWidget(m_splitLabel);
+
+    // B SET indicator (green rounded rect with black text, hidden by default)
+    m_bSetLabel = new QLabel("B SET", centerWidget);
+    m_bSetLabel->setAlignment(Qt::AlignCenter);
+    m_bSetLabel->setStyleSheet("background-color: #00FF00;"
+                               "color: black;"
+                               "font-size: 12px;"
+                               "font-weight: bold;"
+                               "border-radius: 4px;"
+                               "padding: 2px 8px;");
+    m_bSetLabel->setVisible(false);
+    centerLayout->addWidget(m_bSetLabel);
 
     // Message Bank indicator
     m_msgBankLabel = new QLabel("MSG: I", centerWidget);
@@ -1492,6 +1556,7 @@ void MainWindow::onAuthenticated() {
     m_tcpClient->sendCAT("#AR;");   // Auto-ref level
     m_tcpClient->sendCAT("#NB$;");  // DDC Noise Blanker mode
     m_tcpClient->sendCAT("#NBL$;"); // DDC Noise Blanker level
+    // NOTE: B SET state is tracked internally (no TB query command exists)
 }
 
 void MainWindow::onAuthenticationFailed() {
@@ -1934,27 +1999,18 @@ void MainWindow::onMenuValueChangeRequested(int menuId, const QString &action) {
     }
 }
 
-void MainWindow::showBandPopup() {
-    // Close menu overlay if visible
-    if (m_menuOverlay && m_menuOverlay->isVisible()) {
-        m_menuOverlay->hide();
-        if (m_bottomMenuBar) {
-            m_bottomMenuBar->setMenuActive(false);
-        }
-    }
+void MainWindow::toggleDisplayPopup() {
+    bool wasVisible = m_displayPopup && m_displayPopup->isVisible();
+    closeAllPopups();
 
-    // Close display popup if visible
-    if (m_displayPopup && m_displayPopup->isVisible()) {
-        m_displayPopup->hidePopup();
-    }
-
-    if (m_bandPopup && m_bottomMenuBar) {
-        m_bandPopup->showAboveButton(m_bottomMenuBar->bandButton());
+    if (!wasVisible && m_displayPopup && m_bottomMenuBar) {
+        m_displayPopup->showAboveButton(m_bottomMenuBar->displayButton());
+        m_bottomMenuBar->setDisplayActive(true);
     }
 }
 
-void MainWindow::toggleDisplayPopup() {
-    // Close menu overlay if visible
+void MainWindow::closeAllPopups() {
+    // Close menu overlay
     if (m_menuOverlay && m_menuOverlay->isVisible()) {
         m_menuOverlay->hide();
         if (m_bottomMenuBar) {
@@ -1962,18 +2018,102 @@ void MainWindow::toggleDisplayPopup() {
         }
     }
 
-    // Close band popup if visible
+    // Close band popup
     if (m_bandPopup && m_bandPopup->isVisible()) {
         m_bandPopup->hidePopup();
+        if (m_bottomMenuBar) {
+            m_bottomMenuBar->setBandActive(false);
+        }
     }
 
-    if (m_displayPopup && m_bottomMenuBar) {
-        if (m_displayPopup->isVisible()) {
-            m_displayPopup->hidePopup();
-        } else {
-            m_displayPopup->showAboveButton(m_bottomMenuBar->displayButton());
-            m_bottomMenuBar->setDisplayActive(true);
+    // Close display popup
+    if (m_displayPopup && m_displayPopup->isVisible()) {
+        m_displayPopup->hidePopup();
+        if (m_bottomMenuBar) {
+            m_bottomMenuBar->setDisplayActive(false);
         }
+    }
+
+    // Close Fn popup
+    if (m_fnPopup && m_fnPopup->isVisible()) {
+        m_fnPopup->hidePopup();
+        if (m_bottomMenuBar) {
+            m_bottomMenuBar->setFnActive(false);
+        }
+    }
+
+    // Close Main RX popup
+    if (m_mainRxPopup && m_mainRxPopup->isVisible()) {
+        m_mainRxPopup->hidePopup();
+        if (m_bottomMenuBar) {
+            m_bottomMenuBar->setMainRxActive(false);
+        }
+    }
+
+    // Close Sub RX popup
+    if (m_subRxPopup && m_subRxPopup->isVisible()) {
+        m_subRxPopup->hidePopup();
+        if (m_bottomMenuBar) {
+            m_bottomMenuBar->setSubRxActive(false);
+        }
+    }
+
+    // Close TX popup
+    if (m_txPopup && m_txPopup->isVisible()) {
+        m_txPopup->hidePopup();
+        if (m_bottomMenuBar) {
+            m_bottomMenuBar->setTxActive(false);
+        }
+    }
+}
+
+void MainWindow::toggleBandPopup() {
+    bool wasVisible = m_bandPopup && m_bandPopup->isVisible();
+    closeAllPopups();
+
+    if (!wasVisible && m_bandPopup && m_bottomMenuBar) {
+        m_bandPopup->showAboveButton(m_bottomMenuBar->bandButton());
+        m_bottomMenuBar->setBandActive(true);
+    }
+}
+
+void MainWindow::toggleFnPopup() {
+    bool wasVisible = m_fnPopup && m_fnPopup->isVisible();
+    closeAllPopups();
+
+    if (!wasVisible && m_fnPopup && m_bottomMenuBar) {
+        m_fnPopup->showAboveButton(m_bottomMenuBar->fnButton());
+        m_bottomMenuBar->setFnActive(true);
+    }
+}
+
+void MainWindow::toggleMainRxPopup() {
+    bool wasVisible = m_mainRxPopup && m_mainRxPopup->isVisible();
+    closeAllPopups();
+
+    if (!wasVisible && m_mainRxPopup && m_bottomMenuBar) {
+        m_mainRxPopup->showAboveButton(m_bottomMenuBar->mainRxButton());
+        m_bottomMenuBar->setMainRxActive(true);
+    }
+}
+
+void MainWindow::toggleSubRxPopup() {
+    bool wasVisible = m_subRxPopup && m_subRxPopup->isVisible();
+    closeAllPopups();
+
+    if (!wasVisible && m_subRxPopup && m_bottomMenuBar) {
+        m_subRxPopup->showAboveButton(m_bottomMenuBar->subRxButton());
+        m_bottomMenuBar->setSubRxActive(true);
+    }
+}
+
+void MainWindow::toggleTxPopup() {
+    bool wasVisible = m_txPopup && m_txPopup->isVisible();
+    closeAllPopups();
+
+    if (!wasVisible && m_txPopup && m_bottomMenuBar) {
+        m_txPopup->showAboveButton(m_bottomMenuBar->txButton());
+        m_bottomMenuBar->setTxActive(true);
     }
 }
 

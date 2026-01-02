@@ -237,7 +237,7 @@ void FeatureMenuBar::paintEvent(QPaintEvent *event) {
     painter.setRenderHint(QPainter::Antialiasing);
 
     // Calculate tight bounding box from first to last visible widget
-    int left = m_titleLabel->geometry().left() - 8;   // 8px padding
+    int left = m_titleLabel->geometry().left() - 8; // 8px padding
     int right = m_closeBtn->geometry().right() + 8;
     QRect contentRect(left, 1, right - left, height() - 3);
 

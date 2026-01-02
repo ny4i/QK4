@@ -463,6 +463,15 @@ void RadioState::parseCATCommand(const QString &command) {
             emit voxChanged(voxEnabled());
         }
     }
+    // IF Shift Sub RX (IS$) - check BEFORE IS to avoid prefix collision
+    else if (cmd.startsWith("IS$") && cmd.length() > 3) {
+        bool ok;
+        int is = cmd.mid(3).toInt(&ok);
+        if (ok && is != m_ifShiftB) {
+            m_ifShiftB = is;
+            emit ifShiftBChanged(m_ifShiftB);
+        }
+    }
     // IF Shift (IS) - IS0099 format (0-99, 50=centered)
     else if (cmd.startsWith("IS") && cmd.length() > 2) {
         bool ok;
@@ -540,8 +549,8 @@ void RadioState::parseCATCommand(const QString &command) {
             emit testModeChanged(m_testMode);
         }
     }
-    // B SET / Target B (TB) - TB0=off, TB1=on (controls feature menu VFO targeting)
-    else if (cmd.startsWith("TB") && cmd.length() >= 3) {
+    // B SET (BS) - BS0=off, BS1=on (controls feature menu VFO targeting)
+    else if (cmd.startsWith("BS") && cmd.length() >= 3) {
         bool enabled = (cmd.mid(2, 1) == "1");
         if (enabled != m_bSetEnabled) {
             m_bSetEnabled = enabled;
