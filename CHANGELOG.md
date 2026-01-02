@@ -95,6 +95,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - DualControlButton click behavior: first click on inactive button now only activates it, subsequent clicks swap labels
 - Left panel scroll wheel now adjusts values and sends CAT commands for all controls:
   - WPM/PTCH (KS, CW), PWR/DLY (PC, SD), BW/SHFT (BW, IS), M.RF/M.SQL (RG, SQ), S.RF/S.SQL (RG$, SQ$)
+- Scroll wheel values now continue changing correctly (optimistic updates since radio doesn't echo commands)
+- Button faces now update immediately after scroll wheel changes
+- BW command format corrected (now sends value/10 as K4 expects)
+- PC command format corrected (uses PCnnnL for QRP, PCnnnH for QRO mode)
 
 ---
 

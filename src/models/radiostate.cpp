@@ -985,6 +985,84 @@ QString RadioState::sMeterStringB() const {
     }
 }
 
+// Optimistic setters for scroll wheel updates (radio doesn't echo these commands)
+void RadioState::setKeyerSpeed(int wpm) {
+    if (m_keyerSpeed != wpm) {
+        m_keyerSpeed = wpm;
+        emit keyerSpeedChanged(m_keyerSpeed);
+    }
+}
+
+void RadioState::setCwPitch(int pitchHz) {
+    if (m_cwPitch != pitchHz) {
+        m_cwPitch = pitchHz;
+        emit cwPitchChanged(m_cwPitch);
+    }
+}
+
+void RadioState::setRfPower(double watts) {
+    if (m_rfPower != watts) {
+        m_rfPower = watts;
+        emit rfPowerChanged(m_rfPower, m_isQrpMode);
+    }
+}
+
+void RadioState::setFilterBandwidth(int bwHz) {
+    if (m_filterBandwidth != bwHz) {
+        m_filterBandwidth = bwHz;
+        emit filterBandwidthChanged(m_filterBandwidth);
+    }
+}
+
+void RadioState::setIfShift(int shift) {
+    if (m_ifShift != shift) {
+        m_ifShift = shift;
+        emit ifShiftChanged(m_ifShift);
+    }
+}
+
+void RadioState::setRfGain(int gain) {
+    if (m_rfGain != gain) {
+        m_rfGain = gain;
+        emit rfGainChanged(m_rfGain);
+    }
+}
+
+void RadioState::setSquelchLevel(int level) {
+    if (m_squelchLevel != level) {
+        m_squelchLevel = level;
+        emit squelchChanged(m_squelchLevel);
+    }
+}
+
+void RadioState::setRfGainB(int gain) {
+    if (m_rfGainB != gain) {
+        m_rfGainB = gain;
+        emit rfGainBChanged(m_rfGainB);
+    }
+}
+
+void RadioState::setSquelchLevelB(int level) {
+    if (m_squelchLevelB != level) {
+        m_squelchLevelB = level;
+        emit squelchBChanged(m_squelchLevelB);
+    }
+}
+
+void RadioState::setMicGain(int gain) {
+    if (m_micGain != gain) {
+        m_micGain = gain;
+        emit micGainChanged(m_micGain);
+    }
+}
+
+void RadioState::setCompression(int level) {
+    if (m_compression != level) {
+        m_compression = level;
+        emit compressionChanged(m_compression);
+    }
+}
+
 void RadioState::setMiniPanAEnabled(bool enabled) {
     if (m_miniPanAEnabled != enabled) {
         m_miniPanAEnabled = enabled;

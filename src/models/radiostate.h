@@ -52,6 +52,19 @@ public:
     int rfGainB() const { return m_rfGainB; }
     int squelchLevelB() const { return m_squelchLevelB; }
 
+    // Optimistic setters for scroll wheel updates (radio doesn't echo these commands)
+    void setKeyerSpeed(int wpm);
+    void setCwPitch(int pitchHz);
+    void setRfPower(double watts);
+    void setFilterBandwidth(int bwHz);
+    void setIfShift(int shift);
+    void setRfGain(int gain);
+    void setSquelchLevel(int level);
+    void setRfGainB(int gain);
+    void setSquelchLevelB(int level);
+    void setMicGain(int gain);
+    void setCompression(int level);
+
     // Meters
     double sMeter() const { return m_sMeter; }
     double sMeterB() const { return m_sMeterB; }

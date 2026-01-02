@@ -752,42 +752,65 @@ void MainWindow::setupUi() {
     });
 
     // Connect side control panel scroll signals to CAT commands
+    // After sending CAT, update RadioState optimistically (radio doesn't echo these commands)
     // Group 1: WPM/PTCH (CW mode) and MIC/CMP (Voice mode)
     connect(m_sideControlPanel, &SideControlPanel::wpmChanged, this, [this](int delta) {
         int newWpm = qBound(8, m_radioState->keyerSpeed() + delta, 50);
         m_tcpClient->sendCAT(QString("KS%1;").arg(newWpm, 3, 10, QChar('0')));
+        m_radioState->setKeyerSpeed(newWpm);
     });
     connect(m_sideControlPanel, &SideControlPanel::pitchChanged, this, [this](int delta) {
         int currentPitch = m_radioState->cwPitch(); // In Hz
         int newPitch = qBound(300, currentPitch + (delta * 10), 990);
         m_tcpClient->sendCAT(QString("CW%1;").arg(newPitch / 10, 2, 10, QChar('0')));
+        m_radioState->setCwPitch(newPitch);
     });
     connect(m_sideControlPanel, &SideControlPanel::micGainChanged, this, [this](int delta) {
         int newGain = qBound(0, m_radioState->micGain() + delta, 80);
         m_tcpClient->sendCAT(QString("MG%1;").arg(newGain, 3, 10, QChar('0')));
+        m_radioState->setMicGain(newGain);
     });
     connect(m_sideControlPanel, &SideControlPanel::compressionChanged, this, [this](int delta) {
         int newComp = qBound(0, m_radioState->compression() + delta, 30);
         m_tcpClient->sendCAT(QString("CP%1;").arg(newComp, 3, 10, QChar('0')));
+        m_radioState->setCompression(newComp);
     });
     // Group 1: PWR/DLY
+    // PC command uses PCnnnr; format: L=QRP (0.1-10W), H=QRO (1-110W), X=mW
     connect(m_sideControlPanel, &SideControlPanel::powerChanged, this, [this](int delta) {
-        int newPower = qBound(0, static_cast<int>(m_radioState->rfPower()) + delta, 110);
-        m_tcpClient->sendCAT(QString("PC%1;").arg(newPower, 3, 10, QChar('0')));
+        double currentPower = m_radioState->rfPower();
+        bool isQrp = m_radioState->isQrpMode();
+        double newPower;
+        if (isQrp) {
+            // QRP: 0.1W increments, range 0.1-10.0W
+            newPower = qBound(0.1, currentPower + (delta * 0.1), 10.0);
+            int powerVal = static_cast<int>(newPower * 10); // 5.0W = 050
+            m_tcpClient->sendCAT(QString("PC%1L;").arg(powerVal, 3, 10, QChar('0')));
+        } else {
+            // QRO: 1W increments, range 1-110W
+            newPower = qBound(1.0, currentPower + delta, 110.0);
+            int powerVal = static_cast<int>(newPower); // 50W = 050
+            m_tcpClient->sendCAT(QString("PC%1H;").arg(powerVal, 3, 10, QChar('0')));
+        }
+        m_radioState->setRfPower(newPower);
     });
     connect(m_sideControlPanel, &SideControlPanel::delayChanged, this, [this](int delta) {
         int currentDelay = m_radioState->delayForCurrentMode();
         int newDelay = qBound(0, currentDelay + delta, 250);
         m_tcpClient->sendCAT(QString("SD%1;").arg(newDelay, 4, 10, QChar('0')));
+        // Note: Delay is mode-specific, handled by RadioState parsing
     });
     // Group 2: BW/HI and SHFT/LO
+    // BW command uses 10Hz units (divide by 10)
     connect(m_sideControlPanel, &SideControlPanel::bandwidthChanged, this, [this](int delta) {
         int newBw = qBound(50, m_radioState->filterBandwidth() + (delta * 50), 5000);
-        m_tcpClient->sendCAT(QString("BW%1;").arg(newBw, 4, 10, QChar('0')));
+        m_tcpClient->sendCAT(QString("BW%1;").arg(newBw / 10, 4, 10, QChar('0')));
+        m_radioState->setFilterBandwidth(newBw);
     });
     connect(m_sideControlPanel, &SideControlPanel::highCutChanged, this, [this](int delta) {
         int newBw = qBound(50, m_radioState->filterBandwidth() + (delta * 50), 5000);
-        m_tcpClient->sendCAT(QString("BW%1;").arg(newBw, 4, 10, QChar('0')));
+        m_tcpClient->sendCAT(QString("BW%1;").arg(newBw / 10, 4, 10, QChar('0')));
+        m_radioState->setFilterBandwidth(newBw);
     });
     connect(m_sideControlPanel, &SideControlPanel::shiftChanged, this, [this](int delta) {
         int currentShift = m_radioState->ifShift();
@@ -796,6 +819,7 @@ void MainWindow::setupUi() {
         if (newShift < 0)
             cmd = QString("IS-%1;").arg(qAbs(newShift), 4, 10, QChar('0'));
         m_tcpClient->sendCAT(cmd);
+        m_radioState->setIfShift(newShift);
     });
     connect(m_sideControlPanel, &SideControlPanel::lowCutChanged, this, [this](int delta) {
         int currentShift = m_radioState->ifShift();
@@ -804,23 +828,28 @@ void MainWindow::setupUi() {
         if (newShift < 0)
             cmd = QString("IS-%1;").arg(qAbs(newShift), 4, 10, QChar('0'));
         m_tcpClient->sendCAT(cmd);
+        m_radioState->setIfShift(newShift);
     });
     // Group 3: M.RF/M.SQL and S.RF/S.SQL
     connect(m_sideControlPanel, &SideControlPanel::mainRfGainChanged, this, [this](int delta) {
         int newGain = qBound(0, m_radioState->rfGain() + delta, 100);
         m_tcpClient->sendCAT(QString("RG%1;").arg(newGain, 3, 10, QChar('0')));
+        m_radioState->setRfGain(newGain);
     });
     connect(m_sideControlPanel, &SideControlPanel::mainSquelchChanged, this, [this](int delta) {
         int newSql = qBound(0, m_radioState->squelchLevel() + delta, 29);
         m_tcpClient->sendCAT(QString("SQ%1;").arg(newSql, 3, 10, QChar('0')));
+        m_radioState->setSquelchLevel(newSql);
     });
     connect(m_sideControlPanel, &SideControlPanel::subRfGainChanged, this, [this](int delta) {
         int newGain = qBound(0, m_radioState->rfGainB() + delta, 100);
         m_tcpClient->sendCAT(QString("RG$%1;").arg(newGain, 3, 10, QChar('0')));
+        m_radioState->setRfGainB(newGain);
     });
     connect(m_sideControlPanel, &SideControlPanel::subSquelchChanged, this, [this](int delta) {
         int newSql = qBound(0, m_radioState->squelchLevelB() + delta, 29);
         m_tcpClient->sendCAT(QString("SQ$%1;").arg(newSql, 3, 10, QChar('0')));
+        m_radioState->setSquelchLevelB(newSql);
     });
 
     // Connect TX function button signals to CAT commands

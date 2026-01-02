@@ -2,6 +2,43 @@
 
 ## January 1, 2026
 
+### Fix: Scroll Values Continue Changing and Button Faces Update
+
+**Problem:** When scrolling DualControlButtons, values would only change once then stop. Button faces didn't update to show new values.
+
+**Root Cause:** The K4 radio does NOT echo back setting commands (KS, BW, PC, etc.). When we sent a CAT command:
+1. RadioState never received the echo → internal state stayed stale
+2. Next scroll used stale value → sent same command again
+3. Signal never emitted → button face never updated
+
+**Secondary Issue:** BW command format was wrong - we sent Hz value but K4 expects value/10.
+
+**Fix - Optimistic Updates:**
+After sending each CAT command, immediately update RadioState with the new value:
+- Ensures next scroll uses correct current value
+- Emits signal → triggers SideControlPanel setter → updates button face
+
+**RadioState Setters Added:**
+- `setKeyerSpeed(int)` - WPM
+- `setCwPitch(int)` - CW pitch in Hz
+- `setRfPower(double)` - Power in watts
+- `setFilterBandwidth(int)` - BW in Hz
+- `setIfShift(int)` - IF shift
+- `setRfGain(int)`, `setRfGainB(int)` - RF gain main/sub
+- `setSquelchLevel(int)`, `setSquelchLevelB(int)` - Squelch main/sub
+- `setMicGain(int)`, `setCompression(int)` - Voice mode controls
+
+**Command Format Fixes:**
+- BW: Now divides by 10 before sending (BW2000 → BW0200)
+- PC: Uses correct PCnnnL/H format (L=QRP 0.1-10W, H=QRO 1-110W)
+
+**Files Modified:**
+- `src/models/radiostate.h` - Added public setter declarations
+- `src/models/radiostate.cpp` - Implemented setters (update + emit)
+- `src/mainwindow.cpp` - Call setters after sendCAT, fix BW/PC format
+
+---
+
 ### Fix: DualControlButton Click Behavior and Scroll Signal Wiring
 
 Fixed two issues with the left side panel DualControlButtons:
