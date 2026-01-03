@@ -195,6 +195,10 @@ private:
     QPushButton *m_spanDownBtnB;
     QPushButton *m_centerBtnB;
 
+    // VFO indicator badges (bottom-left corner of waterfall)
+    QLabel *m_vfoIndicatorA;
+    QLabel *m_vfoIndicatorB;
+
     // Panadapter display mode
     PanadapterMode m_panadapterMode = PanadapterMode::MainOnly;
 

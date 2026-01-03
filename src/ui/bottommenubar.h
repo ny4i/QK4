@@ -49,8 +49,9 @@ signals:
     void mainRxClicked();
     void subRxClicked();
     void txClicked();
-    void pttPressed();  // PTT button pressed (start TX audio)
-    void pttReleased(); // PTT button released (stop TX audio)
+    void pttPressed();   // PTT button pressed (start TX audio)
+    void pttReleased();  // PTT button released (stop TX audio)
+    void styleClicked(); // TEMP: Cycle spectrum styles for testing
 
 private:
     void setupUi();
@@ -67,6 +68,7 @@ private:
     QPushButton *m_subRxBtn;
     QPushButton *m_txBtn;
     QPushButton *m_pttBtn;
+    QPushButton *m_styleBtn; // TEMP: Spectrum style cycling for testing
 };
 
 #endif // BOTTOMMENUBAR_H

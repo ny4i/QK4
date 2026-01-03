@@ -55,8 +55,9 @@ void VFOWidget::setupUi() {
     m_stackedWidget->setMaximumWidth(200); // Match mini-pan max width
 
     // Page 0: Normal content (S-meter + features)
+    // Height must match MiniPanRhiWidget (110px) to prevent layout shift when toggling
     m_normalContent = new QWidget(m_stackedWidget);
-    m_normalContent->setFixedHeight(60); // S-meter + features = 60px
+    m_normalContent->setFixedHeight(110); // Match mini-pan height for consistent layout
     auto *normalLayout = new QVBoxLayout(m_normalContent);
     normalLayout->setContentsMargins(0, 0, 0, 0);
     normalLayout->setSpacing(2);

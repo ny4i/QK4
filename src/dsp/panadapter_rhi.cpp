@@ -2,8 +2,73 @@
 #include <QFile>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QResizeEvent>
 #include <QtMath>
 #include <cmath>
+
+// Transparent overlay widget for dBm scale labels
+class DbmScaleOverlay : public QWidget {
+public:
+    DbmScaleOverlay(QWidget *parent = nullptr) : QWidget(parent) {
+        setAttribute(Qt::WA_TransparentForMouseEvents);
+        setAttribute(Qt::WA_TranslucentBackground);
+    }
+
+    void setDbRange(float minDb, float maxDb) {
+        m_minDb = minDb;
+        m_maxDb = maxDb;
+        update();
+    }
+
+protected:
+    void paintEvent(QPaintEvent *) override {
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::Antialiasing);
+
+        QFont scaleFont;
+        scaleFont.setStyleHint(QFont::Monospace);
+        scaleFont.setPointSize(8);
+#ifdef Q_OS_MACOS
+        scaleFont.setFamily("Menlo");
+#elif defined(Q_OS_WIN)
+        scaleFont.setFamily("Consolas");
+#else
+        scaleFont.setFamily("DejaVu Sans Mono");
+#endif
+        painter.setFont(scaleFont);
+        painter.setPen(Qt::white);
+
+        const int labelCount = 9;
+        const float dbRange = m_maxDb - m_minDb;
+        const int leftMargin = 4;
+        const int h = height();
+
+        QFontMetrics fm(scaleFont);
+        int textHeight = fm.height();
+
+        for (int i = 0; i < labelCount; ++i) {
+            float dbValue = m_maxDb - (static_cast<float>(i) / 8.0f) * dbRange;
+            int yPos = h * i / 8;
+
+            QString label = QString("%1 dBm").arg(static_cast<int>(dbValue));
+
+            // Vertically center on grid line
+            int textY = yPos + textHeight / 3;
+
+            // Adjust top and bottom labels to stay in bounds
+            if (i == 0)
+                textY = textHeight - 2;
+            if (i == labelCount - 1)
+                textY = h - 4;
+
+            painter.drawText(leftMargin, textY, label);
+        }
+    }
+
+private:
+    float m_minDb = -138.0f;
+    float m_maxDb = -58.0f;
+};
 
 PanadapterRhiWidget::PanadapterRhiWidget(QWidget *parent) : QRhiWidget(parent) {
     setMinimumHeight(200);
@@ -21,12 +86,11 @@ PanadapterRhiWidget::PanadapterRhiWidget(QWidget *parent) : QRhiWidget(parent) {
     qDebug() << "API after setApi:" << static_cast<int>(api());
 #endif
 
-    // Initialize color LUT
-    initColorLUT();
+    // Initialize color LUTs
+    initColorLUT();     // Waterfall LUT
+    initSpectrumLUT();  // Spectrum LUT (for BlueAmplitude style)
 
-    // Allocate waterfall data buffer
-    m_waterfallData.resize(TEXTURE_WIDTH * WATERFALL_HISTORY);
-    m_waterfallData.fill(0);
+    // Note: Waterfall data buffer is allocated in initialize() after devicePixelRatio is known
 
     // Peak hold decay timer
     m_peakDecayTimer = new QTimer(this);
@@ -50,14 +114,38 @@ PanadapterRhiWidget::PanadapterRhiWidget(QWidget *parent) : QRhiWidget(parent) {
         m_showWaterfallMarker = false;
         update();
     });
+
+    // Create dBm scale overlay (child widget)
+    m_dbmScaleOverlay = new DbmScaleOverlay(this);
+    m_dbmScaleOverlay->setDbRange(m_minDb, m_maxDb);
+    m_dbmScaleOverlay->show();
 }
 
 PanadapterRhiWidget::~PanadapterRhiWidget() {
     // QRhi resources are automatically cleaned up
 }
 
+void PanadapterRhiWidget::resizeEvent(QResizeEvent *event) {
+    QRhiWidget::resizeEvent(event);
+    updateDbmScaleOverlay();
+}
+
+void PanadapterRhiWidget::updateDbmScaleOverlay() {
+    if (!m_dbmScaleOverlay)
+        return;
+
+    // Position overlay to cover spectrum area only (top portion)
+    const int h = height();
+    const int spectrumHeight = static_cast<int>(h * m_spectrumRatio);
+
+    // Overlay covers left side of spectrum area
+    m_dbmScaleOverlay->setGeometry(0, 0, 70, spectrumHeight);
+    m_dbmScaleOverlay->setDbRange(m_minDb, m_maxDb);
+    m_dbmScaleOverlay->raise(); // Ensure it's on top
+}
+
 void PanadapterRhiWidget::initColorLUT() {
-    // Create 256-entry RGBA color LUT for waterfall
+    // Create 256-entry RGBA color LUT for WATERFALL (unchanged)
     // 8-stage color progression: Black -> Dark Blue -> Royal Blue -> Cyan -> Green -> Yellow -> Red
     m_colorLUT.resize(256 * 4);
 
@@ -108,6 +196,61 @@ void PanadapterRhiWidget::initColorLUT() {
     }
 }
 
+void PanadapterRhiWidget::initSpectrumLUT() {
+    // Create 256-entry RGBA color LUT for SPECTRUM (BlueAmplitude style)
+    // 8-stage: Royal Blue -> Cyan -> Green -> Yellow -> Orange -> Red -> White
+    // Noise floor starts at royal blue (more visible color earlier)
+    m_spectrumLUT.resize(256 * 4);
+
+    for (int i = 0; i < 256; ++i) {
+        float value = i / 255.0f;
+        int r, g, b;
+
+        if (value < 0.08f) {
+            // Royal Blue (visible noise floor) - start brighter
+            float t = value / 0.08f;
+            r = 0;
+            g = 0;
+            b = static_cast<int>(80 + t * 100); // 80-180: royal blue range
+        } else if (value < 0.20f) {
+            // Royal Blue -> Cyan
+            float t = (value - 0.08f) / 0.12f;
+            r = 0;
+            g = static_cast<int>(t * 200);
+            b = static_cast<int>(180 + t * 75); // 180-255
+        } else if (value < 0.35f) {
+            // Cyan -> Green
+            float t = (value - 0.20f) / 0.15f;
+            r = 0;
+            g = static_cast<int>(200 + t * 55); // 200-255
+            b = static_cast<int>(255 * (1.0f - t));
+        } else if (value < 0.52f) {
+            // Green -> Yellow
+            float t = (value - 0.35f) / 0.17f;
+            r = static_cast<int>(t * 255);
+            g = 255;
+            b = 0;
+        } else if (value < 0.70f) {
+            // Yellow -> Orange -> Red
+            float t = (value - 0.52f) / 0.18f;
+            r = 255;
+            g = static_cast<int>(255 * (1.0f - t));
+            b = 0;
+        } else {
+            // Red -> White (strongest signals)
+            float t = (value - 0.70f) / 0.30f;
+            r = 255;
+            g = static_cast<int>(t * 255);
+            b = static_cast<int>(t * 255);
+        }
+
+        m_spectrumLUT[i * 4 + 0] = static_cast<quint8>(qBound(0, r, 255));
+        m_spectrumLUT[i * 4 + 1] = static_cast<quint8>(qBound(0, g, 255));
+        m_spectrumLUT[i * 4 + 2] = static_cast<quint8>(qBound(0, b, 255));
+        m_spectrumLUT[i * 4 + 3] = 255;
+    }
+}
+
 void PanadapterRhiWidget::initialize(QRhiCommandBuffer *cb) {
     qDebug() << "=== PanadapterRhiWidget::initialize() ===";
     qDebug() << "Already initialized:" << m_rhiInitialized;
@@ -128,6 +271,16 @@ void PanadapterRhiWidget::initialize(QRhiCommandBuffer *cb) {
     qDebug() << "QRhi backend name:" << m_rhi->backendName();
     qDebug() << "QRhi driver info:" << m_rhi->driverInfo().deviceName;
 
+    // Use fixed texture sizes - GPU bilinear filtering handles scaling to display size
+    m_textureWidth = BASE_TEXTURE_WIDTH;
+    m_waterfallHistory = BASE_WATERFALL_HISTORY;
+    qDebug() << "Texture width:" << m_textureWidth;
+    qDebug() << "Waterfall history:" << m_waterfallHistory;
+
+    // Allocate waterfall data buffer
+    m_waterfallData.resize(m_textureWidth * m_waterfallHistory);
+    m_waterfallData.fill(0);
+
     // Load shaders from compiled .qsb resources
     auto loadShader = [](const QString &path) -> QShader {
         QFile f(path);
@@ -139,15 +292,16 @@ void PanadapterRhiWidget::initialize(QRhiCommandBuffer *cb) {
 
     m_spectrumVert = loadShader(":/shaders/src/dsp/shaders/spectrum.vert.qsb");
     m_spectrumFrag = loadShader(":/shaders/src/dsp/shaders/spectrum.frag.qsb");
-    m_spectrumFillVert = loadShader(":/shaders/src/dsp/shaders/spectrum_fill.vert.qsb");
-    m_spectrumFillFrag = loadShader(":/shaders/src/dsp/shaders/spectrum_fill.frag.qsb");
+    m_spectrumBlueVert = loadShader(":/shaders/src/dsp/shaders/spectrum_blue.vert.qsb");
+    m_spectrumBlueFrag = loadShader(":/shaders/src/dsp/shaders/spectrum_blue.frag.qsb");
+    m_spectrumBlueAmpFrag = loadShader(":/shaders/src/dsp/shaders/spectrum_blue_amp.frag.qsb");
     m_waterfallVert = loadShader(":/shaders/src/dsp/shaders/waterfall.vert.qsb");
     m_waterfallFrag = loadShader(":/shaders/src/dsp/shaders/waterfall.frag.qsb");
     m_overlayVert = loadShader(":/shaders/src/dsp/shaders/overlay.vert.qsb");
     m_overlayFrag = loadShader(":/shaders/src/dsp/shaders/overlay.frag.qsb");
 
     // Create waterfall texture (single channel for dB values)
-    m_waterfallTexture.reset(m_rhi->newTexture(QRhiTexture::R8, QSize(TEXTURE_WIDTH, WATERFALL_HISTORY), 1,
+    m_waterfallTexture.reset(m_rhi->newTexture(QRhiTexture::R8, QSize(m_textureWidth, m_waterfallHistory), 1,
                                                QRhiTexture::UsedAsTransferSource));
     m_waterfallTexture->create();
 
@@ -156,13 +310,21 @@ void PanadapterRhiWidget::initialize(QRhiCommandBuffer *cb) {
     m_colorLutTexture->create();
 
     // Create spectrum data texture (1D texture for fragment shader spectrum)
-    m_spectrumDataTexture.reset(m_rhi->newTexture(QRhiTexture::R32F, QSize(TEXTURE_WIDTH, 1)));
+    m_spectrumDataTexture.reset(m_rhi->newTexture(QRhiTexture::R32F, QSize(m_textureWidth, 1)));
     m_spectrumDataTexture->create();
 
-    // Upload color LUT data
+    // Create spectrum color LUT texture (256x1 RGBA) - for BlueAmplitude style
+    m_spectrumColorLutTexture.reset(m_rhi->newTexture(QRhiTexture::RGBA8, QSize(256, 1)));
+    m_spectrumColorLutTexture->create();
+
+    // Upload color LUT data (separate LUTs for waterfall and spectrum)
     QRhiResourceUpdateBatch *rub = m_rhi->nextResourceUpdateBatch();
-    QRhiTextureSubresourceUploadDescription lutUpload(m_colorLUT.constData(), m_colorLUT.size());
-    rub->uploadTexture(m_colorLutTexture.get(), QRhiTextureUploadEntry(0, 0, lutUpload));
+    // Upload waterfall color LUT
+    QRhiTextureSubresourceUploadDescription waterfallLutUpload(m_colorLUT.constData(), m_colorLUT.size());
+    rub->uploadTexture(m_colorLutTexture.get(), QRhiTextureUploadEntry(0, 0, waterfallLutUpload));
+    // Upload spectrum color LUT (for BlueAmplitude style)
+    QRhiTextureSubresourceUploadDescription spectrumLutUpload(m_spectrumLUT.constData(), m_spectrumLUT.size());
+    rub->uploadTexture(m_spectrumColorLutTexture.get(), QRhiTextureUploadEntry(0, 0, spectrumLutUpload));
 
     // Upload initial zeroed waterfall data (prevents uninitialized texture garbage)
     QRhiTextureSubresourceUploadDescription waterfallUpload(m_waterfallData.constData(), m_waterfallData.size());
@@ -178,7 +340,7 @@ void PanadapterRhiWidget::initialize(QRhiCommandBuffer *cb) {
     m_spectrumVbo->create();
 
     // Waterfall quad (static)
-    float tMax = static_cast<float>(WATERFALL_HISTORY - 1) / WATERFALL_HISTORY;
+    float tMax = static_cast<float>(m_waterfallHistory - 1) / m_waterfallHistory;
     float waterfallQuad[] = {
         // position (x, y), texcoord (s, t)
         -1.0f, -1.0f, 0.0f, 0.0f, // bottom-left
@@ -205,9 +367,9 @@ void PanadapterRhiWidget::initialize(QRhiCommandBuffer *cb) {
     m_overlayUniformBuffer.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, 32));
     m_overlayUniformBuffer->create();
 
-    // Spectrum fill quad (fullscreen quad for fragment shader spectrum)
+    // Fullscreen quad (shared by all fragment-shader spectrum styles)
     // Position (x, y) + texCoord (s, t) - covers normalized -1 to 1 range
-    float spectrumFillQuad[] = {
+    float fullscreenQuad[] = {
         // position (x, y), texcoord (s, t)
         -1.0f, -1.0f, 0.0f, 1.0f, // bottom-left (texCoord y=1 = bottom)
         1.0f,  -1.0f, 1.0f, 1.0f, // bottom-right
@@ -216,14 +378,15 @@ void PanadapterRhiWidget::initialize(QRhiCommandBuffer *cb) {
         1.0f,  1.0f,  1.0f, 0.0f, // top-right
         -1.0f, 1.0f,  0.0f, 0.0f  // top-left
     };
-    m_spectrumFillVbo.reset(
-        m_rhi->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer, sizeof(spectrumFillQuad)));
-    m_spectrumFillVbo->create();
-    rub->uploadStaticBuffer(m_spectrumFillVbo.get(), spectrumFillQuad);
+    m_fullscreenQuadVbo.reset(
+        m_rhi->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer, sizeof(fullscreenQuad)));
+    m_fullscreenQuadVbo->create();
+    rub->uploadStaticBuffer(m_fullscreenQuadVbo.get(), fullscreenQuad);
 
-    // Spectrum fill uniform buffer: spectrumHeight, frostHeight, pad, pad, peakColor(4), baseColor(4)
-    m_spectrumFillUniformBuffer.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, 48));
-    m_spectrumFillUniformBuffer->create();
+    // Blue spectrum style uniform buffer: 80 bytes (std140 layout)
+    // fillBaseColor(16) + fillPeakColor(16) + glowColor(16) + params(16) + viewport(16)
+    m_spectrumBlueUniformBuffer.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, 80));
+    m_spectrumBlueUniformBuffer->create();
 
     // Separate buffers for passband to avoid GPU buffer conflicts
     m_passbandVbo.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::VertexBuffer, 256 * sizeof(float)));
@@ -282,36 +445,71 @@ void PanadapterRhiWidget::createPipelines() {
         m_spectrumPipeline->create();
     }
 
-    // Spectrum fill pipeline (fragment shader per-pixel spectrum)
+    // Spectrum blue pipeline (blue gradient with cyan glow) - Blue style
     {
-        m_spectrumFillSrb.reset(m_rhi->newShaderResourceBindings());
-        m_spectrumFillSrb->setBindings(
+        m_spectrumBlueSrb.reset(m_rhi->newShaderResourceBindings());
+        m_spectrumBlueSrb->setBindings(
             {QRhiShaderResourceBinding::uniformBuffer(0, QRhiShaderResourceBinding::FragmentStage,
-                                                      m_spectrumFillUniformBuffer.get()),
+                                                      m_spectrumBlueUniformBuffer.get()),
              QRhiShaderResourceBinding::sampledTexture(1, QRhiShaderResourceBinding::FragmentStage,
                                                        m_spectrumDataTexture.get(), m_sampler.get())});
-        m_spectrumFillSrb->create();
+        m_spectrumBlueSrb->create();
 
-        m_spectrumFillPipeline.reset(m_rhi->newGraphicsPipeline());
-        m_spectrumFillPipeline->setShaderStages(
-            {{QRhiShaderStage::Vertex, m_spectrumFillVert}, {QRhiShaderStage::Fragment, m_spectrumFillFrag}});
+        m_spectrumBluePipeline.reset(m_rhi->newGraphicsPipeline());
+        m_spectrumBluePipeline->setShaderStages(
+            {{QRhiShaderStage::Vertex, m_spectrumBlueVert}, {QRhiShaderStage::Fragment, m_spectrumBlueFrag}});
 
         QRhiVertexInputLayout inputLayout;
         inputLayout.setBindings({{4 * sizeof(float)}});                         // position(2) + texcoord(2)
         inputLayout.setAttributes({{0, 0, QRhiVertexInputAttribute::Float2, 0}, // position
                                    {0, 1, QRhiVertexInputAttribute::Float2, 2 * sizeof(float)}}); // texcoord
-        m_spectrumFillPipeline->setVertexInputLayout(inputLayout);
-        m_spectrumFillPipeline->setTopology(QRhiGraphicsPipeline::Triangles);
-        m_spectrumFillPipeline->setShaderResourceBindings(m_spectrumFillSrb.get());
-        m_spectrumFillPipeline->setRenderPassDescriptor(m_rpDesc);
+        m_spectrumBluePipeline->setVertexInputLayout(inputLayout);
+        m_spectrumBluePipeline->setTopology(QRhiGraphicsPipeline::Triangles);
+        m_spectrumBluePipeline->setShaderResourceBindings(m_spectrumBlueSrb.get());
+        m_spectrumBluePipeline->setRenderPassDescriptor(m_rpDesc);
 
         QRhiGraphicsPipeline::TargetBlend blend;
         blend.enable = true;
         blend.srcColor = QRhiGraphicsPipeline::SrcAlpha;
         blend.dstColor = QRhiGraphicsPipeline::OneMinusSrcAlpha;
-        m_spectrumFillPipeline->setTargetBlends({blend});
+        m_spectrumBluePipeline->setTargetBlends({blend});
 
-        m_spectrumFillPipeline->create();
+        m_spectrumBluePipeline->create();
+    }
+
+    // Spectrum blue amplitude pipeline (amplitude-based brightness) - BlueAmplitude style
+    // Shares uniform buffer with Blue style, uses different fragment shader
+    {
+        m_spectrumBlueAmpSrb.reset(m_rhi->newShaderResourceBindings());
+        m_spectrumBlueAmpSrb->setBindings(
+            {QRhiShaderResourceBinding::uniformBuffer(0, QRhiShaderResourceBinding::FragmentStage,
+                                                      m_spectrumBlueUniformBuffer.get()),
+             QRhiShaderResourceBinding::sampledTexture(1, QRhiShaderResourceBinding::FragmentStage,
+                                                       m_spectrumDataTexture.get(), m_sampler.get()),
+             QRhiShaderResourceBinding::sampledTexture(2, QRhiShaderResourceBinding::FragmentStage,
+                                                       m_spectrumColorLutTexture.get(), m_sampler.get())});
+        m_spectrumBlueAmpSrb->create();
+
+        m_spectrumBlueAmpPipeline.reset(m_rhi->newGraphicsPipeline());
+        m_spectrumBlueAmpPipeline->setShaderStages(
+            {{QRhiShaderStage::Vertex, m_spectrumBlueVert}, {QRhiShaderStage::Fragment, m_spectrumBlueAmpFrag}});
+
+        QRhiVertexInputLayout inputLayout;
+        inputLayout.setBindings({{4 * sizeof(float)}});                         // position(2) + texcoord(2)
+        inputLayout.setAttributes({{0, 0, QRhiVertexInputAttribute::Float2, 0}, // position
+                                   {0, 1, QRhiVertexInputAttribute::Float2, 2 * sizeof(float)}}); // texcoord
+        m_spectrumBlueAmpPipeline->setVertexInputLayout(inputLayout);
+        m_spectrumBlueAmpPipeline->setTopology(QRhiGraphicsPipeline::Triangles);
+        m_spectrumBlueAmpPipeline->setShaderResourceBindings(m_spectrumBlueAmpSrb.get());
+        m_spectrumBlueAmpPipeline->setRenderPassDescriptor(m_rpDesc);
+
+        QRhiGraphicsPipeline::TargetBlend blend;
+        blend.enable = true;
+        blend.srcColor = QRhiGraphicsPipeline::SrcAlpha;
+        blend.dstColor = QRhiGraphicsPipeline::OneMinusSrcAlpha;
+        m_spectrumBlueAmpPipeline->setTargetBlends({blend});
+
+        m_spectrumBlueAmpPipeline->create();
     }
 
     // Waterfall pipeline
@@ -428,11 +626,11 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
     if (m_waterfallNeedsUpdate && !m_currentSpectrum.isEmpty()) {
         updateWaterfallData();
         QRhiTextureSubresourceUploadDescription rowUpload(
-            m_waterfallData.constData() + m_waterfallWriteRow * TEXTURE_WIDTH, TEXTURE_WIDTH);
+            m_waterfallData.constData() + m_waterfallWriteRow * m_textureWidth, m_textureWidth);
         rowUpload.setDestinationTopLeft(QPoint(0, m_waterfallWriteRow));
-        rowUpload.setSourceSize(QSize(TEXTURE_WIDTH, 1));
+        rowUpload.setSourceSize(QSize(m_textureWidth, 1));
         rub->uploadTexture(m_waterfallTexture.get(), QRhiTextureUploadEntry(0, 0, rowUpload));
-        m_waterfallWriteRow = (m_waterfallWriteRow + 1) % WATERFALL_HISTORY;
+        m_waterfallWriteRow = (m_waterfallWriteRow + 1) % m_waterfallHistory;
         m_waterfallNeedsUpdate = false;
     }
 
@@ -445,7 +643,7 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
     rub->updateDynamicBuffer(m_spectrumUniformBuffer.get(), 0, sizeof(spectrumUniforms), &spectrumUniforms);
 
     // Update waterfall uniform buffer
-    float scrollOffset = static_cast<float>(m_waterfallWriteRow) / WATERFALL_HISTORY;
+    float scrollOffset = static_cast<float>(m_waterfallWriteRow) / m_waterfallHistory;
     struct {
         float scrollOffset;
         float padding[3];
@@ -467,9 +665,9 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
             m_smoothedBaseline = baselineAlpha * frameMinNormalized + (1.0f - baselineAlpha) * m_smoothedBaseline;
 
         // Upload spectrum data to 1D texture (must be done before beginPass)
-        QVector<float> normalizedSpectrum(TEXTURE_WIDTH);
-        for (int i = 0; i < TEXTURE_WIDTH; ++i) {
-            float srcPos = static_cast<float>(i) / (TEXTURE_WIDTH - 1) * (m_currentSpectrum.size() - 1);
+        QVector<float> normalizedSpectrum(m_textureWidth);
+        for (int i = 0; i < m_textureWidth; ++i) {
+            float srcPos = static_cast<float>(i) / (m_textureWidth - 1) * (m_currentSpectrum.size() - 1);
             int idx = qBound(0, qRound(srcPos), m_currentSpectrum.size() - 1);
             float normalized = normalizeDb(m_currentSpectrum[idx]);
             float adjusted = qMax(0.0f, normalized - m_smoothedBaseline);
@@ -478,27 +676,32 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
 
         QRhiTextureSubresourceUploadDescription specDataUpload(normalizedSpectrum.constData(),
                                                                normalizedSpectrum.size() * sizeof(float));
-        specDataUpload.setSourceSize(QSize(TEXTURE_WIDTH, 1));
+        specDataUpload.setSourceSize(QSize(m_textureWidth, 1));
         rub->uploadTexture(m_spectrumDataTexture.get(), QRhiTextureUploadEntry(0, 0, specDataUpload));
 
-        // Update spectrum fill uniform buffer (before beginPass)
-        // Colors: gradient from visible green at noise floor to bright lime at peaks
+        // Update blue spectrum uniform buffer (80 bytes, std140 layout)
         struct {
-            float spectrumHeight;
-            float frostHeight;
-            float padding1;
-            float padding2;
-            float peakColor[4];
-            float baseColor[4];
-        } specFillUniforms = {
-            spectrumHeight,
-            40.0f,
-            0.0f,
-            0.0f,
-            {100.0f / 255.0f, 255.0f / 255.0f, 100.0f / 255.0f, 1.0f}, // Bright lime at peaks
-            {30.0f / 255.0f, 100.0f / 255.0f, 30.0f / 255.0f, 0.7f}    // Visible green at base
+            float fillBaseColor[4]; // offset 0: dark navy
+            float fillPeakColor[4]; // offset 16: electric blue
+            float glowColor[4];     // offset 32: cyan glow
+            float glowIntensity;    // offset 48
+            float glowWidth;        // offset 52
+            float spectrumHeightPx; // offset 56
+            float padding1;         // offset 60
+            float viewportSize[2];  // offset 64
+            float padding2[2];      // offset 72
+        } specBlueUniforms = {
+            {0.0f, 0.08f, 0.16f, 0.85f}, // fillBaseColor: dark navy
+            {0.0f, 0.63f, 1.0f, 0.85f},  // fillPeakColor: electric blue
+            {0.0f, 0.83f, 1.0f, 1.0f},   // glowColor: cyan
+            0.8f,                        // glowIntensity
+            0.04f,                       // glowWidth
+            spectrumHeight,              // spectrumHeight in pixels
+            0.0f,                        // padding1
+            {w, h},                      // viewportSize
+            {0.0f, 0.0f}                 // padding2
         };
-        rub->updateDynamicBuffer(m_spectrumFillUniformBuffer.get(), 0, sizeof(specFillUniforms), &specFillUniforms);
+        rub->updateDynamicBuffer(m_spectrumBlueUniformBuffer.get(), 0, sizeof(specBlueUniforms), &specBlueUniforms);
     }
 
     cb->resourceUpdate(rub);
@@ -516,14 +719,22 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
         cb->draw(6);
     }
 
-    // Draw spectrum fill using fragment shader (per-pixel spectrum sampling)
-    // (Texture and uniform buffer were uploaded before beginPass)
-    if (m_spectrumFillPipeline && !m_currentSpectrum.isEmpty()) {
+    // Draw spectrum fill (shader-based fullscreen quad)
+    if (!m_currentSpectrum.isEmpty()) {
         cb->setViewport({0, waterfallHeight, w, spectrumHeight});
-        cb->setGraphicsPipeline(m_spectrumFillPipeline.get());
-        cb->setShaderResources(m_spectrumFillSrb.get());
-        const QRhiCommandBuffer::VertexInput specFillVbufBinding(m_spectrumFillVbo.get(), 0);
-        cb->setVertexInput(0, 1, &specFillVbufBinding);
+
+        if (m_spectrumStyle == SpectrumStyle::BlueAmplitude && m_spectrumBlueAmpPipeline) {
+            // BlueAmplitude style: LUT-based colors with amplitude brightness
+            cb->setGraphicsPipeline(m_spectrumBlueAmpPipeline.get());
+            cb->setShaderResources(m_spectrumBlueAmpSrb.get());
+        } else if (m_spectrumBluePipeline) {
+            // Blue style: gradient with cyan glow (Y-position based)
+            cb->setGraphicsPipeline(m_spectrumBluePipeline.get());
+            cb->setShaderResources(m_spectrumBlueSrb.get());
+        }
+
+        const QRhiCommandBuffer::VertexInput quadVbufBinding(m_fullscreenQuadVbo.get(), 0);
+        cb->setVertexInput(0, 1, &quadVbufBinding);
         cb->draw(6); // Fullscreen quad (2 triangles)
     }
 
@@ -774,9 +985,6 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
     }
 
     cb->endPass();
-
-    // Use QPainter for text overlays
-    // Note: QPainter on QRhiWidget works after endPass
 }
 
 void PanadapterRhiWidget::updateSpectrum(const QByteArray &bins, qint64 centerFreq, qint32 sampleRate,
@@ -802,7 +1010,19 @@ void PanadapterRhiWidget::updateSpectrum(const QByteArray &bins, qint64 centerFr
 
     // Decompress bins to dB values
     decompressBins(binsToUse, m_rawSpectrum);
-    m_currentSpectrum = m_rawSpectrum;
+
+    // Apply exponential smoothing for gradual decay (attack fast, decay slow)
+    constexpr float attackAlpha = 0.85f; // Fast attack (new peaks appear quickly)
+    constexpr float decayAlpha = 0.45f;  // Moderate decay for crisp waterfall
+
+    if (m_currentSpectrum.size() != m_rawSpectrum.size()) {
+        m_currentSpectrum = m_rawSpectrum;
+    } else {
+        for (int i = 0; i < m_rawSpectrum.size(); ++i) {
+            float alpha = (m_rawSpectrum[i] > m_currentSpectrum[i]) ? attackAlpha : decayAlpha;
+            m_currentSpectrum[i] = alpha * m_rawSpectrum[i] + (1.0f - alpha) * m_currentSpectrum[i];
+        }
+    }
 
     // Update peak hold
     if (m_peakHoldEnabled) {
@@ -826,7 +1046,20 @@ void PanadapterRhiWidget::updateMiniSpectrum(const QByteArray &bins) {
     for (int i = 0; i < bins.size(); ++i) {
         m_rawSpectrum[i] = static_cast<quint8>(bins[i]) * 10.0f - 160.0f;
     }
-    m_currentSpectrum = m_rawSpectrum;
+
+    // Apply exponential smoothing for gradual decay (attack fast, decay slow)
+    constexpr float attackAlpha = 0.85f; // Fast attack
+    constexpr float decayAlpha = 0.38f;  // Slower decay (visible glow effect)
+
+    if (m_currentSpectrum.size() != m_rawSpectrum.size()) {
+        m_currentSpectrum = m_rawSpectrum;
+    } else {
+        for (int i = 0; i < m_rawSpectrum.size(); ++i) {
+            float alpha = (m_rawSpectrum[i] > m_currentSpectrum[i]) ? attackAlpha : decayAlpha;
+            m_currentSpectrum[i] = alpha * m_rawSpectrum[i] + (1.0f - alpha) * m_currentSpectrum[i];
+        }
+    }
+
     m_waterfallNeedsUpdate = true;
     update();
 }
@@ -844,11 +1077,11 @@ void PanadapterRhiWidget::updateWaterfallData() {
 
     // Resample spectrum to texture width
     int row = m_waterfallWriteRow;
-    for (int i = 0; i < TEXTURE_WIDTH; ++i) {
-        float srcPos = static_cast<float>(i) / (TEXTURE_WIDTH - 1) * (m_currentSpectrum.size() - 1);
+    for (int i = 0; i < m_textureWidth; ++i) {
+        float srcPos = static_cast<float>(i) / (m_textureWidth - 1) * (m_currentSpectrum.size() - 1);
         int idx = qBound(0, qRound(srcPos), m_currentSpectrum.size() - 1);
         float normalized = normalizeDb(m_currentSpectrum[idx]);
-        m_waterfallData[row * TEXTURE_WIDTH + i] =
+        m_waterfallData[row * m_textureWidth + i] =
             static_cast<quint8>(qBound(0, static_cast<int>(normalized * 255), 255));
     }
 }
@@ -995,6 +1228,7 @@ void PanadapterRhiWidget::setRefLevel(int level) {
         m_refLevel = level;
         m_minDb = static_cast<float>(level - 28);
         m_maxDb = static_cast<float>(level + 52);
+        updateDbmScaleOverlay();
         update();
     }
 }
@@ -1066,6 +1300,13 @@ void PanadapterRhiWidget::setBackgroundGradient(const QColor &center, const QCol
     m_bgCenterColor = center;
     m_bgEdgeColor = edge;
     update();
+}
+
+void PanadapterRhiWidget::setSpectrumStyle(SpectrumStyle style) {
+    if (m_spectrumStyle != style) {
+        m_spectrumStyle = style;
+        update();
+    }
 }
 
 // Mouse events

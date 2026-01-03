@@ -24,6 +24,7 @@ void BottomMenuBar::setupUi() {
     m_mainRxBtn = createMenuButton("MAIN RX");
     m_subRxBtn = createMenuButton("SUB RX");
     m_txBtn = createMenuButton("TX");
+    m_styleBtn = createMenuButton("STYLE"); // TEMP: For testing spectrum styles
 
     layout->addWidget(m_menuBtn);
     layout->addWidget(m_fnBtn);
@@ -32,6 +33,7 @@ void BottomMenuBar::setupUi() {
     layout->addWidget(m_mainRxBtn);
     layout->addWidget(m_subRxBtn);
     layout->addWidget(m_txBtn);
+    layout->addWidget(m_styleBtn);
 
     // Add stretch after buttons to center them
     layout->addStretch();
@@ -48,6 +50,7 @@ void BottomMenuBar::setupUi() {
     connect(m_mainRxBtn, &QPushButton::clicked, this, &BottomMenuBar::mainRxClicked);
     connect(m_subRxBtn, &QPushButton::clicked, this, &BottomMenuBar::subRxClicked);
     connect(m_txBtn, &QPushButton::clicked, this, &BottomMenuBar::txClicked);
+    connect(m_styleBtn, &QPushButton::clicked, this, &BottomMenuBar::styleClicked);
 
     // PTT uses press/release for momentary activation
     connect(m_pttBtn, &QPushButton::pressed, this, &BottomMenuBar::pttPressed);

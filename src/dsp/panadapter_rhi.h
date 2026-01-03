@@ -8,6 +8,15 @@
 #include <QVector>
 #include <memory>
 
+// Spectrum display style presets
+enum class SpectrumStyle {
+    Blue,          // Blue gradient with cyan glow (Y-position based)
+    BlueAmplitude  // LUT-based colors with amplitude brightness (royal blue → white) - DEFAULT
+};
+
+// Forward declaration for dBm scale overlay
+class DbmScaleOverlay;
+
 // Modern GPU-accelerated panadapter using Qt RHI
 // Supports Metal (macOS), DirectX (Windows), Vulkan (Linux)
 class PanadapterRhiWidget : public QRhiWidget {
@@ -53,6 +62,10 @@ public:
     void setNotchColor(const QColor &color);
     void setBackgroundGradient(const QColor &center, const QColor &edge);
 
+    // Spectrum style presets
+    void setSpectrumStyle(SpectrumStyle style);
+    SpectrumStyle spectrumStyle() const { return m_spectrumStyle; }
+
 signals:
     void frequencyClicked(qint64 freq);
     void frequencyDragged(qint64 freq);
@@ -62,6 +75,7 @@ protected:
     // QRhiWidget overrides
     void initialize(QRhiCommandBuffer *cb) override;
     void render(QRhiCommandBuffer *cb) override;
+    void resizeEvent(QResizeEvent *event) override;
 
     // Input events
     void mousePressEvent(QMouseEvent *event) override;
@@ -69,8 +83,11 @@ protected:
     void wheelEvent(QWheelEvent *event) override;
 
 private:
+    // Update dBm scale overlay position and values
+    void updateDbmScaleOverlay();
     // Initialization
     void initColorLUT();
+    void initSpectrumLUT();
     void createPipelines();
 
     // Data processing
@@ -101,14 +118,19 @@ private:
     std::unique_ptr<QRhiTexture> m_spectrumDataTexture; // 1D texture for spectrum values
     std::unique_ptr<QRhiSampler> m_sampler;
     std::unique_ptr<QRhiGraphicsPipeline> m_spectrumPipeline;
-    std::unique_ptr<QRhiGraphicsPipeline> m_spectrumFillPipeline; // Fragment shader spectrum
     std::unique_ptr<QRhiGraphicsPipeline> m_waterfallPipeline;
     std::unique_ptr<QRhiGraphicsPipeline> m_overlayLinePipeline;
     std::unique_ptr<QRhiGraphicsPipeline> m_overlayTrianglePipeline;
     std::unique_ptr<QRhiShaderResourceBindings> m_spectrumSrb;
-    std::unique_ptr<QRhiShaderResourceBindings> m_spectrumFillSrb;
-    std::unique_ptr<QRhiBuffer> m_spectrumFillVbo;
-    std::unique_ptr<QRhiBuffer> m_spectrumFillUniformBuffer;
+    std::unique_ptr<QRhiBuffer> m_fullscreenQuadVbo; // Shared fullscreen quad for fragment-shader styles
+    // Blue spectrum style resources
+    std::unique_ptr<QRhiGraphicsPipeline> m_spectrumBluePipeline;
+    std::unique_ptr<QRhiShaderResourceBindings> m_spectrumBlueSrb;
+    std::unique_ptr<QRhiBuffer> m_spectrumBlueUniformBuffer;
+    // Blue amplitude style resources (shares uniform buffer with Blue, uses spectrum color LUT)
+    std::unique_ptr<QRhiGraphicsPipeline> m_spectrumBlueAmpPipeline;
+    std::unique_ptr<QRhiShaderResourceBindings> m_spectrumBlueAmpSrb;
+    std::unique_ptr<QRhiTexture> m_spectrumColorLutTexture; // 256-entry color LUT for BlueAmplitude
     std::unique_ptr<QRhiShaderResourceBindings> m_waterfallSrb;
     std::unique_ptr<QRhiShaderResourceBindings> m_overlaySrb;
     std::unique_ptr<QRhiShaderResourceBindings> m_passbandSrb;
@@ -122,8 +144,9 @@ private:
     // Shader stages (loaded from .qsb files)
     QShader m_spectrumVert;
     QShader m_spectrumFrag;
-    QShader m_spectrumFillVert;
-    QShader m_spectrumFillFrag;
+    QShader m_spectrumBlueVert;
+    QShader m_spectrumBlueFrag;
+    QShader m_spectrumBlueAmpFrag;
     QShader m_waterfallVert;
     QShader m_waterfallFrag;
     QShader m_overlayVert;
@@ -134,15 +157,19 @@ private:
     QVector<float> m_rawSpectrum;
     QVector<float> m_peakHold;
 
-    // Waterfall data
-    static constexpr int WATERFALL_HISTORY = 256;
-    static constexpr int TEXTURE_WIDTH = 2048;
+    // Waterfall data - sized for good quality without excessive CPU overhead
+    static constexpr int BASE_WATERFALL_HISTORY = 256;
+    static constexpr int BASE_TEXTURE_WIDTH = 2048;
+    int m_textureWidth = BASE_TEXTURE_WIDTH;       // Scaled by devicePixelRatio
+    int m_waterfallHistory = BASE_WATERFALL_HISTORY; // Scaled by devicePixelRatio
     int m_waterfallWriteRow = 0;
     QVector<quint8> m_waterfallData;
     bool m_waterfallNeedsUpdate = false;
 
-    // Color LUT (256 RGBA entries)
+    // Color LUT (256 RGBA entries) - for waterfall
     QVector<quint8> m_colorLUT;
+    // Spectrum color LUT (256 RGBA entries) - for BlueAmplitude style
+    QVector<quint8> m_spectrumLUT;
 
     // Frequency info
     qint64 m_centerFreq = 0;
@@ -158,6 +185,7 @@ private:
     float m_minDb = -138.0f;
     float m_maxDb = -58.0f;
     float m_spectrumRatio = 0.30f;
+    SpectrumStyle m_spectrumStyle = SpectrumStyle::BlueAmplitude; // Default to BlueAmplitude
     float m_smoothedBaseline = 0.0f;
     bool m_gridEnabled = true;
     bool m_peakHoldEnabled = true;
@@ -188,6 +216,9 @@ private:
     // Waterfall marker
     QTimer *m_waterfallMarkerTimer = nullptr;
     bool m_showWaterfallMarker = false;
+
+    // dBm scale overlay (child widget for text rendering)
+    DbmScaleOverlay *m_dbmScaleOverlay = nullptr;
 };
 
 #endif // PANADAPTER_RHI_H

@@ -1060,6 +1060,26 @@ void MainWindow::setupUi() {
     connect(m_bottomMenuBar, &BottomMenuBar::subRxClicked, this, &MainWindow::toggleSubRxPopup);
     connect(m_bottomMenuBar, &BottomMenuBar::txClicked, this, &MainWindow::toggleTxPopup);
 
+    // Style button to toggle between spectrum display styles
+    connect(m_bottomMenuBar, &BottomMenuBar::styleClicked, this, [this]() {
+        SpectrumStyle currentStyle = m_panadapterA->spectrumStyle();
+        SpectrumStyle newStyle;
+        QString styleName;
+
+        // Toggle: BlueAmplitude <-> Blue
+        if (currentStyle == SpectrumStyle::BlueAmplitude) {
+            newStyle = SpectrumStyle::Blue;
+            styleName = "Blue (Y-position)";
+        } else {
+            newStyle = SpectrumStyle::BlueAmplitude;
+            styleName = "Blue Amplitude (LUT)";
+        }
+
+        m_panadapterA->setSpectrumStyle(newStyle);
+        m_panadapterB->setSpectrumStyle(newStyle);
+        qDebug() << "Spectrum style changed to:" << styleName;
+    });
+
     // PTT button connections
     connect(m_bottomMenuBar, &BottomMenuBar::pttPressed, this, &MainWindow::onPttPressed);
     connect(m_bottomMenuBar, &BottomMenuBar::pttReleased, this, &MainWindow::onPttReleased);
@@ -1512,8 +1532,24 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     m_centerBtnB->setStyleSheet(btnStyle);
     m_centerBtnB->setFixedSize(28, 24);
 
+    // VFO indicator badges - bottom-left corner of waterfall, tab shape with top-right rounded
+    QString vfoIndicatorStyle = "QLabel { background: #707070; color: black; "
+                                "font-size: 16px; font-weight: bold; "
+                                "border-top-left-radius: 0px; border-top-right-radius: 8px; "
+                                "border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; }";
+
+    m_vfoIndicatorA = new QLabel("A", m_panadapterA);
+    m_vfoIndicatorA->setStyleSheet(vfoIndicatorStyle);
+    m_vfoIndicatorA->setFixedSize(34, 30);
+    m_vfoIndicatorA->setAlignment(Qt::AlignCenter);
+
+    m_vfoIndicatorB = new QLabel("B", m_panadapterB);
+    m_vfoIndicatorB->setStyleSheet(vfoIndicatorStyle);
+    m_vfoIndicatorB->setFixedSize(34, 30);
+    m_vfoIndicatorB->setAlignment(Qt::AlignCenter);
+
     // Position buttons (will be repositioned in resizeEvent of panadapter)
-    // Triangle layout: C centered above, - and + below
+    // Triangle layout: C centered above, - and + below (bottom-right)
     m_spanDownBtn->move(m_panadapterA->width() - 70, m_panadapterA->height() - 45);
     m_spanUpBtn->move(m_panadapterA->width() - 35, m_panadapterA->height() - 45);
     m_centerBtn->move(m_panadapterA->width() - 52, m_panadapterA->height() - 73);
@@ -1521,6 +1557,10 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     m_spanDownBtnB->move(m_panadapterB->width() - 70, m_panadapterB->height() - 45);
     m_spanUpBtnB->move(m_panadapterB->width() - 35, m_panadapterB->height() - 45);
     m_centerBtnB->move(m_panadapterB->width() - 52, m_panadapterB->height() - 73);
+
+    // VFO indicators at bottom-left corner, flush with edges
+    m_vfoIndicatorA->move(0, m_panadapterA->height() - 30);
+    m_vfoIndicatorB->move(0, m_panadapterB->height() - 30);
 
     // Span adjustment for Main: K4 span steps, inverted controls
     // - button = zoom out (increase span), + button = zoom in (decrease span)
@@ -2177,7 +2217,7 @@ void MainWindow::onMicrophoneFrame(const QByteArray &s16leData) {
 }
 
 bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
-    // Reposition span control buttons when panadapter A resizes
+    // Reposition span control buttons and VFO indicator when panadapter A resizes
     if (watched == m_panadapterA && event->type() == QEvent::Resize) {
         QResizeEvent *resizeEvent = static_cast<QResizeEvent *>(event);
         int w = resizeEvent->size().width();
@@ -2188,9 +2228,12 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
         m_spanDownBtn->move(w - 70, h - 45);
         m_spanUpBtn->move(w - 35, h - 45);
         m_centerBtn->move(w - 52, h - 73);
+
+        // VFO indicator at bottom-left corner
+        m_vfoIndicatorA->move(0, h - 30);
     }
 
-    // Reposition span control buttons when panadapter B resizes
+    // Reposition span control buttons and VFO indicator when panadapter B resizes
     if (watched == m_panadapterB && event->type() == QEvent::Resize) {
         QResizeEvent *resizeEvent = static_cast<QResizeEvent *>(event);
         int w = resizeEvent->size().width();
@@ -2201,6 +2244,9 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
         m_spanDownBtnB->move(w - 70, h - 45);
         m_spanUpBtnB->move(w - 35, h - 45);
         m_centerBtnB->move(w - 52, h - 73);
+
+        // VFO indicator at bottom-left corner
+        m_vfoIndicatorB->move(0, h - 30);
     }
 
     return QMainWindow::eventFilter(watched, event);
