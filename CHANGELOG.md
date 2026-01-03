@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- **IF shift passband positioning**: K4 reports IF shift in decahertz (10 Hz units), not 0-99 index. Passband now correctly positions relative to dial marker when IF shift is adjusted.
+
 ### Added
 - **Fragment shader spectrum rendering**: Per-pixel spectrum fill using GPU fragment shader for smooth, professional appearance
   - Color intensity based on absolute screen position (higher signals = brighter)

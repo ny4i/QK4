@@ -516,59 +516,6 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
         cb->draw(6);
     }
 
-    // Peak trail disabled - now using line-only spectrum rendering
-    // TODO: Re-implement peak trail as a separate dimmer line if needed
-    if (false && m_spectrumPipeline && m_peakHoldEnabled && !m_peakHold.isEmpty() &&
-        m_peakHold.size() == m_currentSpectrum.size()) {
-        QVector<float> peakTrailVerts;
-        peakTrailVerts.reserve(m_peakHold.size() * 6);
-
-        // Dim lime green for peak trail (matches spectrum theme)
-        const float trailR = 60.0f / 255.0f;
-        const float trailG = 140.0f / 255.0f;
-        const float trailB = 60.0f / 255.0f;
-
-        for (int i = 0; i < m_peakHold.size(); ++i) {
-            float x = (static_cast<float>(i) / (m_peakHold.size() - 1)) * w;
-            float peakNorm = normalizeDb(m_peakHold[i]);
-            float currNorm = normalizeDb(m_currentSpectrum[i]);
-
-            // Only draw trail where peak > current (the "ghost" part)
-            float peakAdj = qMax(0.0f, peakNorm - m_smoothedBaseline);
-            float currAdj = qMax(0.0f, currNorm - m_smoothedBaseline);
-
-            if (peakAdj > currAdj + 0.02f) { // Threshold to avoid flicker
-                float peakY = spectrumHeight * (1.0f - peakAdj * 0.95f);
-
-                // Calculate alpha based on difference (larger diff = more visible)
-                float diff = peakAdj - currAdj;
-                float alpha = qBound(0.3f, diff * 3.0f, 0.9f);
-
-                // Single vertex at peak hold position
-                peakTrailVerts.append(x);
-                peakTrailVerts.append(peakY);
-                peakTrailVerts.append(trailR);
-                peakTrailVerts.append(trailG);
-                peakTrailVerts.append(trailB);
-                peakTrailVerts.append(alpha * 0.6f);
-            }
-        }
-
-        if (!peakTrailVerts.isEmpty()) {
-            QRhiResourceUpdateBatch *peakRub = m_rhi->nextResourceUpdateBatch();
-            peakRub->updateDynamicBuffer(m_spectrumVbo.get(), 0, peakTrailVerts.size() * sizeof(float),
-                                         peakTrailVerts.constData());
-            cb->resourceUpdate(peakRub);
-
-            cb->setViewport({0, waterfallHeight, w, spectrumHeight});
-            cb->setGraphicsPipeline(m_spectrumPipeline.get());
-            cb->setShaderResources(m_spectrumSrb.get());
-            const QRhiCommandBuffer::VertexInput peakVbufBinding(m_spectrumVbo.get(), 0);
-            cb->setVertexInput(0, 1, &peakVbufBinding);
-            cb->draw(peakTrailVerts.size() / 6); // 6 floats per vertex (pos2 + color4)
-        }
-    }
-
     // Draw spectrum fill using fragment shader (per-pixel spectrum sampling)
     // (Texture and uniform buffer were uploaded before beginPass)
     if (m_spectrumFillPipeline && !m_currentSpectrum.isEmpty()) {
@@ -668,22 +615,33 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
             // Calculate passband edges based on mode
             qint64 lowFreq, highFreq;
 
+            // K4 IF shift is reported in decahertz (10 Hz units)
+            // This is the passband center offset from the dial frequency
+            // USB with shift=150 means passband centered 1500 Hz above dial
+            // CW with shift=50 means passband centered at 500 Hz pitch
+            int shiftOffsetHz = m_ifShift * 10;
+
             if (m_mode == "LSB") {
-                highFreq = m_tunedFreq;
-                lowFreq = m_tunedFreq - m_filterBw;
+                // LSB: passband is below dial, shift indicates center offset (negative)
+                qint64 center = m_tunedFreq - shiftOffsetHz;
+                lowFreq = center - m_filterBw / 2;
+                highFreq = center + m_filterBw / 2;
             } else if (m_mode == "USB" || m_mode == "DATA" || m_mode == "DATA-R") {
-                lowFreq = m_tunedFreq;
-                highFreq = m_tunedFreq + m_filterBw;
+                // USB: passband is above dial, shift indicates center offset
+                qint64 center = m_tunedFreq + shiftOffsetHz;
+                lowFreq = center - m_filterBw / 2;
+                highFreq = center + m_filterBw / 2;
             } else if (m_mode == "CW" || m_mode == "CW-R") {
-                // CW centers on pitch offset
+                // CW: shift already includes pitch offset from K4
                 int pitchOffset = (m_mode == "CW") ? m_cwPitch : -m_cwPitch;
                 qint64 center = m_tunedFreq + pitchOffset;
                 lowFreq = center - m_filterBw / 2;
                 highFreq = center + m_filterBw / 2;
             } else {
-                // AM/FM - symmetric around tuned freq
-                lowFreq = m_tunedFreq - m_filterBw / 2;
-                highFreq = m_tunedFreq + m_filterBw / 2;
+                // AM/FM - symmetric around tuned freq + shift
+                qint64 center = m_tunedFreq + shiftOffsetHz;
+                lowFreq = center - m_filterBw / 2;
+                highFreq = center + m_filterBw / 2;
             }
 
             // Convert to pixel coordinates
@@ -695,7 +653,7 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
             x2 = qBound(0.0f, x2, w);
 
             if (x2 > x1) {
-                // Draw passband quad using SEPARATE buffers (m_passbandVbo, m_passbandUniformBuffer)
+                // Draw passband quad - use dedicated VBO, uniform buffer, and SRB
                 // Use spectrumHeight not h - passband should only appear in spectrum area, not waterfall
                 QVector<float> quadVerts = {
                     x1, 0, x2, 0, x2, spectrumHeight, x1, 0, x2, spectrumHeight, x1, spectrumHeight};
@@ -727,15 +685,19 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
                 cb->draw(6);
             }
 
-            // Draw frequency marker (vertical line at tuned freq) - uses SEPARATE marker buffers
+            // Draw frequency marker - use dedicated VBO, uniform buffer, and SRB
             // Use spectrumHeight not h - marker should only appear in spectrum area, not waterfall
-            // Account for CW pitch offset so marker appears at center of passband
+            // For CW modes: marker at passband center (dial + pitch offset)
+            // For SSB/other: marker at dial frequency (passband shifts around it)
             qint64 markerFreq = m_tunedFreq;
             if (m_mode == "CW") {
+                // CW marker at passband center (pitch offset from dial)
                 markerFreq = m_tunedFreq + m_cwPitch;
             } else if (m_mode == "CW-R") {
+                // CW-R marker at passband center (pitch offset below dial)
                 markerFreq = m_tunedFreq - m_cwPitch;
             }
+            // For USB/LSB/AM/FM: marker stays at dial frequency
             float markerX = freqToNormalized(markerFreq) * w;
             if (markerX >= 0 && markerX <= w) {
                 QVector<float> markerVerts = {markerX, 0.0f, markerX, spectrumHeight};
@@ -899,13 +861,27 @@ float PanadapterRhiWidget::freqToNormalized(qint64 freq) {
     // Map frequency to normalized range [0.0, 1.0] where:
     // - 0.0 = left edge (startFreq)
     // - 1.0 = right edge (startFreq + spanHz)
-    qint64 startFreq = m_centerFreq - m_spanHz / 2;
+    //
+    // IMPORTANT: In CW mode, the K4 centers the spectrum on (dial + cwPitch), not the dial frequency.
+    // This is because the IF center is offset by the CW sidetone pitch.
+    qint64 effectiveCenter = m_centerFreq;
+    if (m_mode == "CW") {
+        effectiveCenter = m_centerFreq + m_cwPitch;
+    } else if (m_mode == "CW-R") {
+        effectiveCenter = m_centerFreq - m_cwPitch;
+    }
+    qint64 startFreq = effectiveCenter - m_spanHz / 2;
     return static_cast<float>(freq - startFreq) / static_cast<float>(m_spanHz);
 }
 
 qint64 PanadapterRhiWidget::xToFreq(int x, int w) {
-    // Map pixel position to frequency using same coordinate system as spectrum rendering
+    // Map pixel position to frequency for click-to-tune
     // Use floating point for precision
+    //
+    // NOTE: Do NOT apply CW pitch offset here. The user clicks on a signal at a certain
+    // visual position. That signal's frequency is what we want to tune to.
+    // The spectrum display already shows frequencies correctly; we just need to map
+    // the click position back to frequency using the centerFreq from the K4.
     if (w <= 0)
         return m_centerFreq;
     qint64 startFreq = m_centerFreq - m_spanHz / 2;

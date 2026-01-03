@@ -2,6 +2,33 @@
 
 ## January 2, 2026
 
+### Fix: IF Shift Passband Positioning
+
+**Summary:** Fixed IF shift calculation for passband overlay positioning. The K4 reports IF shift in decahertz (10 Hz units), not as a 0-99 index value.
+
+**Problem:** Passband overlay was positioned incorrectly when IF shift was adjusted. With a displayed shift of "1.50" (1.5 kHz), the passband was far from where it should be relative to the dial marker.
+
+**Root Cause:** The code assumed IF shift was a 0-99 value with 50 as center, then multiplied by 42 Hz/step. Debug output revealed the K4 actually reports:
+- `m_ifShift = 150` for a 1.50 kHz shift (150 decahertz = 1500 Hz)
+- `m_ifShift = 50` for CW mode (50 decahertz = 500 Hz, the CW pitch)
+
+**Solution:** Changed IF shift calculation from `(m_ifShift - 50) * 42` to `m_ifShift * 10`:
+```cpp
+// K4 IF shift is reported in decahertz (10 Hz units)
+int shiftOffsetHz = m_ifShift * 10;
+```
+
+**Mode-Specific Passband Positioning:**
+- **USB/DATA**: Passband center = dial + shiftOffsetHz
+- **LSB**: Passband center = dial - shiftOffsetHz
+- **CW/CW-R**: Passband centered at dial + pitch offset (shift value is the pitch)
+- **AM/FM**: Passband centered at dial + shiftOffsetHz
+
+**Files Modified:**
+- `src/dsp/panadapter_rhi.cpp` - Fixed IF shift calculation in passband and marker drawing
+
+---
+
 ### Enhancement: Fragment Shader Spectrum Rendering
 
 **Summary:** Replaced triangle strip spectrum rendering with a fragment shader approach for per-pixel control of spectrum fill. This eliminates the "flashing columns" artifact when strong signals appeared.

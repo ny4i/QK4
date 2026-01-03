@@ -173,10 +173,10 @@ private:
     QColor m_spectrumPeakColor{255, 255, 255, 255}; // Pure white peak (gradient stop 1.0)
     QColor m_spectrumLineColor{50, 255, 50};        // Lime green line on top
     QColor m_peakTrailColor{60, 140, 60};           // Dim lime green for peak trail
-    QColor m_gridColor{102, 102, 102, 77};          // Gray with 30% alpha
+    QColor m_gridColor{160, 160, 160, 77};          // Light gray with 30% alpha
     QColor m_peakHoldColor{255, 255, 255, 102};     // White with 40% alpha
-    QColor m_passbandColor{0, 128, 255, 64};        // Blue with 25% alpha
-    QColor m_frequencyMarkerColor{0, 80, 200};      // Dark blue
+    QColor m_passbandColor{0, 191, 255, 64};        // Cyan with 25% alpha (VFO A default)
+    QColor m_frequencyMarkerColor{0, 140, 200};     // Darker cyan (VFO A default)
     QColor m_notchColor{255, 0, 0};                 // Red
     QColor m_bgCenterColor{56, 56, 56};             // Lighter gray at center
     QColor m_bgEdgeColor{20, 20, 20};               // Darker at edges
