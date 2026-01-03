@@ -7,19 +7,29 @@
 #include <QLabel>
 #include <QCheckBox>
 #include <QLineEdit>
+#include <QComboBox>
+#include <QSlider>
+#include <QPushButton>
 
 class RadioState;
 class KPA1500Client;
+class AudioEngine;
+class MicMeterWidget;
 
 class OptionsDialog : public QDialog {
     Q_OBJECT
 
 public:
-    explicit OptionsDialog(RadioState *radioState, KPA1500Client *kpa1500Client, QWidget *parent = nullptr);
-    ~OptionsDialog() = default;
+    explicit OptionsDialog(RadioState *radioState, KPA1500Client *kpa1500Client, AudioEngine *audioEngine,
+                           QWidget *parent = nullptr);
+    ~OptionsDialog();
 
 private slots:
     void onKpa1500ConnectionStateChanged();
+    void onMicTestToggled(bool checked);
+    void onMicLevelChanged(float level);
+    void onMicDeviceChanged(int index);
+    void onMicGainChanged(int value);
 
 private:
     void setupUi();
@@ -30,9 +40,11 @@ private:
     QWidget *createAudioOutputPage();
     QWidget *createNetworkPage();
     void updateKpa1500Status();
+    void populateMicDevices();
 
     RadioState *m_radioState;
     KPA1500Client *m_kpa1500Client;
+    AudioEngine *m_audioEngine;
     QListWidget *m_tabList;
     QStackedWidget *m_pageStack;
     QCheckBox *m_kpodEnableCheckbox;
@@ -43,6 +55,14 @@ private:
     QLineEdit *m_kpa1500PortEdit;
     QLineEdit *m_kpa1500PollIntervalEdit;
     QCheckBox *m_kpa1500EnableCheckbox;
+
+    // Audio Input settings
+    QComboBox *m_micDeviceCombo;
+    QSlider *m_micGainSlider;
+    QLabel *m_micGainValueLabel;
+    QPushButton *m_micTestBtn;
+    MicMeterWidget *m_micMeter;
+    bool m_micTestActive = false;
 };
 
 #endif // OPTIONSDIALOG_H

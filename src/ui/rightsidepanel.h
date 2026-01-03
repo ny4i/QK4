@@ -85,6 +85,7 @@ signals:
     void subClicked();
 
     // Bottom row secondary signals (right-click)
+    void khzClicked();       // RATE right-click
     void diversityClicked(); // SUB right-click
 
 protected:

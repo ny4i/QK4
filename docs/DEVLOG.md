@@ -1,5 +1,59 @@
 # K4Controller Development Log
 
+## January 3, 2026
+
+### Feature: VFO Tuning Rate Indicator
+
+**Summary:** Added visual indicator showing current tuning rate (step size) for both VFO A and VFO B. A small underline appears beneath the frequency digit that corresponds to the active tuning rate.
+
+**Implementation:**
+1. RadioState now parses VT (Main) and VT$ (Sub) commands and emits signals on change
+2. VFOWidget draws a white underline below the target digit in paintEvent()
+3. RATE button wired: left-click sends SW73 (cycle 1Hz↔10Hz), right-click sends SW150 (jump to 100Hz)
+
+**VT Rate to Digit Position Mapping:**
+- VT0-4 map directly to positions 0-4 (1Hz, 10Hz, 100Hz, 1kHz, 10kHz)
+- VT5 (from SW150/KHZ) maps to position 2 (100Hz) - special case matching K4 behavior
+
+**Files Modified:**
+- `src/models/radiostate.h` - Added `tuningStepB()`, `tuningStepChanged()`, `tuningStepBChanged()` signals
+- `src/models/radiostate.cpp` - Added VT$ parsing, updated VT parsing to emit signals
+- `src/ui/vfowidget.h/.cpp` - Added `setTuningRate()`, `paintEvent()`, `drawTuningRateIndicator()`
+- `src/ui/rightsidepanel.h/.cpp` - Added `khzClicked()` signal for right-click on RATE button
+- `src/mainwindow.cpp` - Connected tuningStep signals to VFOWidgets, wired RATE button clicks
+
+---
+
+### Fix: Mini-Pan Passband Indicator
+
+**Summary:** Fixed passband filter overlay rendering in mini-pan widget after QRhi/Metal migration.
+
+**Issues Fixed:**
+1. Passband not rendering at all - uniform buffer struct had wrong layout (padding must come BEFORE color for std140)
+2. Passband only rendering in bottom portion - changed Y coordinates from waterfallHeight→h to 0→h for full height
+3. Passband drawn off-screen - IF shift multiplier was 100 instead of 10 (140 → 1400 Hz, not 14000 Hz)
+4. CW mode passband positioning - now relative to CW pitch (centered when shift=pitch)
+
+**Files Modified:**
+- `src/dsp/minipan_rhi.cpp` - Fixed uniform buffer layout, Y coordinates, shift calculation, CW mode handling
+- Removed debug output from minipan_rhi.cpp
+
+---
+
+### Enhancement: Span Control Improvements
+
+**Summary:** Updated span +/- button behavior and increment logic to match K4 native behavior.
+
+**Changes:**
+1. Inverted button behavior: - zooms out (increase span), + zooms in (decrease span)
+2. K4 span increment sequence: +1kHz steps from 5→144, then +4kHz steps from 144→368 (and reverse for decrement)
+3. Applied to both panadapter buttons and Display popup SPAN controls
+
+**Files Modified:**
+- `src/mainwindow.cpp` - Added `getNextSpanUp()`, `getNextSpanDown()` helpers, updated all span button handlers
+
+---
+
 ## January 2, 2026
 
 ### Enhancement: Dual-Channel Audio Mixing with Volume Controls

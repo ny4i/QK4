@@ -4,6 +4,7 @@
 #include <QRhiWidget>
 #include <rhi/qrhi.h>
 #include <QColor>
+#include <QLabel>
 #include <QTimer>
 #include <QVector>
 #include <memory>
@@ -45,6 +46,7 @@ protected:
     // QRhiWidget overrides
     void initialize(QRhiCommandBuffer *cb) override;
     void render(QRhiCommandBuffer *cb) override;
+    void resizeEvent(QResizeEvent *event) override;
 
     // Input events
     void mousePressEvent(QMouseEvent *event) override;
@@ -53,6 +55,9 @@ private:
     // Initialization
     void initColorLUT();
     void createPipelines();
+    void createFrequencyLabels();
+    void updateFrequencyLabels();
+    void positionFrequencyLabels();
 
     // Data processing
     float normalizeDb(float db);
@@ -76,6 +81,17 @@ private:
     std::unique_ptr<QRhiShaderResourceBindings> m_spectrumSrb;
     std::unique_ptr<QRhiShaderResourceBindings> m_waterfallSrb;
     std::unique_ptr<QRhiShaderResourceBindings> m_overlaySrb;
+
+    // Dedicated passband buffers (QRhi requires separate buffers to avoid conflicts)
+    std::unique_ptr<QRhiBuffer> m_passbandVbo;
+    std::unique_ptr<QRhiBuffer> m_passbandUniformBuffer;
+    std::unique_ptr<QRhiShaderResourceBindings> m_passbandSrb;
+
+    // Dedicated center line buffers
+    std::unique_ptr<QRhiBuffer> m_centerLineVbo;
+    std::unique_ptr<QRhiBuffer> m_centerLineUniformBuffer;
+    std::unique_ptr<QRhiShaderResourceBindings> m_centerLineSrb;
+
     QRhiRenderPassDescriptor *m_rpDesc = nullptr;
 
     bool m_rhiInitialized = false;
@@ -127,6 +143,10 @@ private:
     int m_filterBw = 2400;
     int m_ifShift = 50;
     int m_cwPitch = 600;
+
+    // Frequency label overlays
+    QLabel *m_leftFreqLabel = nullptr;
+    QLabel *m_rightFreqLabel = nullptr;
 };
 
 #endif // MINIPAN_RHI_H

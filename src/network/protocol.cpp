@@ -176,3 +176,33 @@ QByteArray Protocol::buildAuthData(const QString &password) {
 
     return hexString;
 }
+
+QByteArray Protocol::buildAudioPacket(const QByteArray &opusData, quint8 sequence) {
+    // K4 TX Audio Packet Structure:
+    // Byte 0:    TYPE = 0x01 (Audio)
+    // Byte 1:    VER = 0x01 (Version)
+    // Byte 2:    SEQ = sequence number (0-255, wrapping)
+    // Byte 3:    MODE = 0x03 (Opus Float / EM3)
+    // Bytes 4-5: Frame size (little-endian UInt16) = 240 samples
+    // Byte 6:    Sample rate code = 0x00 (12000 Hz)
+    // Byte 7+:   Opus encoded data
+
+    QByteArray payload;
+    payload.reserve(7 + opusData.size());
+
+    payload.append(static_cast<char>(K4Protocol::Audio)); // 0x01
+    payload.append(static_cast<char>(0x01));              // Version
+    payload.append(static_cast<char>(sequence));          // Sequence
+    payload.append(static_cast<char>(0x03));              // EM3 Opus mode
+
+    // Frame size: 240 samples (little-endian)
+    quint16 frameSize = 240;
+    payload.append(static_cast<char>(frameSize & 0xFF));
+    payload.append(static_cast<char>((frameSize >> 8) & 0xFF));
+
+    payload.append(static_cast<char>(0x00)); // Sample rate code (0 = 12kHz)
+
+    payload.append(opusData);
+
+    return buildPacket(payload);
+}

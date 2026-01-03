@@ -44,11 +44,17 @@ public:
     int kpa1500PollInterval() const;
     void setKpa1500PollInterval(int intervalMs);
 
-    // Audio settings
+    // Audio output settings
     int volume() const;
     void setVolume(int value); // 0-100, default 45
     int subVolume() const;
     void setSubVolume(int value); // 0-100, default 45 (Sub RX / VFO B)
+
+    // Audio input (microphone) settings
+    int micGain() const;
+    void setMicGain(int value); // 0-100, default 50
+    QString micDevice() const;
+    void setMicDevice(const QString &deviceId);
 
 signals:
     void radiosChanged();
@@ -56,6 +62,8 @@ signals:
     void kpa1500EnabledChanged(bool enabled);
     void kpa1500SettingsChanged();
     void kpa1500PollIntervalChanged(int intervalMs);
+    void micGainChanged(int value);
+    void micDeviceChanged(const QString &deviceId);
 
 private:
     explicit RadioSettings(QObject *parent = nullptr);

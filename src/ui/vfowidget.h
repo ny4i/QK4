@@ -21,6 +21,7 @@ public:
 
     // Setters for radio state
     void setFrequency(const QString &formatted);
+    void setTuningRate(int rate); // 0-5: 1Hz, 10Hz, 100Hz, 1kHz, 10kHz, 100kHz
     void setSMeterValue(double value);
     void setAGC(const QString &mode);
     void setPreamp(bool on);
@@ -56,13 +57,18 @@ signals:
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
+    void paintEvent(QPaintEvent *event) override;
 
 private:
     void setupUi();
+    void drawTuningRateIndicator(QPainter &painter);
 
     VFOType m_type;
     QString m_primaryColor;
     QString m_inactiveColor;
+
+    // Tuning rate indicator (0-5: 1Hz to 100kHz)
+    int m_tuningRate = 3; // Default 1kHz
 
     // Widgets
     QLabel *m_frequencyLabel;

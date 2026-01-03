@@ -25,6 +25,7 @@ public:
     quint64 vfoA() const { return m_vfoA; }
     quint64 vfoB() const { return m_vfoB; }
     int tuningStep() const { return m_tuningStep; }
+    int tuningStepB() const { return m_tuningStepB; }
 
     // Mode and filter
     Mode mode() const { return m_mode; }
@@ -271,6 +272,8 @@ signals:
     void ifShiftChanged(int shiftHz);
     void ifShiftBChanged(int shiftHz);
     void cwPitchChanged(int pitchHz);
+    void tuningStepChanged(int step);  // VFO A tuning rate (0-5)
+    void tuningStepBChanged(int step); // VFO B tuning rate (0-5)
     void sMeterChanged(double value);
     void sMeterBChanged(double value);
     void powerMeterChanged(int watts);
@@ -281,8 +284,8 @@ signals:
     void swrChanged(double swr);
     void txMeterChanged(int alc, int compression, double fwdPower, double swr);
     void splitChanged(bool enabled);
-    void subRxEnabledChanged(bool enabled);   // Sub RX on/off (SB command)
-    void diversityChanged(bool enabled);      // Diversity on/off (DV command)
+    void subRxEnabledChanged(bool enabled); // Sub RX on/off (SB command)
+    void diversityChanged(bool enabled);    // Diversity on/off (DV command)
     void antennaChanged(int txAnt, int rxAntMain, int rxAntSub);
     void antennaNameChanged(int index, const QString &name);
     void ritXitChanged(bool ritEnabled, bool xitEnabled, int offset);
@@ -334,6 +337,7 @@ private:
     quint64 m_vfoA = 0;
     quint64 m_vfoB = 0;
     int m_tuningStep = 3;
+    int m_tuningStepB = 3;
 
     // Mode and filter
     Mode m_mode = USB;

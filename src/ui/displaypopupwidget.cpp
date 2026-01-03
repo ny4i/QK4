@@ -1280,7 +1280,6 @@ void DisplayPopupWidget::updateMenuButtonLabels() {
     // Use LCD or EXT state based on selection
     int panMode = (m_extEnabled && !m_lcdEnabled) ? m_dualPanModeExt : m_dualPanModeLcd;
     int displayMode = (m_extEnabled && !m_lcdEnabled) ? m_displayModeExt : m_displayModeLcd;
-    qDebug() << "[PAN LABEL] updateMenuButtonLabels panMode:" << panMode << "displayMode:" << displayMode;
 
     // PanWaterfall button (index 0)
     QString panText;
@@ -1298,7 +1297,6 @@ void DisplayPopupWidget::updateMenuButtonLabels() {
         panText = "PAN = A";
         break;
     }
-    qDebug() << "[PAN LABEL] Setting button text to:" << panText;
     m_menuButtons[0]->setPrimaryText(panText);
     m_menuButtons[0]->setAlternateText(displayMode == 0 ? "SPECTRUM" : "WTRFALL");
 

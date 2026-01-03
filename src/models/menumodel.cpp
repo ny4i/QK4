@@ -142,9 +142,6 @@ bool MenuModel::parseMEDF(const QString &medfLine) {
     // Add to model
     addMenuItem(item);
 
-    qDebug() << "Parsed MEDF:" << item.id << item.name << item.category << item.type << "value:" << item.currentValue
-             << "options:" << item.options;
-
     return true;
 }
 

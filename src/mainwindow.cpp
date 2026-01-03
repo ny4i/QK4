@@ -14,6 +14,7 @@
 #include "dsp/minipan_rhi.h"
 #include "audio/audioengine.h"
 #include "audio/opusdecoder.h"
+#include "audio/opusencoder.h"
 #include "hardware/kpoddevice.h"
 #include "network/kpa1500client.h"
 #include <QVBoxLayout>
@@ -45,13 +46,40 @@ const QString TextGray = "#999999";
 const QString RitCyan = "#00CED1";
 } // namespace K4Colors
 
+// K4 Span range: 5 kHz to 368 kHz
+// UP (zoom out): +1 kHz until 144, then +4 kHz until 368
+// DOWN (zoom in): -4 kHz until 140, then -1 kHz until 5
+static constexpr int SPAN_MIN = 5000;
+static constexpr int SPAN_MAX = 368000;
+static constexpr int SPAN_THRESHOLD_UP = 144000;   // Switch to 4kHz steps above this
+static constexpr int SPAN_THRESHOLD_DOWN = 140000; // Switch to 1kHz steps below this
+
+static int getNextSpanUp(int currentSpan) {
+    if (currentSpan >= SPAN_MAX)
+        return SPAN_MAX;
+    int increment = (currentSpan < SPAN_THRESHOLD_UP) ? 1000 : 4000;
+    int newSpan = currentSpan + increment;
+    return qMin(newSpan, SPAN_MAX);
+}
+
+static int getNextSpanDown(int currentSpan) {
+    if (currentSpan <= SPAN_MIN)
+        return SPAN_MIN;
+    int decrement = (currentSpan > SPAN_THRESHOLD_DOWN) ? 4000 : 1000;
+    int newSpan = currentSpan - decrement;
+    return qMax(newSpan, SPAN_MIN);
+}
+
 // ============== MainWindow Implementation ==============
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), m_tcpClient(new TcpClient(this)), m_radioState(new RadioState(this)),
       m_clockTimer(new QTimer(this)), m_audioEngine(new AudioEngine(this)), m_opusDecoder(new OpusDecoder(this)),
-      m_menuModel(new MenuModel(this)), m_menuOverlay(nullptr) {
+      m_opusEncoder(new OpusEncoder(this)), m_menuModel(new MenuModel(this)), m_menuOverlay(nullptr) {
     // Initialize Opus decoder (K4 sends 12kHz stereo: left=Main, right=Sub)
     m_opusDecoder->initialize(12000, 2);
+
+    // Initialize Opus encoder for TX audio (12kHz mono)
+    m_opusEncoder->initialize(12000, 1);
 
     // IMPORTANT: setupUi() MUST be called BEFORE setupMenuBar()!
     // Qt 6.10.1 bug on macOS Tahoe: calling menuBar() before creating QRhiWidget
@@ -354,14 +382,13 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     // Span control from display popup -> CAT commands (respects A/B selection)
+    // Inverted controls: + zooms in (decrease span), - zooms out (increase span)
     connect(m_displayPopup, &DisplayPopupWidget::spanIncrementRequested, this, [this]() {
         bool vfoA = m_displayPopup->isVfoAEnabled();
         bool vfoB = m_displayPopup->isVfoBEnabled();
-        // Use A as reference if both selected, else use selected VFO
         int currentSpan = (vfoB && !vfoA) ? m_radioState->spanHzB() : m_radioState->spanHz();
-        int newSpan = currentSpan + 1000;
-        if (newSpan <= 368000) {
-            // Target whichever VFO(s) are enabled
+        int newSpan = getNextSpanDown(currentSpan); // + zooms in
+        if (newSpan != currentSpan) {
             if (vfoA) {
                 m_radioState->setSpanHz(newSpan);
                 m_tcpClient->sendCAT(QString("#SPN%1;").arg(newSpan));
@@ -375,11 +402,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_displayPopup, &DisplayPopupWidget::spanDecrementRequested, this, [this]() {
         bool vfoA = m_displayPopup->isVfoAEnabled();
         bool vfoB = m_displayPopup->isVfoBEnabled();
-        // Use A as reference if both selected, else use selected VFO
         int currentSpan = (vfoB && !vfoA) ? m_radioState->spanHzB() : m_radioState->spanHz();
-        int newSpan = currentSpan - 1000;
-        if (newSpan >= 5000) {
-            // Target whichever VFO(s) are enabled
+        int newSpan = getNextSpanUp(currentSpan); // - zooms out
+        if (newSpan != currentSpan) {
             if (vfoA) {
                 m_radioState->setSpanHz(newSpan);
                 m_tcpClient->sendCAT(QString("#SPN%1;").arg(newSpan));
@@ -466,7 +491,7 @@ void MainWindow::setupMenuBar() {
     QAction *optionsAction = new QAction("Settings...", this);
     optionsAction->setMenuRole(QAction::NoRole); // Prevent macOS from moving to app menu
     connect(optionsAction, &QAction::triggered, this, [this]() {
-        OptionsDialog dialog(m_radioState, m_kpa1500Client, this);
+        OptionsDialog dialog(m_radioState, m_kpa1500Client, m_audioEngine, this);
         dialog.exec();
     });
     optionsMenu->addAction(optionsAction);
@@ -1018,9 +1043,13 @@ void MainWindow::setupUi() {
     connect(m_rightSidePanel, &RightSidePanel::pf3Clicked, this, [this]() { m_tcpClient->sendCAT("SW155;"); });
     connect(m_rightSidePanel, &RightSidePanel::pf4Clicked, this, [this]() { m_tcpClient->sendCAT("SW156;"); });
 
-    // Bottom row signals (SUB, DIVERSITY)
+    // Bottom row signals (SUB, DIVERSITY, RATE)
     connect(m_rightSidePanel, &RightSidePanel::subClicked, this, [this]() { m_tcpClient->sendCAT("SW83;"); });
     connect(m_rightSidePanel, &RightSidePanel::diversityClicked, this, [this]() { m_tcpClient->sendCAT("SW152;"); });
+    connect(m_rightSidePanel, &RightSidePanel::rateClicked, this,
+            [this]() { m_tcpClient->sendCAT("SW73;"); }); // Cycle fine rates
+    connect(m_rightSidePanel, &RightSidePanel::khzClicked, this,
+            [this]() { m_tcpClient->sendCAT("SW150;"); }); // Jump to 100kHz
 
     // Connect bottom menu bar signals
     connect(m_bottomMenuBar, &BottomMenuBar::menuClicked, this, &MainWindow::showMenuOverlay);
@@ -1030,6 +1059,13 @@ void MainWindow::setupUi() {
     connect(m_bottomMenuBar, &BottomMenuBar::mainRxClicked, this, &MainWindow::toggleMainRxPopup);
     connect(m_bottomMenuBar, &BottomMenuBar::subRxClicked, this, &MainWindow::toggleSubRxPopup);
     connect(m_bottomMenuBar, &BottomMenuBar::txClicked, this, &MainWindow::toggleTxPopup);
+
+    // PTT button connections
+    connect(m_bottomMenuBar, &BottomMenuBar::pttPressed, this, &MainWindow::onPttPressed);
+    connect(m_bottomMenuBar, &BottomMenuBar::pttReleased, this, &MainWindow::onPttReleased);
+
+    // Connect microphone frames to encoding/transmission
+    connect(m_audioEngine, &AudioEngine::microphoneFrame, this, &MainWindow::onMicrophoneFrame);
 }
 
 void MainWindow::setupTopStatusBar(QWidget *parent) {
@@ -1486,66 +1522,48 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     m_spanUpBtnB->move(m_panadapterB->width() - 35, m_panadapterB->height() - 45);
     m_centerBtnB->move(m_panadapterB->width() - 52, m_panadapterB->height() - 73);
 
-    // Span adjustment for Main: 1 kHz increments, range 5 kHz to 368 kHz
-    // Uses OPTIMISTIC UPDATES like K4Mobile - update local state immediately
+    // Span adjustment for Main: K4 span steps, inverted controls
+    // - button = zoom out (increase span), + button = zoom in (decrease span)
     connect(m_spanDownBtn, &QPushButton::clicked, this, [this]() {
         int currentSpan = m_radioState->spanHz();
-        int newSpan = currentSpan - 1000; // -1 kHz
-        qDebug() << "Span- clicked: current=" << currentSpan << "new=" << newSpan;
-        if (newSpan >= 5000) {
+        int newSpan = getNextSpanUp(currentSpan); // - zooms out
+        if (newSpan != currentSpan) {
             m_radioState->setSpanHz(newSpan);
-            QString cmd = QString("#SPN%1;").arg(newSpan);
-            qDebug() << "Sending span command:" << cmd;
-            m_tcpClient->sendCAT(cmd);
+            m_tcpClient->sendCAT(QString("#SPN%1;").arg(newSpan));
         }
     });
 
     connect(m_spanUpBtn, &QPushButton::clicked, this, [this]() {
         int currentSpan = m_radioState->spanHz();
-        int newSpan = currentSpan + 1000; // +1 kHz
-        qDebug() << "Span+ clicked: current=" << currentSpan << "new=" << newSpan;
-        if (newSpan <= 368000) {
+        int newSpan = getNextSpanDown(currentSpan); // + zooms in
+        if (newSpan != currentSpan) {
             m_radioState->setSpanHz(newSpan);
-            QString cmd = QString("#SPN%1;").arg(newSpan);
-            qDebug() << "Sending span command:" << cmd;
-            m_tcpClient->sendCAT(cmd);
+            m_tcpClient->sendCAT(QString("#SPN%1;").arg(newSpan));
         }
     });
 
-    connect(m_centerBtn, &QPushButton::clicked, this, [this]() {
-        qDebug() << "Center clicked: sending FC;";
-        m_tcpClient->sendCAT("FC;");
-    });
+    connect(m_centerBtn, &QPushButton::clicked, this, [this]() { m_tcpClient->sendCAT("FC;"); });
 
     // Span adjustment for Sub: uses $ suffix for Sub RX commands
     connect(m_spanDownBtnB, &QPushButton::clicked, this, [this]() {
         int currentSpan = m_radioState->spanHzB();
-        int newSpan = currentSpan - 1000;
-        qDebug() << "Span B- clicked: current=" << currentSpan << "new=" << newSpan;
-        if (newSpan >= 5000) {
+        int newSpan = getNextSpanUp(currentSpan); // - zooms out
+        if (newSpan != currentSpan) {
             m_radioState->setSpanHzB(newSpan);
-            QString cmd = QString("#SPN$%1;").arg(newSpan);
-            qDebug() << "Sending span B command:" << cmd;
-            m_tcpClient->sendCAT(cmd);
+            m_tcpClient->sendCAT(QString("#SPN$%1;").arg(newSpan));
         }
     });
 
     connect(m_spanUpBtnB, &QPushButton::clicked, this, [this]() {
         int currentSpan = m_radioState->spanHzB();
-        int newSpan = currentSpan + 1000;
-        qDebug() << "Span B+ clicked: current=" << currentSpan << "new=" << newSpan;
-        if (newSpan <= 368000) {
+        int newSpan = getNextSpanDown(currentSpan); // + zooms in
+        if (newSpan != currentSpan) {
             m_radioState->setSpanHzB(newSpan);
-            QString cmd = QString("#SPN$%1;").arg(newSpan);
-            qDebug() << "Sending span B command:" << cmd;
-            m_tcpClient->sendCAT(cmd);
+            m_tcpClient->sendCAT(QString("#SPN$%1;").arg(newSpan));
         }
     });
 
-    connect(m_centerBtnB, &QPushButton::clicked, this, [this]() {
-        qDebug() << "Center B clicked: sending FC$;";
-        m_tcpClient->sendCAT("FC$;");
-    });
+    connect(m_centerBtnB, &QPushButton::clicked, this, [this]() { m_tcpClient->sendCAT("FC$;"); });
 
     // Install event filter to reposition span buttons when panadapters resize
     m_panadapterA->installEventFilter(this);
@@ -1586,6 +1604,10 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
             [this](int bw) { m_vfoA->setMiniPanFilterBandwidth(bw); });
     connect(m_radioState, &RadioState::ifShiftChanged, this, [this](int shift) { m_vfoA->setMiniPanIfShift(shift); });
     connect(m_radioState, &RadioState::cwPitchChanged, this, [this](int pitch) { m_vfoA->setMiniPanCwPitch(pitch); });
+
+    // Tuning rate indicator (VT command)
+    connect(m_radioState, &RadioState::tuningStepChanged, this, [this](int step) { m_vfoA->setTuningRate(step); });
+    connect(m_radioState, &RadioState::tuningStepBChanged, this, [this](int step) { m_vfoB->setTuningRate(step); });
 
     // Mouse control: click to tune
     connect(m_panadapterA, &PanadapterRhiWidget::frequencyClicked, this, [this](qint64 freq) {
@@ -1743,6 +1765,8 @@ void MainWindow::onAuthenticated() {
         // Apply current volume slider settings to OpusDecoder (for channel mixing)
         m_opusDecoder->setMainVolume(m_sideControlPanel->volume() / 100.0f);
         m_opusDecoder->setSubVolume(m_sideControlPanel->subVolume() / 100.0f);
+        // Apply saved mic gain setting
+        m_audioEngine->setMicGain(RadioSettings::instance()->micGain() / 100.0f);
     } else {
         qWarning() << "Failed to start audio engine";
     }
@@ -2104,6 +2128,54 @@ void MainWindow::onAudioData(const QByteArray &payload) {
     }
 }
 
+void MainWindow::onPttPressed() {
+    if (!m_tcpClient->isConnected()) {
+        return;
+    }
+
+    m_pttActive = true;
+    m_txSequence = 0; // Reset sequence on new PTT press
+    m_audioEngine->setMicEnabled(true);
+    m_bottomMenuBar->setPttActive(true);
+    qDebug() << "PTT pressed - microphone enabled";
+}
+
+void MainWindow::onPttReleased() {
+    m_pttActive = false;
+    m_audioEngine->setMicEnabled(false);
+    m_bottomMenuBar->setPttActive(false);
+    qDebug() << "PTT released - microphone disabled";
+}
+
+void MainWindow::onMicrophoneFrame(const QByteArray &s16leData) {
+    // Only transmit when PTT is active and connected
+    if (!m_pttActive || !m_tcpClient->isConnected()) {
+        return;
+    }
+
+    // Debug: log frame reception periodically
+    static int txFrameCount = 0;
+    if (txFrameCount++ % 50 == 0) {
+        qDebug() << "MainWindow: TX frame" << txFrameCount << "- input size:" << s16leData.size() << "bytes";
+    }
+
+    // Encode the audio frame using Opus
+    QByteArray opusData = m_opusEncoder->encode(s16leData);
+    if (opusData.isEmpty()) {
+        qWarning() << "MainWindow: Opus encoding failed for frame" << txFrameCount;
+        return;
+    }
+
+    // Debug: log encoded size periodically
+    if (txFrameCount % 50 == 1) {
+        qDebug() << "MainWindow: Opus encoded to" << opusData.size() << "bytes, sending packet seq" << m_txSequence;
+    }
+
+    // Build and send the audio packet
+    QByteArray packet = Protocol::buildAudioPacket(opusData, m_txSequence++);
+    m_tcpClient->sendRaw(packet);
+}
+
 bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
     // Reposition span control buttons when panadapter A resizes
     if (watched == m_panadapterA && event->type() == QEvent::Resize) {
@@ -2360,7 +2432,6 @@ void MainWindow::onBandSelected(const QString &bandName) {
 }
 
 void MainWindow::updateBandSelection(int bandNum) {
-    qDebug() << "Band number updated:" << bandNum;
     m_currentBandNum = bandNum;
 
     // Update the band popup to show the current band as selected

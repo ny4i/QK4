@@ -36,6 +36,10 @@ void BottomMenuBar::setupUi() {
     // Add stretch after buttons to center them
     layout->addStretch();
 
+    // PTT button at far right (separated from main buttons)
+    m_pttBtn = createMenuButton("PTT");
+    layout->addWidget(m_pttBtn);
+
     // ===== Connect Signals =====
     connect(m_menuBtn, &QPushButton::clicked, this, &BottomMenuBar::menuClicked);
     connect(m_fnBtn, &QPushButton::clicked, this, &BottomMenuBar::fnClicked);
@@ -44,6 +48,10 @@ void BottomMenuBar::setupUi() {
     connect(m_mainRxBtn, &QPushButton::clicked, this, &BottomMenuBar::mainRxClicked);
     connect(m_subRxBtn, &QPushButton::clicked, this, &BottomMenuBar::subRxClicked);
     connect(m_txBtn, &QPushButton::clicked, this, &BottomMenuBar::txClicked);
+
+    // PTT uses press/release for momentary activation
+    connect(m_pttBtn, &QPushButton::pressed, this, &BottomMenuBar::pttPressed);
+    connect(m_pttBtn, &QPushButton::released, this, &BottomMenuBar::pttReleased);
 }
 
 QPushButton *BottomMenuBar::createMenuButton(const QString &text) {
@@ -158,5 +166,13 @@ void BottomMenuBar::setTxActive(bool active) {
         m_txBtn->setStyleSheet(activeButtonStyleSheet());
     } else {
         m_txBtn->setStyleSheet(buttonStyleSheet());
+    }
+}
+
+void BottomMenuBar::setPttActive(bool active) {
+    if (active) {
+        m_pttBtn->setStyleSheet(activeButtonStyleSheet());
+    } else {
+        m_pttBtn->setStyleSheet(buttonStyleSheet());
     }
 }

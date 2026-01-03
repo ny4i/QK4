@@ -132,6 +132,33 @@ void RadioSettings::setSubVolume(int value) {
     m_settings.sync();
 }
 
+int RadioSettings::micGain() const {
+    return m_settings.value("audio/micGain", 50).toInt();
+}
+
+void RadioSettings::setMicGain(int value) {
+    value = qBound(0, value, 100);
+    int oldValue = m_settings.value("audio/micGain", 50).toInt();
+    if (oldValue != value) {
+        m_settings.setValue("audio/micGain", value);
+        m_settings.sync();
+        emit micGainChanged(value);
+    }
+}
+
+QString RadioSettings::micDevice() const {
+    return m_settings.value("audio/micDevice", "").toString();
+}
+
+void RadioSettings::setMicDevice(const QString &deviceId) {
+    QString oldDevice = m_settings.value("audio/micDevice", "").toString();
+    if (oldDevice != deviceId) {
+        m_settings.setValue("audio/micDevice", deviceId);
+        m_settings.sync();
+        emit micDeviceChanged(deviceId);
+    }
+}
+
 void RadioSettings::load() {
     int count = m_settings.beginReadArray("radios");
     m_radios.clear();

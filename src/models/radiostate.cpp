@@ -443,14 +443,33 @@ void RadioState::parseCATCommand(const QString &command) {
             emit filterPositionChanged(m_filterPosition);
         }
     }
-    // Tuning Step (VT)
-    else if (cmd.startsWith("VT") && cmd.length() > 2) {
-        QString vtStr = cmd.mid(2);
+    // Tuning Step SUB (VT$) - check before VT
+    else if (cmd.startsWith("VT$") && cmd.length() > 3) {
+        QString vtStr = cmd.mid(3); // Skip "VT$"
         if (!vtStr.isEmpty()) {
             bool ok;
             int step = vtStr.left(1).toInt(&ok);
             if (ok) {
-                m_tuningStep = qBound(0, step, 5);
+                int newStep = qBound(0, step, 5);
+                if (newStep != m_tuningStepB) {
+                    m_tuningStepB = newStep;
+                    emit tuningStepBChanged(m_tuningStepB);
+                }
+            }
+        }
+    }
+    // Tuning Step MAIN (VT)
+    else if (cmd.startsWith("VT") && cmd.length() > 2) {
+        QString vtStr = cmd.mid(2); // Skip "VT"
+        if (!vtStr.isEmpty()) {
+            bool ok;
+            int step = vtStr.left(1).toInt(&ok);
+            if (ok) {
+                int newStep = qBound(0, step, 5);
+                if (newStep != m_tuningStep) {
+                    m_tuningStep = newStep;
+                    emit tuningStepChanged(m_tuningStep);
+                }
             }
         }
     }

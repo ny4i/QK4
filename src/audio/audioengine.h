@@ -7,6 +7,7 @@
 #include <QAudioFormat>
 #include <QIODevice>
 #include <QBuffer>
+#include <QTimer>
 
 class AudioEngine : public QObject {
     Q_OBJECT
@@ -25,8 +26,20 @@ public:
     void setVolume(float volume); // 0.0 to 1.0
     float volume() const { return m_volume; }
 
+    // Microphone settings
+    void setMicGain(float gain); // 0.0 to 1.0
+    float micGain() const { return m_micGain; }
+
+    void setMicDevice(const QString &deviceId);
+    QString micDeviceId() const;
+
+    // Get list of available input devices (for settings UI)
+    static QList<QPair<QString, QString>> availableInputDevices(); // (id, description)
+
 signals:
-    void microphoneData(const QByteArray &pcmData);
+    void microphoneData(const QByteArray &pcmData);    // Raw Float32 mic data (variable size)
+    void microphoneFrame(const QByteArray &s16leData); // Complete frame (240 samples, S16LE @ 12kHz)
+    void micLevelChanged(float level);                 // RMS level 0.0-1.0 for meter display
 
 private slots:
     void onMicDataReady();
@@ -35,7 +48,14 @@ private:
     bool setupAudioOutput();
     bool setupAudioInput();
 
-    QAudioFormat m_format;
+    // Resample 48kHz Float32 samples to 12kHz (4:1 decimation with averaging)
+    QByteArray resample48kTo12k(const QByteArray &input48k);
+
+    // Audio output format: 12kHz mono Float32 (K4 RX audio)
+    QAudioFormat m_outputFormat;
+
+    // Audio input format: 48kHz mono Float32 (native macOS rate, resampled to 12kHz)
+    QAudioFormat m_inputFormat;
 
     // Audio output (speaker)
     QAudioSink *m_audioSink;
@@ -45,9 +65,22 @@ private:
     QAudioSource *m_audioSource;
     QIODevice *m_audioSourceDevice;
     bool m_micEnabled;
+    QString m_selectedMicDeviceId; // Empty = use system default
 
     // Volume control
     float m_volume = 1.0f;
+
+    // Microphone gain control
+    float m_micGain = 0.5f; // Default 50%
+
+    // Microphone frame buffering for Opus encoding
+    // Buffer accumulates S16LE samples at 12kHz until we have a complete frame
+    static constexpr int FRAME_SAMPLES = 240;                                // 20ms at 12kHz
+    static constexpr int FRAME_BYTES_S16LE = FRAME_SAMPLES * sizeof(qint16); // 480 bytes
+    QByteArray m_micBuffer;
+
+    // Timer for polling microphone data (more reliable than readyRead signal)
+    QTimer *m_micPollTimer;
 };
 
 #endif // AUDIOENGINE_H

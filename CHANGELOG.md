@@ -6,8 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- **VFO Tuning Rate Indicator**: Visual underline beneath frequency digit showing current tuning rate
+  - White underline below the digit that will change when tuning (1Hz, 10Hz, 100Hz, 1kHz, 10kHz)
+  - RATE button left-click (SW73) cycles through fine tuning rates
+  - RATE button right-click (SW150/KHZ) jumps to 100Hz tuning rate
+  - Indicator updates in real-time as VT/VT$ CAT commands are received
+  - Supports both VFO A and VFO B with independent rate tracking
+
 ### Fixed
 - **IF shift passband positioning**: K4 reports IF shift in decahertz (10 Hz units), not 0-99 index. Passband now correctly positions relative to dial marker when IF shift is adjusted.
+- **Span control behavior**: Reversed +/- button polarity (+ now increases span, - decreases) to match intuitive behavior
+- **Span increment sequence**: Now follows K4 radio pattern - 1kHz increments from 5-144kHz, 4kHz increments from 144-368kHz
+- **Mini-pan passband rendering**: Fixed CW mode passband positioning and filter overlay display after QRhi/Metal migration
 
 ### Added
 - **Dual-channel audio mixing**: Main RX (VFO A) and Sub RX (VFO B) audio now independently controllable

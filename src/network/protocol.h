@@ -45,6 +45,10 @@ public:
     // Build authentication data (SHA-384 hash as hex string)
     static QByteArray buildAuthData(const QString &password);
 
+    // Build TX audio packet (Opus encoded data with K4 audio header)
+    // sequence: 0-255, wrapping counter for packet ordering
+    static QByteArray buildAudioPacket(const QByteArray &opusData, quint8 sequence);
+
 signals:
     void audioDataReady(const QByteArray &opusData);
     // receiver: 0 = Main (VFO A), 1 = Sub (VFO B)

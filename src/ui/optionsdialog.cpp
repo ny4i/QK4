@@ -1,8 +1,10 @@
 #include "optionsdialog.h"
+#include "micmeterwidget.h"
 #include "../models/radiostate.h"
 #include "../hardware/kpoddevice.h"
 #include "../settings/radiosettings.h"
 #include "../network/kpa1500client.h"
+#include "../audio/audioengine.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -11,6 +13,9 @@
 #include <QStringList>
 #include <QCheckBox>
 #include <QGridLayout>
+#include <QComboBox>
+#include <QSlider>
+#include <QPushButton>
 
 // K4 Color scheme
 namespace {
@@ -22,8 +27,11 @@ const QString TextAmber = "#FFB000";
 const QString BorderColor = "#333333";
 } // namespace
 
-OptionsDialog::OptionsDialog(RadioState *radioState, KPA1500Client *kpa1500Client, QWidget *parent)
-    : QDialog(parent), m_radioState(radioState), m_kpa1500Client(kpa1500Client), m_kpa1500StatusLabel(nullptr) {
+OptionsDialog::OptionsDialog(RadioState *radioState, KPA1500Client *kpa1500Client, AudioEngine *audioEngine,
+                             QWidget *parent)
+    : QDialog(parent), m_radioState(radioState), m_kpa1500Client(kpa1500Client), m_audioEngine(audioEngine),
+      m_kpa1500StatusLabel(nullptr), m_micDeviceCombo(nullptr), m_micGainSlider(nullptr), m_micGainValueLabel(nullptr),
+      m_micTestBtn(nullptr), m_micMeter(nullptr) {
     setupUi();
 
     // Connect to KPA1500 client signals for status updates
@@ -31,6 +39,18 @@ OptionsDialog::OptionsDialog(RadioState *radioState, KPA1500Client *kpa1500Clien
         connect(m_kpa1500Client, &KPA1500Client::connected, this, &OptionsDialog::onKpa1500ConnectionStateChanged);
         connect(m_kpa1500Client, &KPA1500Client::disconnected, this, &OptionsDialog::onKpa1500ConnectionStateChanged);
         connect(m_kpa1500Client, &KPA1500Client::stateChanged, this, &OptionsDialog::onKpa1500ConnectionStateChanged);
+    }
+
+    // Connect to AudioEngine for mic level updates
+    if (m_audioEngine) {
+        connect(m_audioEngine, &AudioEngine::micLevelChanged, this, &OptionsDialog::onMicLevelChanged);
+    }
+}
+
+OptionsDialog::~OptionsDialog() {
+    // Make sure to stop mic test if dialog is closed
+    if (m_micTestActive && m_audioEngine) {
+        m_audioEngine->setMicEnabled(false);
     }
 }
 
@@ -599,14 +619,178 @@ QWidget *OptionsDialog::createAudioInputPage() {
     line->setFixedHeight(1);
     layout->addWidget(line);
 
-    // Placeholder message
-    auto *placeholderLabel = new QLabel("Microphone and audio input settings will be configured here.", page);
-    placeholderLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(TextGray));
-    placeholderLabel->setWordWrap(true);
-    layout->addWidget(placeholderLabel);
+    // === Microphone Device Selection ===
+    auto *deviceLabel = new QLabel("Microphone:", page);
+    deviceLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(TextGray));
+    layout->addWidget(deviceLabel);
+
+    m_micDeviceCombo = new QComboBox(page);
+    m_micDeviceCombo->setStyleSheet(
+        QString("QComboBox { background-color: %1; color: %2; border: 1px solid %3; "
+                "           padding: 6px; font-size: 13px; border-radius: 3px; }"
+                "QComboBox:focus { border-color: %4; }"
+                "QComboBox::drop-down { border: none; width: 20px; }"
+                "QComboBox::down-arrow { image: none; border-left: 5px solid transparent; "
+                "           border-right: 5px solid transparent; border-top: 5px solid %2; }"
+                "QComboBox QAbstractItemView { background-color: %1; color: %2; selection-background-color: %4; }")
+            .arg(DarkBackground, TextWhite, BorderColor, TextAmber));
+    populateMicDevices();
+    connect(m_micDeviceCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+            &OptionsDialog::onMicDeviceChanged);
+    layout->addWidget(m_micDeviceCombo);
+
+    layout->addSpacing(10);
+
+    // === Microphone Gain ===
+    auto *gainLayout = new QHBoxLayout();
+    auto *gainLabel = new QLabel("Mic Gain:", page);
+    gainLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(TextGray));
+    gainLabel->setFixedWidth(80);
+    gainLayout->addWidget(gainLabel);
+
+    m_micGainSlider = new QSlider(Qt::Horizontal, page);
+    m_micGainSlider->setRange(0, 100);
+    m_micGainSlider->setValue(RadioSettings::instance()->micGain());
+    m_micGainSlider->setStyleSheet(
+        QString("QSlider::groove:horizontal { background: %1; height: 6px; border-radius: 3px; }"
+                "QSlider::handle:horizontal { background: %2; width: 16px; margin: -5px 0; border-radius: 8px; }"
+                "QSlider::sub-page:horizontal { background: %2; border-radius: 3px; }")
+            .arg(BorderColor, TextAmber));
+    connect(m_micGainSlider, &QSlider::valueChanged, this, &OptionsDialog::onMicGainChanged);
+    gainLayout->addWidget(m_micGainSlider, 1);
+
+    m_micGainValueLabel = new QLabel(QString("%1%").arg(m_micGainSlider->value()), page);
+    m_micGainValueLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(TextWhite));
+    m_micGainValueLabel->setFixedWidth(40);
+    m_micGainValueLabel->setAlignment(Qt::AlignRight);
+    gainLayout->addWidget(m_micGainValueLabel);
+
+    layout->addLayout(gainLayout);
+
+    auto *gainHelpLabel = new QLabel("Adjust the microphone input level. 50% is unity gain.", page);
+    gainHelpLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-style: italic;").arg(TextGray));
+    layout->addWidget(gainHelpLabel);
+
+    layout->addSpacing(15);
+
+    // === Microphone Test Section ===
+    auto *line2 = new QFrame(page);
+    line2->setFrameShape(QFrame::HLine);
+    line2->setStyleSheet(QString("background-color: %1;").arg(BorderColor));
+    line2->setFixedHeight(1);
+    layout->addWidget(line2);
+
+    auto *testSectionLabel = new QLabel("Microphone Test", page);
+    testSectionLabel->setStyleSheet(QString("color: %1; font-size: 14px; font-weight: bold;").arg(TextWhite));
+    layout->addWidget(testSectionLabel);
+
+    auto *testHelpLabel =
+        new QLabel("Click the Test button to activate the microphone and check the input level.", page);
+    testHelpLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(TextGray));
+    testHelpLabel->setWordWrap(true);
+    layout->addWidget(testHelpLabel);
+
+    layout->addSpacing(5);
+
+    // Mic Level Meter
+    auto *meterLayout = new QHBoxLayout();
+    auto *meterLabel = new QLabel("Level:", page);
+    meterLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(TextGray));
+    meterLabel->setFixedWidth(50);
+    meterLayout->addWidget(meterLabel);
+
+    m_micMeter = new MicMeterWidget(page);
+    meterLayout->addWidget(m_micMeter, 1);
+
+    layout->addLayout(meterLayout);
+
+    layout->addSpacing(10);
+
+    // Test Button
+    m_micTestBtn = new QPushButton("Test Microphone", page);
+    m_micTestBtn->setCheckable(true);
+    m_micTestBtn->setStyleSheet(QString("QPushButton { background-color: %1; color: %2; border: 1px solid %3; "
+                                        "             padding: 10px 20px; font-size: 13px; border-radius: 4px; }"
+                                        "QPushButton:hover { background-color: #2a2a2a; }"
+                                        "QPushButton:checked { background-color: %4; color: %1; border-color: %4; }")
+                                    .arg(DarkBackground, TextWhite, BorderColor, TextAmber));
+    connect(m_micTestBtn, &QPushButton::toggled, this, &OptionsDialog::onMicTestToggled);
+    layout->addWidget(m_micTestBtn);
 
     layout->addStretch();
     return page;
+}
+
+void OptionsDialog::populateMicDevices() {
+    if (!m_micDeviceCombo)
+        return;
+
+    m_micDeviceCombo->clear();
+
+    auto devices = AudioEngine::availableInputDevices();
+    QString savedDevice = RadioSettings::instance()->micDevice();
+    int selectedIndex = 0;
+
+    for (int i = 0; i < devices.size(); i++) {
+        const auto &device = devices[i];
+        m_micDeviceCombo->addItem(device.second, device.first);
+
+        // Find the saved device
+        if (device.first == savedDevice) {
+            selectedIndex = i;
+        }
+    }
+
+    m_micDeviceCombo->setCurrentIndex(selectedIndex);
+}
+
+void OptionsDialog::onMicDeviceChanged(int index) {
+    if (!m_micDeviceCombo || index < 0)
+        return;
+
+    QString deviceId = m_micDeviceCombo->currentData().toString();
+    RadioSettings::instance()->setMicDevice(deviceId);
+
+    if (m_audioEngine) {
+        m_audioEngine->setMicDevice(deviceId);
+    }
+}
+
+void OptionsDialog::onMicGainChanged(int value) {
+    if (m_micGainValueLabel) {
+        m_micGainValueLabel->setText(QString("%1%").arg(value));
+    }
+
+    RadioSettings::instance()->setMicGain(value);
+
+    if (m_audioEngine) {
+        m_audioEngine->setMicGain(value / 100.0f);
+    }
+}
+
+void OptionsDialog::onMicTestToggled(bool checked) {
+    m_micTestActive = checked;
+
+    if (m_micTestBtn) {
+        m_micTestBtn->setText(checked ? "Stop Test" : "Test Microphone");
+    }
+
+    if (m_audioEngine) {
+        m_audioEngine->setMicEnabled(checked);
+    }
+
+    // Reset meter when stopping
+    if (!checked && m_micMeter) {
+        m_micMeter->setLevel(0.0f);
+    }
+}
+
+void OptionsDialog::onMicLevelChanged(float level) {
+    if (m_micTestActive && m_micMeter) {
+        // Scale level for better visualization (RMS tends to be low)
+        float scaledLevel = qBound(0.0f, level * 5.0f, 1.0f);
+        m_micMeter->setLevel(scaledLevel);
+    }
 }
 
 QWidget *OptionsDialog::createAudioOutputPage() {

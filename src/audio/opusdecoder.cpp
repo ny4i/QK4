@@ -21,7 +21,6 @@ bool OpusDecoder::initialize(int sampleRate, int channels) {
         return false;
     }
 
-    qDebug() << "OpusDecoder: Initialized" << sampleRate << "Hz," << channels << "channels";
     return true;
 }
 
@@ -86,8 +85,8 @@ QByteArray OpusDecoder::decodeK4Packet(const QByteArray &packet) {
 
     for (int i = 0; i < monoSampleCount; i++) {
         // Extract both channels and convert to float
-        qint16 mainSample = stereoSamples[i * 2];     // Left channel (Main RX / VFO A)
-        qint16 subSample = stereoSamples[i * 2 + 1];  // Right channel (Sub RX / VFO B)
+        qint16 mainSample = stereoSamples[i * 2];    // Left channel (Main RX / VFO A)
+        qint16 subSample = stereoSamples[i * 2 + 1]; // Right channel (Sub RX / VFO B)
 
         float mainNormalized = static_cast<float>(mainSample) / 32768.0f;
         float subNormalized = static_cast<float>(subSample) / 32768.0f;

@@ -17,6 +17,7 @@
 class PanadapterRhiWidget;
 class AudioEngine;
 class OpusDecoder;
+class OpusEncoder;
 class SideControlPanel;
 class RightSidePanel;
 class BottomMenuBar;
@@ -109,6 +110,11 @@ private slots:
     void onKpa1500SettingsChanged();
     void updateKpa1500Status();
 
+    // PTT slots
+    void onPttPressed();
+    void onPttReleased();
+    void onMicrophoneFrame(const QByteArray &s16leData);
+
 private:
     void setupMenuBar();
     void setupUi();
@@ -125,6 +131,11 @@ private:
     // Audio
     AudioEngine *m_audioEngine;
     OpusDecoder *m_opusDecoder;
+    OpusEncoder *m_opusEncoder;
+
+    // PTT state
+    bool m_pttActive = false;
+    quint8 m_txSequence = 0;
 
     // Top status bar
     QLabel *m_titleLabel;

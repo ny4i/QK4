@@ -1,6 +1,6 @@
 #include "opusencoder.h"
 
-OpusEncoder::OpusEncoder(QObject *parent) : QObject(parent), m_encoder(nullptr), m_sampleRate(48000), m_channels(1) {}
+OpusEncoder::OpusEncoder(QObject *parent) : QObject(parent), m_encoder(nullptr), m_sampleRate(12000), m_channels(1) {}
 
 OpusEncoder::~OpusEncoder() {
     if (m_encoder) {
@@ -25,13 +25,13 @@ QByteArray OpusEncoder::encode(const QByteArray &pcmData) {
     if (!m_encoder)
         return QByteArray();
 
-    const int frameSize = 960;
+    // Use class constant for frame size (240 samples at 12kHz = 20ms)
     const int maxPacketSize = 4000;
     QByteArray encoded(maxPacketSize, 0);
 
     const opus_int16 *pcm = reinterpret_cast<const opus_int16 *>(pcmData.constData());
     int bytes =
-        opus_encode(m_encoder, pcm, frameSize, reinterpret_cast<unsigned char *>(encoded.data()), maxPacketSize);
+        opus_encode(m_encoder, pcm, FRAME_SAMPLES, reinterpret_cast<unsigned char *>(encoded.data()), maxPacketSize);
 
     if (bytes < 0)
         return QByteArray();

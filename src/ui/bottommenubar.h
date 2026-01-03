@@ -8,9 +8,11 @@
  * BottomMenuBar - Horizontal menu bar at bottom of K4Controller
  *
  * Contains 7 menu buttons: MENU, Fn, DISPLAY, BAND, MAIN RX, SUB RX, TX
+ * Plus PTT button at far right with stretch separator.
  * (Icon buttons moved to SideControlPanel)
  *
  * Each menu button triggers a popup menu or panel when pressed.
+ * PTT uses press/release for momentary microphone activation.
  * Styled with subtle rounded edges, gradient background, white border.
  */
 class BottomMenuBar : public QWidget {
@@ -27,6 +29,7 @@ public:
     QPushButton *mainRxButton() const { return m_mainRxBtn; }
     QPushButton *subRxButton() const { return m_subRxBtn; }
     QPushButton *txButton() const { return m_txBtn; }
+    QPushButton *pttButton() const { return m_pttBtn; }
 
 public slots:
     void setMenuActive(bool active);    // Toggle MENU button inverse colors
@@ -36,6 +39,7 @@ public slots:
     void setMainRxActive(bool active);  // Toggle MAIN RX button inverse colors
     void setSubRxActive(bool active);   // Toggle SUB RX button inverse colors
     void setTxActive(bool active);      // Toggle TX button inverse colors
+    void setPttActive(bool active);     // Toggle PTT button inverse colors
 
 signals:
     void menuClicked();
@@ -45,6 +49,8 @@ signals:
     void mainRxClicked();
     void subRxClicked();
     void txClicked();
+    void pttPressed();  // PTT button pressed (start TX audio)
+    void pttReleased(); // PTT button released (stop TX audio)
 
 private:
     void setupUi();
@@ -60,6 +66,7 @@ private:
     QPushButton *m_mainRxBtn;
     QPushButton *m_subRxBtn;
     QPushButton *m_txBtn;
+    QPushButton *m_pttBtn;
 };
 
 #endif // BOTTOMMENUBAR_H
