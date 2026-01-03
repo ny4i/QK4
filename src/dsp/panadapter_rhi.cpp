@@ -87,8 +87,8 @@ PanadapterRhiWidget::PanadapterRhiWidget(QWidget *parent) : QRhiWidget(parent) {
 #endif
 
     // Initialize color LUTs
-    initColorLUT();     // Waterfall LUT
-    initSpectrumLUT();  // Spectrum LUT (for BlueAmplitude style)
+    initColorLUT();    // Waterfall LUT
+    initSpectrumLUT(); // Spectrum LUT (for BlueAmplitude style)
 
     // Note: Waterfall data buffer is allocated in initialize() after devicePixelRatio is known
 
@@ -937,8 +937,7 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
                                        static_cast<float>(m_notchColor.greenF()),
                                        static_cast<float>(m_notchColor.blueF()),
                                        static_cast<float>(m_notchColor.alphaF())};
-                    notchRub->updateDynamicBuffer(m_notchUniformBuffer.get(), 0, sizeof(notchUniforms),
-                                                  &notchUniforms);
+                    notchRub->updateDynamicBuffer(m_notchUniformBuffer.get(), 0, sizeof(notchUniforms), &notchUniforms);
 
                     cb->resourceUpdate(notchRub);
                     cb->setGraphicsPipeline(m_overlayLinePipeline.get());

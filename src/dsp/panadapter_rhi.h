@@ -10,8 +10,8 @@
 
 // Spectrum display style presets
 enum class SpectrumStyle {
-    Blue,          // Blue gradient with cyan glow (Y-position based)
-    BlueAmplitude  // LUT-based colors with amplitude brightness (royal blue → white) - DEFAULT
+    Blue,         // Blue gradient with cyan glow (Y-position based)
+    BlueAmplitude // LUT-based colors with amplitude brightness (royal blue → white) - DEFAULT
 };
 
 // Forward declaration for dBm scale overlay
@@ -157,7 +157,7 @@ private:
     // Waterfall data - sized for good quality without excessive CPU overhead
     static constexpr int BASE_WATERFALL_HISTORY = 256;
     static constexpr int BASE_TEXTURE_WIDTH = 2048;
-    int m_textureWidth = BASE_TEXTURE_WIDTH;       // Scaled by devicePixelRatio
+    int m_textureWidth = BASE_TEXTURE_WIDTH;         // Scaled by devicePixelRatio
     int m_waterfallHistory = BASE_WATERFALL_HISTORY; // Scaled by devicePixelRatio
     int m_waterfallWriteRow = 0;
     QVector<quint8> m_waterfallData;

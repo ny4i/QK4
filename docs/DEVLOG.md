@@ -2,6 +2,28 @@
 
 ## January 3, 2026
 
+### Fix: VFO B Auto Notch (NTCH) Indicator
+
+**Summary:** Fixed VFO B's NTCH indicator not updating when toggling notch with B SET enabled.
+
+**Root Cause:** The K4 sends `NA$` (Auto Notch Sub RX) commands when toggling notch via SW31 with B SET on, but we weren't parsing `NA$` commands. The VFO B setNotch call was also hardcoded to `false` for auto notch.
+
+**Implementation:**
+1. Added `m_autoNotchEnabledB` state variable and getter to RadioState
+2. Added `NA$` command parsing that emits `notchBChanged` signal
+3. Updated VFO B's setNotch call to use `autoNotchEnabledB()` instead of hardcoded `false`
+
+**CAT Commands:**
+- Main RX: `NA0;` / `NA1;` (auto notch off/on)
+- Sub RX: `NA$0;` / `NA$1;` (auto notch off/on)
+
+**Files Modified:**
+- `src/models/radiostate.h` - Added `autoNotchEnabledB()` getter and `m_autoNotchEnabledB` member
+- `src/models/radiostate.cpp` - Added NA$ parsing
+- `src/mainwindow.cpp` - Updated VFO B notch indicator to include auto notch state
+
+---
+
 ### Fix: NB/NR Level Control Increments
 
 **Summary:** Fixed Noise Blanker (NB) and Noise Reduction (NR) level controls that were skipping values and not incrementing properly.

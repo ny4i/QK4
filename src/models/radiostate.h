@@ -113,6 +113,7 @@ public:
     int manualNotchPitch() const { return m_manualNotchPitch; }
 
     // Notch filter - Sub RX
+    bool autoNotchEnabledB() const { return m_autoNotchEnabledB; }
     bool manualNotchEnabledB() const { return m_manualNotchEnabledB; }
     int manualNotchPitchB() const { return m_manualNotchPitchB; }
 
@@ -412,6 +413,7 @@ private:
     int m_manualNotchPitch = 1000; // 150-5000 Hz, default 1000
 
     // Notch filter - Sub RX
+    bool m_autoNotchEnabledB = false;
     bool m_manualNotchEnabledB = false;
     int m_manualNotchPitchB = 1000; // 150-5000 Hz, default 1000
 

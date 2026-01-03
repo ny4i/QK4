@@ -652,8 +652,8 @@ void MainWindow::setupUi() {
             // Use correct VFO's pitch state
             int curPitch = bSet ? m_radioState->manualNotchPitchB() : m_radioState->manualNotchPitch();
             int newPitch = qMin(curPitch + 10, 5000);
-            int enabled = bSet ? (m_radioState->manualNotchEnabledB() ? 1 : 0)
-                               : (m_radioState->manualNotchEnabled() ? 1 : 0);
+            int enabled =
+                bSet ? (m_radioState->manualNotchEnabledB() ? 1 : 0) : (m_radioState->manualNotchEnabled() ? 1 : 0);
             // Optimistic state + UI update
             if (bSet) {
                 m_radioState->setManualNotchPitchB(newPitch);
@@ -716,8 +716,8 @@ void MainWindow::setupUi() {
             // Use correct VFO's pitch state
             int curPitch = bSet ? m_radioState->manualNotchPitchB() : m_radioState->manualNotchPitch();
             int newPitch = qMax(curPitch - 10, 150);
-            int enabled = bSet ? (m_radioState->manualNotchEnabledB() ? 1 : 0)
-                               : (m_radioState->manualNotchEnabled() ? 1 : 0);
+            int enabled =
+                bSet ? (m_radioState->manualNotchEnabledB() ? 1 : 0) : (m_radioState->manualNotchEnabled() ? 1 : 0);
             // Optimistic state + UI update
             if (bSet) {
                 m_radioState->setManualNotchPitchB(newPitch);
@@ -1754,7 +1754,7 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
         int pitch = m_radioState->manualNotchPitchB();
         m_vfoB->setMiniPanNotchFilter(enabled, pitch);
         // Update NTCH indicator in VFO B processing row
-        m_vfoB->setNotch(false, m_radioState->manualNotchEnabledB()); // Sub RX doesn't have auto notch
+        m_vfoB->setNotch(m_radioState->autoNotchEnabledB(), m_radioState->manualNotchEnabledB());
     });
 
     // Mouse control for VFO B: click to tune
