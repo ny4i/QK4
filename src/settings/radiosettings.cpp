@@ -122,6 +122,16 @@ void RadioSettings::setVolume(int value) {
     m_settings.sync();
 }
 
+int RadioSettings::subVolume() const {
+    return m_settings.value("audio/subVolume", 45).toInt();
+}
+
+void RadioSettings::setSubVolume(int value) {
+    value = qBound(0, value, 100);
+    m_settings.setValue("audio/subVolume", value);
+    m_settings.sync();
+}
+
 void RadioSettings::load() {
     int count = m_settings.beginReadArray("radios");
     m_radios.clear();

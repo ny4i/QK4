@@ -71,25 +71,33 @@ QByteArray OpusDecoder::decodeK4Packet(const QByteArray &packet) {
         return QByteArray();
     }
 
-    // De-interleave stereo: extract Main channel (left = VFO A) only
+    // De-interleave and mix stereo channels with volume control
     // Stereo is interleaved as [L0, R0, L1, R1, ...]
+    // Left channel = Main RX (VFO A), Right channel = Sub RX (VFO B)
     // Each sample is 16-bit (2 bytes), so stereo frame = 4 bytes per sample pair
 
     const qint16 *stereoSamples = reinterpret_cast<const qint16 *>(stereoPcm.constData());
     int totalStereoSamples = stereoPcm.size() / sizeof(qint16);
     int monoSampleCount = totalStereoSamples / 2;
 
-    // Output: float32 PCM for main channel only (with gain boost)
+    // Output: float32 PCM mixed from both channels (with gain boost and volume)
     QByteArray monoPcm(monoSampleCount * sizeof(float), 0);
     float *monoFloats = reinterpret_cast<float *>(monoPcm.data());
 
     for (int i = 0; i < monoSampleCount; i++) {
-        // Extract left channel (Main/RX1) and convert to float
-        qint16 sample = stereoSamples[i * 2]; // Left channel (even indices)
-        float normalized = static_cast<float>(sample) / 32768.0f;
+        // Extract both channels and convert to float
+        qint16 mainSample = stereoSamples[i * 2];     // Left channel (Main RX / VFO A)
+        qint16 subSample = stereoSamples[i * 2 + 1];  // Right channel (Sub RX / VFO B)
 
-        // Apply K4 gain boost
-        monoFloats[i] = normalized * K4_GAIN_BOOST;
+        float mainNormalized = static_cast<float>(mainSample) / 32768.0f;
+        float subNormalized = static_cast<float>(subSample) / 32768.0f;
+
+        // Apply per-channel volume and K4 gain boost, then mix
+        float mainWithVolume = mainNormalized * m_mainVolume * K4_GAIN_BOOST;
+        float subWithVolume = subNormalized * m_subVolume * K4_GAIN_BOOST;
+
+        // Mix both channels (simple sum - both at 100% would double volume)
+        monoFloats[i] = mainWithVolume + subWithVolume;
 
         // Clamp to prevent clipping
         if (monoFloats[i] > 1.0f)
@@ -99,6 +107,14 @@ QByteArray OpusDecoder::decodeK4Packet(const QByteArray &packet) {
     }
 
     return monoPcm;
+}
+
+void OpusDecoder::setMainVolume(float volume) {
+    m_mainVolume = qBound(0.0f, volume, 1.0f);
+}
+
+void OpusDecoder::setSubVolume(float volume) {
+    m_subVolume = qBound(0.0f, volume, 1.0f);
 }
 
 QByteArray OpusDecoder::decode(const QByteArray &opusData) {

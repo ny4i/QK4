@@ -757,12 +757,20 @@ void MainWindow::setupUi() {
         // TODO: Show help dialog
     });
 
-    // Connect volume slider to audio engine
+    // Connect volume slider to OpusDecoder (Main RX / VFO A)
     connect(m_sideControlPanel, &SideControlPanel::volumeChanged, this, [this](int value) {
-        if (m_audioEngine) {
-            m_audioEngine->setVolume(value / 100.0f);
+        if (m_opusDecoder) {
+            m_opusDecoder->setMainVolume(value / 100.0f);
         }
         RadioSettings::instance()->setVolume(value); // Persist setting
+    });
+
+    // Connect sub volume slider to OpusDecoder (Sub RX / VFO B)
+    connect(m_sideControlPanel, &SideControlPanel::subVolumeChanged, this, [this](int value) {
+        if (m_opusDecoder) {
+            m_opusDecoder->setSubVolume(value / 100.0f);
+        }
+        RadioSettings::instance()->setSubVolume(value); // Persist setting
     });
 
     // Connect side control panel scroll signals to CAT commands
@@ -1009,6 +1017,10 @@ void MainWindow::setupUi() {
     connect(m_rightSidePanel, &RightSidePanel::pf2Clicked, this, [this]() { m_tcpClient->sendCAT("SW154;"); });
     connect(m_rightSidePanel, &RightSidePanel::pf3Clicked, this, [this]() { m_tcpClient->sendCAT("SW155;"); });
     connect(m_rightSidePanel, &RightSidePanel::pf4Clicked, this, [this]() { m_tcpClient->sendCAT("SW156;"); });
+
+    // Bottom row signals (SUB, DIVERSITY)
+    connect(m_rightSidePanel, &RightSidePanel::subClicked, this, [this]() { m_tcpClient->sendCAT("SW83;"); });
+    connect(m_rightSidePanel, &RightSidePanel::diversityClicked, this, [this]() { m_tcpClient->sendCAT("SW152;"); });
 
     // Connect bottom menu bar signals
     connect(m_bottomMenuBar, &BottomMenuBar::menuClicked, this, &MainWindow::showMenuOverlay);
@@ -1728,8 +1740,9 @@ void MainWindow::onAuthenticated() {
     // Start audio engine for RX audio
     if (m_audioEngine->start()) {
         qDebug() << "Audio engine started for RX audio";
-        // Apply current volume slider setting
-        m_audioEngine->setVolume(m_sideControlPanel->volume() / 100.0f);
+        // Apply current volume slider settings to OpusDecoder (for channel mixing)
+        m_opusDecoder->setMainVolume(m_sideControlPanel->volume() / 100.0f);
+        m_opusDecoder->setSubVolume(m_sideControlPanel->subVolume() / 100.0f);
     } else {
         qWarning() << "Failed to start audio engine";
     }

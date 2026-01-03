@@ -47,6 +47,8 @@ public:
     // Audio settings
     int volume() const;
     void setVolume(int value); // 0-100, default 45
+    int subVolume() const;
+    void setSubVolume(int value); // 0-100, default 45 (Sub RX / VFO B)
 
 signals:
     void radiosChanged();

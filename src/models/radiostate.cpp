@@ -513,7 +513,19 @@ void RadioState::parseCATCommand(const QString &command) {
     }
     // Sub Receiver (SB)
     else if (cmd.startsWith("SB") && cmd.length() > 2) {
-        m_subReceiverEnabled = (cmd.mid(2) == "1");
+        bool newState = (cmd.mid(2) == "1");
+        if (newState != m_subReceiverEnabled) {
+            m_subReceiverEnabled = newState;
+            emit subRxEnabledChanged(m_subReceiverEnabled);
+        }
+    }
+    // Diversity (DV)
+    else if (cmd.startsWith("DV") && cmd.length() > 2) {
+        bool newState = (cmd.mid(2) == "1");
+        if (newState != m_diversityEnabled) {
+            m_diversityEnabled = newState;
+            emit diversityChanged(m_diversityEnabled);
+        }
     }
     // Antenna (AN) - TX antenna
     else if (cmd.startsWith("AN") && cmd.length() > 2) {

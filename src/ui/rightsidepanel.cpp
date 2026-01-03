@@ -135,6 +135,9 @@ void RightSidePanel::setupUi() {
     connect(m_lockABtn, &QPushButton::clicked, this, &RightSidePanel::lockAClicked);
     connect(m_subBtn, &QPushButton::clicked, this, &RightSidePanel::subClicked);
 
+    // Install event filter for right-click on SUB button (DIVERSITY)
+    m_subBtn->installEventFilter(this);
+
     // Add stretch at bottom to push content up (same as left panel pattern)
     m_layout->addStretch();
 }
@@ -233,6 +236,11 @@ bool RightSidePanel::eventFilter(QObject *watched, QEvent *event) {
                 return true;
             } else if (watched == m_xitBtn) {
                 emit pf4Clicked();
+                return true;
+            }
+            // Bottom row right-click signals
+            else if (watched == m_subBtn) {
+                emit diversityClicked();
                 return true;
             }
         }

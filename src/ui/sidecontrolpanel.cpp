@@ -125,7 +125,7 @@ void SideControlPanel::setupUi() {
     // ===== Volume Slider =====
     layout->addSpacing(10);
 
-    m_volumeLabel = new QLabel("VOL", this);
+    m_volumeLabel = new QLabel("MAIN", this);
     m_volumeLabel->setStyleSheet("color: #999999; font-size: 10px; font-weight: bold;");
     m_volumeLabel->setAlignment(Qt::AlignCenter);
     layout->addWidget(m_volumeLabel);
@@ -153,6 +153,38 @@ void SideControlPanel::setupUi() {
     layout->addWidget(m_volumeSlider);
 
     connect(m_volumeSlider, &QSlider::valueChanged, this, &SideControlPanel::volumeChanged);
+
+    // ===== Sub RX Volume Slider (VFO B) =====
+    layout->addSpacing(6);
+
+    m_subVolumeLabel = new QLabel("SUB", this);
+    m_subVolumeLabel->setStyleSheet("color: #999999; font-size: 10px; font-weight: bold;");
+    m_subVolumeLabel->setAlignment(Qt::AlignCenter);
+    layout->addWidget(m_subVolumeLabel);
+
+    m_subVolumeSlider = new QSlider(Qt::Horizontal, this);
+    m_subVolumeSlider->setRange(0, 100);
+    m_subVolumeSlider->setValue(RadioSettings::instance()->subVolume()); // Restore from settings (default 45%)
+    m_subVolumeSlider->setStyleSheet("QSlider::groove:horizontal {"
+                                     "    border: 1px solid #333333;"
+                                     "    height: 6px;"
+                                     "    background: #0d0d0d;"
+                                     "    border-radius: 3px;"
+                                     "}"
+                                     "QSlider::handle:horizontal {"
+                                     "    background: #00BFFF;"
+                                     "    border: 1px solid #00BFFF;"
+                                     "    width: 14px;"
+                                     "    margin: -4px 0;"
+                                     "    border-radius: 7px;"
+                                     "}"
+                                     "QSlider::sub-page:horizontal {"
+                                     "    background: #00BFFF;"
+                                     "    border-radius: 3px;"
+                                     "}");
+    layout->addWidget(m_subVolumeSlider);
+
+    connect(m_subVolumeSlider, &QSlider::valueChanged, this, &SideControlPanel::subVolumeChanged);
 
     // ===== Stretch to push status/icons to bottom =====
     layout->addStretch();
@@ -616,6 +648,10 @@ QWidget *SideControlPanel::createTxFunctionButton(const QString &mainText, const
 
 int SideControlPanel::volume() const {
     return m_volumeSlider ? m_volumeSlider->value() : 100;
+}
+
+int SideControlPanel::subVolume() const {
+    return m_subVolumeSlider ? m_subVolumeSlider->value() : 100;
 }
 
 bool SideControlPanel::eventFilter(QObject *watched, QEvent *event) {

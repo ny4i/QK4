@@ -84,6 +84,9 @@ signals:
     void lockAClicked();
     void subClicked();
 
+    // Bottom row secondary signals (right-click)
+    void diversityClicked(); // SUB right-click
+
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
 

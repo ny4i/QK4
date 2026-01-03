@@ -63,6 +63,7 @@ public:
 
     // Volume control
     int volume() const;
+    int subVolume() const;
 
 signals:
     // Icon button signals
@@ -100,7 +101,8 @@ signals:
     void mainSquelchChanged(int delta);
     void subSquelchChanged(int delta);
     void subRfGainChanged(int delta);
-    void volumeChanged(int value); // 0-100
+    void volumeChanged(int value);    // 0-100 (Main RX / VFO A)
+    void subVolumeChanged(int value); // 0-100 (Sub RX / VFO B)
 
 private slots:
     // Group 1: WPM/PWR - handle activation and scrolling
@@ -176,9 +178,11 @@ private:
     QPushButton *m_antBtn;
     QPushButton *m_rxAntBtn;
 
-    // Volume slider
+    // Volume sliders
     QSlider *m_volumeSlider;
     QLabel *m_volumeLabel;
+    QSlider *m_subVolumeSlider;
+    QLabel *m_subVolumeLabel;
 };
 
 #endif // SIDECONTROLPANEL_H

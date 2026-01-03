@@ -10,6 +10,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **IF shift passband positioning**: K4 reports IF shift in decahertz (10 Hz units), not 0-99 index. Passband now correctly positions relative to dial marker when IF shift is adjusted.
 
 ### Added
+- **Dual-channel audio mixing**: Main RX (VFO A) and Sub RX (VFO B) audio now independently controllable
+  - MAIN volume slider (amber) controls left channel (Main RX)
+  - SUB volume slider (cyan) controls right channel (Sub RX)
+  - Both sliders persist values between sessions
+- **SUB/DIVERSITY buttons**: Right panel SUB button now functional
+  - Left-click: Toggle Sub Receiver (SW83)
+  - Right-click: Toggle Diversity mode (SW152)
+- RadioState: DV (diversity) and SB (sub receiver) command parsing with signals
 - **Fragment shader spectrum rendering**: Per-pixel spectrum fill using GPU fragment shader for smooth, professional appearance
   - Color intensity based on absolute screen position (higher signals = brighter)
   - Eliminates "flashing columns" artifact from previous triangle strip approach

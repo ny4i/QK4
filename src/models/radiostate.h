@@ -87,6 +87,7 @@ public:
     // Control states
     bool isTransmitting() const { return m_isTransmitting; }
     bool subReceiverEnabled() const { return m_subReceiverEnabled; }
+    bool diversityEnabled() const { return m_diversityEnabled; }
     bool splitEnabled() const { return m_splitEnabled; }
 
     // Processing - Main RX
@@ -280,6 +281,8 @@ signals:
     void swrChanged(double swr);
     void txMeterChanged(int alc, int compression, double fwdPower, double swr);
     void splitChanged(bool enabled);
+    void subRxEnabledChanged(bool enabled);   // Sub RX on/off (SB command)
+    void diversityChanged(bool enabled);      // Diversity on/off (DV command)
     void antennaChanged(int txAnt, int rxAntMain, int rxAntSub);
     void antennaNameChanged(int index, const QString &name);
     void ritXitChanged(bool ritEnabled, bool xitEnabled, int offset);
@@ -370,6 +373,7 @@ private:
     // Control states
     bool m_isTransmitting = false;
     bool m_subReceiverEnabled = false;
+    bool m_diversityEnabled = false;
     bool m_splitEnabled = false;
 
     // Processing - Main RX

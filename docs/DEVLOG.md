@@ -2,6 +2,51 @@
 
 ## January 2, 2026
 
+### Enhancement: Dual-Channel Audio Mixing with Volume Controls
+
+**Summary:** Added independent volume controls for Main RX (VFO A) and Sub RX (VFO B) audio channels. K4 sends interleaved stereo audio where left channel = Main RX and right channel = Sub RX.
+
+**Problem:** Previously only the main (left) channel was extracted and played. Sub RX audio was discarded entirely.
+
+**Solution:**
+1. Added SUB volume slider below existing MAIN slider in SideControlPanel
+2. Modified OpusDecoder to extract both stereo channels and mix them with independent volume controls
+3. Both sliders persist their values via RadioSettings
+
+**Implementation Details:**
+- `OpusDecoder::decodeK4Packet()` now extracts both channels from interleaved stereo
+- Each channel gets its own volume multiplier (0.0-1.0) applied before mixing
+- Mixed output is clamped to prevent clipping when both channels are at high volume
+- Main slider uses amber handle (#FFB000), Sub slider uses cyan (#00BFFF) to match VFO colors
+
+**Files Modified:**
+- `src/settings/radiosettings.h/.cpp` - Added `subVolume()` and `setSubVolume()` for persistence
+- `src/ui/sidecontrolpanel.h/.cpp` - Added SUB slider, renamed VOL label to MAIN
+- `src/audio/opusdecoder.h/.cpp` - Added `setMainVolume()`, `setSubVolume()`, dual-channel mixing
+- `src/mainwindow.cpp` - Connected sliders to OpusDecoder volume methods
+
+---
+
+### Enhancement: SUB/DIVERSITY Button Wiring
+
+**Summary:** Wired up SUB and DIVERSITY buttons on the right side panel to send SW commands.
+
+**Buttons:**
+- Left-click SUB → sends `SW83;` (toggle Sub Receiver)
+- Right-click SUB (DIVERSITY) → sends `SW152;` (toggle Diversity mode)
+
+**CAT State Parsing:**
+- `SB0`/`SB1` - Sub Receiver off/on → emits `subRxEnabledChanged(bool)`
+- `DV0`/`DV1` - Diversity off/on → emits `diversityChanged(bool)`
+
+**Files Modified:**
+- `src/models/radiostate.h` - Added `m_diversityEnabled`, `diversityEnabled()`, signals
+- `src/models/radiostate.cpp` - Added DV parsing, updated SB parsing to emit signal
+- `src/ui/rightsidepanel.h/.cpp` - Added `diversityClicked()` signal and event filter
+- `src/mainwindow.cpp` - Connected subClicked and diversityClicked to SW commands
+
+---
+
 ### Fix: IF Shift Passband Positioning
 
 **Summary:** Fixed IF shift calculation for passband overlay positioning. The K4 reports IF shift in decahertz (10 Hz units), not as a 0-99 index value.
