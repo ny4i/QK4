@@ -68,6 +68,14 @@ public:
     void setMicGain(int gain);
     void setCompression(int level);
 
+    // Optimistic setters for NB/NR (radio doesn't echo these commands)
+    void setNoiseBlankerLevel(int level);
+    void setNoiseBlankerLevelB(int level);
+    void setNoiseBlankerFilter(int filter);
+    void setNoiseBlankerFilterB(int filter);
+    void setNoiseReductionLevel(int level);
+    void setNoiseReductionLevelB(int level);
+
     // Meters
     double sMeter() const { return m_sMeter; }
     double sMeterB() const { return m_sMeterB; }
@@ -99,10 +107,19 @@ public:
     bool noiseReductionEnabled() const { return m_noiseReductionEnabled; }
     bool autoNotchFilter() const { return m_autoNotchFilter; }
 
-    // Notch filter
+    // Notch filter - Main RX
     bool autoNotchEnabled() const { return m_autoNotchEnabled; }
     bool manualNotchEnabled() const { return m_manualNotchEnabled; }
     int manualNotchPitch() const { return m_manualNotchPitch; }
+
+    // Notch filter - Sub RX
+    bool manualNotchEnabledB() const { return m_manualNotchEnabledB; }
+    int manualNotchPitchB() const { return m_manualNotchPitchB; }
+
+    // Optimistic setters for notch pitch (radio doesn't echo these commands)
+    void setManualNotchPitch(int pitch);
+    void setManualNotchPitchB(int pitch);
+
     int preamp() const { return m_preamp; }
     bool preampEnabled() const { return m_preampEnabled; }
     int attenuatorLevel() const { return m_attenuatorLevel; }
@@ -309,7 +326,8 @@ signals:
     void testModeChanged(bool enabled);        // TX test mode state
     void atuModeChanged(int mode);             // ATU mode (1=bypass, 2=auto)
     void bSetChanged(bool enabled);            // B SET (Target B) state
-    void notchChanged();                       // Manual notch state/pitch changed
+    void notchChanged();                       // Manual notch state/pitch changed (Main RX)
+    void notchBChanged();                      // Manual notch state/pitch changed (Sub RX)
     void miniPanAEnabledChanged(bool enabled); // Mini-Pan A state (#MP command)
     void miniPanBEnabledChanged(bool enabled); // Mini-Pan B state (#MP$ command)
 
@@ -392,6 +410,10 @@ private:
     bool m_autoNotchEnabled = false;
     bool m_manualNotchEnabled = false;
     int m_manualNotchPitch = 1000; // 150-5000 Hz, default 1000
+
+    // Notch filter - Sub RX
+    bool m_manualNotchEnabledB = false;
+    int m_manualNotchPitchB = 1000; // 150-5000 Hz, default 1000
 
     int m_preamp = 0;
     bool m_preampEnabled = false;

@@ -240,34 +240,48 @@ void RadioState::parseCATCommand(const QString &command) {
             emit transmitStateChanged(false);
         }
     }
-    // Noise Blanker Sub (NB$) - Format: NB$nnmf; where nn=level, m=on/off, f=filter(0/1/2)
+    // Noise Blanker Sub (NB$) - Format: NB$nnm; or NB$nnmf; where nn=level, m=on/off, f=filter(0/1/2)
     else if (cmd.startsWith("NB$") && cmd.length() >= 5) {
         QString nbStr = cmd.mid(3);
-        if (nbStr.length() >= 4) {
-            bool ok1, ok2, ok3;
+        if (nbStr.length() >= 3) {
+            bool ok1, ok2;
             int level = nbStr.left(2).toInt(&ok1);
             int enabled = nbStr.mid(2, 1).toInt(&ok2);
-            int filter = nbStr.mid(3, 1).toInt(&ok3);
-            if (ok1 && ok2 && ok3) {
+            if (ok1 && ok2) {
                 m_noiseBlankerLevelB = qMin(level, 15);
                 m_noiseBlankerEnabledB = (enabled == 1);
-                m_noiseBlankerFilterWidthB = qMin(filter, 2);
+                // Filter field is optional (4th char)
+                if (nbStr.length() >= 4) {
+                    bool ok3;
+                    int filter = nbStr.mid(3, 1).toInt(&ok3);
+                    if (ok3) {
+                        m_noiseBlankerFilterWidthB = qMin(filter, 2);
+                    }
+                }
+                qDebug() << "NB$ CAT received:" << cmd << "parsed: level=" << level << "enabled=" << enabled;
                 emit processingChangedB();
             }
         }
     }
-    // Noise Blanker Main (NB) - Format: NBnnmf; where nn=level(0-15), m=on/off, f=filter(0/1/2)
+    // Noise Blanker Main (NB) - Format: NBnnm; or NBnnmf; where nn=level(0-15), m=on/off, f=filter(0/1/2)
     else if (cmd.startsWith("NB") && cmd.length() >= 4) {
         QString nbStr = cmd.mid(2);
-        if (nbStr.length() >= 4) {
-            bool ok1, ok2, ok3;
+        if (nbStr.length() >= 3) {
+            bool ok1, ok2;
             int level = nbStr.left(2).toInt(&ok1);
             int enabled = nbStr.mid(2, 1).toInt(&ok2);
-            int filter = nbStr.mid(3, 1).toInt(&ok3);
-            if (ok1 && ok2 && ok3) {
+            if (ok1 && ok2) {
                 m_noiseBlankerLevel = qMin(level, 15);
                 m_noiseBlankerEnabled = (enabled == 1);
-                m_noiseBlankerFilterWidth = qMin(filter, 2);
+                // Filter field is optional (4th char)
+                if (nbStr.length() >= 4) {
+                    bool ok3;
+                    int filter = nbStr.mid(3, 1).toInt(&ok3);
+                    if (ok3) {
+                        m_noiseBlankerFilterWidth = qMin(filter, 2);
+                    }
+                }
+                qDebug() << "NB CAT received:" << cmd << "parsed: level=" << level << "enabled=" << enabled;
                 emit processingChanged();
             }
         }
@@ -293,6 +307,8 @@ void RadioState::parseCATCommand(const QString &command) {
             bool ok1, ok2;
             int level = nrStr.left(2).toInt(&ok1);
             int enabled = nrStr.right(1).toInt(&ok2);
+            qDebug() << "NR CAT received:" << cmd << "parsed: level=" << level << "enabled=" << enabled << "ok:" << ok1
+                     << ok2;
             if (ok1 && ok2) {
                 m_noiseReductionLevel = level;
                 m_noiseReductionEnabled = (enabled == 1);
@@ -312,8 +328,37 @@ void RadioState::parseCATCommand(const QString &command) {
             emit notchChanged();
         }
     }
-    // Manual Notch (NM) - NMnnnnm; or NMm;
-    else if (cmd.startsWith("NM") && !cmd.startsWith("NM$") && cmd.length() >= 3) {
+    // Manual Notch Sub (NM$) - NM$nnnnm; or NM$m;
+    else if (cmd.startsWith("NM$") && cmd.length() >= 4) {
+        QString data = cmd.mid(3);
+        if (data.length() >= 5) {
+            // Full format: NM$nnnnm (4-digit pitch + on/off)
+            bool ok;
+            int pitch = data.left(4).toInt(&ok);
+            bool enabled = (data.at(4) == '1');
+            bool changed = false;
+            if (ok && pitch >= 150 && pitch <= 5000 && m_manualNotchPitchB != pitch) {
+                m_manualNotchPitchB = pitch;
+                changed = true;
+            }
+            if (m_manualNotchEnabledB != enabled) {
+                m_manualNotchEnabledB = enabled;
+                changed = true;
+            }
+            if (changed) {
+                emit notchBChanged();
+            }
+        } else if (data.length() >= 1) {
+            // Short format: NM$m (on/off only)
+            bool enabled = (data.at(0) == '1');
+            if (m_manualNotchEnabledB != enabled) {
+                m_manualNotchEnabledB = enabled;
+                emit notchBChanged();
+            }
+        }
+    }
+    // Manual Notch Main (NM) - NMnnnnm; or NMm;
+    else if (cmd.startsWith("NM") && cmd.length() >= 3) {
         QString data = cmd.mid(2);
         if (data.length() >= 5) {
             // Full format: NMnnnnm (4-digit pitch + on/off)
@@ -1105,6 +1150,66 @@ void RadioState::setCompression(int level) {
     if (m_compression != level) {
         m_compression = level;
         emit compressionChanged(m_compression);
+    }
+}
+
+void RadioState::setNoiseBlankerLevel(int level) {
+    if (m_noiseBlankerLevel != level) {
+        m_noiseBlankerLevel = qMin(level, 15);
+        emit processingChanged();
+    }
+}
+
+void RadioState::setNoiseBlankerLevelB(int level) {
+    if (m_noiseBlankerLevelB != level) {
+        m_noiseBlankerLevelB = qMin(level, 15);
+        emit processingChangedB();
+    }
+}
+
+void RadioState::setNoiseBlankerFilter(int filter) {
+    filter = qBound(0, filter, 2);
+    if (m_noiseBlankerFilterWidth != filter) {
+        m_noiseBlankerFilterWidth = filter;
+        emit processingChanged();
+    }
+}
+
+void RadioState::setNoiseBlankerFilterB(int filter) {
+    filter = qBound(0, filter, 2);
+    if (m_noiseBlankerFilterWidthB != filter) {
+        m_noiseBlankerFilterWidthB = filter;
+        emit processingChangedB();
+    }
+}
+
+void RadioState::setNoiseReductionLevel(int level) {
+    if (m_noiseReductionLevel != level) {
+        m_noiseReductionLevel = qMin(level, 10);
+        emit processingChanged();
+    }
+}
+
+void RadioState::setNoiseReductionLevelB(int level) {
+    if (m_noiseReductionLevelB != level) {
+        m_noiseReductionLevelB = qMin(level, 10);
+        emit processingChangedB();
+    }
+}
+
+void RadioState::setManualNotchPitch(int pitch) {
+    pitch = qBound(150, pitch, 5000);
+    if (m_manualNotchPitch != pitch) {
+        m_manualNotchPitch = pitch;
+        emit notchChanged();
+    }
+}
+
+void RadioState::setManualNotchPitchB(int pitch) {
+    pitch = qBound(150, pitch, 5000);
+    if (m_manualNotchPitchB != pitch) {
+        m_manualNotchPitchB = pitch;
+        emit notchBChanged();
     }
 }
 

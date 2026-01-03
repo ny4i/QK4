@@ -103,8 +103,6 @@ private:
 
     // RHI resources
     QRhi *m_rhi = nullptr;
-    std::unique_ptr<QRhiBuffer> m_spectrumVbo;
-    std::unique_ptr<QRhiBuffer> m_spectrumUniformBuffer;
     std::unique_ptr<QRhiBuffer> m_waterfallVbo;
     std::unique_ptr<QRhiBuffer> m_waterfallUniformBuffer;
     std::unique_ptr<QRhiBuffer> m_overlayVbo;
@@ -113,15 +111,15 @@ private:
     std::unique_ptr<QRhiBuffer> m_passbandUniformBuffer;
     std::unique_ptr<QRhiBuffer> m_markerVbo;
     std::unique_ptr<QRhiBuffer> m_markerUniformBuffer;
+    std::unique_ptr<QRhiBuffer> m_notchVbo;
+    std::unique_ptr<QRhiBuffer> m_notchUniformBuffer;
     std::unique_ptr<QRhiTexture> m_waterfallTexture;
     std::unique_ptr<QRhiTexture> m_colorLutTexture;
     std::unique_ptr<QRhiTexture> m_spectrumDataTexture; // 1D texture for spectrum values
     std::unique_ptr<QRhiSampler> m_sampler;
-    std::unique_ptr<QRhiGraphicsPipeline> m_spectrumPipeline;
     std::unique_ptr<QRhiGraphicsPipeline> m_waterfallPipeline;
     std::unique_ptr<QRhiGraphicsPipeline> m_overlayLinePipeline;
     std::unique_ptr<QRhiGraphicsPipeline> m_overlayTrianglePipeline;
-    std::unique_ptr<QRhiShaderResourceBindings> m_spectrumSrb;
     std::unique_ptr<QRhiBuffer> m_fullscreenQuadVbo; // Shared fullscreen quad for fragment-shader styles
     // Blue spectrum style resources
     std::unique_ptr<QRhiGraphicsPipeline> m_spectrumBluePipeline;
@@ -135,6 +133,7 @@ private:
     std::unique_ptr<QRhiShaderResourceBindings> m_overlaySrb;
     std::unique_ptr<QRhiShaderResourceBindings> m_passbandSrb;
     std::unique_ptr<QRhiShaderResourceBindings> m_markerSrb;
+    std::unique_ptr<QRhiShaderResourceBindings> m_notchSrb;
     QRhiRenderPassDescriptor *m_rpDesc = nullptr;
 
     bool m_rhiInitialized = false;
@@ -142,8 +141,6 @@ private:
     bool m_firstFrameRendered = false;
 
     // Shader stages (loaded from .qsb files)
-    QShader m_spectrumVert;
-    QShader m_spectrumFrag;
     QShader m_spectrumBlueVert;
     QShader m_spectrumBlueFrag;
     QShader m_spectrumBlueAmpFrag;

@@ -290,8 +290,6 @@ void PanadapterRhiWidget::initialize(QRhiCommandBuffer *cb) {
         return QShader();
     };
 
-    m_spectrumVert = loadShader(":/shaders/src/dsp/shaders/spectrum.vert.qsb");
-    m_spectrumFrag = loadShader(":/shaders/src/dsp/shaders/spectrum.frag.qsb");
     m_spectrumBlueVert = loadShader(":/shaders/src/dsp/shaders/spectrum_blue.vert.qsb");
     m_spectrumBlueFrag = loadShader(":/shaders/src/dsp/shaders/spectrum_blue.frag.qsb");
     m_spectrumBlueAmpFrag = loadShader(":/shaders/src/dsp/shaders/spectrum_blue_amp.frag.qsb");
@@ -335,10 +333,6 @@ void PanadapterRhiWidget::initialize(QRhiCommandBuffer *cb) {
                                       QRhiSampler::ClampToEdge, QRhiSampler::Repeat));
     m_sampler->create();
 
-    // Create vertex buffers (dynamic)
-    m_spectrumVbo.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::VertexBuffer, 16384 * 6 * sizeof(float)));
-    m_spectrumVbo->create();
-
     // Waterfall quad (static)
     float tMax = static_cast<float>(m_waterfallHistory - 1) / m_waterfallHistory;
     float waterfallQuad[] = {
@@ -358,9 +352,6 @@ void PanadapterRhiWidget::initialize(QRhiCommandBuffer *cb) {
     m_overlayVbo->create();
 
     // Create uniform buffers
-    m_spectrumUniformBuffer.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, 16));
-    m_spectrumUniformBuffer->create();
-
     m_waterfallUniformBuffer.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, 16));
     m_waterfallUniformBuffer->create();
 
@@ -402,6 +393,13 @@ void PanadapterRhiWidget::initialize(QRhiCommandBuffer *cb) {
     m_markerUniformBuffer.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, 32));
     m_markerUniformBuffer->create();
 
+    // Separate buffers for notch to avoid conflicts with grid (which shares overlay buffers)
+    m_notchVbo.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::VertexBuffer, 64 * sizeof(float)));
+    m_notchVbo->create();
+
+    m_notchUniformBuffer.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, 32));
+    m_notchUniformBuffer->create();
+
     cb->resourceUpdate(rub);
 
     m_rhiInitialized = true;
@@ -411,39 +409,10 @@ void PanadapterRhiWidget::createPipelines() {
     if (m_pipelinesCreated)
         return;
 
-    if (!m_spectrumVert.isValid() || !m_spectrumFrag.isValid())
+    if (!m_spectrumBlueVert.isValid() || !m_spectrumBlueFrag.isValid())
         return;
 
     m_rpDesc = renderTarget()->renderPassDescriptor();
-
-    // Spectrum pipeline (triangle strip with per-vertex color)
-    {
-        m_spectrumSrb.reset(m_rhi->newShaderResourceBindings());
-        m_spectrumSrb->setBindings({QRhiShaderResourceBinding::uniformBuffer(0, QRhiShaderResourceBinding::VertexStage,
-                                                                             m_spectrumUniformBuffer.get())});
-        m_spectrumSrb->create();
-
-        m_spectrumPipeline.reset(m_rhi->newGraphicsPipeline());
-        m_spectrumPipeline->setShaderStages(
-            {{QRhiShaderStage::Vertex, m_spectrumVert}, {QRhiShaderStage::Fragment, m_spectrumFrag}});
-
-        QRhiVertexInputLayout inputLayout;
-        inputLayout.setBindings({{6 * sizeof(float)}});                         // position(2) + color(4)
-        inputLayout.setAttributes({{0, 0, QRhiVertexInputAttribute::Float2, 0}, // position
-                                   {0, 1, QRhiVertexInputAttribute::Float4, 2 * sizeof(float)}}); // color
-        m_spectrumPipeline->setVertexInputLayout(inputLayout);
-        m_spectrumPipeline->setTopology(QRhiGraphicsPipeline::TriangleStrip);
-        m_spectrumPipeline->setShaderResourceBindings(m_spectrumSrb.get());
-        m_spectrumPipeline->setRenderPassDescriptor(m_rpDesc);
-
-        QRhiGraphicsPipeline::TargetBlend blend;
-        blend.enable = true;
-        blend.srcColor = QRhiGraphicsPipeline::SrcAlpha;
-        blend.dstColor = QRhiGraphicsPipeline::OneMinusSrcAlpha;
-        m_spectrumPipeline->setTargetBlends({blend});
-
-        m_spectrumPipeline->create();
-    }
 
     // Spectrum blue pipeline (blue gradient with cyan glow) - Blue style
     {
@@ -561,6 +530,12 @@ void PanadapterRhiWidget::createPipelines() {
             m_markerUniformBuffer.get())});
         m_markerSrb->create();
 
+        m_notchSrb.reset(m_rhi->newShaderResourceBindings());
+        m_notchSrb->setBindings({QRhiShaderResourceBinding::uniformBuffer(
+            0, QRhiShaderResourceBinding::VertexStage | QRhiShaderResourceBinding::FragmentStage,
+            m_notchUniformBuffer.get())});
+        m_notchSrb->create();
+
         m_overlayLinePipeline.reset(m_rhi->newGraphicsPipeline());
         m_overlayLinePipeline->setShaderStages(
             {{QRhiShaderStage::Vertex, m_overlayVert}, {QRhiShaderStage::Fragment, m_overlayFrag}});
@@ -633,14 +608,6 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
         m_waterfallWriteRow = (m_waterfallWriteRow + 1) % m_waterfallHistory;
         m_waterfallNeedsUpdate = false;
     }
-
-    // Update spectrum uniform buffer
-    struct {
-        float viewportWidth;
-        float viewportHeight;
-        float padding[2];
-    } spectrumUniforms = {w, spectrumHeight, {0, 0}};
-    rub->updateDynamicBuffer(m_spectrumUniformBuffer.get(), 0, sizeof(spectrumUniforms), &spectrumUniforms);
 
     // Update waterfall uniform buffer
     float scrollOffset = static_cast<float>(m_waterfallWriteRow) / m_waterfallHistory;
@@ -940,7 +907,7 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
                 cb->draw(2);
             }
 
-            // Draw notch filter marker (red line) - reuses overlay buffers since drawn last
+            // Draw notch filter marker (red line) - uses dedicated notch buffers
             if (m_notchEnabled && m_notchPitchHz > 0) {
                 qint64 notchFreq;
                 if (m_mode == "LSB") {
@@ -954,7 +921,7 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
                     QVector<float> notchVerts = {notchX, 0.0f, notchX, spectrumHeight};
 
                     QRhiResourceUpdateBatch *notchRub = m_rhi->nextResourceUpdateBatch();
-                    notchRub->updateDynamicBuffer(m_overlayVbo.get(), 0, notchVerts.size() * sizeof(float),
+                    notchRub->updateDynamicBuffer(m_notchVbo.get(), 0, notchVerts.size() * sizeof(float),
                                                   notchVerts.constData());
 
                     struct {
@@ -970,13 +937,13 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
                                        static_cast<float>(m_notchColor.greenF()),
                                        static_cast<float>(m_notchColor.blueF()),
                                        static_cast<float>(m_notchColor.alphaF())};
-                    notchRub->updateDynamicBuffer(m_overlayUniformBuffer.get(), 0, sizeof(notchUniforms),
+                    notchRub->updateDynamicBuffer(m_notchUniformBuffer.get(), 0, sizeof(notchUniforms),
                                                   &notchUniforms);
 
                     cb->resourceUpdate(notchRub);
                     cb->setGraphicsPipeline(m_overlayLinePipeline.get());
-                    cb->setShaderResources(m_overlaySrb.get());
-                    const QRhiCommandBuffer::VertexInput notchVbufBinding(m_overlayVbo.get(), 0);
+                    cb->setShaderResources(m_notchSrb.get());
+                    const QRhiCommandBuffer::VertexInput notchVbufBinding(m_notchVbo.get(), 0);
                     cb->setVertexInput(0, 1, &notchVbufBinding);
                     cb->draw(2);
                 }

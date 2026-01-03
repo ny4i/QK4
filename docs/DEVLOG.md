@@ -2,6 +2,99 @@
 
 ## January 3, 2026
 
+### Fix: NB/NR Level Control Increments
+
+**Summary:** Fixed Noise Blanker (NB) and Noise Reduction (NR) level controls that were skipping values and not incrementing properly.
+
+**Root Causes:**
+1. **NB Parsing**: Required 4 characters (level+enabled+filter) but K4 responds with only 3 characters (level+enabled, no filter field). Parsing silently failed.
+2. **No Echo**: K4 doesn't echo NB/NR set commands back, so RadioState never updated. Subsequent increments read stale values.
+
+**Fixes Applied:**
+1. Made NB filter field optional in parsing - accept both 3-char and 4-char formats
+2. Added optimistic state setters: `setNoiseBlankerLevel()`, `setNoiseBlankerLevelB()`, `setNoiseReductionLevel()`, `setNoiseReductionLevelB()`
+3. Increment/decrement handlers now update RadioState immediately after sending CAT command
+4. NB+/- handlers now increment/decrement level properly
+
+**Files Modified:**
+- `src/models/radiostate.h` - Added 4 optimistic setter declarations
+- `src/models/radiostate.cpp` - Fixed NB/NB$ parsing to handle 3-char format, added setter implementations
+- `src/mainwindow.cpp` - Increment/decrement handlers now call optimistic setters
+
+---
+
+### Fix: Manual Notch Filter Turns Grid Red
+
+**Summary:** Fixed issue where enabling manual notch filter would turn the spectrum grid red.
+
+**Root Cause:** The notch marker and grid both shared `m_overlayUniformBuffer`. RHI batches GPU commands, so both the grid and notch writes to the same buffer occurred before draws executed - resulting in all overlay draws using the notch's red color uniforms.
+
+**Fix:** Created dedicated GPU buffers for the notch filter marker:
+- `m_notchVbo` - Vertex buffer for notch line
+- `m_notchUniformBuffer` - Uniform buffer for notch color
+- `m_notchSrb` - Shader resource bindings for notch
+
+This follows the same pattern used for passband and frequency marker overlays.
+
+**Files Modified:**
+- `src/dsp/panadapter_rhi.h` - Added notch buffer and SRB declarations
+- `src/dsp/panadapter_rhi.cpp` - Created notch buffers, SRB, and updated notch drawing to use dedicated resources
+
+---
+
+### Fix: Manual Notch A/B Separation
+
+**Summary:** Fixed manual notch to properly track separate state for VFO A (Main RX) and VFO B (Sub RX).
+
+**Issues Fixed:**
+1. VFO A and B were sharing the same notch state
+2. B SET mode notch adjustments affected VFO A
+3. VFO B panadapter/mini-pan displayed VFO A's notch marker
+
+**Implementation:**
+1. Added `m_manualNotchEnabledB` and `m_manualNotchPitchB` state to RadioState
+2. Added NM$ command parsing for Sub RX notch
+3. Added `notchBChanged` signal
+4. Added `setManualNotchPitch()` and `setManualNotchPitchB()` optimistic setters
+5. Updated all notch handlers to use correct A/B state based on B SET
+6. Connected VFO B panadapter/mini-pan to `notchBChanged` signal
+
+**CAT Commands:**
+- Main RX: `NMnnnnm;` (nnnn=pitch 150-5000, m=on/off)
+- Sub RX: `NM$nnnnm;`
+
+**Files Modified:**
+- `src/models/radiostate.h` - Added notch B getters, signals, setters, member variables
+- `src/models/radiostate.cpp` - Added NM$ parsing, notch pitch setters
+- `src/mainwindow.cpp` - Updated all notch handlers for A/B, connected notchBChanged
+
+---
+
+### Fix: NB Toggle vs Filter Button Separation
+
+**Summary:** Fixed FeatureMenuBar NB controls so toggle button toggles NB on/off and extra button cycles filter.
+
+**The Bug:** Toggle button was incorrectly cycling the filter (NONE→NARROW→WIDE) instead of toggling NB on/off. This meant the ON/OFF toggle and the NONE/NARROW/WIDE filter button were both doing the same thing.
+
+**FeatureMenuBar NB Controls:**
+| Button | Signal | Correct Action |
+|--------|--------|----------------|
+| Toggle (ON/OFF) | `toggleRequested()` | Toggle NB on/off with `NB/;` |
+| Filter (NONE/NARROW/WIDE) | `extraButtonClicked()` | Cycle filter 0→1→2→0 |
+| +/- | `increment/decrementRequested()` | Change level 0-15 |
+
+**Fix:**
+1. Restored toggle handler to send `NB/;` or `NB$/;` to toggle on/off
+2. Added optimistic state update to extraButtonClicked handler
+3. Added `setNoiseBlankerFilter()` and `setNoiseBlankerFilterB()` optimistic setters
+
+**Files Modified:**
+- `src/models/radiostate.h` - Added NB filter setter declarations
+- `src/models/radiostate.cpp` - Added NB filter setter implementations
+- `src/mainwindow.cpp` - Fixed toggle handler, added optimistic update to extra button handler
+
+---
+
 ### Feature: VFO Tuning Rate Indicator
 
 **Summary:** Added visual indicator showing current tuning rate (step size) for both VFO A and VFO B. A small underline appears beneath the frequency digit that corresponds to the active tuning rate.

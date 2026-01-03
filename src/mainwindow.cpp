@@ -581,8 +581,9 @@ void MainWindow::setupUi() {
             break;
         }
         case FeatureMenuBar::NbLevel: {
-            bool newState = bSet ? !m_radioState->noiseBlankerEnabledB() : !m_radioState->noiseBlankerEnabled();
-            m_featureMenuBar->setFeatureEnabled(newState);
+            // Toggle NB on/off
+            bool curState = bSet ? m_radioState->noiseBlankerEnabledB() : m_radioState->noiseBlankerEnabled();
+            m_featureMenuBar->setFeatureEnabled(!curState);
             m_tcpClient->sendCAT(bSet ? "NB$/;" : "NB/;");
             break;
         }
@@ -593,9 +594,9 @@ void MainWindow::setupUi() {
             break;
         }
         case FeatureMenuBar::ManualNotch: {
-            // Manual notch doesn't have separate Sub RX state
-            bool newState = !m_radioState->manualNotchEnabled();
-            m_featureMenuBar->setFeatureEnabled(newState);
+            // Toggle notch on/off for correct VFO
+            bool curState = bSet ? m_radioState->manualNotchEnabledB() : m_radioState->manualNotchEnabled();
+            m_featureMenuBar->setFeatureEnabled(!curState);
             m_tcpClient->sendCAT(bSet ? "NM$/;" : "NM/;");
             break;
         }
@@ -618,11 +619,16 @@ void MainWindow::setupUi() {
             int enabled =
                 bSet ? (m_radioState->noiseBlankerEnabledB() ? 1 : 0) : (m_radioState->noiseBlankerEnabled() ? 1 : 0);
             int filter = bSet ? m_radioState->noiseBlankerFilterWidthB() : m_radioState->noiseBlankerFilterWidth();
-            // Optimistic UI update
+            // Optimistic state + UI update
+            if (bSet) {
+                m_radioState->setNoiseBlankerLevelB(newLevel);
+            } else {
+                m_radioState->setNoiseBlankerLevel(newLevel);
+            }
             m_featureMenuBar->setValue(newLevel);
             QString prefix = bSet ? "NB$" : "NB";
-            m_tcpClient->sendCAT(
-                QString("%1%2%3%4;").arg(prefix).arg(newLevel, 2, 10, QChar('0')).arg(enabled).arg(filter));
+            QString cmd = QString("%1%2%3%4;").arg(prefix).arg(newLevel, 2, 10, QChar('0')).arg(enabled).arg(filter);
+            m_tcpClient->sendCAT(cmd);
             break;
         }
         case FeatureMenuBar::NrAdjust: {
@@ -630,17 +636,30 @@ void MainWindow::setupUi() {
             int newLevel = qMin(curLevel + 1, 10);
             int enabled = bSet ? (m_radioState->noiseReductionEnabledB() ? 1 : 0)
                                : (m_radioState->noiseReductionEnabled() ? 1 : 0);
-            // Optimistic UI update
+            // Optimistic state + UI update
+            if (bSet) {
+                m_radioState->setNoiseReductionLevelB(newLevel);
+            } else {
+                m_radioState->setNoiseReductionLevel(newLevel);
+            }
             m_featureMenuBar->setValue(newLevel);
             QString prefix = bSet ? "NR$" : "NR";
-            m_tcpClient->sendCAT(QString("%1%2%3;").arg(prefix).arg(newLevel, 2, 10, QChar('0')).arg(enabled));
+            QString cmd = QString("%1%2%3;").arg(prefix).arg(newLevel, 2, 10, QChar('0')).arg(enabled);
+            m_tcpClient->sendCAT(cmd);
             break;
         }
         case FeatureMenuBar::ManualNotch: {
-            // Manual notch doesn't have separate Sub RX state
-            int newPitch = qMin(m_radioState->manualNotchPitch() + 10, 5000);
-            int enabled = m_radioState->manualNotchEnabled() ? 1 : 0;
-            // Optimistic UI update
+            // Use correct VFO's pitch state
+            int curPitch = bSet ? m_radioState->manualNotchPitchB() : m_radioState->manualNotchPitch();
+            int newPitch = qMin(curPitch + 10, 5000);
+            int enabled = bSet ? (m_radioState->manualNotchEnabledB() ? 1 : 0)
+                               : (m_radioState->manualNotchEnabled() ? 1 : 0);
+            // Optimistic state + UI update
+            if (bSet) {
+                m_radioState->setManualNotchPitchB(newPitch);
+            } else {
+                m_radioState->setManualNotchPitch(newPitch);
+            }
             m_featureMenuBar->setValue(newPitch);
             QString prefix = bSet ? "NM$" : "NM";
             m_tcpClient->sendCAT(QString("%1%2%3;").arg(prefix).arg(newPitch, 4, 10, QChar('0')).arg(enabled));
@@ -665,7 +684,12 @@ void MainWindow::setupUi() {
             int enabled =
                 bSet ? (m_radioState->noiseBlankerEnabledB() ? 1 : 0) : (m_radioState->noiseBlankerEnabled() ? 1 : 0);
             int filter = bSet ? m_radioState->noiseBlankerFilterWidthB() : m_radioState->noiseBlankerFilterWidth();
-            // Optimistic UI update
+            // Optimistic state + UI update
+            if (bSet) {
+                m_radioState->setNoiseBlankerLevelB(newLevel);
+            } else {
+                m_radioState->setNoiseBlankerLevel(newLevel);
+            }
             m_featureMenuBar->setValue(newLevel);
             QString prefix = bSet ? "NB$" : "NB";
             m_tcpClient->sendCAT(
@@ -677,17 +701,29 @@ void MainWindow::setupUi() {
             int newLevel = qMax(curLevel - 1, 0);
             int enabled = bSet ? (m_radioState->noiseReductionEnabledB() ? 1 : 0)
                                : (m_radioState->noiseReductionEnabled() ? 1 : 0);
-            // Optimistic UI update
+            // Optimistic state + UI update
+            if (bSet) {
+                m_radioState->setNoiseReductionLevelB(newLevel);
+            } else {
+                m_radioState->setNoiseReductionLevel(newLevel);
+            }
             m_featureMenuBar->setValue(newLevel);
             QString prefix = bSet ? "NR$" : "NR";
             m_tcpClient->sendCAT(QString("%1%2%3;").arg(prefix).arg(newLevel, 2, 10, QChar('0')).arg(enabled));
             break;
         }
         case FeatureMenuBar::ManualNotch: {
-            // Manual notch doesn't have separate Sub RX state
-            int newPitch = qMax(m_radioState->manualNotchPitch() - 10, 150);
-            int enabled = m_radioState->manualNotchEnabled() ? 1 : 0;
-            // Optimistic UI update
+            // Use correct VFO's pitch state
+            int curPitch = bSet ? m_radioState->manualNotchPitchB() : m_radioState->manualNotchPitch();
+            int newPitch = qMax(curPitch - 10, 150);
+            int enabled = bSet ? (m_radioState->manualNotchEnabledB() ? 1 : 0)
+                               : (m_radioState->manualNotchEnabled() ? 1 : 0);
+            // Optimistic state + UI update
+            if (bSet) {
+                m_radioState->setManualNotchPitchB(newPitch);
+            } else {
+                m_radioState->setManualNotchPitch(newPitch);
+            }
             m_featureMenuBar->setValue(newPitch);
             QString prefix = bSet ? "NM$" : "NM";
             m_tcpClient->sendCAT(QString("%1%2%3;").arg(prefix).arg(newPitch, 4, 10, QChar('0')).arg(enabled));
@@ -704,7 +740,12 @@ void MainWindow::setupUi() {
             int level = bSet ? m_radioState->noiseBlankerLevelB() : m_radioState->noiseBlankerLevel();
             int enabled =
                 bSet ? (m_radioState->noiseBlankerEnabledB() ? 1 : 0) : (m_radioState->noiseBlankerEnabled() ? 1 : 0);
-            // Optimistic UI update
+            // Optimistic state + UI update
+            if (bSet) {
+                m_radioState->setNoiseBlankerFilterB(newFilter);
+            } else {
+                m_radioState->setNoiseBlankerFilter(newFilter);
+            }
             m_featureMenuBar->setNbFilter(newFilter);
             QString prefix = bSet ? "NB$" : "NB";
             m_tcpClient->sendCAT(
@@ -748,9 +789,14 @@ void MainWindow::setupUi() {
             }
             break;
         case FeatureMenuBar::ManualNotch:
-            // Manual notch doesn't have separate Sub RX state
-            m_featureMenuBar->setFeatureEnabled(m_radioState->manualNotchEnabled());
-            m_featureMenuBar->setValue(m_radioState->manualNotchPitch());
+            // Use correct VFO's notch state
+            if (bSet) {
+                m_featureMenuBar->setFeatureEnabled(m_radioState->manualNotchEnabledB());
+                m_featureMenuBar->setValue(m_radioState->manualNotchPitchB());
+            } else {
+                m_featureMenuBar->setFeatureEnabled(m_radioState->manualNotchEnabled());
+                m_featureMenuBar->setValue(m_radioState->manualNotchPitch());
+            }
             break;
         }
     };
@@ -758,6 +804,7 @@ void MainWindow::setupUi() {
     connect(m_radioState, &RadioState::processingChanged, this, updateFeatureMenuBarState);
     connect(m_radioState, &RadioState::processingChangedB, this, updateFeatureMenuBarState);
     connect(m_radioState, &RadioState::notchChanged, this, updateFeatureMenuBarState);
+    connect(m_radioState, &RadioState::notchBChanged, this, updateFeatureMenuBarState);
     // Also update when B SET changes to refresh display with correct VFO's state
     connect(m_radioState, &RadioState::bSetChanged, this, updateFeatureMenuBarState);
 
@@ -1010,9 +1057,14 @@ void MainWindow::setupUi() {
                 }
                 break;
             case FeatureMenuBar::ManualNotch:
-                // Manual notch doesn't have separate Sub RX state
-                m_featureMenuBar->setFeatureEnabled(m_radioState->manualNotchEnabled());
-                m_featureMenuBar->setValue(m_radioState->manualNotchPitch());
+                // Use correct VFO's notch state
+                if (bSet) {
+                    m_featureMenuBar->setFeatureEnabled(m_radioState->manualNotchEnabledB());
+                    m_featureMenuBar->setValue(m_radioState->manualNotchPitchB());
+                } else {
+                    m_featureMenuBar->setFeatureEnabled(m_radioState->manualNotchEnabled());
+                    m_featureMenuBar->setValue(m_radioState->manualNotchPitch());
+                }
                 break;
             }
         }
@@ -1684,9 +1736,9 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
             [this](int bw) { m_panadapterB->setFilterBandwidth(bw); });
     connect(m_radioState, &RadioState::ifShiftBChanged, this, [this](int shift) { m_panadapterB->setIfShift(shift); });
     connect(m_radioState, &RadioState::cwPitchChanged, this, [this](int pitch) { m_panadapterB->setCwPitch(pitch); });
-    connect(m_radioState, &RadioState::notchChanged, this, [this]() {
-        bool enabled = m_radioState->manualNotchEnabled();
-        int pitch = m_radioState->manualNotchPitch();
+    connect(m_radioState, &RadioState::notchBChanged, this, [this]() {
+        bool enabled = m_radioState->manualNotchEnabledB();
+        int pitch = m_radioState->manualNotchPitchB();
         m_panadapterB->setNotchFilter(enabled, pitch);
     });
 
@@ -1697,10 +1749,12 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
             [this](int bw) { m_vfoB->setMiniPanFilterBandwidth(bw); });
     connect(m_radioState, &RadioState::ifShiftBChanged, this, [this](int shift) { m_vfoB->setMiniPanIfShift(shift); });
     connect(m_radioState, &RadioState::cwPitchChanged, this, [this](int pitch) { m_vfoB->setMiniPanCwPitch(pitch); });
-    connect(m_radioState, &RadioState::notchChanged, this, [this]() {
-        bool enabled = m_radioState->manualNotchEnabled();
-        int pitch = m_radioState->manualNotchPitch();
+    connect(m_radioState, &RadioState::notchBChanged, this, [this]() {
+        bool enabled = m_radioState->manualNotchEnabledB();
+        int pitch = m_radioState->manualNotchPitchB();
         m_vfoB->setMiniPanNotchFilter(enabled, pitch);
+        // Update NTCH indicator in VFO B processing row
+        m_vfoB->setNotch(false, m_radioState->manualNotchEnabledB()); // Sub RX doesn't have auto notch
     });
 
     // Mouse control for VFO B: click to tune
