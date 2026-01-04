@@ -290,7 +290,7 @@ jobs:
           .\bootstrap-vcpkg.bat
 
       - name: Install dependencies
-        run: vcpkg install opus:x64-windows hidapi:x64-windows
+        run: vcpkg install opus:x64-windows hidapi:x64-windows openssl:x64-windows
 
       - name: Configure CMake
         run: cmake -B build -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release
@@ -306,9 +306,11 @@ jobs:
           # Use windeployqt to bundle Qt DLLs
           windeployqt --release --no-translations K4Controller-windows\K4Controller.exe
 
-          # Copy vcpkg DLLs (opus, hidapi)
+          # Copy vcpkg DLLs (opus, hidapi, openssl)
           copy C:\vcpkg\installed\x64-windows\bin\opus.dll K4Controller-windows\
           copy C:\vcpkg\installed\x64-windows\bin\hidapi.dll K4Controller-windows\
+          copy C:\vcpkg\installed\x64-windows\bin\libssl-3-x64.dll K4Controller-windows\
+          copy C:\vcpkg\installed\x64-windows\bin\libcrypto-3-x64.dll K4Controller-windows\
 
           Compress-Archive -Path K4Controller-windows -DestinationPath K4Controller-windows.zip
 

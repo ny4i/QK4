@@ -128,6 +128,9 @@ if(APPLE)
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/resources/Info.plist.in"
     )
+elseif(WIN32)
+    # WIN32 flag creates a GUI app without console window
+    add_executable(${PROJECT_NAME} WIN32 ${SOURCES} ${HEADERS})
 else()
     add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 endif()
