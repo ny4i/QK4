@@ -1,5 +1,136 @@
 # K4Controller Development Log
 
+## January 4, 2026
+
+### Feature: TLS/PSK Encrypted Connection Support
+
+**Summary:** Added support for secure TLS v1.2 connections using Pre-Shared Key (PSK) authentication on port 9204, as an alternative to the existing unencrypted port 9205.
+
+**K4 Protocol:**
+- Port 9204: TCP/TLS v1.2 with PSK encryption
+- Port 9205: Unencrypted with SHA-384 password authentication
+- Supported ciphers: ECDHE-PSK-AES256-CBC-SHA384, ECDHE-PSK-CHACHA20-POLY1305, DHE-PSK-AES256-GCM-SHA384, and others
+
+**Implementation:**
+
+1. **RadioEntry struct** (`radiosettings.h`):
+   - Added `useTls` boolean field (default: false)
+   - Added `psk` QString field for Pre-Shared Key storage
+
+2. **RadioSettings** (`radiosettings.cpp`):
+   - Persists `useTls` and `psk` fields to QSettings
+
+3. **TcpClient** (`tcpclient.h/.cpp`):
+   - Changed `QTcpSocket` to `QSslSocket` for unified handling
+   - Extended `connectToHost()` with `useTls` and `psk` parameters
+   - Added `onSslErrors()` handler (ignores cert errors for PSK mode)
+   - Added `onPreSharedKeyAuthenticationRequired()` handler for PSK auth
+   - Configured TLS v1.2 with `VerifyNone` peer mode (PSK doesn't use certs)
+   - Uses `connectToHostEncrypted()` for TLS, regular `connectToHost()` for plain TCP
+
+4. **RadioManagerDialog** (`radiomanagerdialog.h/.cpp`):
+   - Added "Use TLS (Encrypted)" checkbox
+   - Added PSK field (hidden until TLS is checked)
+   - Auto-updates port when TLS checkbox is toggled (9204 ↔ 9205)
+   - Persists TLS settings per radio entry
+
+5. **Protocol constants** (`protocol.h`):
+   - Added `K4Protocol::TLS_PORT = 9204`
+
+**Files Modified:**
+- `src/network/protocol.h` - Added TLS_PORT constant
+- `src/network/tcpclient.h` - QSslSocket, new parameters, PSK slot
+- `src/network/tcpclient.cpp` - TLS connection logic, PSK auth handler
+- `src/settings/radiosettings.h` - RadioEntry useTls/psk fields
+- `src/settings/radiosettings.cpp` - Persist TLS settings
+- `src/ui/radiomanagerdialog.h` - TLS checkbox, PSK field members
+- `src/ui/radiomanagerdialog.cpp` - TLS UI and logic
+- `src/mainwindow.cpp` - Pass TLS params to connectToHost
+
+**macOS OpenSSL Discovery:**
+
+Initial testing showed "No PSK ciphers available" because Qt on macOS defaults to Secure Transport, which lacks PSK support. However, the Qt Online Installer includes the OpenSSL TLS backend plugin (`libqopensslbackend.dylib`), it just can't find Homebrew's OpenSSL libraries at runtime.
+
+**Solution:** Set `DYLD_LIBRARY_PATH` to include Homebrew's OpenSSL before Qt loads the TLS backend:
+
+```cpp
+// In main.cpp, before QApplication
+const char *opensslPath = "/opt/homebrew/opt/openssl@3/lib";
+if (QFileInfo::exists(opensslPath)) {
+    QString newPath = QString("%1:%2").arg(opensslPath, qgetenv("DYLD_LIBRARY_PATH"));
+    qputenv("DYLD_LIBRARY_PATH", newPath.toLocal8Bit());
+}
+```
+
+This works because Qt's OpenSSL plugin uses `dlopen()` which respects `DYLD_LIBRARY_PATH` at call time.
+
+**Requirements:**
+- macOS: `brew install openssl@3`
+- Windows: OpenSSL should work out of the box
+- Qt Online Installer build (includes OpenSSL TLS backend plugin)
+
+**Testing:**
+```bash
+# Verify TLS connection with openssl (PSK must be hex-encoded)
+echo -n "yourpassword" | xxd -p  # Convert to hex
+openssl s_client -tls1_2 -psk <hex> -connect 192.168.x.x:9204
+```
+
+---
+
+### Feature: Self-Contained App Bundle for Distribution
+
+**Summary:** The macOS app bundle now includes all dependencies, allowing distribution without requiring users to install Homebrew, OpenSSL, or Qt.
+
+**Bundled Dependencies:**
+- OpenSSL 3.x (`libssl.3.dylib`, `libcrypto.3.dylib`) - for TLS/PSK encryption
+- Opus codec (`libopus.dylib`) - for audio encoding/decoding
+- HIDAPI (`libhidapi.dylib`) - for USB device communication
+- Qt frameworks and plugins (via macdeployqt)
+- Qt TLS plugins including `libqopensslbackend.dylib`
+
+**Implementation:**
+
+1. **Info.plist.in** (`resources/Info.plist.in`):
+   - macOS app bundle metadata template
+   - Bundle identifier: `com.elecraft.k4controller`
+   - Minimum macOS version: 14.0
+
+2. **CMakeLists.txt** - Added `deploy` target:
+   - Runs `macdeployqt` to bundle Qt frameworks
+   - Copies OpenSSL, Opus, and HIDAPI libraries to `Contents/Frameworks/`
+   - Uses `install_name_tool` to fix library paths with `@executable_path/../Frameworks/`
+   - Resolves Homebrew symlinks to find actual library paths
+   - Re-signs the bundle after modifications (ad-hoc or Developer ID)
+
+3. **main.cpp** - Updated OpenSSL discovery:
+   - Checks bundled `Frameworks/` directory first
+   - Falls back to Homebrew paths if not bundled
+   - Sets `DYLD_LIBRARY_PATH` for Qt's dynamic OpenSSL loading
+
+**Build Commands:**
+```bash
+cmake -B build -DCMAKE_PREFIX_PATH="$(brew --prefix qt@6)"
+cmake --build build
+cmake --build build --target deploy  # Creates distributable bundle
+```
+
+**Code Signing:**
+The deploy target re-signs the app after modifying libraries. For Developer ID distribution:
+```bash
+export CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)"
+cmake --build build --target deploy
+```
+
+**Files Modified:**
+- `CMakeLists.txt` - MACOSX_BUNDLE config, deploy target with library bundling
+- `resources/Info.plist.in` - New macOS plist template
+- `src/main.cpp` - Check bundled Frameworks first for OpenSSL
+
+**Total Bundle Size:** ~100MB (includes Qt frameworks, FFmpeg, OpenSSL, Opus, HIDAPI)
+
+---
+
 ## January 3, 2026
 
 ### Fix: VFO B Auto Notch (NTCH) Indicator

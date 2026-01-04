@@ -11,6 +11,8 @@ struct RadioEntry {
     QString host;
     QString password;
     quint16 port;
+    bool useTls = false; // Use TLS/PSK encryption (port 9204)
+    QString psk;         // Pre-Shared Key for TLS connections
 
     bool operator==(const RadioEntry &other) const {
         return name == other.name && host == other.host && port == other.port;

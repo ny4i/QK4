@@ -169,6 +169,8 @@ void RadioSettings::load() {
         entry.host = m_settings.value("host").toString();
         entry.password = m_settings.value("password").toString();
         entry.port = m_settings.value("port").toUInt();
+        entry.useTls = m_settings.value("useTls", false).toBool();
+        entry.psk = m_settings.value("psk").toString();
         m_radios.append(entry);
     }
     m_settings.endArray();
@@ -191,6 +193,8 @@ void RadioSettings::save() {
         m_settings.setValue("host", m_radios[i].host);
         m_settings.setValue("password", m_radios[i].password);
         m_settings.setValue("port", m_radios[i].port);
+        m_settings.setValue("useTls", m_radios[i].useTls);
+        m_settings.setValue("psk", m_radios[i].psk);
     }
     m_settings.endArray();
 

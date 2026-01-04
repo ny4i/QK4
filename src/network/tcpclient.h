@@ -2,7 +2,7 @@
 #define TCPCLIENT_H
 
 #include <QObject>
-#include <QTcpSocket>
+#include <QSslSocket>
 #include <QTimer>
 #include "protocol.h"
 
@@ -16,10 +16,12 @@ public:
     explicit TcpClient(QObject *parent = nullptr);
     ~TcpClient();
 
-    void connectToHost(const QString &host, quint16 port, const QString &password);
+    void connectToHost(const QString &host, quint16 port, const QString &password, bool useTls = false,
+                       const QString &psk = QString());
     void disconnectFromHost();
     bool isConnected() const;
     ConnectionState connectionState() const;
+    bool isUsingTls() const { return m_useTls; }
 
     void sendCAT(const QString &command);
     void sendRaw(const QByteArray &data);
@@ -36,9 +38,12 @@ signals:
 
 private slots:
     void onSocketConnected();
+    void onSocketEncrypted();
     void onSocketDisconnected();
     void onReadyRead();
     void onSocketError(QAbstractSocket::SocketError error);
+    void onSslErrors(const QList<QSslError> &errors);
+    void onPreSharedKeyAuthenticationRequired(QSslPreSharedKeyAuthenticator *authenticator);
     void onAuthTimeout();
     void onPingTimer();
     void onCatResponse(const QString &response);
@@ -49,7 +54,7 @@ private:
     void startPingTimer();
     void stopPingTimer();
 
-    QTcpSocket *m_socket;
+    QSslSocket *m_socket;
     Protocol *m_protocol;
     QTimer *m_authTimer;
     QTimer *m_pingTimer;
@@ -57,6 +62,8 @@ private:
     QString m_host;
     quint16 m_port;
     QString m_password;
+    bool m_useTls;
+    QString m_psk;
     ConnectionState m_state;
     bool m_authResponseReceived;
 };

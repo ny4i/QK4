@@ -7,6 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **TLS/PSK Encrypted Connection**: Secure connection option using TLS v1.2 with Pre-Shared Key authentication
+  - Port 9204 for encrypted connections (alternative to unencrypted port 9205)
+  - "Use TLS (Encrypted)" checkbox in Server Manager dialog
+  - PSK (Pre-Shared Key) field appears when TLS is enabled
+  - Port auto-switches between 9204/9205 based on TLS selection
+  - Supports multiple PSK cipher suites (ECDHE-PSK-AES256, DHE-PSK-AES256, etc.)
+- **Self-Contained App Bundle**: macOS app now includes all dependencies for distribution
+  - No Homebrew, OpenSSL, or Qt installation required for end users
+  - Bundles OpenSSL, Opus, HIDAPI, and all Qt frameworks
+  - Use `cmake --build build --target deploy` to create distributable bundle
+  - Supports Developer ID code signing for Gatekeeper approval
 - **VFO Tuning Rate Indicator**: Visual underline beneath frequency digit showing current tuning rate
   - White underline below the digit that will change when tuning (1Hz, 10Hz, 100Hz, 1kHz, 10kHz)
   - RATE button left-click (SW73) cycles through fine tuning rates

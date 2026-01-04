@@ -6,10 +6,56 @@
 #ifdef Q_OS_MACOS
 #include <QtGui/private/qguiapplication_p.h>
 #include <QtGui/qpa/qplatformintegration.h>
+#include <cstdlib>
+#include <QDir>
+#include <QFileInfo>
 #endif
 #include "mainwindow.h"
 
 int main(int argc, char *argv[]) {
+#ifdef Q_OS_MACOS
+    // Enable OpenSSL for TLS/PSK support
+    // Qt's OpenSSL backend dynamically loads libssl/libcrypto at runtime
+    // Check bundled location first (inside .app bundle), then Homebrew locations
+
+    // Get the path to the executable to find the Frameworks folder
+    QString execPath = QString::fromLocal8Bit(argv[0]);
+    QString bundledFrameworks;
+    if (execPath.contains(".app/Contents/MacOS/")) {
+        bundledFrameworks = QFileInfo(execPath).absolutePath() + "/../Frameworks";
+    }
+
+    QStringList opensslPaths;
+    if (!bundledFrameworks.isEmpty()) {
+        opensslPaths << bundledFrameworks;  // Check bundled first
+    }
+    opensslPaths << "/opt/homebrew/opt/openssl@3/lib"   // Homebrew on Apple Silicon
+                 << "/usr/local/opt/openssl@3/lib"      // Homebrew on Intel Mac
+                 << "/opt/homebrew/opt/openssl/lib"     // Homebrew openssl (latest)
+                 << "/usr/local/opt/openssl/lib";       // Homebrew openssl on Intel
+
+    QString currentPath = QString::fromLocal8Bit(qgetenv("DYLD_LIBRARY_PATH"));
+    bool foundOpenSSL = false;
+
+    for (const QString &opensslPath : opensslPaths) {
+        // Check if libssl exists in this location
+        if (QFileInfo::exists(opensslPath + "/libssl.3.dylib") ||
+            QFileInfo::exists(opensslPath + "/libssl.dylib")) {
+            if (!currentPath.contains(opensslPath)) {
+                QString newPath = currentPath.isEmpty() ? opensslPath : QString("%1:%2").arg(opensslPath, currentPath);
+                qputenv("DYLD_LIBRARY_PATH", newPath.toLocal8Bit());
+                qDebug() << "Added OpenSSL to library path for TLS/PSK support:" << opensslPath;
+            }
+            foundOpenSSL = true;
+            break;
+        }
+    }
+
+    if (!foundOpenSSL) {
+        qDebug() << "OpenSSL not found - TLS/PSK will not be available";
+    }
+#endif
+
     QApplication app(argc, argv);
     app.setApplicationName("K4Controller");
     app.setApplicationVersion("0.1.0");

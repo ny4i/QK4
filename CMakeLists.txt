@@ -115,7 +115,22 @@ set(HEADERS
     src/hardware/kpoddevice.h
 )
 
-add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
+# On macOS, create an app bundle
+if(APPLE)
+    set(MACOSX_BUNDLE_BUNDLE_NAME ${PROJECT_NAME})
+    set(MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION})
+    set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION})
+    set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.elecraft.k4controller")
+    add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES} ${HEADERS})
+
+    # Set the app bundle output directory
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/resources/Info.plist.in"
+    )
+else()
+    add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
+endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -161,4 +176,98 @@ qt6_add_shaders(${PROJECT_NAME} "panadapter_shaders"
         src/dsp/shaders/overlay.vert
         src/dsp/shaders/overlay.frag
 )
+
+# =============================================================================
+# Deployment / Bundling - Create self-contained distributable app
+# =============================================================================
+
+if(APPLE)
+    # Find macdeployqt
+    find_program(MACDEPLOYQT_EXECUTABLE macdeployqt HINTS "${Qt6_DIR}/../../../bin")
+
+    # OpenSSL locations (check both Apple Silicon and Intel paths)
+    set(OPENSSL_SEARCH_PATHS
+        "/opt/homebrew/opt/openssl@3/lib"   # Apple Silicon
+        "/usr/local/opt/openssl@3/lib"      # Intel Mac
+        "/opt/homebrew/opt/openssl/lib"
+        "/usr/local/opt/openssl/lib"
+    )
+
+    foreach(OPENSSL_PATH ${OPENSSL_SEARCH_PATHS})
+        if(EXISTS "${OPENSSL_PATH}/libssl.3.dylib")
+            set(OPENSSL_LIB_DIR ${OPENSSL_PATH})
+            break()
+        endif()
+    endforeach()
+
+    if(OPENSSL_LIB_DIR)
+        message(STATUS "Found OpenSSL at: ${OPENSSL_LIB_DIR}")
+    else()
+        message(WARNING "OpenSSL not found - TLS/PSK will not be available in bundled app")
+    endif()
+
+    # Get the real (resolved) path for OpenSSL - Homebrew uses symlinks
+    execute_process(
+        COMMAND realpath "${OPENSSL_LIB_DIR}"
+        OUTPUT_VARIABLE OPENSSL_REAL_DIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    message(STATUS "OpenSSL real path: ${OPENSSL_REAL_DIR}")
+
+    # Custom target to create distributable app bundle
+    add_custom_target(deploy
+        COMMAND ${MACDEPLOYQT_EXECUTABLE} "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app" -always-overwrite
+        # Copy OpenSSL libraries
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/Frameworks"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${OPENSSL_LIB_DIR}/libssl.3.dylib"
+            "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/Frameworks/"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${OPENSSL_LIB_DIR}/libcrypto.3.dylib"
+            "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/Frameworks/"
+        # Copy Opus library
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${OPUS_LIBRARIES}"
+            "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/Frameworks/"
+        # Copy HIDAPI library
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${HIDAPI_LIBRARIES}"
+            "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/Frameworks/"
+        # Fix OpenSSL library paths - use real Cellar path for -change
+        COMMAND install_name_tool -id "@executable_path/../Frameworks/libssl.3.dylib"
+            "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/Frameworks/libssl.3.dylib"
+        COMMAND install_name_tool -id "@executable_path/../Frameworks/libcrypto.3.dylib"
+            "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/Frameworks/libcrypto.3.dylib"
+        COMMAND install_name_tool -change "${OPENSSL_REAL_DIR}/libcrypto.3.dylib"
+            "@executable_path/../Frameworks/libcrypto.3.dylib"
+            "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/Frameworks/libssl.3.dylib"
+        # Fix Opus library path
+        COMMAND install_name_tool -id "@executable_path/../Frameworks/libopus.dylib"
+            "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/Frameworks/libopus.dylib" || true
+        COMMAND install_name_tool -id "@executable_path/../Frameworks/libopus.0.dylib"
+            "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/Frameworks/libopus.0.dylib" || true
+        # Fix HIDAPI library path
+        COMMAND install_name_tool -id "@executable_path/../Frameworks/libhidapi.dylib"
+            "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/Frameworks/libhidapi.dylib" || true
+        # Re-sign the app bundle (required after modifying libraries)
+        # Uses ad-hoc signing by default; set CODESIGN_IDENTITY for Developer ID
+        COMMAND codesign --force --deep --sign "$ENV{CODESIGN_IDENTITY}"
+            "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app" ||
+            codesign --force --deep --sign - "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app"
+        COMMENT "Creating deployable app bundle with all dependencies..."
+        DEPENDS ${PROJECT_NAME}
+    )
+
+elseif(WIN32)
+    # Find windeployqt
+    find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${Qt6_DIR}/../../../bin")
+
+    # Custom target to create distributable package
+    add_custom_target(deploy
+        COMMAND ${WINDEPLOYQT_EXECUTABLE} --release --no-translations
+            "$<TARGET_FILE:${PROJECT_NAME}>"
+        COMMENT "Deploying Qt dependencies for Windows..."
+        DEPENDS ${PROJECT_NAME}
+    )
+endif()
 

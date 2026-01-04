@@ -1,15 +1,24 @@
 #include "tcpclient.h"
 #include <QDebug>
+#include <QSslCipher>
+#include <QSslConfiguration>
+#include <QSslPreSharedKeyAuthenticator>
 
 TcpClient::TcpClient(QObject *parent)
-    : QObject(parent), m_socket(new QTcpSocket(this)), m_protocol(new Protocol(this)), m_authTimer(new QTimer(this)),
-      m_pingTimer(new QTimer(this)), m_port(K4Protocol::DEFAULT_PORT), m_state(Disconnected),
+    : QObject(parent), m_socket(new QSslSocket(this)), m_protocol(new Protocol(this)), m_authTimer(new QTimer(this)),
+      m_pingTimer(new QTimer(this)), m_port(K4Protocol::DEFAULT_PORT), m_useTls(false), m_state(Disconnected),
       m_authResponseReceived(false) {
     // Socket signals
-    connect(m_socket, &QTcpSocket::connected, this, &TcpClient::onSocketConnected);
-    connect(m_socket, &QTcpSocket::disconnected, this, &TcpClient::onSocketDisconnected);
-    connect(m_socket, &QTcpSocket::readyRead, this, &TcpClient::onReadyRead);
-    connect(m_socket, &QTcpSocket::errorOccurred, this, &TcpClient::onSocketError);
+    connect(m_socket, &QSslSocket::connected, this, &TcpClient::onSocketConnected);
+    connect(m_socket, &QSslSocket::encrypted, this, &TcpClient::onSocketEncrypted);
+    connect(m_socket, &QSslSocket::disconnected, this, &TcpClient::onSocketDisconnected);
+    connect(m_socket, &QSslSocket::readyRead, this, &TcpClient::onReadyRead);
+    connect(m_socket, &QSslSocket::errorOccurred, this, &TcpClient::onSocketError);
+
+    // SSL-specific signals
+    connect(m_socket, &QSslSocket::sslErrors, this, &TcpClient::onSslErrors);
+    connect(m_socket, &QSslSocket::preSharedKeyAuthenticationRequired, this,
+            &TcpClient::onPreSharedKeyAuthenticationRequired);
 
     // Auth timeout timer (single shot)
     m_authTimer->setSingleShot(true);
@@ -52,7 +61,8 @@ TcpClient::~TcpClient() {
     }
 }
 
-void TcpClient::connectToHost(const QString &host, quint16 port, const QString &password) {
+void TcpClient::connectToHost(const QString &host, quint16 port, const QString &password, bool useTls,
+                              const QString &psk) {
     if (m_state != Disconnected) {
         disconnectFromHost();
     }
@@ -60,10 +70,50 @@ void TcpClient::connectToHost(const QString &host, quint16 port, const QString &
     m_host = host;
     m_port = port;
     m_password = password;
+    m_useTls = useTls;
+    m_psk = psk;
     m_authResponseReceived = false;
 
     setState(Connecting);
-    m_socket->connectToHost(host, port);
+
+    if (m_useTls) {
+        // Configure TLS with PSK cipher suites
+        QSslConfiguration sslConfig = QSslConfiguration::defaultConfiguration();
+        sslConfig.setProtocol(QSsl::TlsV1_2);
+        sslConfig.setPeerVerifyMode(QSslSocket::VerifyNone); // PSK doesn't use certificates
+
+        // Build list of PSK cipher suites (K4 supported ciphers)
+        QList<QSslCipher> pskCiphers;
+        const QStringList pskCipherNames = {"ECDHE-PSK-AES256-CBC-SHA384", "ECDHE-PSK-CHACHA20-POLY1305",
+                                            "DHE-PSK-AES256-GCM-SHA384",   "DHE-PSK-CHACHA20-POLY1305",
+                                            "RSA-PSK-AES256-GCM-SHA384",   "RSA-PSK-CHACHA20-POLY1305",
+                                            "PSK-AES256-CBC-SHA384",       "PSK-AES256-CBC-SHA"};
+
+        for (const QSslCipher &cipher : QSslConfiguration::supportedCiphers()) {
+            if (pskCipherNames.contains(cipher.name())) {
+                pskCiphers.append(cipher);
+                qDebug() << "Added PSK cipher:" << cipher.name();
+            }
+        }
+
+        if (pskCiphers.isEmpty()) {
+            qWarning() << "No PSK ciphers available! TLS/PSK connection will likely fail.";
+            qWarning() << "Ensure OpenSSL 3.x is installed (brew install openssl@3)";
+            emit errorOccurred("TLS/PSK not available: No PSK cipher suites found. "
+                               "Install OpenSSL 3.x or use unencrypted connection (port 9205).");
+            setState(Disconnected);
+            return;
+        }
+        sslConfig.setCiphers(pskCiphers);
+
+        m_socket->setSslConfiguration(sslConfig);
+
+        qDebug() << "Connecting with TLS/PSK to" << host << ":" << port;
+        m_socket->connectToHostEncrypted(host, port);
+    } else {
+        qDebug() << "Connecting (unencrypted) to" << host << ":" << port;
+        m_socket->connectToHost(host, port);
+    }
 }
 
 void TcpClient::disconnectFromHost() {
@@ -116,12 +166,27 @@ void TcpClient::setState(ConnectionState state) {
 }
 
 void TcpClient::onSocketConnected() {
-    qDebug() << "Socket connected, sending authentication...";
-    setState(Authenticating);
-    sendAuthentication();
+    if (m_useTls) {
+        // TLS connection: TCP connected, now waiting for TLS handshake to complete
+        // The encrypted() signal will fire when TLS is fully established
+        qDebug() << "TCP connected, starting TLS handshake...";
+        // Don't change state yet - wait for encrypted() signal
+    } else {
+        // Non-TLS: need to send SHA-384 password hash
+        qDebug() << "Socket connected, sending authentication...";
+        setState(Authenticating);
+        sendAuthentication();
+        m_authTimer->start(K4Protocol::AUTH_TIMEOUT_MS);
+    }
+}
 
-    // Start auth timeout
+void TcpClient::onSocketEncrypted() {
+    // TLS handshake completed successfully
+    qDebug() << "TLS/PSK encrypted channel established";
+    setState(Authenticating);
+    // Start auth timeout - waiting for first packet to confirm connection works
     m_authTimer->start(K4Protocol::AUTH_TIMEOUT_MS);
+    // Note: For TLS/PSK, no additional password auth needed - data flows immediately
 }
 
 void TcpClient::onSocketDisconnected() {
@@ -156,6 +221,25 @@ void TcpClient::onSocketError(QAbstractSocket::SocketError error) {
 
     emit errorOccurred(errorMsg);
     setState(Disconnected);
+}
+
+void TcpClient::onSslErrors(const QList<QSslError> &errors) {
+    // Log SSL errors but continue - PSK doesn't use certificates so some errors are expected
+    for (const QSslError &error : errors) {
+        qDebug() << "SSL error (ignored for PSK):" << error.errorString();
+    }
+    // Ignore all SSL errors for PSK connections (no certificate verification)
+    m_socket->ignoreSslErrors();
+}
+
+void TcpClient::onPreSharedKeyAuthenticationRequired(QSslPreSharedKeyAuthenticator *authenticator) {
+    qDebug() << "PSK authentication requested, identity hint:" << authenticator->identityHint();
+
+    // Set the identity (can be empty for K4) and the pre-shared key
+    authenticator->setIdentity(QByteArray()); // Empty identity
+    authenticator->setPreSharedKey(m_psk.toUtf8());
+
+    qDebug() << "PSK credentials provided";
 }
 
 void TcpClient::onAuthTimeout() {

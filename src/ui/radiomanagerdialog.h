@@ -1,7 +1,9 @@
 #ifndef RADIOMANAGERDIALOG_H
 #define RADIOMANAGERDIALOG_H
 
+#include <QCheckBox>
 #include <QDialog>
+#include <QLabel>
 #include <QListWidget>
 #include <QLineEdit>
 #include <QPushButton>
@@ -28,6 +30,7 @@ private slots:
     void onBackClicked();
     void onSelectionChanged();
     void onItemDoubleClicked(QListWidgetItem *item);
+    void onTlsCheckboxToggled(bool checked);
     void refreshList();
 
 private:
@@ -41,6 +44,9 @@ private:
     QLineEdit *m_hostEdit;
     QLineEdit *m_portEdit;
     QLineEdit *m_passwordEdit;
+    QCheckBox *m_tlsCheckbox;
+    QLineEdit *m_pskEdit;
+    QLabel *m_pskLabel;
 
     QPushButton *m_connectButton;
     QPushButton *m_newButton;
