@@ -2,6 +2,25 @@
 
 ## January 4, 2026
 
+### Fix: Spectrum dBm Calibration
+
+**Issue:** Spectrum display showed signals ~19 dB lower than the K4's actual display. A strong signal showing -70 dBm on the K4 appeared as -89 dBm in the app.
+
+**Root Cause:** The spectrum bin decompression used a hardcoded offset of -160, but the K4 protocol sends the actual noise floor value in each PAN packet header (bytes 23-26). This noise floor value should be used as the offset for correct dBm calibration.
+
+**Fix:** Changed `decompressBins()` to use `m_noiseFloor` from the packet instead of hardcoded -160:
+```cpp
+// Before: out[i] = static_cast<quint8>(bins[i]) - 160.0f;
+// After:  out[i] = static_cast<quint8>(bins[i]) + m_noiseFloor;
+```
+
+**Protocol Reference:** K4-Remote Protocol Rev. A1 shows PAN packet structure with noise floor at bytes 20-23 (note: actual offset is bytes 23-26 in implementation due to header differences).
+
+**Files Modified:**
+- `src/dsp/panadapter_rhi.cpp` - Use packet noise floor in decompressBins()
+
+---
+
 ### Feature: TLS/PSK Encrypted Connection Support
 
 **Summary:** Added support for secure TLS v1.2 connections using Pre-Shared Key (PSK) authentication on port 9204, as an alternative to the existing unencrypted port 9205.

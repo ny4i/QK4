@@ -1031,9 +1031,12 @@ void PanadapterRhiWidget::updateMiniSpectrum(const QByteArray &bins) {
 }
 
 void PanadapterRhiWidget::decompressBins(const QByteArray &bins, QVector<float> &out) {
+    // K4 spectrum bins are compressed: dBm = byte + noiseFloor
+    // The noise floor is sent per-packet and stored in m_noiseFloor
+    // Protocol doc shows -160 as example, but actual value varies
     out.resize(bins.size());
     for (int i = 0; i < bins.size(); ++i) {
-        out[i] = static_cast<quint8>(bins[i]) - 160.0f;
+        out[i] = static_cast<quint8>(bins[i]) + m_noiseFloor;
     }
 }
 
