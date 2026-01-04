@@ -34,6 +34,11 @@ jobs:
           # Run macdeployqt to bundle Qt frameworks
           $(brew --prefix qt@6)/bin/macdeployqt "$APP_BUNDLE" -verbose=2
 
+          # Copy QtDBus.framework (transitive dependency of QtGui in Homebrew Qt)
+          echo "=== Copying QtDBus.framework ==="
+          QT_LIB="$(brew --prefix qt@6)/lib"
+          cp -R "$QT_LIB/QtDBus.framework" "$FRAMEWORKS/"
+
           # Get OpenSSL paths (resolve symlinks for install_name_tool)
           OPENSSL_LIB="$(brew --prefix openssl@3)/lib"
           OPENSSL_REAL="$(realpath $OPENSSL_LIB)"
