@@ -12,6 +12,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache Homebrew packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/Homebrew
+            /opt/homebrew/Cellar/qt
+            /opt/homebrew/Cellar/opus
+            /opt/homebrew/Cellar/hidapi
+          key: brew-macos-14-build-${{ hashFiles('.github/workflows/build-macos.yml') }}
+          restore-keys: |
+            brew-macos-14-build-
+
       - name: Install dependencies
         run: brew install qt@6 opus hidapi
 

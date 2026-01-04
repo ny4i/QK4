@@ -11,6 +11,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache Homebrew packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/Homebrew
+            /opt/homebrew/Cellar/qt
+            /opt/homebrew/Cellar/qtbase
+            /opt/homebrew/Cellar/opus
+            /opt/homebrew/Cellar/hidapi
+            /opt/homebrew/Cellar/openssl@3
+            /opt/homebrew/Cellar/dbus
+            /opt/homebrew/Cellar/brotli
+          key: brew-macos-14-${{ hashFiles('.github/workflows/release.yml') }}
+          restore-keys: |
+            brew-macos-14-
+
       - name: Install dependencies
         run: |
           brew install qt@6 opus hidapi openssl@3 dbus brotli
@@ -273,6 +289,16 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Cache vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            C:\vcpkg\installed
+            C:\vcpkg\packages
+          key: vcpkg-win-${{ hashFiles('.github/workflows/release.yml') }}
+          restore-keys: |
+            vcpkg-win-
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
