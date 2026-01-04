@@ -35,10 +35,13 @@ jobs:
           $(brew --prefix qt@6)/bin/macdeployqt "$APP_BUNDLE" -verbose=2
 
           # Copy QtDBus.framework (transitive dependency of QtGui in Homebrew Qt)
+          # Note: qtbase is the actual package containing Qt libraries, qt@6 is just a meta-formula
           echo "=== Copying QtDBus.framework ==="
-          QT_LIB="$(brew --prefix qt@6)/lib"
-          cp -R "$QT_LIB/QtDBus.framework" "$FRAMEWORKS/"
-          ls -la "$FRAMEWORKS/QtDBus.framework/Versions/A/" || echo "QtDBus copy may have failed!"
+          QTBASE_LIB="$(brew --prefix qtbase)/lib"
+          echo "QtDBus source: $QTBASE_LIB/QtDBus.framework"
+          ls -la "$QTBASE_LIB/QtDBus.framework/Versions/A/" || echo "WARNING: QtDBus not found in qtbase!"
+          cp -R "$QTBASE_LIB/QtDBus.framework" "$FRAMEWORKS/"
+          ls -la "$FRAMEWORKS/QtDBus.framework/Versions/A/" || echo "QtDBus copy failed!"
 
           # Get OpenSSL paths (resolve symlinks for install_name_tool)
           OPENSSL_LIB="$(brew --prefix openssl@3)/lib"
