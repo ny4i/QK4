@@ -126,7 +126,6 @@ jobs:
 
           echo "=== Signing main application ==="
           codesign --force --options runtime --sign "Developer ID Application: Michael Richard Garcia ($APPLE_TEAM_ID)" \
-            --entitlements /dev/null \
             "$APP_BUNDLE"
 
           echo "=== Verifying signature ==="
