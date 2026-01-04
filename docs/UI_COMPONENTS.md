@@ -91,37 +91,27 @@ QColor m_color;     // Bar color (amber for A, cyan for B)
 
 ---
 
-### PanadapterWidget
+### PanadapterRhiWidget
 
 | Property | Value |
 |----------|-------|
-| Type | `QWidget` subclass |
-| File | `src/dsp/panadapter.cpp/.h` |
+| Type | `QRhiWidget` subclass |
+| File | `src/dsp/panadapter_rhi.cpp/.h` |
 | Min Height | 200 px |
+| Rendering | GPU via Qt RHI (Metal/DirectX/Vulkan) |
 
-**Member Variables:**
+**Key Resources:**
 ```cpp
-// Spectrum data
-QVector<float> m_currentSpectrum;
-QVector<float> m_smoothedSpectrum;
-QVector<float> m_peakHold;
+// RHI resources
+QRhi *m_rhi;
+std::unique_ptr<QRhiTexture> m_waterfallTexture;     // 256×2048
+std::unique_ptr<QRhiTexture> m_colorLutTexture;      // 256×1 RGBA
+std::unique_ptr<QRhiTexture> m_spectrumDataTexture;  // 1D spectrum
 
-// Waterfall
-QVector<QVector<float>> m_waterfallHistory;  // 256 lines
-int m_waterfallWriteIndex;
-QImage m_waterfallImage;
-QVector<QRgb> m_colorLUT;  // 256 entries
-
-// Display parameters
-qint64 m_centerFreq;
-qint32 m_sampleRate;
-int m_spanHz;
-int m_refLevel;
-qint64 m_tunedFreq;
-int m_filterLow, m_filterHigh;
-
-// Smoothing
-float m_smoothedBaseline;
+// Pipelines
+std::unique_ptr<QRhiGraphicsPipeline> m_waterfallPipeline;
+std::unique_ptr<QRhiGraphicsPipeline> m_spectrumBluePipeline;
+std::unique_ptr<QRhiGraphicsPipeline> m_overlayLinePipeline;
 ```
 
 **Signals:**
@@ -131,40 +121,39 @@ void frequencyDragged(qint64 frequency);
 void frequencyScrolled(int direction);
 ```
 
+**Spectrum Styles:**
+- `SpectrumStyle::Blue` - Y-position based blue gradient
+- `SpectrumStyle::BlueAmplitude` - LUT-based colors (default)
+
 **Constants:**
 ```cpp
-static const int WATERFALL_HISTORY = 256;
+static constexpr int BASE_WATERFALL_HISTORY = 256;
+static constexpr int BASE_TEXTURE_WIDTH = 2048;
 ```
 
 ---
 
-### MiniPanWidget
+### MiniPanRhiWidget
 
 | Property | Value |
 |----------|-------|
-| Type | `QWidget` subclass |
-| File | `src/dsp/minipanwidget.cpp/.h` |
+| Type | `QRhiWidget` subclass |
+| File | `src/dsp/minipan_rhi.cpp/.h` |
 | Fixed Height | 90 px |
 | Min Width | 180 px |
 | Max Width | 200 px |
-| Bandwidth | ±1.5 kHz (3 kHz total) |
+| Bandwidth | Mode-dependent: CW=3kHz (±1.5kHz), Voice/Data=10kHz (±5kHz) |
+| Rendering | GPU via Qt RHI (Metal/DirectX/Vulkan) |
 
-**Member Variables:**
+**Key Resources:**
 ```cpp
-// Spectrum data
-QVector<float> m_spectrum;
-QVector<float> m_smoothedSpectrum;
-
-// Waterfall
-QVector<QVector<float>> m_waterfallHistory;  // 80 lines
-int m_waterfallWriteIndex;
-QVector<QRgb> m_colorLUT;  // 256 entries
+// RHI resources
+std::unique_ptr<QRhiTexture> m_waterfallTexture;  // 100×512
+std::unique_ptr<QRhiTexture> m_colorLutTexture;   // 256×1 RGBA
 
 // Display settings
-float m_minDb = -0.5f;
-float m_maxDb = 3.5f;
-float m_smoothingAlpha = 0.3f;
-float m_smoothedBaseline;
+int m_bandwidthHz = 10000;  // Mode-dependent
+float m_spectrumRatio = 0.40f;  // 40% spectrum, 60% waterfall
 ```
 
 **Signals:**
@@ -172,10 +161,16 @@ float m_smoothedBaseline;
 void clicked();  // Toggle back to normal view
 ```
 
+**Mode-Dependent Bandwidth:**
+| Mode | Bandwidth |
+|------|-----------|
+| CW, CW-R | 3 kHz (±1.5 kHz) |
+| USB, LSB, DATA, AM, FM | 10 kHz (±5 kHz) |
+
 **Constants:**
 ```cpp
-static const int WATERFALL_HISTORY = 80;
-static constexpr int TOTAL_BANDWIDTH_HZ = 3000;
+static constexpr int WATERFALL_HISTORY = 100;
+static constexpr int TEXTURE_WIDTH = 512;
 ```
 
 **Layout Split:** 40% spectrum / 60% waterfall
@@ -264,6 +259,63 @@ void txClicked();
 
 ---
 
+### FeatureMenuBar
+
+| Property | Value |
+|----------|-------|
+| Type | `QWidget` subclass |
+| File | `src/ui/featuremenubar.cpp/.h` |
+| Purpose | Popup control bar for ATTN/NB/NR/NOTCH |
+
+**Control Groups:**
+- ATTENUATOR: Toggle, +/- in 3dB steps
+- NB LEVEL: Toggle, level 0-15, filter cycling
+- NR ADJUST: Toggle, level 0-10
+- MANUAL NOTCH: Toggle, frequency 150-5000Hz
+
+Supports B SET mode (commands use $ suffix for Sub RX).
+
+---
+
+### DisplayPopupWidget
+
+| Property | Value |
+|----------|-------|
+| Type | `QWidget` subclass |
+| File | `src/ui/displaypopupwidget.cpp/.h` |
+| Purpose | DISPLAY button popup with panadapter controls |
+
+**Control Groups:**
+- REF LEVEL, SPAN, TUNE mode, VFO CURSOR
+- AVERAGE, DDC NB, PEAK, FREEZE, WATERFALL color
+
+---
+
+### ButtonRowPopup
+
+| Property | Value |
+|----------|-------|
+| Type | `QWidget` subclass |
+| File | `src/ui/buttonrowpopup.cpp/.h` |
+| Purpose | Single-row popup for Fn/MAIN RX/SUB RX/TX |
+
+7 placeholder buttons with triangle indicator pointing to trigger button.
+
+---
+
+### Volume Sliders (in SideControlPanel)
+
+| Property | Value |
+|----------|-------|
+| MAIN Volume | Amber (#FFB000), left audio channel |
+| SUB Volume | Cyan (#00BFFF), right audio channel |
+| Range | 0-100 |
+| Default | 45% |
+
+Both sliders persist values via RadioSettings.
+
+---
+
 ## Labels
 
 ### Top Status Bar
@@ -345,6 +397,8 @@ void txClicked();
 | `m_saveButton` | "Save" | Save server settings |
 | `m_deleteButton` | "Delete" | Delete selected server |
 | `m_backButton` | "←" | Close dialog |
+| `m_tlsCheckbox` | "Use TLS (Encrypted)" | Toggle TLS mode |
+| `m_pskEdit` | PSK field | Pre-Shared Key (visible when TLS enabled) |
 
 ---
 
@@ -356,8 +410,9 @@ void txClicked();
 |----------|-------------|---------|
 | `m_nameEdit` | "Server Name" | Server display name |
 | `m_hostEdit` | "192.168.1.100" | Host IP address |
-| `m_portEdit` | "64242" | TCP port (max width 80px) |
+| `m_portEdit` | "9204" or "9205" | TCP port (auto-switches with TLS) |
 | `m_passwordEdit` | "Password" | Auth password (echo: Password) |
+| `m_pskEdit` | "Pre-Shared Key" | TLS PSK (visible only when TLS enabled) |
 
 ### List Widgets
 
@@ -458,7 +513,9 @@ QDialog
     │   │       ├── Row 0: Name label + m_nameEdit
     │   │       ├── Row 1: Host label + m_hostEdit
     │   │       ├── Row 2: Port label + m_portEdit
-    │   │       └── Row 3: Password label + m_passwordEdit
+    │   │       ├── Row 3: Password label + m_passwordEdit
+    │   │       ├── Row 4: m_tlsCheckbox ("Use TLS (Encrypted)")
+    │   │       └── Row 5: PSK label + m_pskEdit (visible when TLS enabled)
     │   │
     │   └── [stretch]
     │
@@ -668,4 +725,4 @@ Handles:
 
 ---
 
-*Last updated: December 22, 2025*
+*Last updated: January 4, 2026*

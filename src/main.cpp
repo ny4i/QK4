@@ -27,20 +27,19 @@ int main(int argc, char *argv[]) {
 
     QStringList opensslPaths;
     if (!bundledFrameworks.isEmpty()) {
-        opensslPaths << bundledFrameworks;  // Check bundled first
+        opensslPaths << bundledFrameworks; // Check bundled first
     }
-    opensslPaths << "/opt/homebrew/opt/openssl@3/lib"   // Homebrew on Apple Silicon
-                 << "/usr/local/opt/openssl@3/lib"      // Homebrew on Intel Mac
-                 << "/opt/homebrew/opt/openssl/lib"     // Homebrew openssl (latest)
-                 << "/usr/local/opt/openssl/lib";       // Homebrew openssl on Intel
+    opensslPaths << "/opt/homebrew/opt/openssl@3/lib" // Homebrew on Apple Silicon
+                 << "/usr/local/opt/openssl@3/lib"    // Homebrew on Intel Mac
+                 << "/opt/homebrew/opt/openssl/lib"   // Homebrew openssl (latest)
+                 << "/usr/local/opt/openssl/lib";     // Homebrew openssl on Intel
 
     QString currentPath = QString::fromLocal8Bit(qgetenv("DYLD_LIBRARY_PATH"));
     bool foundOpenSSL = false;
 
     for (const QString &opensslPath : opensslPaths) {
         // Check if libssl exists in this location
-        if (QFileInfo::exists(opensslPath + "/libssl.3.dylib") ||
-            QFileInfo::exists(opensslPath + "/libssl.dylib")) {
+        if (QFileInfo::exists(opensslPath + "/libssl.3.dylib") || QFileInfo::exists(opensslPath + "/libssl.dylib")) {
             if (!currentPath.contains(opensslPath)) {
                 QString newPath = currentPath.isEmpty() ? opensslPath : QString("%1:%2").arg(opensslPath, currentPath);
                 qputenv("DYLD_LIBRARY_PATH", newPath.toLocal8Bit());

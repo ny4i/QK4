@@ -16,22 +16,28 @@ A cross-platform desktop application for remote control of Elecraft K4 radios ov
 
 ## Features
 
-- **Dual VFO Display** — Frequency, mode, and S-meter for VFO A and B
-- **Spectrum Analyzer** — Real-time panadapter with waterfall display, click-to-tune, and scroll-wheel tuning
+- **TLS/PSK Encrypted Connection** — Secure connection via TLS v1.2 with Pre-Shared Key on port 9204
+- **Dual VFO Display** — Frequency, mode, S-meter, and tuning rate indicator for VFO A and B
+- **GPU-Accelerated Spectrum** — Real-time panadapter with waterfall via Qt RHI (Metal/DirectX/Vulkan)
 - **Mini-Pan Widget** — Compact spectrum view in VFO area with mode-dependent bandwidth
-- **Audio Streaming** — Opus-encoded bidirectional audio (RX playback, TX microphone)
-- **Radio Controls** — Full control panel with WPM, power, bandwidth, RF/SQL, and TX functions
+- **Dual-Channel Audio** — Opus-encoded stereo with independent MAIN/SUB volume controls
+- **Radio Controls** — Full control panel with mode-dependent controls, TX functions, and feature popups
 - **Band Selection** — Quick band switching via popup menu
 - **KPA1500 Support** — Optional integration with Elecraft KPA1500 amplifier
+- **Self-Contained App Bundle** — macOS releases include all dependencies (no Homebrew required)
 
 ## Requirements
 
 ### macOS
 
+**To run pre-built release:**
 - macOS 14 (Sonoma) or later
 - Apple Silicon Mac (M1 or newer)
+- No additional dependencies required (self-contained app bundle)
+
+**To build from source:**
 - Homebrew
-- Qt 6, libopus, hidapi
+- Qt 6, libopus, OpenSSL 3, hidapi
 
 ### Windows
 
@@ -49,7 +55,7 @@ A cross-platform desktop application for remote control of Elecraft K4 radios ov
 
 ```bash
 # Install dependencies
-brew install qt@6 opus hidapi cmake
+brew install qt@6 opus openssl@3 hidapi cmake
 
 # Clone and build
 git clone https://github.com/mikeg-dal/K4Controller.git
@@ -59,6 +65,9 @@ cmake --build build
 
 # Run
 ./build/K4Controller
+
+# Create distributable app bundle (optional)
+cmake --build build --target deploy
 ```
 
 ### Windows
@@ -83,17 +92,19 @@ cmake --build build --config Release
 
 1. Launch K4Controller
 2. Go to **File → Connect** to open the Radio Manager
-3. Enter your K4's IP address and port (default: 9205)
-4. Click **Connect**
+3. Enter your K4's IP address
+4. **For encrypted connection**: Check "Use TLS", enter your PSK, port auto-sets to 9204
+5. **For unencrypted connection**: Leave TLS unchecked, port defaults to 9205
+6. Click **Connect**
 
 Once connected, the application displays real-time spectrum, audio, and radio state from your K4.
 
 ## Architecture
 
 ```
-Radio (TCP:9205) → TcpClient → Protocol → RadioState / DSP Widgets
-                                        ↓
-                                 OpusDecoder → AudioEngine → Speaker
+Radio (TCP:9204 TLS / 9205 unencrypted) → TcpClient → Protocol → RadioState / DSP Widgets
+                                                               ↓
+                                                        OpusDecoder → AudioEngine → Speaker
 Microphone → AudioEngine → OpusEncoder → Protocol → TcpClient → Radio
 ```
 

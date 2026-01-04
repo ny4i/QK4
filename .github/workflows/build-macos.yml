@@ -22,11 +22,11 @@ jobs:
         run: cmake --build build
 
       - name: Verify executable
-        run: test -f build/K4Controller
+        run: test -f build/K4Controller.app/Contents/MacOS/K4Controller
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: K4Controller-macos
-          path: build/K4Controller
+          path: build/K4Controller.app
           retention-days: 7
