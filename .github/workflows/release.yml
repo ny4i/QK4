@@ -11,24 +11,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: '6.7.*'
-          host: 'mac'
-          target: 'desktop'
-          arch: 'clang_64'
-          modules: 'qtmultimedia qtshadertools'
-
       - name: Install dependencies
         run: |
-          brew install opus hidapi openssl@3
+          brew install qt@6 opus hidapi openssl@3
 
       - name: Configure CMake
         run: |
           cmake -B build \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="$Qt6_DIR"
+            -DCMAKE_PREFIX_PATH="$(brew --prefix qt@6)"
 
       - name: Build
         run: cmake --build build --config Release
@@ -41,7 +32,7 @@ jobs:
           FRAMEWORKS="$APP_BUNDLE/Contents/Frameworks"
 
           # Run macdeployqt to bundle Qt frameworks
-          $Qt6_DIR/bin/macdeployqt "$APP_BUNDLE" -verbose=2
+          $(brew --prefix qt@6)/bin/macdeployqt "$APP_BUNDLE" -verbose=2
 
           # Get OpenSSL paths (resolve symlinks for install_name_tool)
           OPENSSL_LIB="$(brew --prefix openssl@3)/lib"
