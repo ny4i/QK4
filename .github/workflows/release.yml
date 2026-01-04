@@ -38,6 +38,7 @@ jobs:
           echo "=== Copying QtDBus.framework ==="
           QT_LIB="$(brew --prefix qt@6)/lib"
           cp -R "$QT_LIB/QtDBus.framework" "$FRAMEWORKS/"
+          ls -la "$FRAMEWORKS/QtDBus.framework/Versions/A/" || echo "QtDBus copy may have failed!"
 
           # Get OpenSSL paths (resolve symlinks for install_name_tool)
           OPENSSL_LIB="$(brew --prefix openssl@3)/lib"
@@ -80,6 +81,29 @@ jobs:
           # Fix HIDAPI library path
           install_name_tool -id "@executable_path/../Frameworks/libhidapi.0.dylib" \
             "$FRAMEWORKS/libhidapi.0.dylib" || true
+
+          # Fix QtDBus.framework paths
+          echo "=== Fixing QtDBus.framework paths ==="
+          QTDBUS_BINARY="$FRAMEWORKS/QtDBus.framework/Versions/A/QtDBus"
+          if [ -f "$QTDBUS_BINARY" ]; then
+            install_name_tool -id "@executable_path/../Frameworks/QtDBus.framework/Versions/A/QtDBus" \
+              "$QTDBUS_BINARY"
+            # Update QtGui's reference to QtDBus
+            QTGUI_BINARY="$FRAMEWORKS/QtGui.framework/Versions/A/QtGui"
+            if [ -f "$QTGUI_BINARY" ]; then
+              # Get the original QtDBus path from QtGui
+              QTDBUS_ORIG=$(otool -L "$QTGUI_BINARY" | grep QtDBus | awk '{print $1}')
+              if [ -n "$QTDBUS_ORIG" ]; then
+                echo "Updating QtGui reference from: $QTDBUS_ORIG"
+                install_name_tool -change "$QTDBUS_ORIG" \
+                  "@executable_path/../Frameworks/QtDBus.framework/Versions/A/QtDBus" \
+                  "$QTGUI_BINARY"
+              fi
+            fi
+          else
+            echo "ERROR: QtDBus binary not found at $QTDBUS_BINARY"
+            exit 1
+          fi
 
           echo "=== Frameworks contents ==="
           ls -la "$FRAMEWORKS/" | head -30
