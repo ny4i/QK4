@@ -10,6 +10,7 @@
 
 class SMeterWidget;
 class MiniPanRhiWidget;
+class TxMeterWidget;
 
 class VFOWidget : public QWidget {
     Q_OBJECT
@@ -29,6 +30,12 @@ public:
     void setNB(bool on);
     void setNR(bool on);
     void setNotch(bool autoEnabled, bool manualEnabled);
+
+    // TX Meter support (multifunction meter - Po, ALC, COMP, SWR, Id)
+    void showTxMeter(bool show);
+    void setTxMeters(int alc, int compDb, double fwdPower, double swr);
+    void setTxMeterCurrent(double amps);
+    bool isTxMeterVisible() const;
 
     // Mini-pan support
     void updateMiniPan(const QByteArray &data);
@@ -84,6 +91,9 @@ private:
     QStackedWidget *m_stackedWidget;
     QWidget *m_normalContent;
     MiniPanRhiWidget *m_miniPan;
+
+    // TX Meter (multifunction meter for TX)
+    TxMeterWidget *m_txMeter;
 
     // Pending mini-pan configuration (applied when created)
     QString m_pendingMode;

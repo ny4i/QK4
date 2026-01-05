@@ -9,6 +9,7 @@
 #include "ui/displaypopupwidget.h"
 #include "ui/buttonrowpopup.h"
 #include "ui/optionsdialog.h"
+#include "ui/txmeterwidget.h"
 #include "models/menumodel.h"
 #include "dsp/panadapter_rhi.h"
 #include "dsp/minipan_rhi.h"
@@ -200,6 +201,62 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_radioState, &RadioState::supplyVoltageChanged, this, &MainWindow::onSupplyVoltageChanged);
     connect(m_radioState, &RadioState::supplyCurrentChanged, this, &MainWindow::onSupplyCurrentChanged);
     connect(m_radioState, &RadioState::swrChanged, this, &MainWindow::onSwrChanged);
+
+    // TX Meter data -> update power displays and VFO TX meters during TX
+    connect(m_radioState, &RadioState::txMeterChanged, this,
+            [this](int alc, int comp, double fwdPower, double swr) {
+                // Update status bar power label
+                QString powerStr;
+                if (fwdPower < 10.0) {
+                    powerStr = QString("%1 W").arg(fwdPower, 0, 'f', 1);
+                } else {
+                    powerStr = QString("%1 W").arg(static_cast<int>(fwdPower));
+                }
+                m_powerLabel->setText(powerStr);
+                // Update side panel power reading
+                m_sideControlPanel->setPowerReading(fwdPower);
+
+                // Calculate PA drain current (Id) from forward power and supply voltage
+                // Formula: Id = ForwardPower / (Voltage × Efficiency)
+                // K4 PA efficiency is approximately 34% (measured: 80W @ 17A @ 13.8V)
+                double voltage = m_radioState->supplyVoltage();
+                double paCurrent = 0.0;
+                if (voltage > 0 && fwdPower > 0) {
+                    paCurrent = fwdPower / (voltage * 0.34);
+                }
+
+                // Update TX meter widget on the active TX VFO
+                // Split OFF: TX on VFO A, Split ON: TX on VFO B
+                if (m_radioState->splitEnabled()) {
+                    m_txMeterB->setTxMeters(alc, comp, fwdPower, swr);
+                    m_txMeterB->setCurrent(paCurrent);
+                } else {
+                    m_txMeterA->setTxMeters(alc, comp, fwdPower, swr);
+                    m_txMeterA->setCurrent(paCurrent);
+                }
+            });
+
+    // TX state changes -> show/hide TX meter on correct side
+    // TODO: Enable when TX meter placement is finalized
+    // connect(m_radioState, &RadioState::transmitStateChanged, this, [this](bool transmitting) {
+    //     if (transmitting) {
+    //         // Show TX meter on TX side (split OFF: A/left, split ON: B/right)
+    //         if (m_radioState->splitEnabled()) {
+    //             m_txMeterA->setVisible(false);
+    //             m_txMeterB->setVisible(true);
+    //         } else {
+    //             m_txMeterA->setVisible(true);
+    //             m_txMeterB->setVisible(false);
+    //         }
+    //     } else {
+    //         // TX ended - hide both TX meters
+    //         m_txMeterA->setVisible(false);
+    //         m_txMeterB->setVisible(false);
+    //     }
+    // });
+
+    // Note: TX meter Id bar is now calculated from forward power in txMeterChanged handler
+    // Supply current (DC input) is displayed elsewhere but not used for PA drain current
 
     // RadioState signals -> Side control panel updates (BW/SHFT/HI/LO)
     // Helper to update all 4 filter display values (called on BW or SHFT change)
@@ -1476,6 +1533,22 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     // Add the VFO row to main layout
     mainVLayout->addWidget(vfoRowWidget);
 
+    // ===== TX Meter Row (below VFO section) =====
+    // Two TX meters: left (VFO A) and right (VFO B), show based on split state
+    auto *txMeterRow = new QHBoxLayout();
+    txMeterRow->setContentsMargins(8, 0, 8, 0);
+    txMeterRow->setSpacing(8);
+
+    m_txMeterA = new TxMeterWidget(parent);
+    m_txMeterB = new TxMeterWidget(parent);
+
+    // VFO A TX meter on left, VFO B TX meter on right
+    txMeterRow->addWidget(m_txMeterA);
+    txMeterRow->addStretch(1); // Center space
+    txMeterRow->addWidget(m_txMeterB);
+
+    mainVLayout->addLayout(txMeterRow);
+
     // ===== Antenna Row (below VFO section, centered) =====
     auto *antennaRow = new QHBoxLayout();
     antennaRow->setContentsMargins(8, 0, 8, 0);
@@ -1990,16 +2063,11 @@ void MainWindow::updateConnectionState(TcpClient::ConnectionState state) {
 }
 
 void MainWindow::onRfPowerChanged(double watts, bool isQrp) {
-    QString powerStr;
-    if (isQrp) {
-        // QRP mode: 0.0 - 10.0 W, show one decimal
-        powerStr = QString("%1 W").arg(watts, 0, 'f', 1);
-    } else {
-        // QRO mode: 11-110 W, show as integer
-        powerStr = QString("%1 W").arg(static_cast<int>(watts));
-    }
-    m_powerLabel->setText(powerStr);
-    m_sideControlPanel->setPowerReading(watts);
+    Q_UNUSED(watts)
+    Q_UNUSED(isQrp)
+    // NOTE: This is the power SETTING (PC command), not actual TX power.
+    // The power display is updated from txMeterChanged signal during TX.
+    // We don't update the display here - it should show 0 when not transmitting.
 }
 
 void MainWindow::onSupplyVoltageChanged(double volts) {
@@ -2312,7 +2380,6 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
 
 void MainWindow::showEvent(QShowEvent *event) {
     QMainWindow::showEvent(event);
-    qDebug() << "MainWindow::showEvent called";
 }
 
 void MainWindow::setPanadapterMode(PanadapterMode mode) {

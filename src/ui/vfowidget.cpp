@@ -1,5 +1,6 @@
 #include "vfowidget.h"
 #include "smeterwidget.h"
+#include "txmeterwidget.h"
 #include "../dsp/minipan_rhi.h"
 #include <QMouseEvent>
 #include <QPainter>
@@ -143,6 +144,10 @@ void VFOWidget::setupUi() {
         stackedRow->addWidget(m_stackedWidget);
     }
     mainLayout->addLayout(stackedRow);
+
+    // NOTE: TX Meter is now managed by MainWindow, not VFOWidget
+    // This allows proper placement in the main layout hierarchy
+    m_txMeter = nullptr;
 
     // Install event filter for click-to-toggle on normal content
     m_normalContent->installEventFilter(this);
@@ -373,4 +378,24 @@ void VFOWidget::showNormal() {
 
 bool VFOWidget::isMiniPanVisible() const {
     return m_stackedWidget->currentIndex() == 1;
+}
+
+// TX Meter methods - TX meter is now managed by MainWindow
+void VFOWidget::showTxMeter(bool show) {
+    if (m_txMeter)
+        m_txMeter->setVisible(show);
+}
+
+void VFOWidget::setTxMeters(int alc, int compDb, double fwdPower, double swr) {
+    if (m_txMeter)
+        m_txMeter->setTxMeters(alc, compDb, fwdPower, swr);
+}
+
+void VFOWidget::setTxMeterCurrent(double amps) {
+    if (m_txMeter)
+        m_txMeter->setCurrent(amps);
+}
+
+bool VFOWidget::isTxMeterVisible() const {
+    return m_txMeter ? m_txMeter->isVisible() : false;
 }

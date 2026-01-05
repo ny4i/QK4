@@ -126,7 +126,7 @@ void SideControlPanel::setupUi() {
     layout->addSpacing(10);
 
     m_volumeLabel = new QLabel("MAIN", this);
-    m_volumeLabel->setStyleSheet("color: #999999; font-size: 10px; font-weight: bold;");
+    m_volumeLabel->setStyleSheet("color: #00BFFF; font-size: 10px; font-weight: bold;");
     m_volumeLabel->setAlignment(Qt::AlignCenter);
     layout->addWidget(m_volumeLabel);
 
@@ -140,14 +140,14 @@ void SideControlPanel::setupUi() {
                                   "    border-radius: 3px;"
                                   "}"
                                   "QSlider::handle:horizontal {"
-                                  "    background: #FFB000;"
-                                  "    border: 1px solid #FFB000;"
+                                  "    background: #00BFFF;"
+                                  "    border: 1px solid #00BFFF;"
                                   "    width: 14px;"
                                   "    margin: -4px 0;"
                                   "    border-radius: 7px;"
                                   "}"
                                   "QSlider::sub-page:horizontal {"
-                                  "    background: #FFB000;"
+                                  "    background: #00BFFF;"
                                   "    border-radius: 3px;"
                                   "}");
     layout->addWidget(m_volumeSlider);
@@ -158,7 +158,7 @@ void SideControlPanel::setupUi() {
     layout->addSpacing(6);
 
     m_subVolumeLabel = new QLabel("SUB", this);
-    m_subVolumeLabel->setStyleSheet("color: #999999; font-size: 10px; font-weight: bold;");
+    m_subVolumeLabel->setStyleSheet("color: #00FF00; font-size: 10px; font-weight: bold;");
     m_subVolumeLabel->setAlignment(Qt::AlignCenter);
     layout->addWidget(m_subVolumeLabel);
 
@@ -172,14 +172,14 @@ void SideControlPanel::setupUi() {
                                      "    border-radius: 3px;"
                                      "}"
                                      "QSlider::handle:horizontal {"
-                                     "    background: #00BFFF;"
-                                     "    border: 1px solid #00BFFF;"
+                                     "    background: #00FF00;"
+                                     "    border: 1px solid #00FF00;"
                                      "    width: 14px;"
                                      "    margin: -4px 0;"
                                      "    border-radius: 7px;"
                                      "}"
                                      "QSlider::sub-page:horizontal {"
-                                     "    background: #00BFFF;"
+                                     "    background: #00FF00;"
                                      "    border-radius: 3px;"
                                      "}");
     layout->addWidget(m_subVolumeSlider);

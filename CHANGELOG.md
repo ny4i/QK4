@@ -7,6 +7,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **TX Multifunction Meter Widget**: IC-7760 style horizontal bar meters displayed below VFO section
+  - Po (Power): 0-100W with QRP mode support
+  - ALC: 0-10 bars
+  - COMP: 0-25 dB compression
+  - SWR: 1.0-3.0+ ratio with infinity symbol
+  - Id (PA Drain Current): 0-25A calculated from power and voltage
 - **TLS/PSK Encrypted Connection**: Secure connection option using TLS v1.2 with Pre-Shared Key authentication
   - Port 9204 for encrypted connections (alternative to unencrypted port 9205)
   - "Use TLS (Encrypted)" checkbox in Server Manager dialog
@@ -36,10 +42,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Span increment sequence**: Now follows K4 radio pattern - 1kHz increments from 5-144kHz, 4kHz increments from 144-368kHz
 - **Mini-pan passband rendering**: Fixed CW mode passband positioning and filter overlay display after QRhi/Metal migration
 
+### Changed
+- **Volume slider colors**: Updated for visual consistency
+  - MAIN slider: Cyan (#00BFFF) - matches Main RX theme
+  - SUB slider: Green (#00FF00) - matches Sub RX indicators
+
 ### Added
 - **Dual-channel audio mixing**: Main RX (VFO A) and Sub RX (VFO B) audio now independently controllable
-  - MAIN volume slider (amber) controls left channel (Main RX)
-  - SUB volume slider (cyan) controls right channel (Sub RX)
+  - MAIN volume slider controls left channel (Main RX)
+  - SUB volume slider controls right channel (Sub RX)
   - Both sliders persist values between sessions
 - **SUB/DIVERSITY buttons**: Right panel SUB button now functional
   - Left-click: Toggle Sub Receiver (SW83)

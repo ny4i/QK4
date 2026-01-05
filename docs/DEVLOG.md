@@ -2,6 +2,56 @@
 
 ## January 4, 2026
 
+### Feature: TX Multifunction Meter Widget (IC-7760 Style)
+
+**Summary:** Added a multifunction TX meter widget displaying 5 horizontal bar meters below the VFO section, inspired by the IC-7760 design.
+
+**Meters Displayed:**
+- **Po (Power):** 0-100W (QRO) or 0-10W (QRP) - from TM command
+- **ALC:** 0-10 bars - from TM command
+- **COMP:** 0-25 dB compression - from TM command
+- **SWR:** 1.0-3.0+ ratio - from TM command
+- **Id (PA Drain Current):** 0-25A - calculated from power/voltage
+
+**PA Current Calculation:**
+The K4's SIFP command provides DC input current (IS:), not PA drain current. The Id meter value is calculated:
+```cpp
+Id = ForwardPower / (SupplyVoltage × 0.34)
+```
+- Efficiency factor of 0.34 (34%) derived from measurements: 80W @ 17A @ 13.8V
+- Example: 100W / (13.8V × 0.34) = 21.3A ✓
+
+**Visual Design:**
+- Dark background (#0d0d0d) with dark red meter bars (#8B0000)
+- Label boxes on left (Po, ALC, COMP, SWR, Id)
+- Scale labels below each meter bar
+- Fixed height 95px, width 200-380px
+
+**Key Implementation Detail:**
+- `setAttribute(Qt::WA_OpaquePaintEvent)` required for proper custom painting
+
+**Files Created:**
+- `src/ui/txmeterwidget.h` - Widget class declaration
+- `src/ui/txmeterwidget.cpp` - Painting and meter logic
+
+**Files Modified:**
+- `src/mainwindow.h` - Added TxMeterWidget members
+- `src/mainwindow.cpp` - Created widgets, connected TM signal, PA current calculation
+- `CMakeLists.txt` - Added new source files
+
+---
+
+### UI: Volume Slider Color Update
+
+**Change:** Updated MAIN and SUB volume slider colors for consistency:
+- **MAIN slider:** Cyan (#00BFFF) - matches VFO B color scheme
+- **SUB slider:** Green (#00FF00) - matches Sub RX indicators
+
+**Files Modified:**
+- `src/ui/sidecontrolpanel.cpp` - Updated slider and label stylesheets
+
+---
+
 ### Fix: Spectrum dBm Calibration and Scale Support
 
 **Issue:** Spectrum display showed signals at incorrect dBm levels compared to the K4's physical display, and the display range wasn't tracking the K4's ref level and scale settings.

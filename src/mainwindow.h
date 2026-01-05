@@ -28,6 +28,7 @@ class ButtonRowPopup;
 class DisplayPopupWidget;
 class FeatureMenuBar;
 class KpodDevice;
+class TxMeterWidget;
 class KPA1500Client;
 
 class MainWindow : public QMainWindow {
@@ -150,6 +151,10 @@ private:
     // VFO widgets (modular, reusable components)
     VFOWidget *m_vfoA;
     VFOWidget *m_vfoB;
+
+    // TX Meters (multifunction meters for TX - positioned left or right based on split)
+    TxMeterWidget *m_txMeterA; // Left side (VFO A TX)
+    TxMeterWidget *m_txMeterB; // Right side (VFO B TX)
 
     // Mode labels (in center section, not in VFOWidget)
     QLabel *m_modeALabel;
