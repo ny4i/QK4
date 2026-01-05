@@ -290,18 +290,25 @@ void ControlGroupWidget::mousePressEvent(QMouseEvent *event) {
 
 namespace {
 const int ToggleGroupHeight = 32;
-const int TogglePadding = 6;
-const int AmpWidth = 32;            // Generous width for clickable & area
+const int TogglePadding = 4;
 const int ToggleTriangleWidth = 10; // Triangle pointing to next element
+const int ToggleButtonSpacing = 2;  // Gap between buttons
 } // namespace
 
 ToggleGroupWidget::ToggleGroupWidget(const QString &leftLabel, const QString &rightLabel, QWidget *parent)
-    : QWidget(parent), m_leftLabel(leftLabel), m_rightLabel(rightLabel) {
-    // Calculate width based on labels - generous spacing for readability
+    : QWidget(parent), m_leftLabel(leftLabel), m_rightLabel(rightLabel), m_leftSelected(true), m_rightSelected(false),
+      m_rightEnabled(true) {
+    // Calculate equal width for all three buttons (left, &, right)
     QFontMetrics fm(font());
-    int leftWidth = fm.horizontalAdvance(leftLabel) + 24;
-    int rightWidth = fm.horizontalAdvance(rightLabel) + 24;
-    int totalWidth = leftWidth + AmpWidth + rightWidth + TogglePadding * 2 + ToggleTriangleWidth;
+    int leftTextWidth = fm.horizontalAdvance(leftLabel) + 16;
+    int rightTextWidth = fm.horizontalAdvance(rightLabel) + 16;
+    int ampTextWidth = fm.horizontalAdvance("&") + 16;
+
+    // Use the maximum width for all three buttons
+    int buttonWidth = qMax(qMax(leftTextWidth, rightTextWidth), ampTextWidth);
+    buttonWidth = qMax(buttonWidth, 36); // Minimum button width
+
+    int totalWidth = buttonWidth * 3 + ToggleButtonSpacing * 2 + TogglePadding * 2 + ToggleTriangleWidth;
 
     setFixedSize(totalWidth, ToggleGroupHeight);
     setCursor(Qt::PointingHandCursor);
@@ -333,16 +340,19 @@ void ToggleGroupWidget::paintEvent(QPaintEvent *event) {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
-    QFontMetrics fm(font());
-    int leftWidth = fm.horizontalAdvance(m_leftLabel) + 24;
-    int rightWidth = fm.horizontalAdvance(m_rightLabel) + 24;
-
-    // Calculate zones (excluding triangle area on right)
+    // Calculate equal button width for all three buttons
     int mainWidth = width() - ToggleTriangleWidth;
-    m_leftRect = QRect(TogglePadding, 2, leftWidth, height() - 4);
-    int ampX = m_leftRect.right();
-    m_ampRect = QRect(ampX, 2, AmpWidth, height() - 4);
-    m_rightRect = QRect(ampX + AmpWidth, 2, rightWidth, height() - 4);
+    int availableWidth = mainWidth - TogglePadding * 2 - ToggleButtonSpacing * 2;
+    int buttonWidth = availableWidth / 3;
+    int buttonHeight = height() - 6;
+
+    // Calculate button rectangles with equal widths
+    int x = TogglePadding;
+    m_leftRect = QRect(x, 3, buttonWidth, buttonHeight);
+    x += buttonWidth + ToggleButtonSpacing;
+    m_ampRect = QRect(x, 3, buttonWidth, buttonHeight);
+    x += buttonWidth + ToggleButtonSpacing;
+    m_rightRect = QRect(x, 3, buttonWidth, buttonHeight);
 
     // Draw container background with gradient
     QLinearGradient grad(0, 0, 0, height());
@@ -379,64 +389,52 @@ void ToggleGroupWidget::paintEvent(QPaintEvent *event) {
     painter.setPen(QPen(QColor(96, 96, 96), 1));
     painter.drawPath(containerPath);
 
-    // Draw left toggle area
+    // Draw individual button backgrounds with rounded corners and borders
     QFont labelFont = font();
     labelFont.setPixelSize(11);
     labelFont.setBold(true);
-    painter.setFont(labelFont);
 
-    if (m_leftSelected) {
-        // Selected: white background, grey text
-        painter.fillRect(m_leftRect, Qt::white);
-        painter.setPen(QColor(0x66, 0x66, 0x66));
-    } else {
-        // Unselected: no fill, white text
-        painter.setPen(Qt::white);
-    }
-    painter.drawText(m_leftRect, Qt::AlignCenter, m_leftLabel);
+    auto drawButton = [&](const QRect &rect, bool selected, bool enabled, const QString &text) {
+        QPainterPath buttonPath;
+        buttonPath.addRoundedRect(rect, 4, 4);
 
-    // Draw vertical demarcation line before &
-    painter.setPen(QPen(QColor(96, 96, 96), 1));
-    painter.drawLine(ampX, 4, ampX, height() - 4);
+        // qDebug() << "drawButton:" << text << "selected=" << selected << "enabled=" << enabled;
 
-    // Highlight & area if both are selected
-    if (m_leftSelected && m_rightSelected) {
-        painter.fillRect(m_ampRect, Qt::white);
-    }
-
-    // Draw & separator with larger font
-    QFont ampFont = font();
-    ampFont.setPixelSize(16);
-    ampFont.setBold(true);
-    painter.setFont(ampFont);
-    if (m_leftSelected && m_rightSelected) {
-        painter.setPen(QColor(0x66, 0x66, 0x66)); // Grey text on white bg
-    } else {
-        painter.setPen(QColor(0xAA, 0xAA, 0xAA)); // Light grey text
-    }
-    painter.drawText(m_ampRect, Qt::AlignCenter, "&");
-
-    // Draw vertical demarcation line after &
-    painter.setPen(QPen(QColor(96, 96, 96), 1));
-    painter.drawLine(ampX + AmpWidth, 4, ampX + AmpWidth, height() - 4);
-
-    // Draw right toggle area
-    if (m_rightEnabled) {
-        if (m_rightSelected) {
-            // Selected: white background, grey text
-            painter.fillRect(m_rightRect, Qt::white);
-            painter.setPen(QColor(0x66, 0x66, 0x66));
+        if (selected) {
+            // Selected: light grey gradient (matches BandPopupWidget selected style)
+            QLinearGradient selGrad(rect.topLeft(), rect.bottomLeft());
+            selGrad.setColorAt(0, QColor(0xE0, 0xE0, 0xE0));
+            selGrad.setColorAt(0.4, QColor(0xD0, 0xD0, 0xD0));
+            selGrad.setColorAt(0.6, QColor(0xC8, 0xC8, 0xC8));
+            selGrad.setColorAt(1, QColor(0xB8, 0xB8, 0xB8));
+            painter.setBrush(selGrad);
+            painter.setPen(QPen(QColor(0xAA, 0xAA, 0xAA), 1));
+            painter.drawPath(buttonPath);
+            painter.setPen(QColor(0x33, 0x33, 0x33));
         } else {
-            // Unselected: no fill, white text
-            painter.setPen(Qt::white);
+            // Unselected: subtle gradient with light border
+            QLinearGradient btnGrad(rect.topLeft(), rect.bottomLeft());
+            btnGrad.setColorAt(0, QColor(58, 58, 58));
+            btnGrad.setColorAt(1, QColor(42, 42, 42));
+            painter.setBrush(btnGrad);
+            painter.setPen(QPen(QColor(136, 136, 136), 1));
+            painter.drawPath(buttonPath);
+            painter.setPen(enabled ? Qt::white : QColor(0x66, 0x66, 0x66));
         }
-    } else {
-        // Disabled: dim grey text
-        painter.setPen(QColor(0x66, 0x66, 0x66));
-    }
-    labelFont.setPixelSize(11);
-    painter.setFont(labelFont);
-    painter.drawText(m_rightRect, Qt::AlignCenter, m_rightLabel);
+
+        painter.setFont(labelFont);
+        painter.drawText(rect, Qt::AlignCenter, text);
+    };
+
+    // Draw left button (always enabled)
+    drawButton(m_leftRect, m_leftSelected, true, m_leftLabel);
+
+    // Draw & button (selected when both left and right are selected)
+    bool ampSelected = m_leftSelected && m_rightSelected;
+    drawButton(m_ampRect, ampSelected, m_rightEnabled, "&");
+
+    // Draw right button
+    drawButton(m_rightRect, m_rightSelected, m_rightEnabled, m_rightLabel);
 }
 
 void ToggleGroupWidget::mousePressEvent(QMouseEvent *event) {
@@ -569,12 +567,14 @@ void DisplayPopupWidget::setupTopRow() {
     m_refLevelControlPage = createRefLevelControlPage();
     m_averageControlPage = createAverageControlPage();
     m_nbControlPage = createNbControlPage();
+    m_waterfallControlPage = createWaterfallControlPage();
     m_defaultControlPage = createDefaultControlPage();
 
     m_controlStack->addWidget(m_spanControlPage);
     m_controlStack->addWidget(m_refLevelControlPage);
     m_controlStack->addWidget(m_averageControlPage);
     m_controlStack->addWidget(m_nbControlPage);
+    m_controlStack->addWidget(m_waterfallControlPage);
     m_controlStack->addWidget(m_defaultControlPage);
 
     // Default to SPAN page
@@ -698,6 +698,32 @@ void DisplayPopupWidget::updateNbControlGroupValue() {
     }
 }
 
+QWidget *DisplayPopupWidget::createWaterfallControlPage() {
+    auto *page = new QWidget(this);
+    auto *layout = new QHBoxLayout(page);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(0);
+
+    m_waterfallControlGroup = new ControlGroupWidget("WTRFALL", page);
+    updateWaterfallControlGroup();
+    // Just emit signals - MainWindow handles CAT commands and state updates
+    connect(m_waterfallControlGroup, &ControlGroupWidget::decrementClicked, this,
+            &DisplayPopupWidget::waterfallHeightDecrementRequested);
+    connect(m_waterfallControlGroup, &ControlGroupWidget::incrementClicked, this,
+            &DisplayPopupWidget::waterfallHeightIncrementRequested);
+    layout->addWidget(m_waterfallControlGroup);
+
+    return page;
+}
+
+void DisplayPopupWidget::updateWaterfallControlGroup() {
+    if (m_waterfallControlGroup) {
+        // Show percentage based on LCD/EXT selection
+        int height = (m_extEnabled && !m_lcdEnabled) ? m_waterfallHeightExt : m_waterfallHeight;
+        m_waterfallControlGroup->setValue(QString("%1%").arg(height));
+    }
+}
+
 QWidget *DisplayPopupWidget::createDefaultControlPage() {
     auto *page = new QWidget(this);
     auto *layout = new QHBoxLayout(page);
@@ -816,25 +842,8 @@ void DisplayPopupWidget::onMenuItemClicked(MenuItem item) {
         // Toggle NB - handled elsewhere via existing NB command
         emit catCommandRequested("NB;");
         break;
-    case AveragePeak: {
-        // Cycle averaging: 1 → 5 → 10 → 15 → 20 → 1
-        static const int avgSteps[] = {1, 5, 10, 15, 20};
-        int idx = 0;
-        for (int i = 0; i < 5; ++i) {
-            if (m_averaging == avgSteps[i]) {
-                idx = (i + 1) % 5;
-                break;
-            }
-        }
-        int newAvg = avgSteps[idx];
-        if (m_lcdEnabled) {
-            emit catCommandRequested(QString("#AVG%1;").arg(newAvg, 2, 10, QChar('0')));
-        }
-        if (m_extEnabled) {
-            emit catCommandRequested(QString("#HAVG%1;").arg(newAvg, 2, 10, QChar('0')));
-        }
-        break;
-    }
+    // Note: AveragePeak only shows control page (first switch) - no CAT command on click
+    // The +/- buttons in the control page handle averaging changes via averagingIncrement/DecrementRequested signals
     case FixedFreeze: {
         // Cycle through 6 fixed tune modes: SLIDE1 → SLIDE2 → FIXED1 → FIXED2 → STATIC → TRACK → SLIDE1
         // Internal state: 0=TRACK, 1=SLIDE1, 2=SLIDE2, 3=FIXED1, 4=FIXED2, 5=STATIC
@@ -892,30 +901,14 @@ void DisplayPopupWidget::onMenuItemRightClicked(MenuItem item) {
     // Handle right-click (alternate action) for each menu item
     switch (item) {
     case PanWaterfall: {
-        // Cycle display mode: 0 (spectrum) ↔ 1 (spectrum+waterfall)
-        int currentMode = (m_extEnabled && !m_lcdEnabled) ? m_displayModeExt : m_displayModeLcd;
-        int newMode = currentMode == 0 ? 1 : 0;
-        if (m_lcdEnabled) {
-            emit catCommandRequested(QString("#DSM%1;").arg(newMode));
-        }
-        if (m_extEnabled) {
-            emit catCommandRequested(QString("#HDSM%1;").arg(newMode));
-        }
+        // Show WATERFALL height control page (right-click = WTRFALL)
+        m_selectedItem = PanWaterfall;
+        updateMenuButtonStyles();
+        m_controlStack->setCurrentWidget(m_waterfallControlPage);
+        updateWaterfallControlGroup();
         break;
     }
-    case NbWtrClrs: {
-        // Cycle waterfall color: 0 → 1 → 2 → 3 → 4 → 0
-        int newColor = (m_waterfallColor + 1) % 5;
-        // Use $ suffix for VFO B if selected
-        QString suffix = m_vfoBEnabled && !m_vfoAEnabled ? "$" : "";
-        if (m_lcdEnabled) {
-            emit catCommandRequested(QString("#WFC%1%2;").arg(suffix).arg(newColor));
-        }
-        if (m_extEnabled) {
-            emit catCommandRequested(QString("#HWFC%1%2;").arg(suffix).arg(newColor));
-        }
-        break;
-    }
+    // NbWtrClrs right-click: waterfall color cycling removed (not needed)
     case RefLvlScale:
         // Toggle auto-ref
         emit catCommandRequested("#AR/;");
@@ -933,6 +926,8 @@ void DisplayPopupWidget::onMenuItemRightClicked(MenuItem item) {
     case FixedFreeze: {
         // Toggle freeze
         int newFreeze = m_freeze > 0 ? 0 : 1;
+        m_freeze = newFreeze;     // Optimistic update
+        updateMenuButtonLabels(); // Update button text to FREEZE/FROZEN
         emit catCommandRequested(QString("#FRZ%1;").arg(newFreeze));
         break;
     }
@@ -970,25 +965,38 @@ void DisplayPopupWidget::showAboveButton(QWidget *triggerButton) {
     if (!triggerButton)
         return;
 
-    // Get the trigger button's global position
+    // Get the button bar (parent of trigger button) for centering
+    QWidget *buttonBar = triggerButton->parentWidget();
+    if (!buttonBar)
+        buttonBar = triggerButton; // Fallback to button itself
+
+    // Get positions
+    QPoint barGlobal = buttonBar->mapToGlobal(QPoint(0, 0));
     QPoint btnGlobal = triggerButton->mapToGlobal(QPoint(0, 0));
+    int barCenterX = barGlobal.x() + buttonBar->width() / 2;
     int btnCenterX = btnGlobal.x() + triggerButton->width() / 2;
 
-    // Calculate popup position (centered above button, with triangle pointing down)
-    int popupX = btnCenterX - width() / 2;
+    // Center popup above the button bar
+    int popupX = barCenterX - width() / 2;
     int popupY = btnGlobal.y() - height();
 
-    // Store offset for triangle drawing (relative to popup center)
-    m_triangleXOffset = 0;
+    // Calculate triangle offset to point at the trigger button
+    // Triangle position = button center relative to popup center
+    int popupCenterX = popupX + width() / 2;
+    m_triangleXOffset = btnCenterX - popupCenterX;
 
-    // Ensure popup stays on screen
+    // Ensure popup stays on screen (adjust position, recalculate triangle)
     QRect screenGeom = QApplication::primaryScreen()->availableGeometry();
     if (popupX < screenGeom.left()) {
-        m_triangleXOffset = popupX - screenGeom.left();
         popupX = screenGeom.left();
+        // Recalculate triangle offset with new popup position
+        popupCenterX = popupX + width() / 2;
+        m_triangleXOffset = btnCenterX - popupCenterX;
     } else if (popupX + width() > screenGeom.right()) {
-        m_triangleXOffset = (popupX + width()) - screenGeom.right();
         popupX = screenGeom.right() - width();
+        // Recalculate triangle offset with new popup position
+        popupCenterX = popupX + width() / 2;
+        m_triangleXOffset = btnCenterX - popupCenterX;
     }
 
     move(popupX, popupY);
@@ -1269,6 +1277,22 @@ void DisplayPopupWidget::setDdcNbLevel(int level) {
     }
 }
 
+void DisplayPopupWidget::setWaterfallHeight(int percent) {
+    // LCD waterfall height (#WFHxx;)
+    if (m_waterfallHeight != percent) {
+        m_waterfallHeight = percent;
+        updateWaterfallControlGroup();
+    }
+}
+
+void DisplayPopupWidget::setWaterfallHeightExt(int percent) {
+    // External HDMI waterfall height (#HWFHxx;)
+    if (m_waterfallHeightExt != percent) {
+        m_waterfallHeightExt = percent;
+        updateWaterfallControlGroup();
+    }
+}
+
 // ============================================================================
 // Button Label Updates
 // ============================================================================
@@ -1318,7 +1342,7 @@ void DisplayPopupWidget::updateMenuButtonLabels() {
     if (m_fixedTuneMode >= 0 && m_fixedTuneMode <= 5) {
         m_menuButtons[5]->setPrimaryText(fixedModeNames[m_fixedTuneMode]);
     }
-    m_menuButtons[5]->setAlternateText(m_freeze > 0 ? "FREEZE" : "RUN");
+    m_menuButtons[5]->setAlternateText(m_freeze > 0 ? "FROZEN" : "FREEZE");
 
     // CursAB button (index 6)
     // OFF=hide, ON=show, AUTO=show, HIDE=hide

@@ -53,6 +53,10 @@ public slots:
     void setDdcNbMode(int mode);   // 0=OFF, 1=ON, 2=AUTO
     void setDdcNbLevel(int level); // 0-14
 
+    // Waterfall height percentage (0-100, default 50 = 50/50 split)
+    void setWaterfallHeight(int percent);    // LCD: #WFHxx;
+    void setWaterfallHeightExt(int percent); // EXT: #HWFHxx;
+
 signals:
     void closed();
 
@@ -83,6 +87,10 @@ signals:
     void nbLevelIncrementRequested();
     void nbLevelDecrementRequested();
 
+    // Waterfall height control signals
+    void waterfallHeightIncrementRequested();
+    void waterfallHeightDecrementRequested();
+
     // CAT command signal (for MainWindow to forward to TcpClient)
     void catCommandRequested(const QString &cmd);
 
@@ -105,8 +113,10 @@ private:
     QWidget *createRefLevelControlPage();
     QWidget *createAverageControlPage();
     QWidget *createNbControlPage();
+    QWidget *createWaterfallControlPage();
     QWidget *createDefaultControlPage();
     void updateNbControlGroupValue();
+    void updateWaterfallControlGroup();
 
     void updateToggleStyles();
     void updateMenuButtonStyles();
@@ -145,6 +155,10 @@ private:
 
     // DDC NB controls
     ControlGroupWidget *m_nbControlGroup;
+
+    // Waterfall height controls
+    QWidget *m_waterfallControlPage;
+    ControlGroupWidget *m_waterfallControlGroup;
 
     // Menu buttons
     QList<DisplayMenuButton *> m_menuButtons;
@@ -191,6 +205,11 @@ private:
     // DDC NB state (#NB$ and #NBL$ commands)
     int m_ddcNbMode = -1;  // 0=OFF, 1=ON, 2=AUTO
     int m_ddcNbLevel = -1; // 0-14
+
+    // Waterfall height state (#WFHxx and #HWFHxx commands)
+    // Global setting - applies to both VFO A and B
+    int m_waterfallHeight = 50;    // LCD: 0-100% (default 50%)
+    int m_waterfallHeightExt = 50; // EXT: 0-100% (default 50%)
 };
 
 // Helper class for dual-line menu buttons

@@ -4,6 +4,7 @@
 #include "ui/rightsidepanel.h"
 #include "ui/bottommenubar.h"
 #include "ui/featuremenubar.h"
+#include "ui/modepopupwidget.h"
 #include "ui/menuoverlay.h"
 #include "ui/bandpopupwidget.h"
 #include "ui/displaypopupwidget.h"
@@ -187,12 +188,18 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_radioState, &RadioState::modeChanged, this, [this](RadioState::Mode) {
         onVoxChanged(false); // Refresh VOX display when mode changes (VOX is mode-specific)
     });
+    // Data sub-mode changes also update mode label (AFSK, FSK, PSK, DATA)
+    connect(m_radioState, &RadioState::dataSubModeChanged, this,
+            [this](int) { m_modeALabel->setText(m_radioState->modeStringFull()); });
     connect(m_radioState, &RadioState::sMeterChanged, this, &MainWindow::onSMeterChanged);
     connect(m_radioState, &RadioState::filterBandwidthChanged, this, &MainWindow::onBandwidthChanged);
 
     // RadioState signals -> UI updates (VFO B)
     connect(m_radioState, &RadioState::frequencyBChanged, this, &MainWindow::onFrequencyBChanged);
     connect(m_radioState, &RadioState::modeBChanged, this, &MainWindow::onModeBChanged);
+    // Data sub-mode changes also update mode label (AFSK, FSK, PSK, DATA)
+    connect(m_radioState, &RadioState::dataSubModeBChanged, this,
+            [this](int) { m_modeBLabel->setText(m_radioState->modeStringFullB()); });
     connect(m_radioState, &RadioState::sMeterBChanged, this, &MainWindow::onSMeterBChanged);
     connect(m_radioState, &RadioState::filterBandwidthBChanged, this, &MainWindow::onBandwidthBChanged);
 
@@ -203,38 +210,37 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_radioState, &RadioState::swrChanged, this, &MainWindow::onSwrChanged);
 
     // TX Meter data -> update power displays and VFO TX meters during TX
-    connect(m_radioState, &RadioState::txMeterChanged, this,
-            [this](int alc, int comp, double fwdPower, double swr) {
-                // Update status bar power label
-                QString powerStr;
-                if (fwdPower < 10.0) {
-                    powerStr = QString("%1 W").arg(fwdPower, 0, 'f', 1);
-                } else {
-                    powerStr = QString("%1 W").arg(static_cast<int>(fwdPower));
-                }
-                m_powerLabel->setText(powerStr);
-                // Update side panel power reading
-                m_sideControlPanel->setPowerReading(fwdPower);
+    connect(m_radioState, &RadioState::txMeterChanged, this, [this](int alc, int comp, double fwdPower, double swr) {
+        // Update status bar power label
+        QString powerStr;
+        if (fwdPower < 10.0) {
+            powerStr = QString("%1 W").arg(fwdPower, 0, 'f', 1);
+        } else {
+            powerStr = QString("%1 W").arg(static_cast<int>(fwdPower));
+        }
+        m_powerLabel->setText(powerStr);
+        // Update side panel power reading
+        m_sideControlPanel->setPowerReading(fwdPower);
 
-                // Calculate PA drain current (Id) from forward power and supply voltage
-                // Formula: Id = ForwardPower / (Voltage × Efficiency)
-                // K4 PA efficiency is approximately 34% (measured: 80W @ 17A @ 13.8V)
-                double voltage = m_radioState->supplyVoltage();
-                double paCurrent = 0.0;
-                if (voltage > 0 && fwdPower > 0) {
-                    paCurrent = fwdPower / (voltage * 0.34);
-                }
+        // Calculate PA drain current (Id) from forward power and supply voltage
+        // Formula: Id = ForwardPower / (Voltage × Efficiency)
+        // K4 PA efficiency is approximately 34% (measured: 80W @ 17A @ 13.8V)
+        double voltage = m_radioState->supplyVoltage();
+        double paCurrent = 0.0;
+        if (voltage > 0 && fwdPower > 0) {
+            paCurrent = fwdPower / (voltage * 0.34);
+        }
 
-                // Update TX meter widget on the active TX VFO
-                // Split OFF: TX on VFO A, Split ON: TX on VFO B
-                if (m_radioState->splitEnabled()) {
-                    m_txMeterB->setTxMeters(alc, comp, fwdPower, swr);
-                    m_txMeterB->setCurrent(paCurrent);
-                } else {
-                    m_txMeterA->setTxMeters(alc, comp, fwdPower, swr);
-                    m_txMeterA->setCurrent(paCurrent);
-                }
-            });
+        // Update TX meter widget on the active TX VFO
+        // Split OFF: TX on VFO A, Split ON: TX on VFO B
+        if (m_radioState->splitEnabled()) {
+            m_txMeterB->setTxMeters(alc, comp, fwdPower, swr);
+            m_txMeterB->setCurrent(paCurrent);
+        } else {
+            m_txMeterA->setTxMeters(alc, comp, fwdPower, swr);
+            m_txMeterA->setCurrent(paCurrent);
+        }
+    });
 
     // TX state changes -> show/hide TX meter on correct side
     // TODO: Enable when TX meter placement is finalized
@@ -348,6 +354,12 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_radioState, &RadioState::spanChanged, this, [this](int spanHz) { m_panadapterA->setSpan(spanHz); });
     connect(m_radioState, &RadioState::spanBChanged, this, [this](int spanHz) { m_panadapterB->setSpan(spanHz); });
 
+    // RadioState waterfall height -> Panadapter (global setting applies to both)
+    connect(m_radioState, &RadioState::waterfallHeightChanged, this, [this](int percent) {
+        m_panadapterA->setWaterfallHeight(percent);
+        m_panadapterB->setWaterfallHeight(percent);
+    });
+
     // RadioState display state -> DisplayPopup (for button face updates)
     // Separate LCD and EXT signals
     connect(m_radioState, &RadioState::dualPanModeLcdChanged, m_displayPopup, &DisplayPopupWidget::setDualPanModeLcd);
@@ -386,6 +398,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_radioState, &RadioState::autoRefLevelChanged, m_displayPopup, &DisplayPopupWidget::setAutoRefLevel);
     connect(m_radioState, &RadioState::ddcNbModeChanged, m_displayPopup, &DisplayPopupWidget::setDdcNbMode);
     connect(m_radioState, &RadioState::ddcNbLevelChanged, m_displayPopup, &DisplayPopupWidget::setDdcNbLevel);
+    connect(m_radioState, &RadioState::waterfallHeightChanged, m_displayPopup, &DisplayPopupWidget::setWaterfallHeight);
+    connect(m_radioState, &RadioState::waterfallHeightExtChanged, m_displayPopup,
+            &DisplayPopupWidget::setWaterfallHeightExt);
     // Also update span/ref values in popup
     connect(m_radioState, &RadioState::spanChanged, this, [this](int spanHz) {
         m_displayPopup->setSpanValueA(spanHz / 1000.0); // Hz to kHz
@@ -396,37 +411,17 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_radioState, &RadioState::refLevelChanged, m_displayPopup, &DisplayPopupWidget::setRefLevelValueA);
     connect(m_radioState, &RadioState::refLevelBChanged, m_displayPopup, &DisplayPopupWidget::setRefLevelValueB);
 
-    // Averaging control +/- -> CAT commands
+    // Averaging control +/- -> CAT commands (range 1-20, step by 1)
     connect(m_displayPopup, &DisplayPopupWidget::averagingIncrementRequested, this, [this]() {
-        // Cycle up: 1->5->10->15->20
         int current = m_radioState->averaging();
-        int next = current;
-        if (current < 5)
-            next = 5;
-        else if (current < 10)
-            next = 10;
-        else if (current < 15)
-            next = 15;
-        else if (current < 20)
-            next = 20;
-        else
-            next = 20; // Already at max
+        int next = qMin(current + 1, 20);
+        m_radioState->setAveraging(next); // Optimistic update
         m_tcpClient->sendCAT(QString("#AVG%1;").arg(next, 2, 10, QChar('0')));
     });
     connect(m_displayPopup, &DisplayPopupWidget::averagingDecrementRequested, this, [this]() {
-        // Cycle down: 20->15->10->5->1
         int current = m_radioState->averaging();
-        int next = current;
-        if (current > 15)
-            next = 15;
-        else if (current > 10)
-            next = 10;
-        else if (current > 5)
-            next = 5;
-        else if (current > 1)
-            next = 1;
-        else
-            next = 1; // Already at min
+        int next = qMax(current - 1, 1);
+        m_radioState->setAveraging(next); // Optimistic update
         m_tcpClient->sendCAT(QString("#AVG%1;").arg(next, 2, 10, QChar('0')));
     });
 
@@ -440,6 +435,45 @@ MainWindow::MainWindow(QWidget *parent)
         int current = m_radioState->ddcNbLevel();
         int next = qMax(current - 1, 0);
         m_tcpClient->sendCAT(QString("#NBL$%1;").arg(next, 2, 10, QChar('0')));
+    });
+
+    // Waterfall height control +/- -> CAT commands (respects LCD/EXT selection)
+    // LCD controls our app's panadapter, EXT is just for external HDMI display
+    connect(m_displayPopup, &DisplayPopupWidget::waterfallHeightIncrementRequested, this, [this]() {
+        bool isExt = m_displayPopup->isExtEnabled() && !m_displayPopup->isLcdEnabled();
+        int current = isExt ? m_radioState->waterfallHeightExt() : m_radioState->waterfallHeight();
+        int next = qMin(current + 1, 90); // 1% steps, max 90%
+        QString cmd =
+            isExt ? QString("#HWFH%1;").arg(next, 2, 10, QChar('0')) : QString("#WFH%1;").arg(next, 2, 10, QChar('0'));
+        m_tcpClient->sendCAT(cmd);
+        // Optimistically update RadioState and UI (K4 may not echo this command)
+        if (!isExt) {
+            m_radioState->setWaterfallHeight(next);
+            m_panadapterA->setWaterfallHeight(next);
+            m_panadapterB->setWaterfallHeight(next);
+            m_displayPopup->setWaterfallHeight(next);
+        } else {
+            m_radioState->setWaterfallHeightExt(next);
+            m_displayPopup->setWaterfallHeightExt(next);
+        }
+    });
+    connect(m_displayPopup, &DisplayPopupWidget::waterfallHeightDecrementRequested, this, [this]() {
+        bool isExt = m_displayPopup->isExtEnabled() && !m_displayPopup->isLcdEnabled();
+        int current = isExt ? m_radioState->waterfallHeightExt() : m_radioState->waterfallHeight();
+        int next = qMax(current - 1, 10); // 1% steps, min 10%
+        QString cmd =
+            isExt ? QString("#HWFH%1;").arg(next, 2, 10, QChar('0')) : QString("#WFH%1;").arg(next, 2, 10, QChar('0'));
+        m_tcpClient->sendCAT(cmd);
+        // Optimistically update RadioState and UI (K4 may not echo this command)
+        if (!isExt) {
+            m_radioState->setWaterfallHeight(next);
+            m_panadapterA->setWaterfallHeight(next);
+            m_panadapterB->setWaterfallHeight(next);
+            m_displayPopup->setWaterfallHeight(next);
+        } else {
+            m_radioState->setWaterfallHeightExt(next);
+            m_displayPopup->setWaterfallHeightExt(next);
+        }
     });
 
     // Span control from display popup -> CAT commands (respects A/B selection)
@@ -625,10 +659,8 @@ void MainWindow::setupUi() {
 
     mainLayout->addWidget(middleWidget, 1);
 
-    // Feature Menu Bar (hidden by default, shown when alternate actions triggered)
-    m_featureMenuBar = new FeatureMenuBar(centralWidget);
-    mainLayout->addWidget(m_featureMenuBar);
-    connect(m_featureMenuBar, &FeatureMenuBar::closeRequested, m_featureMenuBar, &FeatureMenuBar::hideMenu);
+    // Feature Menu Bar (popup, positioned above bottom menu bar when shown)
+    m_featureMenuBar = new FeatureMenuBar(this);
 
     // Feature Menu Bar CAT commands - send appropriate command based on current feature
     connect(m_featureMenuBar, &FeatureMenuBar::toggleRequested, this, [this]() {
@@ -869,6 +901,46 @@ void MainWindow::setupUi() {
     // Also update when B SET changes to refresh display with correct VFO's state
     connect(m_radioState, &RadioState::bSetChanged, this, updateFeatureMenuBarState);
 
+    // Mode Popup Widget (popup, positioned above bottom menu bar when shown)
+    m_modePopup = new ModePopupWidget(this);
+    connect(m_modePopup, &ModePopupWidget::modeSelected, this,
+            [this](const QString &catCmd) { m_tcpClient->sendCAT(catCmd); });
+    // Update mode popup when mode changes - use A or B based on B SET state
+    connect(m_radioState, &RadioState::modeChanged, this, [this](RadioState::Mode mode) {
+        if (!m_radioState->bSetEnabled()) {
+            m_modePopup->setCurrentMode(static_cast<int>(mode));
+        }
+    });
+    connect(m_radioState, &RadioState::modeBChanged, this, [this](RadioState::Mode mode) {
+        if (m_radioState->bSetEnabled()) {
+            m_modePopup->setCurrentMode(static_cast<int>(mode));
+        }
+    });
+    connect(m_radioState, &RadioState::dataSubModeChanged, this, [this](int subMode) {
+        if (!m_radioState->bSetEnabled()) {
+            m_modePopup->setCurrentDataSubMode(subMode);
+        }
+    });
+    connect(m_radioState, &RadioState::dataSubModeBChanged, this, [this](int subMode) {
+        if (m_radioState->bSetEnabled()) {
+            m_modePopup->setCurrentDataSubMode(subMode);
+        }
+    });
+    // Update B SET state for mode popup - also refresh mode/submode/frequency display
+    connect(m_radioState, &RadioState::bSetChanged, this, [this](bool enabled) {
+        m_modePopup->setBSetEnabled(enabled);
+        // Update displayed mode and frequency to match the new target VFO
+        if (enabled) {
+            m_modePopup->setFrequency(m_radioState->vfoB());
+            m_modePopup->setCurrentMode(static_cast<int>(m_radioState->modeB()));
+            m_modePopup->setCurrentDataSubMode(m_radioState->dataSubModeB());
+        } else {
+            m_modePopup->setFrequency(m_radioState->vfoA());
+            m_modePopup->setCurrentMode(static_cast<int>(m_radioState->mode()));
+            m_modePopup->setCurrentDataSubMode(m_radioState->dataSubMode());
+        }
+    });
+
     // B SET indicator visibility and side panel indicator color
     connect(m_radioState, &RadioState::bSetChanged, this, [this](bool enabled) {
         qDebug() << "B SET changed:" << enabled;
@@ -1076,7 +1148,26 @@ void MainWindow::setupUi() {
     // revClicked - TBD (needs press/release pattern)
     connect(m_rightSidePanel, &RightSidePanel::atobClicked, this, [this]() { m_tcpClient->sendCAT("SW72;"); });
     connect(m_rightSidePanel, &RightSidePanel::spotClicked, this, [this]() { m_tcpClient->sendCAT("SW42;"); });
-    connect(m_rightSidePanel, &RightSidePanel::modeClicked, this, [this]() { m_tcpClient->sendCAT("SW43;"); });
+    connect(m_rightSidePanel, &RightSidePanel::modeClicked, this, [this]() {
+        // Toggle mode popup - if open, close it; otherwise show it
+        if (m_modePopup->isVisible()) {
+            m_modePopup->hidePopup();
+        } else {
+            // Update current state before showing - use A or B based on B SET
+            bool bSet = m_radioState->bSetEnabled();
+            if (bSet) {
+                m_modePopup->setFrequency(m_radioState->vfoB());
+                m_modePopup->setCurrentMode(static_cast<int>(m_radioState->modeB()));
+                m_modePopup->setCurrentDataSubMode(m_radioState->dataSubModeB());
+            } else {
+                m_modePopup->setFrequency(m_radioState->vfoA());
+                m_modePopup->setCurrentMode(static_cast<int>(m_radioState->mode()));
+                m_modePopup->setCurrentDataSubMode(m_radioState->dataSubMode());
+            }
+            m_modePopup->setBSetEnabled(bSet);
+            m_modePopup->showAboveWidget(m_bottomMenuBar);
+        }
+    });
 
     // Secondary (right-click) signals - these show feature menus with toggle behavior
     // If same menu is open, close it; otherwise switch to the new menu
@@ -1084,7 +1175,6 @@ void MainWindow::setupUi() {
         if (m_featureMenuBar->isMenuVisible() && m_featureMenuBar->currentFeature() == feature) {
             m_featureMenuBar->hideMenu();
         } else {
-            m_featureMenuBar->showForFeature(feature);
             // Populate initial state from RadioState (use Sub RX state if B SET enabled)
             bool bSet = m_radioState->bSetEnabled();
             switch (feature) {
@@ -1128,6 +1218,9 @@ void MainWindow::setupUi() {
                 }
                 break;
             }
+            // Show popup positioned above the bottom menu bar (like other popups)
+            m_featureMenuBar->showForFeature(feature);
+            m_featureMenuBar->showAboveWidget(m_bottomMenuBar);
         }
     };
     connect(m_rightSidePanel, &RightSidePanel::attnClicked, this,
@@ -1142,6 +1235,7 @@ void MainWindow::setupUi() {
     connect(m_rightSidePanel, &RightSidePanel::splitClicked, this, [this]() { m_tcpClient->sendCAT("SW145;"); });
     connect(m_rightSidePanel, &RightSidePanel::btoaClicked, this, [this]() { m_tcpClient->sendCAT("SW147;"); });
     connect(m_rightSidePanel, &RightSidePanel::autoClicked, this, [this]() { m_tcpClient->sendCAT("SW146;"); });
+    // altClicked (MODE/ALT right-click) - send SW148 for ALT function
     connect(m_rightSidePanel, &RightSidePanel::altClicked, this, [this]() { m_tcpClient->sendCAT("SW148;"); });
 
     // PF row primary (left-click) signals
@@ -1312,15 +1406,19 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     m_vfoASquare = new QLabel("A", vfoAContainer);
     m_vfoASquare->setFixedSize(30, 30);
     m_vfoASquare->setAlignment(Qt::AlignCenter);
+    m_vfoASquare->setCursor(Qt::PointingHandCursor);
     m_vfoASquare->setStyleSheet(
         QString("background-color: %1; color: %2; font-size: 16px; font-weight: bold; border-radius: 4px;")
             .arg(K4Colors::VfoBCyan, K4Colors::DarkBackground));
+    m_vfoASquare->installEventFilter(this);
     vfoAColumn->addWidget(m_vfoASquare, 0, Qt::AlignHCenter);
 
     m_modeALabel = new QLabel("USB", vfoAContainer);
     m_modeALabel->setFixedWidth(45); // Wide enough for "DATA-R"
     m_modeALabel->setAlignment(Qt::AlignCenter);
+    m_modeALabel->setCursor(Qt::PointingHandCursor);
     m_modeALabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::TextWhite));
+    m_modeALabel->installEventFilter(this);
     vfoAColumn->addWidget(m_modeALabel, 0, Qt::AlignHCenter);
 
     txRow->addWidget(vfoAContainer);
@@ -1380,15 +1478,19 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     m_vfoBSquare = new QLabel("B", vfoBContainer);
     m_vfoBSquare->setFixedSize(30, 30);
     m_vfoBSquare->setAlignment(Qt::AlignCenter);
+    m_vfoBSquare->setCursor(Qt::PointingHandCursor);
     m_vfoBSquare->setStyleSheet(
         QString("background-color: %1; color: %2; font-size: 16px; font-weight: bold; border-radius: 4px;")
             .arg(K4Colors::AgcGreen, K4Colors::DarkBackground));
+    m_vfoBSquare->installEventFilter(this);
     vfoBColumn->addWidget(m_vfoBSquare, 0, Qt::AlignHCenter);
 
     m_modeBLabel = new QLabel("USB", vfoBContainer);
     m_modeBLabel->setFixedWidth(45); // Wide enough for "DATA-R"
     m_modeBLabel->setAlignment(Qt::AlignCenter);
+    m_modeBLabel->setCursor(Qt::PointingHandCursor);
     m_modeBLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::TextWhite));
+    m_modeBLabel->installEventFilter(this);
     vfoBColumn->addWidget(m_modeBLabel, 0, Qt::AlignHCenter);
 
     txRow->addWidget(vfoBContainer);
@@ -2005,11 +2107,15 @@ void MainWindow::onFrequencyBChanged(quint64 freq) {
 }
 
 void MainWindow::onModeChanged(RadioState::Mode mode) {
-    m_modeALabel->setText(RadioState::modeToString(mode));
+    Q_UNUSED(mode)
+    // Use full mode string which includes data sub-mode (AFSK, FSK, PSK, DATA)
+    m_modeALabel->setText(m_radioState->modeStringFull());
 }
 
 void MainWindow::onModeBChanged(RadioState::Mode mode) {
-    m_modeBLabel->setText(RadioState::modeToString(mode));
+    Q_UNUSED(mode)
+    // Use full mode string which includes data sub-mode (AFSK, FSK, PSK, DATA)
+    m_modeBLabel->setText(m_radioState->modeStringFullB());
 }
 
 void MainWindow::onSMeterChanged(double value) {
@@ -2343,6 +2449,36 @@ void MainWindow::onMicrophoneFrame(const QByteArray &s16leData) {
 }
 
 bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
+    // Handle clicks on VFO A square/mode label -> open mode popup for VFO A
+    if ((watched == m_vfoASquare || watched == m_modeALabel) && event->type() == QEvent::MouseButtonPress) {
+        // Toggle popup - close if open, otherwise show for VFO A
+        if (m_modePopup->isVisible()) {
+            m_modePopup->hidePopup();
+        } else {
+            m_modePopup->setFrequency(m_radioState->vfoA());
+            m_modePopup->setCurrentMode(static_cast<int>(m_radioState->mode()));
+            m_modePopup->setCurrentDataSubMode(m_radioState->dataSubMode());
+            m_modePopup->setBSetEnabled(false); // Commands target VFO A
+            m_modePopup->showAboveWidget(m_bottomMenuBar);
+        }
+        return true;
+    }
+
+    // Handle clicks on VFO B square/mode label -> open mode popup for VFO B
+    if ((watched == m_vfoBSquare || watched == m_modeBLabel) && event->type() == QEvent::MouseButtonPress) {
+        // Toggle popup - close if open, otherwise show for VFO B
+        if (m_modePopup->isVisible()) {
+            m_modePopup->hidePopup();
+        } else {
+            m_modePopup->setFrequency(m_radioState->vfoB());
+            m_modePopup->setCurrentMode(static_cast<int>(m_radioState->modeB()));
+            m_modePopup->setCurrentDataSubMode(m_radioState->dataSubModeB());
+            m_modePopup->setBSetEnabled(true); // Commands target VFO B (MD$, DT$)
+            m_modePopup->showAboveWidget(m_bottomMenuBar);
+        }
+        return true;
+    }
+
     // Reposition span control buttons and VFO indicator when panadapter A resizes
     if (watched == m_panadapterA && event->type() == QEvent::Resize) {
         QResizeEvent *resizeEvent = static_cast<QResizeEvent *>(event);

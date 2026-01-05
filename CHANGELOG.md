@@ -7,6 +7,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **S-Meter peak indicator**: White vertical line showing signal peaks with 500ms decay time
+- **Mode popup improvements**:
+  - Left-click on MODE button opens popup (was right-click)
+  - Clickable VFO A/B squares open mode popup targeting respective VFO
+  - SSB button defaults to band-appropriate sideband (LSB below 10MHz, USB at/above)
+- **VFO mode display**: Shows full mode with data sub-modes (AFSK, FSK, PSK, DATA)
 - **TX Multifunction Meter Widget**: IC-7760 style horizontal bar meters displayed below VFO section
   - Po (Power): 0-100W with QRP mode support
   - ALC: 0-10 bars
@@ -36,6 +42,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - dB scale labels update dynamically to match K4 display
 
 ### Fixed
+- **AVERAGE popup bug**: No longer sends CAT command when opening (was cycling value on click)
+- **AVERAGE increment**: Now steps by 1 (was jumping by 5) with optimistic UI update
+- **FREEZE toggle**: Button now updates label and can be toggled back (was stuck after first toggle)
 - **Spectrum dBm calibration**: Signal levels and display range now match K4 display. Calibrated decompression offset (-146) and display range formula (minDb=refLevel, maxDb=refLevel+scale) for accurate visual match.
 - **IF shift passband positioning**: K4 reports IF shift in decahertz (10 Hz units), not 0-99 index. Passband now correctly positions relative to dial marker when IF shift is adjusted.
 - **Span control behavior**: Reversed +/- button polarity (+ now increases span, - decreases) to match intuitive behavior
@@ -43,6 +52,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Mini-pan passband rendering**: Fixed CW mode passband positioning and filter overlay display after QRhi/Metal migration
 
 ### Changed
+- **S-Meter gradient**: Colors now transition earlier for better visibility at typical signal levels
+- **S-Meter labels**: Compact format (1,3,5,7,9,20,40,60) for 200px width constraint
+- **FREEZE button**: Label toggles between "FREEZE" and "FROZEN" (was "FREEZE"/"RUN")
+- **MENU overlay**: Removed circle (○) button and "A" label from right side
+- **Waterfall color cycling**: Removed #WFC command functionality from right-click
 - **Volume slider colors**: Updated for visual consistency
   - MAIN slider: Cyan (#00BFFF) - matches Main RX theme
   - SUB slider: Green (#00FF00) - matches Sub RX indicators

@@ -264,6 +264,13 @@ public:
     void setMiniPanAEnabled(bool enabled);
     void setMiniPanBEnabled(bool enabled);
 
+    // Waterfall height setters (for optimistic updates)
+    void setWaterfallHeight(int percent);
+    void setWaterfallHeightExt(int percent);
+
+    // Averaging setter (for optimistic updates)
+    void setAveraging(int value);
+
     // Display state (tracked via # prefixed display commands)
     // LCD/EXT getters - default to LCD for backwards compatibility
     int dualPanModeLcd() const { return m_dualPanModeLcd; }
@@ -271,6 +278,8 @@ public:
     int displayModeLcd() const { return m_displayModeLcd; }
     int displayModeExt() const { return m_displayModeExt; }
     int waterfallColor() const { return m_waterfallColor; }
+    int waterfallHeight() const { return m_waterfallHeight; }       // LCD: #WFHxx (0-100%)
+    int waterfallHeightExt() const { return m_waterfallHeightExt; } // EXT: #HWFHxx (0-100%)
     int averaging() const { return m_averaging; }
     bool peakMode() const { return m_peakMode > 0; }
     int fixedTune() const { return m_fixedTune; }         // #FXT: 0=track, 1=fixed
@@ -282,9 +291,18 @@ public:
     int ddcNbMode() const { return m_ddcNbMode; }   // #NB$: 0=off, 1=on, 2=auto
     int ddcNbLevel() const { return m_ddcNbLevel; } // #NBL$: 0-14
 
+    // Data sub-mode (DT command): 0=DATA-A, 1=AFSK-A, 2=FSK-D, 3=PSK-D
+    int dataSubMode() const { return m_dataSubMode; }
+    int dataSubModeB() const { return m_dataSubModeB; }
+
+    // Full mode string including data sub-mode (DATA-A, AFSK, FSK, PSK)
+    QString modeStringFull() const;  // Main RX mode with sub-mode
+    QString modeStringFullB() const; // Sub RX mode with sub-mode
+
     // Static helpers
     static Mode modeFromCode(int code);
     static QString modeToString(Mode mode);
+    static QString dataSubModeToString(int subMode); // 0=DATA, 1=AFSK, 2=FSK, 3=PSK
 
 signals:
     void frequencyChanged(quint64 freq);
@@ -343,20 +361,24 @@ signals:
     void miniPanBEnabledChanged(bool enabled); // Mini-Pan B state (#MP$ command)
 
     // Display state signals (separate LCD and EXT)
-    void dualPanModeLcdChanged(int mode);    // #DPM: LCD 0=A, 1=B, 2=Dual
-    void dualPanModeExtChanged(int mode);    // #HDPM: EXT 0=A, 1=B, 2=Dual
-    void displayModeLcdChanged(int mode);    // #DSM: LCD 0=spectrum, 1=spectrum+waterfall
-    void displayModeExtChanged(int mode);    // #HDSM: EXT 0=spectrum, 1=spectrum+waterfall
-    void waterfallColorChanged(int color);   // #WFC: 0-4
-    void averagingChanged(int value);        // #AVG: 1-20
-    void peakModeChanged(bool enabled);      // #PKM: 0/1
-    void fixedTuneChanged(int fxt, int fxa); // #FXT + #FXA combined
-    void freezeChanged(bool enabled);        // #FRZ: 0/1
-    void vfoACursorChanged(int mode);        // #VFA: 0-3
-    void vfoBCursorChanged(int mode);        // #VFB: 0-3
-    void autoRefLevelChanged(bool enabled);  // #AR: A/M (GLOBAL - affects both VFOs)
-    void ddcNbModeChanged(int mode);         // #NB$: 0=off, 1=on, 2=auto
-    void ddcNbLevelChanged(int level);       // #NBL$: 0-14
+    void dualPanModeLcdChanged(int mode);        // #DPM: LCD 0=A, 1=B, 2=Dual
+    void dualPanModeExtChanged(int mode);        // #HDPM: EXT 0=A, 1=B, 2=Dual
+    void displayModeLcdChanged(int mode);        // #DSM: LCD 0=spectrum, 1=spectrum+waterfall
+    void displayModeExtChanged(int mode);        // #HDSM: EXT 0=spectrum, 1=spectrum+waterfall
+    void waterfallColorChanged(int color);       // #WFC: 0-4
+    void waterfallHeightChanged(int percent);    // #WFHxx: LCD 0-100%
+    void waterfallHeightExtChanged(int percent); // #HWFHxx: EXT 0-100%
+    void averagingChanged(int value);            // #AVG: 1-20
+    void peakModeChanged(bool enabled);          // #PKM: 0/1
+    void fixedTuneChanged(int fxt, int fxa);     // #FXT + #FXA combined
+    void freezeChanged(bool enabled);            // #FRZ: 0/1
+    void vfoACursorChanged(int mode);            // #VFA: 0-3
+    void vfoBCursorChanged(int mode);            // #VFB: 0-3
+    void autoRefLevelChanged(bool enabled);      // #AR: A/M (GLOBAL - affects both VFOs)
+    void ddcNbModeChanged(int mode);             // #NB$: 0=off, 1=on, 2=auto
+    void ddcNbLevelChanged(int level);           // #NBL$: 0-14
+    void dataSubModeChanged(int subMode);        // DT: 0=DATA-A, 1=AFSK-A, 2=FSK-D, 3=PSK-D
+    void dataSubModeBChanged(int subMode);       // DT$: Sub RX data sub-mode
 
     void stateUpdated();
 
@@ -510,21 +532,27 @@ private:
     // Display state (from # prefixed display commands)
     // Initial values are -1 to ensure first update triggers signal
     // Separate LCD (#DPM, #DSM) and EXT (#HDPM, #HDSM) state
-    int m_dualPanModeLcd = -1; // #DPM: LCD 0=A, 1=B, 2=Dual
-    int m_dualPanModeExt = -1; // #HDPM: EXT 0=A, 1=B, 2=Dual
-    int m_displayModeLcd = -1; // #DSM: LCD 0=spectrum, 1=spectrum+waterfall
-    int m_displayModeExt = -1; // #HDSM: EXT 0=spectrum, 1=spectrum+waterfall
-    int m_waterfallColor = -1; // #WFC: 0-4
-    int m_averaging = -1;      // #AVG: 1-20
-    int m_peakMode = -1;       // #PKM: 0/1 (int for -1 init)
-    int m_fixedTune = -1;      // #FXT: 0=track, 1=fixed
-    int m_fixedTuneMode = -1;  // #FXA: 0-4
-    int m_freeze = -1;         // #FRZ: 0/1 (int for -1 init)
-    int m_vfoACursor = -1;     // #VFA: 0=OFF, 1=ON, 2=AUTO, 3=HIDE
-    int m_vfoBCursor = -1;     // #VFB: 0-3
-    int m_autoRefLevel = -1;   // #AR: A=auto, M=manual (GLOBAL - affects both VFOs)
-    int m_ddcNbMode = -1;      // #NB$: 0=off, 1=on, 2=auto
-    int m_ddcNbLevel = -1;     // #NBL$: 0-14
+    int m_dualPanModeLcd = -1;     // #DPM: LCD 0=A, 1=B, 2=Dual
+    int m_dualPanModeExt = -1;     // #HDPM: EXT 0=A, 1=B, 2=Dual
+    int m_displayModeLcd = -1;     // #DSM: LCD 0=spectrum, 1=spectrum+waterfall
+    int m_displayModeExt = -1;     // #HDSM: EXT 0=spectrum, 1=spectrum+waterfall
+    int m_waterfallColor = -1;     // #WFC: 0-4
+    int m_waterfallHeight = 50;    // #WFHxx: LCD waterfall height 0-100% (default 50%)
+    int m_waterfallHeightExt = 50; // #HWFHxx: EXT waterfall height 0-100% (default 50%)
+    int m_averaging = -1;          // #AVG: 1-20
+    int m_peakMode = -1;           // #PKM: 0/1 (int for -1 init)
+    int m_fixedTune = -1;          // #FXT: 0=track, 1=fixed
+    int m_fixedTuneMode = -1;      // #FXA: 0-4
+    int m_freeze = -1;             // #FRZ: 0/1 (int for -1 init)
+    int m_vfoACursor = -1;         // #VFA: 0=OFF, 1=ON, 2=AUTO, 3=HIDE
+    int m_vfoBCursor = -1;         // #VFB: 0-3
+    int m_autoRefLevel = -1;       // #AR: A=auto, M=manual (GLOBAL - affects both VFOs)
+    int m_ddcNbMode = -1;          // #NB$: 0=off, 1=on, 2=auto
+    int m_ddcNbLevel = -1;         // #NBL$: 0-14
+
+    // Data sub-mode (DT command): 0=DATA-A, 1=AFSK-A, 2=FSK-D, 3=PSK-D
+    int m_dataSubMode = -1;  // Main RX
+    int m_dataSubModeB = -1; // Sub RX
 };
 
 #endif // RADIOSTATE_H

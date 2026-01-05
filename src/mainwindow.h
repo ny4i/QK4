@@ -27,6 +27,7 @@ class BandPopupWidget;
 class ButtonRowPopup;
 class DisplayPopupWidget;
 class FeatureMenuBar;
+class ModePopupWidget;
 class KpodDevice;
 class TxMeterWidget;
 class KPA1500Client;
@@ -222,6 +223,7 @@ private:
     ButtonRowPopup *m_subRxPopup;
     ButtonRowPopup *m_txPopup;
     FeatureMenuBar *m_featureMenuBar;
+    ModePopupWidget *m_modePopup;
 
     RadioEntry m_currentRadio;
     int m_currentBandNum = -1; // Current band number for VFO A (BN command)

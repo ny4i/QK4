@@ -205,27 +205,7 @@ void MenuOverlayWidget::setupUi() {
     navOuterLayout->addLayout(row1);
     navOuterLayout->addStretch();
 
-    // Row 2: Select button and A label side by side
-    QHBoxLayout *row2 = new QHBoxLayout();
-    row2->setSpacing(8);
-
-    m_selectBtn = new QPushButton("\xE2\x97\x8B", navPanel); // ○
-    m_selectBtn->setFixedSize(54, 44);
-    m_selectBtn->setStyleSheet(buttonStyle);
-    connect(m_selectBtn, &QPushButton::clicked, this, &MenuOverlayWidget::selectCurrent);
-    row2->addWidget(m_selectBtn);
-
-    m_aLabel = new QLabel("A", navPanel);
-    m_aLabel->setFixedSize(54, 44);
-    m_aLabel->setAlignment(Qt::AlignCenter);
-    m_aLabel->setStyleSheet("background-color: #3A3A45; color: #888; border: none; "
-                            "border-radius: 6px; font-size: 16px; font-weight: bold;");
-    row2->addWidget(m_aLabel);
-
-    navOuterLayout->addLayout(row2);
-    navOuterLayout->addStretch();
-
-    // Row 3: NORM and Back buttons side by side
+    // Row 2: NORM and Back buttons side by side
     QHBoxLayout *row3 = new QHBoxLayout();
     row3->setSpacing(8);
 

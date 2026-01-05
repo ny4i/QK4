@@ -84,10 +84,10 @@ void VFOWidget::setupUi() {
     auto *featuresRow = new QHBoxLayout();
 
     m_agcLabel = new QLabel("AGC-S", m_normalContent);
-    m_agcLabel->setStyleSheet("color: #999999; font-size: 11px; font-weight: bold;");
+    m_agcLabel->setStyleSheet("color: #999999; font-size: 11px;");
 
     m_preampLabel = new QLabel("PRE", m_normalContent);
-    m_preampLabel->setStyleSheet("color: #999999; font-size: 11px; font-weight: bold;");
+    m_preampLabel->setStyleSheet("color: #999999; font-size: 11px;");
 
     m_attLabel = new QLabel("ATT", m_normalContent);
     m_attLabel->setStyleSheet("color: #999999; font-size: 11px;");
@@ -250,13 +250,11 @@ void VFOWidget::setAGC(const QString &mode) {
     m_agcLabel->setText(mode);
     // AGC is always shown, color indicates active state
     bool active = !mode.contains("-") || mode == "AGC-F" || mode == "AGC-S" || mode == "AGC-M";
-    m_agcLabel->setStyleSheet(
-        QString("color: %1; font-size: 11px; font-weight: bold;").arg(active ? "#FFFFFF" : "#999999"));
+    m_agcLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(active ? "#FFFFFF" : "#999999"));
 }
 
 void VFOWidget::setPreamp(bool on) {
-    m_preampLabel->setStyleSheet(
-        QString("color: %1; font-size: 11px; font-weight: bold;").arg(on ? "#FFFFFF" : "#999999"));
+    m_preampLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(on ? "#FFFFFF" : "#999999"));
 }
 
 void VFOWidget::setAtt(bool on) {

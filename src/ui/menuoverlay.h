@@ -95,10 +95,8 @@ private:
     // Navigation buttons
     QPushButton *m_upBtn;
     QPushButton *m_downBtn;
-    QPushButton *m_selectBtn;
     QPushButton *m_normBtn;
     QPushButton *m_backBtn;
-    QLabel *m_aLabel;
 };
 
 #endif // MENUOVERLAY_H

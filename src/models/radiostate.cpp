@@ -1019,6 +1019,42 @@ void RadioState::parseCATCommand(const QString &command) {
             emit ddcNbLevelChanged(level);
         }
     }
+    // Waterfall Height - EXT (#HWFH) - must check BEFORE #WFH (longer prefix)
+    else if (cmd.startsWith("#HWFH") && cmd.length() > 5) {
+        bool ok;
+        int percent = cmd.mid(5).toInt(&ok);
+        if (ok && percent >= 0 && percent <= 100 && percent != m_waterfallHeightExt) {
+            m_waterfallHeightExt = percent;
+            emit waterfallHeightExtChanged(percent);
+        }
+    }
+    // Waterfall Height - LCD (#WFH)
+    else if (cmd.startsWith("#WFH") && cmd.length() > 4) {
+        bool ok;
+        int percent = cmd.mid(4).toInt(&ok);
+        if (ok && percent >= 0 && percent <= 100 && percent != m_waterfallHeight) {
+            m_waterfallHeight = percent;
+            emit waterfallHeightChanged(percent);
+        }
+    }
+    // Data Sub-Mode Sub RX (DT$) - must check before DT
+    else if (cmd.startsWith("DT$") && cmd.length() >= 4) {
+        bool ok;
+        int subMode = cmd.mid(3, 1).toInt(&ok);
+        if (ok && subMode >= 0 && subMode <= 3 && subMode != m_dataSubModeB) {
+            m_dataSubModeB = subMode;
+            emit dataSubModeBChanged(subMode);
+        }
+    }
+    // Data Sub-Mode Main RX (DT) - 0=DATA-A, 1=AFSK-A, 2=FSK-D, 3=PSK-D
+    else if (cmd.startsWith("DT") && cmd.length() >= 3) {
+        bool ok;
+        int subMode = cmd.mid(2, 1).toInt(&ok);
+        if (ok && subMode >= 0 && subMode <= 3 && subMode != m_dataSubMode) {
+            m_dataSubMode = subMode;
+            emit dataSubModeChanged(subMode);
+        }
+    }
 
     emit stateUpdated();
 }
@@ -1071,6 +1107,37 @@ QString RadioState::modeToString(Mode mode) {
 
 QString RadioState::modeString() const {
     return modeToString(m_mode);
+}
+
+QString RadioState::dataSubModeToString(int subMode) {
+    switch (subMode) {
+    case 0:
+        return "DATA"; // DATA-A
+    case 1:
+        return "AFSK"; // AFSK-A
+    case 2:
+        return "FSK"; // FSK-D
+    case 3:
+        return "PSK"; // PSK-D
+    default:
+        return "DATA";
+    }
+}
+
+QString RadioState::modeStringFull() const {
+    // For DATA/DATA-R modes, show the sub-mode instead
+    if (m_mode == DATA || m_mode == DATA_R) {
+        return dataSubModeToString(m_dataSubMode);
+    }
+    return modeToString(m_mode);
+}
+
+QString RadioState::modeStringFullB() const {
+    // For DATA/DATA-R modes, show the sub-mode instead
+    if (m_modeB == DATA || m_modeB == DATA_R) {
+        return dataSubModeToString(m_dataSubModeB);
+    }
+    return modeToString(m_modeB);
 }
 
 QString RadioState::sMeterString() const {
@@ -1254,5 +1321,29 @@ void RadioState::setMiniPanBEnabled(bool enabled) {
     if (m_miniPanBEnabled != enabled) {
         m_miniPanBEnabled = enabled;
         emit miniPanBEnabledChanged(enabled);
+    }
+}
+
+void RadioState::setWaterfallHeight(int percent) {
+    percent = qBound(10, percent, 90);
+    if (m_waterfallHeight != percent) {
+        m_waterfallHeight = percent;
+        emit waterfallHeightChanged(percent);
+    }
+}
+
+void RadioState::setWaterfallHeightExt(int percent) {
+    percent = qBound(10, percent, 90);
+    if (m_waterfallHeightExt != percent) {
+        m_waterfallHeightExt = percent;
+        emit waterfallHeightExtChanged(percent);
+    }
+}
+
+void RadioState::setAveraging(int value) {
+    value = qBound(1, value, 20);
+    if (m_averaging != value) {
+        m_averaging = value;
+        emit averagingChanged(value);
     }
 }

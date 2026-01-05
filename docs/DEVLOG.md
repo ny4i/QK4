@@ -1,5 +1,121 @@
 # K4Controller Development Log
 
+## January 5, 2026
+
+### Feature: S-Meter Peak Indicator with Decay
+
+**Summary:** Added peak hold indicator to SMeterWidget showing signal peaks with approximately 500ms decay time.
+
+**Implementation:**
+- `m_peakValue` tracks highest signal level
+- Timer fires every 50ms, decaying peak by 0.1 units per tick
+- White vertical line (2px wide) drawn at peak position
+- Peak automatically follows current value when signal rises
+
+**Files Modified:**
+- `src/ui/smeterwidget.h` - Added QTimer, peak value member, decayPeak slot
+- `src/ui/smeterwidget.cpp` - Timer setup, peak tracking, decay logic, peak line rendering
+
+---
+
+### UI: S-Meter Gradient and Size Optimization
+
+**Changes:**
+1. **Width constraint fix**: Reduced min/max from 280-380px to 180-200px to fit within VFO stacked widget's 200px limit
+2. **Gradient transitions earlier**: Colors now shift sooner for better visibility at typical S5-S9 signals
+   - Green → Bright Green → Yellow-Green → Yellow → Orange → Red-Orange → Red
+3. **Compact labels**: "1,3,5,7,9,20,40,60" (removed "S" and "+" prefixes), 6pt font
+
+**Files Modified:**
+- `src/ui/smeterwidget.cpp` - Width constraints, gradient stops, label format
+
+---
+
+### UI: Mode Popup Improvements
+
+**Changes:**
+1. **Trigger changed**: Left-click on MODE button opens popup (was right-click)
+2. **VFO squares clickable**: Blue A and green B squares in center column now open mode popup targeting respective VFO
+3. **Band-aware SSB**: SSB button defaults to band-appropriate sideband (LSB below 10MHz, USB at/above 10MHz)
+4. **Full mode display**: VFO widget shows mode with data sub-modes (AFSK, FSK, PSK, DATA)
+
+**Files Modified:**
+- `src/ui/modepopupwidget.h/.cpp` - Added setFrequency(), bandDefaultSideband()
+- `src/models/radiostate.h/.cpp` - Added modeStringFull(), modeStringFullB(), dataSubModeToString()
+- `src/mainwindow.cpp` - Event filters for VFO squares, mode label updates
+
+---
+
+### Fix: AVERAGE Popup Sending Command on Open
+
+**Issue:** Clicking AVERAGE in DISPLAY popup sent #AVG command immediately before user changed any value.
+
+**Root Cause:** `onMenuItemClicked()` had two switch statements - one to show control page (correct) and another to emit CAT commands (bug). The AveragePeak case in the second switch cycled and sent the value.
+
+**Fix:** Removed `case AveragePeak:` from the command-sending switch statement.
+
+**Files Modified:**
+- `src/ui/displaypopupwidget.cpp` - Removed lines 845-862
+
+---
+
+### Fix: AVERAGE Increment/Decrement Step Size
+
+**Issue:** +/- buttons stepped by 5 instead of 1.
+
+**Fix:** Changed from step array (1,5,10,15,20) to simple `qMin(current + 1, 20)` / `qMax(current - 1, 1)`.
+
+**Files Modified:**
+- `src/mainwindow.cpp` - Updated averagingIncrementRequested/averagingDecrementRequested handlers
+
+---
+
+### Fix: AVERAGE/FREEZE Optimistic Updates
+
+**Issue:** Clicking +/- sent command but UI didn't update until radio echoed value.
+
+**Fix:** Added optimistic update pattern - update local state immediately, then send CAT command.
+
+**Implementation:**
+- Added `RadioState::setAveraging(int)` optimistic setter
+- Added local `m_freeze` update before sending #FRZ command
+- Call `updateMenuButtonLabels()` after local state change
+
+**Files Modified:**
+- `src/models/radiostate.h/.cpp` - Added setAveraging() method
+- `src/mainwindow.cpp` - Call setAveraging() before sending command
+- `src/ui/displaypopupwidget.cpp` - Update m_freeze locally, call updateMenuButtonLabels()
+
+---
+
+### UI: FREEZE Button Label Toggle
+
+**Change:** Button label now toggles between "FREEZE" and "FROZEN" (was "FREEZE"/"RUN").
+
+**Files Modified:**
+- `src/ui/displaypopupwidget.cpp` - Updated setAlternateText() logic
+
+---
+
+### UI: MENU Overlay Cleanup
+
+**Change:** Removed circle (○) button and "A" label from right side of MENU popup.
+
+**Files Modified:**
+- `src/ui/menuoverlay.h` - Removed m_selectBtn, m_aLabel members
+- `src/ui/menuoverlay.cpp` - Removed Row 2 layout with circle button and A label
+
+---
+
+### Removed: Waterfall Color Cycling (#WFC)
+
+**Change:** Removed #WFC command functionality from right-click on NbWtrClrs menu item.
+
+**Files Modified:**
+- `src/ui/displaypopupwidget.cpp` - Removed case NbWtrClrs from onMenuItemRightClicked()
+
+---
+
 ## January 4, 2026
 
 ### Feature: TX Multifunction Meter Widget (IC-7760 Style)
