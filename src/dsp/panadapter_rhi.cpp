@@ -1031,12 +1031,11 @@ void PanadapterRhiWidget::updateMiniSpectrum(const QByteArray &bins) {
 }
 
 void PanadapterRhiWidget::decompressBins(const QByteArray &bins, QVector<float> &out) {
-    // K4 spectrum bins are compressed: dBm = byte + noiseFloor
-    // The noise floor is sent per-packet and stored in m_noiseFloor
-    // Protocol doc shows -160 as example, but actual value varies
+    // K4 spectrum bins: dBm = byte - 146
+    // Calibrated by comparing peak signals with K4 display
     out.resize(bins.size());
     for (int i = 0; i < bins.size(); ++i) {
-        out[i] = static_cast<quint8>(bins[i]) + m_noiseFloor;
+        out[i] = static_cast<quint8>(bins[i]) - 146.0f;
     }
 }
 
@@ -1212,21 +1211,10 @@ void PanadapterRhiWidget::setScale(int scale) {
 }
 
 void PanadapterRhiWidget::updateDbRangeFromRefAndScale() {
-    // Base range is 80 dB (from -28 to +52 relative to refLevel)
-    // Scale modifies this range:
-    // - Scale 75 (neutral): 80 dB range
-    // - Scale 150: ~160 dB range (more compressed, signals appear weaker)
-    // - Scale 25: ~27 dB range (more expanded, signals appear stronger)
-    //
-    // The scale factor affects how "zoomed in" we are on the signal levels
-    float scaleFactor = m_scale / 75.0f; // 0.33 to 2.0
-
-    // Calculate range based on scale
-    float belowRef = 28.0f * scaleFactor;
-    float aboveRef = 52.0f * scaleFactor;
-
-    m_minDb = static_cast<float>(m_refLevel) - belowRef;
-    m_maxDb = static_cast<float>(m_refLevel) + aboveRef;
+    // RefLevel is the bottom reference, scale is the dB range upward
+    // Display shows from refLevel to (refLevel + scale)
+    m_minDb = static_cast<float>(m_refLevel);
+    m_maxDb = static_cast<float>(m_refLevel) + static_cast<float>(m_scale);
 
     updateDbmScaleOverlay();
 }
