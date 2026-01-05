@@ -1195,11 +1195,40 @@ void PanadapterRhiWidget::setPeakHoldEnabled(bool enabled) {
 void PanadapterRhiWidget::setRefLevel(int level) {
     if (m_refLevel != level) {
         m_refLevel = level;
-        m_minDb = static_cast<float>(level - 28);
-        m_maxDb = static_cast<float>(level + 52);
-        updateDbmScaleOverlay();
+        updateDbRangeFromRefAndScale();
         update();
     }
+}
+
+void PanadapterRhiWidget::setScale(int scale) {
+    // Scale range: 25-150
+    // Higher values = more compressed display (signals appear weaker, wider dB range)
+    // Lower values = more expanded display (signals appear stronger, narrower dB range)
+    if (m_scale != scale && scale >= 25 && scale <= 150) {
+        m_scale = scale;
+        updateDbRangeFromRefAndScale();
+        update();
+    }
+}
+
+void PanadapterRhiWidget::updateDbRangeFromRefAndScale() {
+    // Base range is 80 dB (from -28 to +52 relative to refLevel)
+    // Scale modifies this range:
+    // - Scale 75 (neutral): 80 dB range
+    // - Scale 150: ~160 dB range (more compressed, signals appear weaker)
+    // - Scale 25: ~27 dB range (more expanded, signals appear stronger)
+    //
+    // The scale factor affects how "zoomed in" we are on the signal levels
+    float scaleFactor = m_scale / 75.0f; // 0.33 to 2.0
+
+    // Calculate range based on scale
+    float belowRef = 28.0f * scaleFactor;
+    float aboveRef = 52.0f * scaleFactor;
+
+    m_minDb = static_cast<float>(m_refLevel) - belowRef;
+    m_maxDb = static_cast<float>(m_refLevel) + aboveRef;
+
+    updateDbmScaleOverlay();
 }
 
 void PanadapterRhiWidget::setSpan(int spanHz) {

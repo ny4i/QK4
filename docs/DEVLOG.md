@@ -2,6 +2,52 @@
 
 ## January 4, 2026
 
+### Feature: Spectrum Scale Support (#SCL)
+
+**Summary:** Added support for the K4's spectrum scale setting (`#SCL` command), which controls the display gain/range of the panadapter.
+
+**Background:** The K4 sends `#SCLxxx;` where xxx is 25-150. This "scale" value affects how spectrum signals appear:
+- Higher values (e.g., 150): More compressed display, signals appear weaker, wider dB range shown
+- Lower values (e.g., 40): More expanded display, signals appear stronger, narrower dB range shown
+- Default value of 75 is neutral (80 dB display range)
+
+**Implementation:**
+
+1. **RadioState** (`radiostate.h/.cpp`):
+   - Added `m_scale` and `m_scaleB` members (initialized to -1 for first-emit)
+   - Added `scaleChanged(int)` and `scaleBChanged(int)` signals
+   - Added `scale()` and `scaleB()` getters
+   - Added parsing for `#SCL` and `#SCL$` CAT commands
+
+2. **PanadapterRhiWidget** (`panadapter_rhi.h/.cpp`):
+   - Added `setScale(int)` method (range 25-150)
+   - Added `updateDbRangeFromRefAndScale()` helper method
+   - Modified `setRefLevel()` to use the new helper
+   - Scale factor = scale / 75.0 (0.33 to 2.0)
+   - dB range expands/contracts around ref level based on scale
+
+3. **MainWindow** (`mainwindow.cpp`):
+   - Connected `scaleChanged` → `PanadapterA::setScale`
+   - Connected `scaleBChanged` → `PanadapterB::setScale`
+
+**Formula:**
+```cpp
+float scaleFactor = m_scale / 75.0f;
+float belowRef = 28.0f * scaleFactor;
+float aboveRef = 52.0f * scaleFactor;
+m_minDb = m_refLevel - belowRef;
+m_maxDb = m_refLevel + aboveRef;
+```
+
+**Files Modified:**
+- `src/models/radiostate.h` - Added scale state, signals, getters
+- `src/models/radiostate.cpp` - Added #SCL/#SCL$ parsing
+- `src/dsp/panadapter_rhi.h` - Added setScale(), updateDbRangeFromRefAndScale()
+- `src/dsp/panadapter_rhi.cpp` - Implemented scale methods
+- `src/mainwindow.cpp` - Connected scale signals to panadapter
+
+---
+
 ### Fix: Spectrum dBm Calibration
 
 **Issue:** Spectrum display showed signals ~19 dB lower than the K4's actual display. A strong signal showing -70 dBm on the K4 appeared as -89 dBm in the app.

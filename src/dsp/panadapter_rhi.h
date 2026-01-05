@@ -46,6 +46,7 @@ public:
     void setGridEnabled(bool enabled);
     void setPeakHoldEnabled(bool enabled);
     void setRefLevel(int level);
+    void setScale(int scale); // 25-150, affects display gain/range
     void setSpan(int spanHz);
     int span() const { return m_spanHz; }
     void setNotchFilter(bool enabled, int pitchHz);
@@ -85,6 +86,8 @@ protected:
 private:
     // Update dBm scale overlay position and values
     void updateDbmScaleOverlay();
+    // Update dB range based on current ref level and scale
+    void updateDbRangeFromRefAndScale();
     // Initialization
     void initColorLUT();
     void initSpectrumLUT();
@@ -187,6 +190,7 @@ private:
     bool m_gridEnabled = true;
     bool m_peakHoldEnabled = true;
     int m_refLevel = -110;
+    int m_scale = 75; // 25-150, default 75 (neutral)
     int m_spanHz = 10000;
     bool m_notchEnabled = false;
     int m_notchPitchHz = 0;

@@ -24,6 +24,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - RATE button right-click (SW150/KHZ) jumps to 100Hz tuning rate
   - Indicator updates in real-time as VT/VT$ CAT commands are received
   - Supports both VFO A and VFO B with independent rate tracking
+- **Spectrum Scale Matching**: Panadapter display now honors K4's #SCL scale setting (25-150)
+  - Higher scale values compress display range (signals appear weaker)
+  - Lower scale values expand display range (signals appear stronger)
+  - dB scale labels update dynamically to match K4 display
 
 ### Fixed
 - **Spectrum dBm calibration**: Signal levels now match K4 display. Previously showed signals ~19 dB lower than actual (e.g., -89 dBm instead of -70 dBm). Fix uses per-packet noise floor value from K4 instead of hardcoded offset.

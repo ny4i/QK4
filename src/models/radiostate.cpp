@@ -820,6 +820,28 @@ void RadioState::parseCATCommand(const QString &command) {
             emit refLevelBChanged(m_refLevelB);
         }
     }
+    // Panadapter Scale (#SCL) - #SCL75 (25-150) - not #SCL$ which is Sub RX
+    // Higher values = more compressed display (signals appear weaker)
+    // Lower values = more expanded display (signals appear stronger)
+    else if (cmd.startsWith("#SCL") && !cmd.startsWith("#SCL$") && cmd.length() > 4) {
+        QString scaleStr = cmd.mid(4); // Get "75" from "#SCL75"
+        bool ok;
+        int scale = scaleStr.toInt(&ok);
+        if (ok && scale >= 25 && scale <= 150 && scale != m_scale) {
+            m_scale = scale;
+            emit scaleChanged(m_scale);
+        }
+    }
+    // Sub RX Panadapter Scale (#SCL$) - #SCL$75
+    else if (cmd.startsWith("#SCL$") && cmd.length() > 5) {
+        QString scaleStr = cmd.mid(5); // Get "75" from "#SCL$75"
+        bool ok;
+        int scale = scaleStr.toInt(&ok);
+        if (ok && scale >= 25 && scale <= 150 && scale != m_scaleB) {
+            m_scaleB = scale;
+            emit scaleBChanged(m_scaleB);
+        }
+    }
     // Panadapter Span (#SPN) - #SPN10000 (Hz) - not #SPN$ which is Sub RX
     else if (cmd.startsWith("#SPN") && !cmd.startsWith("#SPN$") && cmd.length() > 4) {
         QString spanStr = cmd.mid(4); // Get "10000" from "#SPN10000"

@@ -223,6 +223,11 @@ public:
     // Panadapter REF level (Main)
     int refLevel() const { return m_refLevel; }
 
+    // Panadapter scale (Main, from #SCL command, 25-150)
+    // Higher values = more compressed display (signals appear weaker)
+    // Lower values = more expanded display (signals appear stronger)
+    int scale() const { return m_scale; }
+
     // Panadapter span (Main, from #SPN command, in Hz)
     int spanHz() const { return m_spanHz; }
 
@@ -236,6 +241,9 @@ public:
 
     // Panadapter REF level (Sub)
     int refLevelB() const { return m_refLevelB; }
+
+    // Panadapter scale (Sub, from #SCL$ command, 25-150)
+    int scaleB() const { return m_scaleB; }
 
     // Panadapter span (Sub, from #SPN$ command, in Hz)
     int spanHzB() const { return m_spanHzB; }
@@ -311,8 +319,10 @@ signals:
     void processingChanged();                  // NB, NR, PA, RA, GT changes for Main RX
     void processingChangedB();                 // NB, NR, PA, RA, GT changes for Sub RX
     void refLevelChanged(int level);           // Panadapter reference level (#REF command)
+    void scaleChanged(int scale);              // Panadapter scale (#SCL command, 25-150)
     void spanChanged(int spanHz);              // Panadapter span (#SPN command)
     void refLevelBChanged(int level);          // Sub RX panadapter reference level (#REF$ command)
+    void scaleBChanged(int scale);             // Sub RX panadapter scale (#SCL$ command)
     void spanBChanged(int spanHz);             // Sub RX panadapter span (#SPN$ command)
     void keyerSpeedChanged(int wpm);           // CW keyer speed
     void qskDelayChanged(int delay);           // QSK/VOX delay in 10ms increments
@@ -472,11 +482,17 @@ private:
     // Panadapter REF level (Main)
     int m_refLevel = -110; // Default -110 dBm
 
+    // Panadapter scale (Main, from #SCL command)
+    int m_scale = -1; // 25-150, init to -1 to ensure first emit
+
     // Panadapter span (Main, from #SPN command)
     int m_spanHz = 10000; // Default 10 kHz
 
     // Panadapter REF level (Sub)
     int m_refLevelB = -110; // Default -110 dBm
+
+    // Panadapter scale (Sub, from #SCL$ command)
+    int m_scaleB = -1; // 25-150, init to -1 to ensure first emit
 
     // Panadapter span (Sub, from #SPN$ command)
     int m_spanHzB = 10000; // Default 10 kHz

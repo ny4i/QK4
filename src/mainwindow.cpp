@@ -283,6 +283,10 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_radioState, &RadioState::refLevelBChanged, this,
             [this](int level) { m_panadapterB->setRefLevel(level); });
 
+    // RadioState scale -> Panadapter (for display gain/range adjustment)
+    connect(m_radioState, &RadioState::scaleChanged, this, [this](int scale) { m_panadapterA->setScale(scale); });
+    connect(m_radioState, &RadioState::scaleBChanged, this, [this](int scale) { m_panadapterB->setScale(scale); });
+
     // RadioState span -> Panadapter (for frequency labels and bin extraction)
     connect(m_radioState, &RadioState::spanChanged, this, [this](int spanHz) { m_panadapterA->setSpan(spanHz); });
     connect(m_radioState, &RadioState::spanBChanged, this, [this](int spanHz) { m_panadapterB->setSpan(spanHz); });
