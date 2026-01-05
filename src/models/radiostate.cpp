@@ -1055,6 +1055,30 @@ void RadioState::parseCATCommand(const QString &command) {
             emit dataSubModeChanged(subMode);
         }
     }
+    // Remote Client Stats (SIRC) - SIRCR:73.88,T:0.03,P:2,C:14,A:74
+    // R=RX kB/s, T=TX kB/s, P=Ping ms, C=Connected time, A=Audio buffer ms
+    else if (cmd.startsWith("SIRC") && cmd.length() > 4) {
+        qDebug() << "SIRC received:" << cmd;
+        QString stats = cmd.mid(4); // Remove "SIRC" prefix
+        // Parse: R:73.88,T:0.03,P:2,C:14,A:74
+        QStringList parts = stats.split(',');
+        QString rxKBps, txKBps, pingMs, connTime, audioBufMs;
+        for (const QString &part : parts) {
+            if (part.startsWith("R:"))
+                rxKBps = part.mid(2);
+            else if (part.startsWith("T:"))
+                txKBps = part.mid(2);
+            else if (part.startsWith("P:"))
+                pingMs = part.mid(2);
+            else if (part.startsWith("C:"))
+                connTime = part.mid(2);
+            else if (part.startsWith("A:"))
+                audioBufMs = part.mid(2);
+        }
+        qDebug() << "=== K4 Remote Client Stats ===";
+        qDebug() << "  RX:" << rxKBps << "kB/s | TX:" << txKBps << "kB/s";
+        qDebug() << "  Ping:" << pingMs << "ms | Connected:" << connTime << "s | Audio Buffer:" << audioBufMs << "ms";
+    }
 
     emit stateUpdated();
 }

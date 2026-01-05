@@ -1996,6 +1996,16 @@ QString MainWindow::formatFrequency(quint64 freq) {
 void MainWindow::showRadioManager() {
     RadioManagerDialog dialog(this);
     connect(&dialog, &RadioManagerDialog::connectRequested, this, &MainWindow::connectToRadio);
+    connect(&dialog, &RadioManagerDialog::disconnectRequested, this, [this]() {
+        // TcpClient::disconnectFromHost() sends RRN; automatically
+        m_tcpClient->disconnectFromHost();
+    });
+
+    // Set the connected host so dialog can show "Disconnect" for active connection
+    if (m_tcpClient->isConnected()) {
+        dialog.setConnectedHost(m_currentRadio.host);
+    }
+
     dialog.exec();
 }
 
@@ -2044,25 +2054,13 @@ void MainWindow::onAuthenticated() {
         qWarning() << "Failed to start audio engine";
     }
 
-    // Query display state to initialize popup button faces (LCD and EXT)
-    m_tcpClient->sendCAT("#DPM;");  // Dual panadapter mode (LCD)
-    m_tcpClient->sendCAT("#HDPM;"); // Dual panadapter mode (EXT)
-    m_tcpClient->sendCAT("#DSM;");  // Display mode (LCD)
-    m_tcpClient->sendCAT("#HDSM;"); // Display mode (EXT)
-    m_tcpClient->sendCAT("#WFC;");  // Waterfall color
-    m_tcpClient->sendCAT("#AVG;");  // Averaging
-    m_tcpClient->sendCAT("#PKM;");  // Peak mode
-    m_tcpClient->sendCAT("#FXT;");  // Fixed tune toggle
-    m_tcpClient->sendCAT("#FXA;");  // Fixed tune mode
-    m_tcpClient->sendCAT("#FRZ;");  // Freeze
-    m_tcpClient->sendCAT("#VFA;");  // VFO A cursor
-    m_tcpClient->sendCAT("#VFB;");  // VFO B cursor
-    m_tcpClient->sendCAT("#AR;");   // Auto-ref level
-    m_tcpClient->sendCAT("#NB$;");  // DDC Noise Blanker mode
-    m_tcpClient->sendCAT("#NBL$;"); // DDC Noise Blanker level
-    m_tcpClient->sendCAT("MG;");    // Mic gain
-    m_tcpClient->sendCAT("CP;");    // Compression
-    // NOTE: B SET state is tracked internally (no TB query command exists)
+    // Most state is already included in the RDY; response from TcpClient.
+    // Only query commands NOT included in RDY dump:
+    m_tcpClient->sendCAT("#DSM;");  // Display mode (LCD) - not in RDY
+    m_tcpClient->sendCAT("#HDSM;"); // Display mode (EXT) - not in RDY
+    m_tcpClient->sendCAT("#FRZ;");  // Freeze - not in RDY
+    m_tcpClient->sendCAT("SIRC1;"); // Enable 1-second client stats updates
+    qDebug() << "Sent SIRC1; to enable 1-second client stats updates";
 }
 
 void MainWindow::onAuthenticationFailed() {

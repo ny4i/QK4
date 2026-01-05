@@ -266,6 +266,13 @@ void RadioManagerDialog::refreshList() {
 void RadioManagerDialog::onConnectClicked() {
     QString host = m_hostEdit->text().trimmed();
     if (!host.isEmpty()) {
+        // Check if this is a disconnect request (selected radio is already connected)
+        if (!m_connectedHost.isEmpty() && host == m_connectedHost) {
+            emit disconnectRequested();
+            accept();
+            return;
+        }
+
         RadioEntry entry;
         entry.name = m_nameEdit->text().trimmed();
         entry.host = host;
@@ -372,9 +379,14 @@ void RadioManagerDialog::onItemDoubleClicked(QListWidgetItem *item) {
 
 void RadioManagerDialog::updateButtonStates() {
     bool hasSelection = m_currentIndex >= 0 && m_currentIndex < RadioSettings::instance()->radios().size();
-    bool hasHost = !m_hostEdit->text().trimmed().isEmpty();
+    QString host = m_hostEdit->text().trimmed();
+    bool hasHost = !host.isEmpty();
+
+    // Check if the selected radio is the connected one
+    bool isConnectedRadio = !m_connectedHost.isEmpty() && host == m_connectedHost;
 
     m_connectButton->setEnabled(hasHost);
+    m_connectButton->setText(isConnectedRadio ? "Disconnect" : "Connect");
     m_deleteButton->setEnabled(hasSelection);
     m_saveButton->setEnabled(hasHost);
 }
@@ -426,4 +438,9 @@ RadioEntry RadioManagerDialog::selectedRadio() const {
 
 bool RadioManagerDialog::hasSelection() const {
     return m_currentIndex >= 0;
+}
+
+void RadioManagerDialog::setConnectedHost(const QString &host) {
+    m_connectedHost = host;
+    updateButtonStates();
 }

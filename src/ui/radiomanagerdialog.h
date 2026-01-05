@@ -19,8 +19,12 @@ public:
     RadioEntry selectedRadio() const;
     bool hasSelection() const;
 
+    // Set the currently connected radio host (empty string if disconnected)
+    void setConnectedHost(const QString &host);
+
 signals:
     void connectRequested(const RadioEntry &radio);
+    void disconnectRequested();
 
 private slots:
     void onConnectClicked();
@@ -55,6 +59,7 @@ private:
     QPushButton *m_backButton;
 
     int m_currentIndex;
+    QString m_connectedHost; // Host of currently connected radio (empty if disconnected)
 };
 
 #endif // RADIOMANAGERDIALOG_H

@@ -3,6 +3,7 @@
 #include <QSslCipher>
 #include <QSslConfiguration>
 #include <QSslPreSharedKeyAuthenticator>
+#include <QSslSocket>
 
 TcpClient::TcpClient(QObject *parent)
     : QObject(parent), m_socket(new QSslSocket(this)), m_protocol(new Protocol(this)), m_authTimer(new QTimer(this)),
@@ -44,11 +45,10 @@ TcpClient::TcpClient(QObject *parent)
             // FA, FB, MD, MD$, BW, BW$, IS, CW, KS, PC, SD (per mode), SQ, RG, SQ$, RG$,
             // #SPN, #REF, VXC, VXV, VXD, and all menu definitions (MEDF)
             qDebug() << "Sending initialization commands...";
-            sendCAT("RDY;"); // Ready - triggers comprehensive state dump
-            sendCAT("K41;"); // Enable advanced K4 protocol mode
-            sendCAT("AI4;"); // Enable Auto Information mode 4 - CRITICAL for streaming updates
-            sendCAT("ER1;"); // Request long format error messages
-            sendCAT("EM3;"); // Set audio to Opus Float 32-bit mode (required for audio streaming)
+            sendCAT("RDY;");   // Ready - triggers comprehensive state dump (also enables AI mode)
+            sendCAT("K41;");   // Enable advanced K4 protocol mode
+            sendCAT("ER1;");   // Request long format error messages
+            sendCAT("EM3;");   // Set audio to Opus Float 32-bit mode (required for audio streaming)
         }
     });
     connect(m_protocol, &Protocol::catResponseReceived, this, &TcpClient::onCatResponse);
@@ -77,24 +77,36 @@ void TcpClient::connectToHost(const QString &host, quint16 port, const QString &
     setState(Connecting);
 
     if (m_useTls) {
+        // Log OpenSSL version Qt is using
+        qDebug() << "=== SSL Library Info ===";
+        qDebug() << "  Build version:" << QSslSocket::sslLibraryBuildVersionString();
+        qDebug() << "  Runtime version:" << QSslSocket::sslLibraryVersionString();
+        qDebug() << "  Supports SSL:" << QSslSocket::supportsSsl();
+
         // Configure TLS with PSK cipher suites
         QSslConfiguration sslConfig = QSslConfiguration::defaultConfiguration();
         sslConfig.setProtocol(QSsl::TlsV1_2);
         sslConfig.setPeerVerifyMode(QSslSocket::VerifyNone); // PSK doesn't use certificates
 
-        // Build list of PSK cipher suites (K4 supported ciphers)
+        // PSK cipher suite - only ECDHE-PSK-CHACHA20-POLY1305 gives us TLSv1.2 + forward secrecy
+        // K4 server prefers weaker ciphers, so we only offer the best one
+        // Other PSK ciphers (even ECDHE variants) fall back to TLSv1.0 in Qt's OpenSSL
         QList<QSslCipher> pskCiphers;
-        const QStringList pskCipherNames = {"ECDHE-PSK-AES256-CBC-SHA384", "ECDHE-PSK-CHACHA20-POLY1305",
-                                            "DHE-PSK-AES256-GCM-SHA384",   "DHE-PSK-CHACHA20-POLY1305",
-                                            "RSA-PSK-AES256-GCM-SHA384",   "RSA-PSK-CHACHA20-POLY1305",
-                                            "PSK-AES256-CBC-SHA384",       "PSK-AES256-CBC-SHA"};
+        const QStringList pskCipherNames = {"ECDHE-PSK-CHACHA20-POLY1305"};
 
-        for (const QSslCipher &cipher : QSslConfiguration::supportedCiphers()) {
-            if (pskCipherNames.contains(cipher.name())) {
-                pskCiphers.append(cipher);
-                qDebug() << "Added PSK cipher:" << cipher.name();
+        // Add ciphers in our preference order (not system order)
+        QList<QSslCipher> allCiphers = QSslConfiguration::supportedCiphers();
+        for (const QString &name : pskCipherNames) {
+            for (const QSslCipher &cipher : allCiphers) {
+                if (cipher.name() == name) {
+                    pskCiphers.append(cipher);
+                    qDebug() << "Added PSK cipher:" << cipher.name() << "protocol:" << cipher.protocolString();
+                    break;
+                }
             }
         }
+        qDebug() << "Configured" << pskCiphers.size() << "PSK ciphers, first:"
+                 << (pskCiphers.isEmpty() ? "none" : pskCiphers.first().name());
 
         if (pskCiphers.isEmpty()) {
             qWarning() << "No PSK ciphers available! TLS/PSK connection will likely fail.";
@@ -182,7 +194,12 @@ void TcpClient::onSocketConnected() {
 
 void TcpClient::onSocketEncrypted() {
     // TLS handshake completed successfully
-    qDebug() << "TLS/PSK encrypted channel established";
+    QSslCipher negotiated = m_socket->sessionCipher();
+    qDebug() << "=== TLS/PSK Connection Established ===";
+    qDebug() << "  Negotiated cipher:" << negotiated.name();
+    qDebug() << "  Protocol:" << negotiated.protocolString();
+    qDebug() << "  Key exchange:" << negotiated.keyExchangeMethod();
+    qDebug() << "  Encryption:" << negotiated.encryptionMethod();
     setState(Authenticating);
     // Start auth timeout - waiting for first packet to confirm connection works
     m_authTimer->start(K4Protocol::AUTH_TIMEOUT_MS);

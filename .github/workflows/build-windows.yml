@@ -39,7 +39,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          vcpkg install opus:x64-windows hidapi:x64-windows
+          vcpkg install opus:x64-windows hidapi:x64-windows openssl:x64-windows
 
       - name: Configure CMake
         run: |
