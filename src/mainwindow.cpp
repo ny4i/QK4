@@ -347,8 +347,11 @@ MainWindow::MainWindow(QWidget *parent)
             [this](int level) { m_panadapterB->setRefLevel(level); });
 
     // RadioState scale -> Panadapter (for display gain/range adjustment)
-    connect(m_radioState, &RadioState::scaleChanged, this, [this](int scale) { m_panadapterA->setScale(scale); });
-    connect(m_radioState, &RadioState::scaleBChanged, this, [this](int scale) { m_panadapterB->setScale(scale); });
+    // Note: #SCL is a GLOBAL setting - applies to both panadapters (no #SCL$ variant exists)
+    connect(m_radioState, &RadioState::scaleChanged, this, [this](int scale) {
+        m_panadapterA->setScale(scale);
+        m_panadapterB->setScale(scale);
+    });
 
     // RadioState span -> Panadapter (for frequency labels and bin extraction)
     connect(m_radioState, &RadioState::spanChanged, this, [this](int spanHz) { m_panadapterA->setSpan(spanHz); });
@@ -396,6 +399,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_radioState, &RadioState::vfoBCursorChanged, this,
             [this](int mode) { m_panadapterB->setCursorVisible(mode == 1 || mode == 2); });
     connect(m_radioState, &RadioState::autoRefLevelChanged, m_displayPopup, &DisplayPopupWidget::setAutoRefLevel);
+    connect(m_radioState, &RadioState::scaleChanged, m_displayPopup, &DisplayPopupWidget::setScale);
     connect(m_radioState, &RadioState::ddcNbModeChanged, m_displayPopup, &DisplayPopupWidget::setDdcNbMode);
     connect(m_radioState, &RadioState::ddcNbLevelChanged, m_displayPopup, &DisplayPopupWidget::setDdcNbLevel);
     connect(m_radioState, &RadioState::waterfallHeightChanged, m_displayPopup, &DisplayPopupWidget::setWaterfallHeight);
@@ -508,6 +512,26 @@ MainWindow::MainWindow(QWidget *parent)
                 m_radioState->setSpanHzB(newSpan);
                 m_tcpClient->sendCAT(QString("#SPN$%1;").arg(newSpan));
             }
+        }
+    });
+
+    // Scale control (GLOBAL - affects both panadapters, no A/B variants)
+    connect(m_displayPopup, &DisplayPopupWidget::scaleIncrementRequested, this, [this]() {
+        int currentScale = m_radioState->scale();
+        if (currentScale < 0)
+            currentScale = 75; // Default if not yet received
+        int newScale = qMin(currentScale + 1, 150); // Increment by 1, max 150
+        if (newScale != currentScale) {
+            m_tcpClient->sendCAT(QString("#SCL%1;").arg(newScale));
+        }
+    });
+    connect(m_displayPopup, &DisplayPopupWidget::scaleDecrementRequested, this, [this]() {
+        int currentScale = m_radioState->scale();
+        if (currentScale < 0)
+            currentScale = 75; // Default if not yet received
+        int newScale = qMax(currentScale - 1, 10); // Decrement by 1, min 10
+        if (newScale != currentScale) {
+            m_tcpClient->sendCAT(QString("#SCL%1;").arg(newScale));
         }
     });
 

@@ -5,10 +5,10 @@
 namespace {
 const QString DarkBackground = "#0d0d0d";
 const QString TrackBackground = "#1a1a1a";
-const QString LabelBoxBorder = "#8B0000"; // Dark red border for label boxes
+const QString LabelBoxBorder = "#666666";
 const QString LabelBoxFill = "#1a1a1a";
-const QString MeterBarColor = "#8B0000";     // Dark red/maroon like IC-7760
-const QString MeterBarHighlight = "#CD5C5C"; // Lighter red for gradient
+const QString MeterBarColor = "#8B0000";     // Dark red/maroon for Id meter
+const QString MeterBarHighlight = "#CD5C5C"; // Lighter red for Id gradient
 const QString TextWhite = "#FFFFFF";
 const QString TextGray = "#888888";
 const QString ScaleGray = "#666666";
@@ -23,40 +23,151 @@ TxMeterWidget::TxMeterWidget(QWidget *parent) : QWidget(parent) {
 
     // Enable custom painting
     setAttribute(Qt::WA_OpaquePaintEvent);
+
+    // Setup decay timer
+    m_decayTimer = new QTimer(this);
+    connect(m_decayTimer, &QTimer::timeout, this, &TxMeterWidget::decayValues);
+    m_decayTimer->start(DecayIntervalMs);
 }
 
 void TxMeterWidget::setPower(double watts, bool isQrp) {
-    m_power = watts;
     m_isQrp = isQrp;
+    double maxPower = isQrp ? 10.0 : 100.0;
+    double ratio = qMin(watts / maxPower, 1.0);
+    m_powerTarget = ratio;
+    if (ratio > m_powerDisplay) {
+        m_powerDisplay = ratio; // Instant rise
+    }
+    if (ratio > m_powerPeak) {
+        m_powerPeak = ratio;
+    }
     update();
 }
 
 void TxMeterWidget::setAlc(int bars) {
-    m_alc = qBound(0, bars, 10);
+    double ratio = qBound(0, bars, 10) / 10.0;
+    m_alcTarget = ratio;
+    if (ratio > m_alcDisplay) {
+        m_alcDisplay = ratio;
+    }
+    if (ratio > m_alcPeak) {
+        m_alcPeak = ratio;
+    }
     update();
 }
 
 void TxMeterWidget::setCompression(int dB) {
-    m_compression = qBound(0, dB, 30);
+    double ratio = qBound(0, dB, 25) / 25.0; // Scale to 25 dB for visual
+    m_compTarget = ratio;
+    if (ratio > m_compDisplay) {
+        m_compDisplay = ratio;
+    }
+    if (ratio > m_compPeak) {
+        m_compPeak = ratio;
+    }
     update();
 }
 
 void TxMeterWidget::setSwr(double ratio) {
-    m_swr = qMax(1.0, ratio);
+    // SWR scale: 1.0 to 3.0, map to 0-1 fill ratio
+    double fillRatio = qMin((qMax(1.0, ratio) - 1.0) / 2.0, 1.0);
+    m_swrTarget = fillRatio;
+    if (fillRatio > m_swrDisplay) {
+        m_swrDisplay = fillRatio;
+    }
+    if (fillRatio > m_swrPeak) {
+        m_swrPeak = fillRatio;
+    }
     update();
 }
 
 void TxMeterWidget::setCurrent(double amps) {
-    m_current = qMax(0.0, amps);
+    double ratio = qMin(qMax(0.0, amps) / 25.0, 1.0);
+    m_currentTarget = ratio;
+    if (ratio > m_currentDisplay) {
+        m_currentDisplay = ratio;
+    }
+    if (ratio > m_currentPeak) {
+        m_currentPeak = ratio;
+    }
     update();
 }
 
 void TxMeterWidget::setTxMeters(int alc, int compDb, double fwdPower, double swr) {
-    m_alc = qBound(0, alc, 10);
-    m_compression = qBound(0, compDb, 30);
-    m_power = fwdPower;
-    m_swr = qMax(1.0, swr);
+    // Power
+    double maxPower = m_isQrp ? 10.0 : 100.0;
+    double powerRatio = qMin(fwdPower / maxPower, 1.0);
+    m_powerTarget = powerRatio;
+    if (powerRatio > m_powerDisplay)
+        m_powerDisplay = powerRatio;
+    if (powerRatio > m_powerPeak)
+        m_powerPeak = powerRatio;
+
+    // ALC
+    double alcRatio = qBound(0, alc, 10) / 10.0;
+    m_alcTarget = alcRatio;
+    if (alcRatio > m_alcDisplay)
+        m_alcDisplay = alcRatio;
+    if (alcRatio > m_alcPeak)
+        m_alcPeak = alcRatio;
+
+    // Compression
+    double compRatio = qBound(0, compDb, 25) / 25.0;
+    m_compTarget = compRatio;
+    if (compRatio > m_compDisplay)
+        m_compDisplay = compRatio;
+    if (compRatio > m_compPeak)
+        m_compPeak = compRatio;
+
+    // SWR
+    double swrRatio = qMin((qMax(1.0, swr) - 1.0) / 2.0, 1.0);
+    m_swrTarget = swrRatio;
+    if (swrRatio > m_swrDisplay)
+        m_swrDisplay = swrRatio;
+    if (swrRatio > m_swrPeak)
+        m_swrPeak = swrRatio;
+
     update();
+}
+
+void TxMeterWidget::decayValues() {
+    bool needsUpdate = false;
+
+    // Decay display values toward targets
+    auto decayValue = [&](double &display, double target) {
+        if (display > target) {
+            display -= DecayRate;
+            if (display < target)
+                display = target;
+            needsUpdate = true;
+        }
+    };
+
+    // Decay peak values (slower)
+    auto decayPeak = [&](double &peak, double display) {
+        if (peak > display) {
+            peak -= PeakDecayRate;
+            if (peak < display)
+                peak = display;
+            needsUpdate = true;
+        }
+    };
+
+    decayValue(m_powerDisplay, m_powerTarget);
+    decayValue(m_alcDisplay, m_alcTarget);
+    decayValue(m_compDisplay, m_compTarget);
+    decayValue(m_swrDisplay, m_swrTarget);
+    decayValue(m_currentDisplay, m_currentTarget);
+
+    decayPeak(m_powerPeak, m_powerDisplay);
+    decayPeak(m_alcPeak, m_alcDisplay);
+    decayPeak(m_compPeak, m_compDisplay);
+    decayPeak(m_swrPeak, m_swrDisplay);
+    decayPeak(m_currentPeak, m_currentDisplay);
+
+    if (needsUpdate) {
+        update();
+    }
 }
 
 void TxMeterWidget::paintEvent(QPaintEvent *event) {
@@ -90,53 +201,50 @@ void TxMeterWidget::paintEvent(QPaintEvent *event) {
 
     int y = 0;
 
-    // === Po (Power) ===
+    // === Po (Power) - Gradient ===
     {
-        double maxPower = m_isQrp ? 10.0 : 100.0;
-        double fillRatio = qMin(m_power / maxPower, 1.0);
         QStringList labels =
             m_isQrp ? QStringList{"0", "2", "4", "6", "8", "10W"} : QStringList{"0", "20", "40", "60", "80", "100W"};
-        drawMeterRow(painter, y, rowHeight, "Po", fillRatio, labels, scaleFont, barStartX, barWidth, barHeight);
+        drawMeterRow(painter, y, rowHeight, "Po", m_powerDisplay, m_powerPeak, labels, scaleFont, barStartX, barWidth,
+                     barHeight, MeterType::Gradient);
         y += rowHeight + spacing;
     }
 
-    // === ALC ===
+    // === ALC - Gradient ===
     {
-        double fillRatio = m_alc / 10.0;
         QStringList labels = {"", "", "", "", "", "", "", "", "", "", ""}; // Just tick marks
-        drawMeterRow(painter, y, rowHeight, "ALC", fillRatio, labels, scaleFont, barStartX, barWidth, barHeight);
+        drawMeterRow(painter, y, rowHeight, "ALC", m_alcDisplay, m_alcPeak, labels, scaleFont, barStartX, barWidth,
+                     barHeight, MeterType::Gradient);
         y += rowHeight + spacing;
     }
 
-    // === COMP ===
+    // === COMP - Gradient ===
     {
-        double fillRatio = m_compression / 25.0; // Scale to 25 dB for visual
         QStringList labels = {"0", "5", "10", "15", "20", "dB"};
-        drawMeterRow(painter, y, rowHeight, "COMP", fillRatio, labels, scaleFont, barStartX, barWidth, barHeight);
+        drawMeterRow(painter, y, rowHeight, "COMP", m_compDisplay, m_compPeak, labels, scaleFont, barStartX, barWidth,
+                     barHeight, MeterType::Gradient);
         y += rowHeight + spacing;
     }
 
-    // === SWR ===
+    // === SWR - Gradient ===
     {
-        // SWR scale: 1.0 to 3.0 with infinity beyond
-        // Map 1.0-3.0 to 0-1.0 fill ratio
-        double fillRatio = qMin((m_swr - 1.0) / 2.0, 1.0);
         QStringList labels = {"1", "1.5", "2", "2.5", "3", QString::fromUtf8("\u221E")};
-        drawMeterRow(painter, y, rowHeight, "SWR", fillRatio, labels, scaleFont, barStartX, barWidth, barHeight);
+        drawMeterRow(painter, y, rowHeight, "SWR", m_swrDisplay, m_swrPeak, labels, scaleFont, barStartX, barWidth,
+                     barHeight, MeterType::Gradient);
         y += rowHeight + spacing;
     }
 
-    // === Id (PA Drain Current) ===
+    // === Id (PA Drain Current) - Red ===
     {
-        double fillRatio = qMin(m_current / 25.0, 1.0);
         QStringList labels = {"0", "5", "10", "15", "20", "25A"};
-        drawMeterRow(painter, y, rowHeight, "Id", fillRatio, labels, scaleFont, barStartX, barWidth, barHeight);
+        drawMeterRow(painter, y, rowHeight, "Id", m_currentDisplay, m_currentPeak, labels, scaleFont, barStartX,
+                     barWidth, barHeight, MeterType::Red);
     }
 }
 
 void TxMeterWidget::drawMeterRow(QPainter &painter, int y, int rowHeight, const QString &label, double fillRatio,
-                                 const QStringList &scaleLabels, const QFont &scaleFont, int barStartX, int barWidth,
-                                 int barHeight) {
+                                 double peakRatio, const QStringList &scaleLabels, const QFont &scaleFont,
+                                 int barStartX, int barWidth, int barHeight, MeterType type) {
     // Label box on the left
     QRect labelRect(2, y + 2, 32, rowHeight - 4);
     painter.setPen(QColor(LabelBoxBorder));
@@ -162,10 +270,31 @@ void TxMeterWidget::drawMeterRow(QPainter &painter, int y, int rowHeight, const 
     if (fillRatio > 0.001) {
         int fillWidth = static_cast<int>(barWidth * fillRatio);
         QLinearGradient gradient(barStartX, 0, barStartX + barWidth, 0);
-        gradient.setColorAt(0.0, QColor(MeterBarColor));
-        gradient.setColorAt(0.7, QColor(MeterBarColor));
-        gradient.setColorAt(1.0, QColor(MeterBarHighlight));
+
+        if (type == MeterType::Gradient) {
+            // S-meter style gradient: green → yellow → orange → red
+            gradient.setColorAt(0.0, QColor("#00CC00"));  // Green
+            gradient.setColorAt(0.13, QColor("#00FF00")); // Bright green
+            gradient.setColorAt(0.25, QColor("#CCFF00")); // Yellow-green
+            gradient.setColorAt(0.40, QColor("#FFFF00")); // Yellow
+            gradient.setColorAt(0.55, QColor("#FF9900")); // Orange
+            gradient.setColorAt(0.70, QColor("#FF6600")); // Dark orange
+            gradient.setColorAt(0.85, QColor("#FF3300")); // Red-orange
+            gradient.setColorAt(1.0, QColor("#FF0000"));  // Red
+        } else {
+            // Red style for Id meter
+            gradient.setColorAt(0.0, QColor(MeterBarColor));
+            gradient.setColorAt(0.7, QColor(MeterBarColor));
+            gradient.setColorAt(1.0, QColor(MeterBarHighlight));
+        }
         painter.fillRect(barStartX + 1, barY + 1, fillWidth - 2, barHeight - 2, gradient);
+    }
+
+    // Draw peak indicator
+    if (peakRatio > 0.01) {
+        int peakX = barStartX + static_cast<int>(barWidth * peakRatio);
+        painter.setPen(QPen(QColor("#FFFFFF"), 2));
+        painter.drawLine(peakX - 1, barY, peakX - 1, barY + barHeight);
     }
 
     // Scale labels below bar

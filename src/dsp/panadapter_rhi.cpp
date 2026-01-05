@@ -686,7 +686,51 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
         cb->draw(6);
     }
 
-    // Draw spectrum fill (shader-based fullscreen quad)
+    // Draw grid BEHIND spectrum (in spectrum area)
+    if (m_gridEnabled && m_overlayLinePipeline) {
+        cb->setViewport({0, waterfallHeight, w, spectrumHeight});
+
+        QVector<float> gridVerts;
+
+        // Horizontal lines (dB scale) - 8 divisions in spectrum area
+        for (int i = 1; i < 8; ++i) {
+            float y = spectrumHeight * i / 8.0f;
+            gridVerts << 0.0f << y << w << y;
+        }
+
+        // Vertical lines (frequency) - 10 divisions in spectrum area
+        for (int i = 1; i < 10; ++i) {
+            float x = w * i / 10.0f;
+            gridVerts << x << 0.0f << x << spectrumHeight;
+        }
+
+        QRhiResourceUpdateBatch *gridRub = m_rhi->nextResourceUpdateBatch();
+        gridRub->updateDynamicBuffer(m_overlayVbo.get(), 0, gridVerts.size() * sizeof(float), gridVerts.constData());
+
+        struct {
+            float viewportWidth;
+            float viewportHeight;
+            float pad0, pad1;
+            float r, g, b, a;
+        } gridUniforms = {w,
+                          spectrumHeight,
+                          0,
+                          0,
+                          static_cast<float>(m_gridColor.redF()),
+                          static_cast<float>(m_gridColor.greenF()),
+                          static_cast<float>(m_gridColor.blueF()),
+                          static_cast<float>(m_gridColor.alphaF())};
+        gridRub->updateDynamicBuffer(m_overlayUniformBuffer.get(), 0, sizeof(gridUniforms), &gridUniforms);
+
+        cb->resourceUpdate(gridRub);
+        cb->setGraphicsPipeline(m_overlayLinePipeline.get());
+        cb->setShaderResources(m_overlaySrb.get());
+        const QRhiCommandBuffer::VertexInput gridVbufBinding(m_overlayVbo.get(), 0);
+        cb->setVertexInput(0, 1, &gridVbufBinding);
+        cb->draw(gridVerts.size() / 2);
+    }
+
+    // Draw spectrum fill ON TOP of grid (shader-based fullscreen quad)
     if (!m_currentSpectrum.isEmpty()) {
         cb->setViewport({0, waterfallHeight, w, spectrumHeight});
 
@@ -769,24 +813,7 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
             cb->draw(lineVerts.size() / 2);
         };
 
-        // Draw grid (spectrum area only - top portion, Y=0 to spectrumHeight)
-        if (m_gridEnabled) {
-            QVector<float> gridVerts;
-
-            // Horizontal lines (dB scale) - 8 divisions in spectrum area
-            for (int i = 1; i < 8; ++i) {
-                float y = spectrumHeight * i / 8.0f;
-                gridVerts << 0.0f << y << w << y;
-            }
-
-            // Vertical lines (frequency) - 10 divisions in spectrum area
-            for (int i = 1; i < 10; ++i) {
-                float x = w * i / 10.0f;
-                gridVerts << x << 0.0f << x << spectrumHeight;
-            }
-
-            drawLines(gridVerts, m_gridColor);
-        }
+        // Grid is now drawn BEFORE spectrum fill (see above)
 
         // Draw passband overlay (uses separate buffers to avoid GPU conflicts)
         if (m_cursorVisible && m_filterBw > 0 && m_tunedFreq > 0) {
@@ -1210,10 +1237,10 @@ void PanadapterRhiWidget::setRefLevel(int level) {
 }
 
 void PanadapterRhiWidget::setScale(int scale) {
-    // Scale range: 25-150
+    // Scale range: 10-150 (per K4 documentation)
     // Higher values = more compressed display (signals appear weaker, wider dB range)
     // Lower values = more expanded display (signals appear stronger, narrower dB range)
-    if (m_scale != scale && scale >= 25 && scale <= 150) {
+    if (m_scale != scale && scale >= 10 && scale <= 150) {
         m_scale = scale;
         updateDbRangeFromRefAndScale();
         update();

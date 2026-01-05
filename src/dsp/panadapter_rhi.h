@@ -191,7 +191,7 @@ private:
     bool m_gridEnabled = true;
     bool m_peakHoldEnabled = true;
     int m_refLevel = -110;
-    int m_scale = 75; // 25-150, default 75 (neutral)
+    int m_scale = 75; // 10-150, default 75 (neutral)
     int m_spanHz = 10000;
     bool m_notchEnabled = false;
     int m_notchPitchHz = 0;

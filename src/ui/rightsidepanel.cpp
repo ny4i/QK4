@@ -79,8 +79,8 @@ void RightSidePanel::setupUi() {
     m_spotBtn->installEventFilter(this);
     m_modeBtn->installEventFilter(this);
 
-    // Add spacing between main grid and PF grid
-    m_layout->addSpacing(16);
+    // Add stretch to push remaining buttons to bottom (above PTT)
+    m_layout->addStretch();
 
     // Create 2×2 PF button grid (B SET, CLR, RIT, XIT)
     auto *pfGrid = new QGridLayout();
@@ -110,8 +110,8 @@ void RightSidePanel::setupUi() {
     m_ritBtn->installEventFilter(this);
     m_xitBtn->installEventFilter(this);
 
-    // Add spacing between PF grid and bottom grid
-    m_layout->addSpacing(32);
+    // Add spacing between PF grid and bottom grid (25px gap)
+    m_layout->addSpacing(33);
 
     // Create 2×2 bottom button grid (FREQ ENT, RATE, LOCK A, SUB)
     auto *bottomGrid = new QGridLayout();
@@ -139,8 +139,6 @@ void RightSidePanel::setupUi() {
     m_rateBtn->installEventFilter(this);
     m_subBtn->installEventFilter(this);
 
-    // Add stretch at bottom to push content up (same as left panel pattern)
-    m_layout->addStretch();
 }
 
 QWidget *RightSidePanel::createFunctionButton(const QString &mainText, const QString &subText, QPushButton *&btnOut) {

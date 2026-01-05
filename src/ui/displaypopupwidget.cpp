@@ -565,6 +565,7 @@ void DisplayPopupWidget::setupTopRow() {
 
     m_spanControlPage = createSpanControlPage();
     m_refLevelControlPage = createRefLevelControlPage();
+    m_scaleControlPage = createScaleControlPage();
     m_averageControlPage = createAverageControlPage();
     m_nbControlPage = createNbControlPage();
     m_waterfallControlPage = createWaterfallControlPage();
@@ -572,6 +573,7 @@ void DisplayPopupWidget::setupTopRow() {
 
     m_controlStack->addWidget(m_spanControlPage);
     m_controlStack->addWidget(m_refLevelControlPage);
+    m_controlStack->addWidget(m_scaleControlPage);
     m_controlStack->addWidget(m_averageControlPage);
     m_controlStack->addWidget(m_nbControlPage);
     m_controlStack->addWidget(m_waterfallControlPage);
@@ -641,6 +643,36 @@ QWidget *DisplayPopupWidget::createRefLevelControlPage() {
     updateRefLevelControlGroup();
 
     return page;
+}
+
+QWidget *DisplayPopupWidget::createScaleControlPage() {
+    auto *page = new QWidget(this);
+    auto *layout = new QHBoxLayout(page);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(0);
+
+    m_scaleControlGroup = new ControlGroupWidget("SCALE", page);
+    m_scaleControlGroup->setValue(QString::number(m_scale));
+    connect(m_scaleControlGroup, &ControlGroupWidget::decrementClicked, this,
+            &DisplayPopupWidget::scaleDecrementRequested);
+    connect(m_scaleControlGroup, &ControlGroupWidget::incrementClicked, this,
+            &DisplayPopupWidget::scaleIncrementRequested);
+    layout->addWidget(m_scaleControlGroup);
+
+    return page;
+}
+
+void DisplayPopupWidget::updateScaleControlGroup() {
+    if (m_scaleControlGroup) {
+        m_scaleControlGroup->setValue(QString::number(m_scale));
+    }
+}
+
+void DisplayPopupWidget::setScale(int scale) {
+    if (scale >= 10 && scale <= 150 && scale != m_scale) {
+        m_scale = scale;
+        updateScaleControlGroup();
+    }
 }
 
 QWidget *DisplayPopupWidget::createAverageControlPage() {
@@ -910,8 +942,11 @@ void DisplayPopupWidget::onMenuItemRightClicked(MenuItem item) {
     }
     // NbWtrClrs right-click: waterfall color cycling removed (not needed)
     case RefLvlScale:
-        // Toggle auto-ref
-        emit catCommandRequested("#AR/;");
+        // Show SCALE control page (right-click on REF LVL/SCALE button)
+        m_selectedItem = RefLvlScale;
+        updateMenuButtonStyles();
+        m_controlStack->setCurrentWidget(m_scaleControlPage);
+        updateScaleControlGroup();
         break;
     case SpanCenter: {
         // Center on VFO

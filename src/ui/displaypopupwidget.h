@@ -34,6 +34,7 @@ public slots:
     void setSpanValueB(double spanKHz);
     void setRefLevelValue(int dB);      // Legacy: sets A
     void setAutoRefLevel(bool enabled); // GLOBAL - affects both VFOs
+    void setScale(int scale);           // GLOBAL - affects both panadapters (10-150)
     // Ref level VALUES are per-VFO (A and B can have different levels)
     void setRefLevelValueA(int dB);
     void setRefLevelValueB(int dB);
@@ -83,6 +84,10 @@ signals:
     void averagingIncrementRequested();
     void averagingDecrementRequested();
 
+    // Scale control signals (GLOBAL - applies to both panadapters)
+    void scaleIncrementRequested();
+    void scaleDecrementRequested();
+
     // DDC NB control signals
     void nbLevelIncrementRequested();
     void nbLevelDecrementRequested();
@@ -111,6 +116,7 @@ private:
 
     QWidget *createSpanControlPage();
     QWidget *createRefLevelControlPage();
+    QWidget *createScaleControlPage();
     QWidget *createAverageControlPage();
     QWidget *createNbControlPage();
     QWidget *createWaterfallControlPage();
@@ -149,6 +155,12 @@ private:
 
     // Ref level controls
     ControlGroupWidget *m_refLevelControlGroup;
+
+    // Scale controls
+    QWidget *m_scaleControlPage;
+    ControlGroupWidget *m_scaleControlGroup;
+    int m_scale = 75; // 10-150, default 75
+    void updateScaleControlGroup();
 
     // Average controls
     ControlGroupWidget *m_averageControlGroup;

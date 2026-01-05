@@ -2,6 +2,84 @@
 
 ## January 5, 2026
 
+### Feature: TX Meter Widget Enhancements
+
+**Summary:** Enhanced TX multifunction meters with decay animation, S-meter gradient colors, and peak hold indicators.
+
+**Changes:**
+1. **500ms decay rate**: Meter bars rise instantly, decay smoothly over ~500ms
+2. **S-meter gradient colors**: Po, ALC, COMP, SWR now use green→yellow→orange→red gradient (matching S-meter style)
+3. **Id stays red**: PA drain current meter retains original red/maroon color scheme
+4. **Peak hold indicators**: White vertical line at peak position with slower decay (1 second)
+
+**Implementation:**
+- Separate target values (instant) and display values (with decay)
+- Timer fires every 50ms, decay rate 0.1 per tick = ~500ms full decay
+- Peak decay rate 0.05 per tick = ~1 second decay
+- MeterType enum to select Gradient vs Red color scheme
+
+**Files Modified:**
+- `src/ui/txmeterwidget.h` - Added decay timer, target/display/peak values, MeterType enum
+- `src/ui/txmeterwidget.cpp` - Decay logic, S-meter gradient, peak indicators
+
+---
+
+### UI: Right Side Panel Button Layout
+
+**Summary:** Rearranged button layout to move lower button groups closer to PTT area.
+
+**Changes:**
+- Added stretch after main 5×2 grid to push remaining buttons down
+- BSET/CLR/RIT/XIT cluster now positioned lower
+- FREQ/RATE/LOCK/SUB cluster positioned at bottom above PTT
+- 33px spacing between the two lower clusters
+
+**Files Modified:**
+- `src/ui/rightsidepanel.cpp` - Layout restructuring
+
+---
+
+### DSP: Spectrum Grid Drawn Behind Fill
+
+**Summary:** Changed render order so grid is drawn behind spectrum fill (standard design pattern).
+
+**Rationale:**
+- Signal visibility: spectrum data is primary information
+- Visual hierarchy: data in front, reference lines in back
+- Cleaner appearance: signals don't get "cut up" by grid lines
+
+**Implementation:**
+- Grid now drawn after waterfall, before spectrum fill
+- Spectrum shader uses `discard` for pixels above signal level
+- Grid visible in empty space above signal peaks
+
+**Files Modified:**
+- `src/dsp/panadapter_rhi.cpp` - Moved grid rendering before spectrum fill
+
+---
+
+### Feature: SCALE Control in DISPLAY Popup
+
+**Summary:** Added SCALE control page to DISPLAY popup for adjusting panadapter display range.
+
+**Changes:**
+- Right-click REF LVL/SCALE button now shows scale +/- controls
+- Scale is GLOBAL (applies to both VFO A and B panadapters)
+- Scale range: 10-150 (default 75)
+- Increment/decrement by 1, sends `#SCL<value>;` command
+
+**Implementation:**
+- Removed incorrect `#SCL$` parsing (scale is global, no $ variant)
+- `scaleChanged` signal updates both panadapters
+- Scale control page with ControlGroupWidget
+
+**Files Modified:**
+- `src/ui/displaypopupwidget.h/.cpp` - Added scale control page and signals
+- `src/models/radiostate.h/.cpp` - Removed scaleB, scaleBChanged (scale is global)
+- `src/mainwindow.cpp` - Scale applies to both panadapters, +/- handlers
+
+---
+
 ### Feature: S-Meter Peak Indicator with Decay
 
 **Summary:** Added peak hold indicator to SMeterWidget showing signal peaks with approximately 500ms decay time.

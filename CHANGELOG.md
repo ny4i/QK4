@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **TX Meter enhancements**: 500ms decay animation, S-meter gradient colors (Po/ALC/COMP/SWR), peak hold indicators
+- **SCALE control**: Right-click REF LVL/SCALE in DISPLAY popup shows +/- controls (global, 10-150 range)
 - **S-Meter peak indicator**: White vertical line showing signal peaks with 500ms decay time
 - **Mode popup improvements**:
   - Left-click on MODE button opens popup (was right-click)
@@ -40,6 +42,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Higher scale values compress display range (signals appear weaker)
   - Lower scale values expand display range (signals appear stronger)
   - dB scale labels update dynamically to match K4 display
+
+### Changed
+- **Right side panel layout**: BSET/CLR/RIT/XIT and FREQ/RATE/LOCK/SUB buttons moved down closer to PTT area
+- **Spectrum grid rendering**: Grid now drawn behind spectrum fill (standard design pattern for better signal visibility)
+- **Scale is global**: Removed incorrect per-VFO scale handling; #SCL applies to both panadapters
 
 ### Fixed
 - **AVERAGE popup bug**: No longer sends CAT command when opening (was cycling value on click)

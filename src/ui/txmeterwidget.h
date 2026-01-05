@@ -2,6 +2,7 @@
 #define TXMETERWIDGET_H
 
 #include <QWidget>
+#include <QTimer>
 
 /**
  * TxMeterWidget - Multi-function TX meter display (IC-7760 style)
@@ -14,6 +15,8 @@
  * - Id: 0-15A current draw
  *
  * Appears below S-meter on the TX VFO side (follows split state).
+ * Uses S-meter gradient (green→red) for Po, ALC, COMP, SWR.
+ * Id remains red.
  */
 class TxMeterWidget : public QWidget {
     Q_OBJECT
@@ -26,7 +29,7 @@ public:
     void setAlc(int bars);        // 0-10
     void setCompression(int dB);  // 0-30
     void setSwr(double ratio);    // 1.0-3.0+
-    void setCurrent(double amps); // 0-15
+    void setCurrent(double amps); // 0-25
 
     // Set all TX meters at once (from txMeterChanged signal)
     void setTxMeters(int alc, int compDb, double fwdPower, double swr);
@@ -34,19 +37,46 @@ public:
 protected:
     void paintEvent(QPaintEvent *event) override;
 
+private slots:
+    void decayValues();
+
 private:
-    // Meter values
-    double m_power = 0.0;
+    // Target values (what we're decaying toward)
+    double m_powerTarget = 0.0;
+    double m_alcTarget = 0.0;
+    double m_compTarget = 0.0;
+    double m_swrTarget = 0.0;
+    double m_currentTarget = 0.0;
+
+    // Displayed values (with decay/smoothing)
+    double m_powerDisplay = 0.0;
+    double m_alcDisplay = 0.0;
+    double m_compDisplay = 0.0;
+    double m_swrDisplay = 0.0;
+    double m_currentDisplay = 0.0;
+
+    // Peak hold values
+    double m_powerPeak = 0.0;
+    double m_alcPeak = 0.0;
+    double m_compPeak = 0.0;
+    double m_swrPeak = 0.0;
+    double m_currentPeak = 0.0;
+
     bool m_isQrp = false;
-    int m_alc = 0;
-    int m_compression = 0;
-    double m_swr = 1.0;
-    double m_current = 0.0;
+
+    // Decay timer
+    QTimer *m_decayTimer;
+    static constexpr int DecayIntervalMs = 50;    // Timer fires every 50ms
+    static constexpr double DecayRate = 0.1;      // Ratio units per interval (~500ms full decay)
+    static constexpr double PeakDecayRate = 0.05; // Peak decays slower
+
+    // Meter types for color selection
+    enum class MeterType { Gradient, Red };
 
     // Drawing helpers
-    void drawMeterRow(QPainter &painter, int y, int rowHeight, const QString &label, double fillRatio,
+    void drawMeterRow(QPainter &painter, int y, int rowHeight, const QString &label, double fillRatio, double peakRatio,
                       const QStringList &scaleLabels, const QFont &scaleFont, int barStartX, int barWidth,
-                      int barHeight);
+                      int barHeight, MeterType type);
 };
 
 #endif // TXMETERWIDGET_H
