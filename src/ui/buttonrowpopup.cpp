@@ -125,25 +125,38 @@ void ButtonRowPopup::showAboveButton(QWidget *triggerButton) {
     if (!triggerButton)
         return;
 
-    // Get the trigger button's global position
+    // Get the button bar (parent of trigger button) for centering
+    QWidget *buttonBar = triggerButton->parentWidget();
+    if (!buttonBar)
+        buttonBar = triggerButton; // Fallback to button itself
+
+    // Get positions
+    QPoint barGlobal = buttonBar->mapToGlobal(QPoint(0, 0));
     QPoint btnGlobal = triggerButton->mapToGlobal(QPoint(0, 0));
+    int barCenterX = barGlobal.x() + buttonBar->width() / 2;
     int btnCenterX = btnGlobal.x() + triggerButton->width() / 2;
 
-    // Calculate popup position (centered above button, with triangle pointing down)
-    int popupX = btnCenterX - width() / 2;
+    // Center popup above the button bar
+    int popupX = barCenterX - width() / 2;
     int popupY = btnGlobal.y() - height();
 
-    // Store offset for triangle drawing (relative to popup center)
-    m_triangleXOffset = 0; // Triangle at center
+    // Calculate triangle offset to point at the trigger button
+    // Triangle position = button center relative to popup center
+    int popupCenterX = popupX + width() / 2;
+    m_triangleXOffset = btnCenterX - popupCenterX;
 
-    // Ensure popup stays on screen
+    // Ensure popup stays on screen (adjust position, recalculate triangle)
     QRect screenGeom = QApplication::primaryScreen()->availableGeometry();
     if (popupX < screenGeom.left()) {
-        m_triangleXOffset = popupX - screenGeom.left();
         popupX = screenGeom.left();
+        // Recalculate triangle offset with new popup position
+        popupCenterX = popupX + width() / 2;
+        m_triangleXOffset = btnCenterX - popupCenterX;
     } else if (popupX + width() > screenGeom.right()) {
-        m_triangleXOffset = (popupX + width()) - screenGeom.right();
         popupX = screenGeom.right() - width();
+        // Recalculate triangle offset with new popup position
+        popupCenterX = popupX + width() / 2;
+        m_triangleXOffset = btnCenterX - popupCenterX;
     }
 
     move(popupX, popupY);

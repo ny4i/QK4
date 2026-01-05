@@ -1,8 +1,15 @@
 #include "featuremenubar.h"
 #include <QHBoxLayout>
 #include <QPainter>
+#include <QApplication>
+#include <QScreen>
+#include <QHideEvent>
+#include <QKeyEvent>
 
 FeatureMenuBar::FeatureMenuBar(QWidget *parent) : QWidget(parent) {
+    setWindowFlags(Qt::Popup | Qt::FramelessWindowHint);
+    setAttribute(Qt::WA_TranslucentBackground, false);
+    setFocusPolicy(Qt::StrongFocus);
     setupUi();
     hide(); // Hidden by default
 }
@@ -11,8 +18,8 @@ void FeatureMenuBar::setupUi() {
     setFixedHeight(52);
 
     auto *layout = new QHBoxLayout(this);
-    // Left margin matches side panel width to align with bottom menu bar
-    layout->setContentsMargins(105, 6, 10, 6);
+    // Symmetric margins for centered popup
+    layout->setContentsMargins(12, 6, 12, 6);
     layout->setSpacing(8);
 
     // Title label (framed box with centered text)
@@ -62,60 +69,19 @@ void FeatureMenuBar::setupUi() {
     m_incrementBtn->setCursor(Qt::PointingHandCursor);
     m_incrementBtn->setStyleSheet(buttonStyleSmall());
 
-    // Encoder icon (⟳) - static indicator
-    m_encoderIcon = new QLabel(this);
-    m_encoderIcon->setFixedSize(36, 36);
-    m_encoderIcon->setAlignment(Qt::AlignCenter);
-    m_encoderIcon->setStyleSheet("QLabel {"
-                                 "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-                                 "    stop:0 #4a4a4a, stop:0.4 #3a3a3a, stop:0.6 #353535, stop:1 #2a2a2a);"
-                                 "  color: #FFFFFF;"
-                                 "  border: 1px solid #606060;"
-                                 "  border-radius: 5px;"
-                                 "  font-size: 16px;"
-                                 "}");
-    // Unicode for refresh/cycle symbol
-    m_encoderIcon->setText("\u21BB"); // ↻ or could use ⟳ (U+27F3)
-
-    // Encoder label [A] - static indicator (boxed)
-    m_encoderLabel = new QLabel("A", this);
-    m_encoderLabel->setFixedSize(36, 36);
-    m_encoderLabel->setAlignment(Qt::AlignCenter);
-    m_encoderLabel->setStyleSheet("QLabel {"
-                                  "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-                                  "    stop:0 #4a4a4a, stop:0.4 #3a3a3a, stop:0.6 #353535, stop:1 #2a2a2a);"
-                                  "  color: #FFFFFF;"
-                                  "  border: 1px solid #606060;"
-                                  "  border-radius: 5px;"
-                                  "  font-size: 14px;"
-                                  "  font-weight: bold;"
-                                  "}");
-
-    // Close/back button (←)
-    m_closeBtn = new QPushButton("\u2190", this); // ← arrow
-    m_closeBtn->setFixedSize(44, 36);
-    m_closeBtn->setCursor(Qt::PointingHandCursor);
-    m_closeBtn->setStyleSheet(buttonStyleSmall());
-
-    // Layout - center content within the menu bar
-    layout->addStretch(); // Left stretch for centering
+    // Layout - compact, no stretches (popup is centered by showAboveWidget)
     layout->addWidget(m_titleLabel);
     layout->addWidget(m_toggleBtn);
     layout->addWidget(m_extraBtn);
     layout->addWidget(m_valueLabel);
     layout->addWidget(m_decrementBtn);
     layout->addWidget(m_incrementBtn);
-    layout->addWidget(m_encoderIcon);
-    layout->addWidget(m_encoderLabel);
-    layout->addWidget(m_closeBtn);
-    layout->addStretch(); // Right stretch for centering
 
     // Connect signals
     connect(m_toggleBtn, &QPushButton::clicked, this, &FeatureMenuBar::toggleRequested);
     connect(m_decrementBtn, &QPushButton::clicked, this, &FeatureMenuBar::decrementRequested);
     connect(m_incrementBtn, &QPushButton::clicked, this, &FeatureMenuBar::incrementRequested);
     connect(m_extraBtn, &QPushButton::clicked, this, &FeatureMenuBar::extraButtonClicked);
-    connect(m_closeBtn, &QPushButton::clicked, this, &FeatureMenuBar::closeRequested);
 }
 
 QString FeatureMenuBar::buttonStyle() const {
@@ -172,12 +138,70 @@ void FeatureMenuBar::showForFeature(Feature feature) {
     updateForFeature();
     // Force layout recalculation before showing (extra button changes width)
     layout()->activate();
-    update(); // Repaint with new geometry
+    adjustSize(); // Calculate proper size for content
+
+    // Position above reference widget if set
+    if (m_referenceWidget) {
+        showAboveWidget(m_referenceWidget);
+    } else {
+        update();
+        show();
+        setFocus();
+    }
+}
+
+void FeatureMenuBar::showAboveWidget(QWidget *referenceWidget) {
+    if (!referenceWidget)
+        return;
+
+    m_referenceWidget = referenceWidget;
+
+    // Force size calculation
+    layout()->activate();
+    adjustSize();
+
+    // Get the reference widget's global position
+    QPoint refGlobal = referenceWidget->mapToGlobal(QPoint(0, 0));
+    int refCenterX = refGlobal.x() + referenceWidget->width() / 2;
+
+    // Center popup horizontally above reference widget
+    int popupX = refCenterX - width() / 2;
+    int popupY = refGlobal.y() - height() - 4; // 4px gap above
+
+    // Ensure popup stays on screen
+    QRect screenGeom = QApplication::primaryScreen()->availableGeometry();
+    if (popupX < screenGeom.left()) {
+        popupX = screenGeom.left();
+    } else if (popupX + width() > screenGeom.right()) {
+        popupX = screenGeom.right() - width();
+    }
+    if (popupY < screenGeom.top()) {
+        // If not enough room above, show below instead
+        popupY = refGlobal.y() + referenceWidget->height() + 4;
+    }
+
+    move(popupX, popupY);
     show();
+    setFocus();
+    update();
 }
 
 void FeatureMenuBar::hideMenu() {
     hide();
+    // closed() signal is emitted by hideEvent()
+}
+
+void FeatureMenuBar::hideEvent(QHideEvent *event) {
+    QWidget::hideEvent(event);
+    emit closed();
+}
+
+void FeatureMenuBar::keyPressEvent(QKeyEvent *event) {
+    if (event->key() == Qt::Key_Escape) {
+        hideMenu();
+    } else {
+        QWidget::keyPressEvent(event);
+    }
 }
 
 void FeatureMenuBar::updateForFeature() {
@@ -238,7 +262,7 @@ void FeatureMenuBar::paintEvent(QPaintEvent *event) {
 
     // Calculate tight bounding box from first to last visible widget
     int left = m_titleLabel->geometry().left() - 8; // 8px padding
-    int right = m_closeBtn->geometry().right() + 8;
+    int right = m_incrementBtn->geometry().right() + 8;
     QRect contentRect(left, 1, right - left, height() - 3);
 
     // Gradient background (matches ControlGroupWidget style)
@@ -272,7 +296,6 @@ void FeatureMenuBar::paintEvent(QPaintEvent *event) {
     if (m_extraBtn->isVisible()) {
         drawDelimiter(m_extraBtn); // After FILTER NONE (if shown)
     }
-    drawDelimiter(m_valueLabel);   // After value
-    drawDelimiter(m_incrementBtn); // After +/- buttons (group them)
-    drawDelimiter(m_encoderLabel); // After encoder hints (group them)
+    drawDelimiter(m_valueLabel); // After value
+    // No delimiter after +/- buttons (they're at the end now)
 }

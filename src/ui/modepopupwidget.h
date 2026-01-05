@@ -53,7 +53,7 @@ private:
 
     // Button pointers
     QPushButton *m_cwBtn;
-    QPushButton *m_ssbBtn;   // Shows LSB or USB
+    QPushButton *m_ssbBtn; // Shows LSB or USB
     QPushButton *m_dataBtn;
     QPushButton *m_afskBtn;
     QPushButton *m_amBtn;

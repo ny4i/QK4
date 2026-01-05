@@ -1134,6 +1134,16 @@ void PanadapterRhiWidget::setDbRange(float minDb, float maxDb) {
 
 void PanadapterRhiWidget::setSpectrumRatio(float ratio) {
     m_spectrumRatio = qBound(0.1f, ratio, 0.9f);
+    updateDbmScaleOverlay(); // Resize dBm scale to match new spectrum area
+    update();
+}
+
+void PanadapterRhiWidget::setWaterfallHeight(int percent) {
+    // Waterfall height percentage: 50% means 50% waterfall, 50% spectrum
+    // Spectrum ratio = (100 - waterfallHeight) / 100
+    float ratio = (100.0f - qBound(10, percent, 90)) / 100.0f;
+    m_spectrumRatio = qBound(0.1f, ratio, 0.9f);
+    updateDbmScaleOverlay(); // Resize dBm scale to match new spectrum area
     update();
 }
 

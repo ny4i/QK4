@@ -48,6 +48,7 @@ public:
     void setRefLevel(int level);
     void setScale(int scale); // 25-150, affects display gain/range
     void setSpan(int spanHz);
+    void setWaterfallHeight(int percent); // 0-100: percentage of display for waterfall
     int span() const { return m_spanHz; }
     void setNotchFilter(bool enabled, int pitchHz);
     void setCursorVisible(bool visible);

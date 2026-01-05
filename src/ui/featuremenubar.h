@@ -14,6 +14,7 @@ public:
     explicit FeatureMenuBar(QWidget *parent = nullptr);
 
     void showForFeature(Feature feature);
+    void showAboveWidget(QWidget *referenceWidget); // Position popup above a reference widget
     void hideMenu();
     Feature currentFeature() const { return m_currentFeature; }
     bool isMenuVisible() const { return isVisible(); }
@@ -29,10 +30,12 @@ signals:
     void incrementRequested();
     void decrementRequested();
     void extraButtonClicked();
-    void closeRequested();
+    void closed(); // Emitted when popup is hidden
 
 protected:
     void paintEvent(QPaintEvent *event) override;
+    void hideEvent(QHideEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
 
 private:
     void setupUi();
@@ -46,15 +49,13 @@ private:
     QLabel *m_valueLabel;
     QPushButton *m_decrementBtn;
     QPushButton *m_incrementBtn;
-    QLabel *m_encoderIcon;
-    QLabel *m_encoderLabel;
-    QPushButton *m_closeBtn;
 
     Feature m_currentFeature = Attenuator;
     bool m_featureEnabled = false;
     int m_value = 0;
     QString m_valueUnit;
-    int m_nbFilter = 0; // 0=NONE, 1=NARROW, 2=WIDE
+    int m_nbFilter = 0;                   // 0=NONE, 1=NARROW, 2=WIDE
+    QWidget *m_referenceWidget = nullptr; // Widget to position relative to
 };
 
 #endif // FEATUREMENUBAR_H

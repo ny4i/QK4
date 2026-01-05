@@ -82,6 +82,7 @@ set(SOURCES
     src/ui/optionsdialog.cpp
     src/ui/rightsidepanel.cpp
     src/ui/featuremenubar.cpp
+    src/ui/modepopupwidget.cpp
     src/ui/txmeterwidget.cpp
     src/hardware/kpoddevice.cpp
 )
@@ -113,6 +114,7 @@ set(HEADERS
     src/ui/optionsdialog.h
     src/ui/rightsidepanel.h
     src/ui/featuremenubar.h
+    src/ui/modepopupwidget.h
     src/ui/txmeterwidget.h
     src/hardware/kpoddevice.h
 )
