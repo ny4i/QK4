@@ -30,7 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - dB scale labels update dynamically to match K4 display
 
 ### Fixed
-- **Spectrum dBm calibration**: Signal levels now match K4 display. Previously showed signals ~19 dB lower than actual (e.g., -89 dBm instead of -70 dBm). Fix uses per-packet noise floor value from K4 instead of hardcoded offset.
+- **Spectrum dBm calibration**: Signal levels and display range now match K4 display. Calibrated decompression offset (-146) and display range formula (minDb=refLevel, maxDb=refLevel+scale) for accurate visual match.
 - **IF shift passband positioning**: K4 reports IF shift in decahertz (10 Hz units), not 0-99 index. Passband now correctly positions relative to dial marker when IF shift is adjusted.
 - **Span control behavior**: Reversed +/- button polarity (+ now increases span, - decreases) to match intuitive behavior
 - **Span increment sequence**: Now follows K4 radio pattern - 1kHz increments from 5-144kHz, 4kHz increments from 144-368kHz

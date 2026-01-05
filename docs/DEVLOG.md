@@ -2,68 +2,41 @@
 
 ## January 4, 2026
 
-### Feature: Spectrum Scale Support (#SCL)
+### Fix: Spectrum dBm Calibration and Scale Support
 
-**Summary:** Added support for the K4's spectrum scale setting (`#SCL` command), which controls the display gain/range of the panadapter.
+**Issue:** Spectrum display showed signals at incorrect dBm levels compared to the K4's physical display, and the display range wasn't tracking the K4's ref level and scale settings.
 
-**Background:** The K4 sends `#SCLxxx;` where xxx is 25-150. This "scale" value affects how spectrum signals appear:
-- Higher values (e.g., 150): More compressed display, signals appear weaker, wider dB range shown
-- Lower values (e.g., 40): More expanded display, signals appear stronger, narrower dB range shown
-- Default value of 75 is neutral (80 dB display range)
+**Calibration Process:**
+1. Disconnected antenna to compare noise floor readings
+2. Compared peak signal levels between K4 and app
+3. Iteratively adjusted offset until visual match achieved
 
-**Implementation:**
+**Final Implementation:**
 
-1. **RadioState** (`radiostate.h/.cpp`):
-   - Added `m_scale` and `m_scaleB` members (initialized to -1 for first-emit)
-   - Added `scaleChanged(int)` and `scaleBChanged(int)` signals
-   - Added `scale()` and `scaleB()` getters
-   - Added parsing for `#SCL` and `#SCL$` CAT commands
+1. **Decompression formula** (`decompressBins()`):
+   ```cpp
+   out[i] = static_cast<quint8>(bins[i]) - 146.0f;
+   ```
+   - Offset of -146 calibrated by comparing peak signals with K4 display
+   - Original -160 offset was ~14 dB too low
 
-2. **PanadapterRhiWidget** (`panadapter_rhi.h/.cpp`):
-   - Added `setScale(int)` method (range 25-150)
-   - Added `updateDbRangeFromRefAndScale()` helper method
-   - Modified `setRefLevel()` to use the new helper
-   - Scale factor = scale / 75.0 (0.33 to 2.0)
-   - dB range expands/contracts around ref level based on scale
+2. **Display range** (`updateDbRangeFromRefAndScale()`):
+   ```cpp
+   m_minDb = refLevel;
+   m_maxDb = refLevel + scale;
+   ```
+   - RefLevel (#REF) is the bottom of the display
+   - Scale (#SCL, 25-150) is the total dB range shown
+   - Display dynamically tracks K4's ref and scale settings
 
-3. **MainWindow** (`mainwindow.cpp`):
-   - Connected `scaleChanged` → `PanadapterA::setScale`
-   - Connected `scaleBChanged` → `PanadapterB::setScale`
+3. **RadioState** added `#SCL`/`#SCL$` parsing with signals
 
-**Formula:**
-```cpp
-float scaleFactor = m_scale / 75.0f;
-float belowRef = 28.0f * scaleFactor;
-float aboveRef = 52.0f * scaleFactor;
-m_minDb = m_refLevel - belowRef;
-m_maxDb = m_refLevel + aboveRef;
-```
+4. **MainWindow** connects scale signals to both panadapters
 
 **Files Modified:**
-- `src/models/radiostate.h` - Added scale state, signals, getters
-- `src/models/radiostate.cpp` - Added #SCL/#SCL$ parsing
-- `src/dsp/panadapter_rhi.h` - Added setScale(), updateDbRangeFromRefAndScale()
-- `src/dsp/panadapter_rhi.cpp` - Implemented scale methods
-- `src/mainwindow.cpp` - Connected scale signals to panadapter
-
----
-
-### Fix: Spectrum dBm Calibration
-
-**Issue:** Spectrum display showed signals ~19 dB lower than the K4's actual display. A strong signal showing -70 dBm on the K4 appeared as -89 dBm in the app.
-
-**Root Cause:** The spectrum bin decompression used a hardcoded offset of -160, but the K4 protocol sends the actual noise floor value in each PAN packet header (bytes 23-26). This noise floor value should be used as the offset for correct dBm calibration.
-
-**Fix:** Changed `decompressBins()` to use `m_noiseFloor` from the packet instead of hardcoded -160:
-```cpp
-// Before: out[i] = static_cast<quint8>(bins[i]) - 160.0f;
-// After:  out[i] = static_cast<quint8>(bins[i]) + m_noiseFloor;
-```
-
-**Protocol Reference:** K4-Remote Protocol Rev. A1 shows PAN packet structure with noise floor at bytes 20-23 (note: actual offset is bytes 23-26 in implementation due to header differences).
-
-**Files Modified:**
-- `src/dsp/panadapter_rhi.cpp` - Use packet noise floor in decompressBins()
+- `src/models/radiostate.h/.cpp` - Added scale state, signals, getters, parsing
+- `src/dsp/panadapter_rhi.h/.cpp` - Calibrated decompression, simplified dB range calc
+- `src/mainwindow.cpp` - Connected scale signals
 
 ---
 
