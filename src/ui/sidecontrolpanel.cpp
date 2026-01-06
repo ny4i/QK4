@@ -30,7 +30,7 @@ void SideControlPanel::setupUi() {
     txGrid->addWidget(createTxFunctionButton("XMIT", "TEST", m_xmitBtn), 0, 1);
 
     // Row 1: ATU TUNE, VOX
-    txGrid->addWidget(createTxFunctionButton("ATU TUNE", "ATU", m_atuTuneBtn), 1, 0);
+    txGrid->addWidget(createTxFunctionButton("ATU\nTUNE", "ATU", m_atuTuneBtn), 1, 0);
     txGrid->addWidget(createTxFunctionButton("VOX", "QSK", m_voxBtn), 1, 1);
 
     // Row 2: ANT, RX ANT
