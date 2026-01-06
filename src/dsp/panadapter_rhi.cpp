@@ -905,7 +905,20 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
             // For USB/LSB/AM/FM: marker stays at dial frequency
             float markerX = freqToNormalized(markerFreq) * w;
             if (markerX >= 0 && markerX <= w) {
-                QVector<float> markerVerts = {markerX, 0.0f, markerX, spectrumHeight};
+                // Draw as filled rectangle (2px wide) instead of line for robust Metal rendering
+                float markerWidth = 2.0f;
+                QVector<float> markerVerts = {markerX,
+                                              0.0f,
+                                              markerX + markerWidth,
+                                              0.0f,
+                                              markerX + markerWidth,
+                                              spectrumHeight,
+                                              markerX,
+                                              0.0f,
+                                              markerX + markerWidth,
+                                              spectrumHeight,
+                                              markerX,
+                                              spectrumHeight};
 
                 QRhiResourceUpdateBatch *mkRub = m_rhi->nextResourceUpdateBatch();
                 mkRub->updateDynamicBuffer(m_markerVbo.get(), 0, markerVerts.size() * sizeof(float),
@@ -927,11 +940,11 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
                 mkRub->updateDynamicBuffer(m_markerUniformBuffer.get(), 0, sizeof(mkUniforms), &mkUniforms);
 
                 cb->resourceUpdate(mkRub);
-                cb->setGraphicsPipeline(m_overlayLinePipeline.get());
+                cb->setGraphicsPipeline(m_overlayTrianglePipeline.get());
                 cb->setShaderResources(m_markerSrb.get());
                 const QRhiCommandBuffer::VertexInput mkVbufBinding(m_markerVbo.get(), 0);
                 cb->setVertexInput(0, 1, &mkVbufBinding);
-                cb->draw(2);
+                cb->draw(6);
             }
 
             // Draw notch filter marker (red line) - uses dedicated notch buffers
@@ -944,8 +957,23 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
                 }
 
                 float notchX = freqToNormalized(notchFreq) * w;
-                if (notchX >= 0 && notchX <= w) {
-                    QVector<float> notchVerts = {notchX, 0.0f, notchX, spectrumHeight};
+                bool inBounds = (notchX >= 0 && notchX <= w);
+
+                if (inBounds) {
+                    // Draw as filled rectangle (2px wide) instead of line for robust rendering
+                    float notchWidth = 2.0f;
+                    QVector<float> notchVerts = {notchX,
+                                                 0.0f,
+                                                 notchX + notchWidth,
+                                                 0.0f,
+                                                 notchX + notchWidth,
+                                                 spectrumHeight,
+                                                 notchX,
+                                                 0.0f,
+                                                 notchX + notchWidth,
+                                                 spectrumHeight,
+                                                 notchX,
+                                                 spectrumHeight};
 
                     QRhiResourceUpdateBatch *notchRub = m_rhi->nextResourceUpdateBatch();
                     notchRub->updateDynamicBuffer(m_notchVbo.get(), 0, notchVerts.size() * sizeof(float),
@@ -967,11 +995,11 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
                     notchRub->updateDynamicBuffer(m_notchUniformBuffer.get(), 0, sizeof(notchUniforms), &notchUniforms);
 
                     cb->resourceUpdate(notchRub);
-                    cb->setGraphicsPipeline(m_overlayLinePipeline.get());
+                    cb->setGraphicsPipeline(m_overlayTrianglePipeline.get()); // Use triangles not lines
                     cb->setShaderResources(m_notchSrb.get());
                     const QRhiCommandBuffer::VertexInput notchVbufBinding(m_notchVbo.get(), 0);
                     cb->setVertexInput(0, 1, &notchVbufBinding);
-                    cb->draw(2);
+                    cb->draw(6); // 2 triangles = 6 vertices
                 }
             }
         }

@@ -87,10 +87,20 @@ private:
     std::unique_ptr<QRhiBuffer> m_passbandUniformBuffer;
     std::unique_ptr<QRhiShaderResourceBindings> m_passbandSrb;
 
+    // Dedicated passband edge buffers (separate from fill to avoid conflicts)
+    std::unique_ptr<QRhiBuffer> m_passbandEdgeVbo;
+    std::unique_ptr<QRhiBuffer> m_passbandEdgeUniformBuffer;
+    std::unique_ptr<QRhiShaderResourceBindings> m_passbandEdgeSrb;
+
     // Dedicated center line buffers
     std::unique_ptr<QRhiBuffer> m_centerLineVbo;
     std::unique_ptr<QRhiBuffer> m_centerLineUniformBuffer;
     std::unique_ptr<QRhiShaderResourceBindings> m_centerLineSrb;
+
+    // Dedicated notch filter buffers (QRhi requires separate buffers to avoid conflicts)
+    std::unique_ptr<QRhiBuffer> m_notchVbo;
+    std::unique_ptr<QRhiBuffer> m_notchUniformBuffer;
+    std::unique_ptr<QRhiShaderResourceBindings> m_notchSrb;
 
     QRhiRenderPassDescriptor *m_rpDesc = nullptr;
 

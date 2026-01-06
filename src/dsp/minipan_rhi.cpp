@@ -152,9 +152,17 @@ void MiniPanRhiWidget::initialize(QRhiCommandBuffer *cb) {
     m_passbandVbo.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::VertexBuffer, 256 * sizeof(float)));
     m_passbandVbo->create();
 
+    // Dedicated passband edge buffers (12 vertices = 24 floats for 2 rectangles)
+    m_passbandEdgeVbo.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::VertexBuffer, 64 * sizeof(float)));
+    m_passbandEdgeVbo->create();
+
     // Dedicated center line buffers
     m_centerLineVbo.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::VertexBuffer, 64 * sizeof(float)));
     m_centerLineVbo->create();
+
+    // Dedicated notch filter buffers
+    m_notchVbo.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::VertexBuffer, 64 * sizeof(float)));
+    m_notchVbo->create();
 
     // Create uniform buffers
     m_spectrumUniformBuffer.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, 16));
@@ -170,9 +178,17 @@ void MiniPanRhiWidget::initialize(QRhiCommandBuffer *cb) {
     m_passbandUniformBuffer.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, 32));
     m_passbandUniformBuffer->create();
 
+    // Dedicated passband edge uniform buffer
+    m_passbandEdgeUniformBuffer.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, 32));
+    m_passbandEdgeUniformBuffer->create();
+
     // Dedicated center line uniform buffer
     m_centerLineUniformBuffer.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, 32));
     m_centerLineUniformBuffer->create();
+
+    // Dedicated notch filter uniform buffer
+    m_notchUniformBuffer.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, 32));
+    m_notchUniformBuffer->create();
 
     cb->resourceUpdate(rub);
 
@@ -293,6 +309,15 @@ void MiniPanRhiWidget::createPipelines() {
         m_passbandSrb->create();
     }
 
+    // Dedicated passband edge SRB
+    {
+        m_passbandEdgeSrb.reset(m_rhi->newShaderResourceBindings());
+        m_passbandEdgeSrb->setBindings({QRhiShaderResourceBinding::uniformBuffer(
+            0, QRhiShaderResourceBinding::VertexStage | QRhiShaderResourceBinding::FragmentStage,
+            m_passbandEdgeUniformBuffer.get())});
+        m_passbandEdgeSrb->create();
+    }
+
     // Dedicated center line SRB
     {
         m_centerLineSrb.reset(m_rhi->newShaderResourceBindings());
@@ -300,6 +325,15 @@ void MiniPanRhiWidget::createPipelines() {
             0, QRhiShaderResourceBinding::VertexStage | QRhiShaderResourceBinding::FragmentStage,
             m_centerLineUniformBuffer.get())});
         m_centerLineSrb->create();
+    }
+
+    // Dedicated notch filter SRB
+    {
+        m_notchSrb.reset(m_rhi->newShaderResourceBindings());
+        m_notchSrb->setBindings({QRhiShaderResourceBinding::uniformBuffer(
+            0, QRhiShaderResourceBinding::VertexStage | QRhiShaderResourceBinding::FragmentStage,
+            m_notchUniformBuffer.get())});
+        m_notchSrb->create();
     }
 
     m_pipelinesCreated = true;
@@ -616,18 +650,56 @@ void MiniPanRhiWidget::render(QRhiCommandBuffer *cb) {
             cb->setVertexInput(0, 1, &pbVbufBinding);
             cb->draw(6);
 
-            // Draw passband edge lines using overlay buffers (separate draw call) - full height
-            QColor edgeColor = m_passbandColor;
-            edgeColor.setAlpha(180);
-            QVector<float> passbandEdges = {passbandX, 0, passbandX, h, passbandX + bwPixels, 0, passbandX + bwPixels,
-                                            h};
-            drawLines(passbandEdges, edgeColor);
+            // Draw passband edge rectangles using DEDICATED buffers (2px wide for robust Metal rendering)
+            if (m_passbandEdgeSrb) {
+                QColor edgeColor = m_passbandColor;
+                edgeColor.setAlpha(180);
+                float edgeWidth = 2.0f;
+                // Left edge rectangle + right edge rectangle = 4 triangles = 12 vertices
+                QVector<float> passbandEdges = {// Left edge (2 triangles)
+                                                passbandX, 0, passbandX + edgeWidth, 0, passbandX + edgeWidth, h,
+                                                passbandX, 0, passbandX + edgeWidth, h, passbandX, h,
+                                                // Right edge (2 triangles)
+                                                passbandX + bwPixels, 0, passbandX + bwPixels + edgeWidth, 0,
+                                                passbandX + bwPixels + edgeWidth, h, passbandX + bwPixels, 0,
+                                                passbandX + bwPixels + edgeWidth, h, passbandX + bwPixels, h};
+
+                QRhiResourceUpdateBatch *edgeRub = m_rhi->nextResourceUpdateBatch();
+                edgeRub->updateDynamicBuffer(m_passbandEdgeVbo.get(), 0, passbandEdges.size() * sizeof(float),
+                                             passbandEdges.constData());
+
+                struct {
+                    float viewportWidth;
+                    float viewportHeight;
+                    float pad0, pad1;
+                    float r, g, b, a;
+                } edgeUniforms = {w,
+                                  h,
+                                  0,
+                                  0,
+                                  static_cast<float>(edgeColor.redF()),
+                                  static_cast<float>(edgeColor.greenF()),
+                                  static_cast<float>(edgeColor.blueF()),
+                                  static_cast<float>(edgeColor.alphaF())};
+                edgeRub->updateDynamicBuffer(m_passbandEdgeUniformBuffer.get(), 0, sizeof(edgeUniforms), &edgeUniforms);
+
+                cb->resourceUpdate(edgeRub);
+                cb->setGraphicsPipeline(m_overlayTrianglePipeline.get());
+                cb->setShaderResources(m_passbandEdgeSrb.get());
+                const QRhiCommandBuffer::VertexInput edgeVbufBinding(m_passbandEdgeVbo.get(), 0);
+                cb->setVertexInput(0, 1, &edgeVbufBinding);
+                cb->draw(12);
+            }
         }
 
         // Draw frequency marker (center line) using DEDICATED buffers
         if (m_centerLineSrb) {
+            // Draw as filled rectangle (2px wide) instead of line for robust Metal rendering
             QColor markerColor(0, 200, 255); // Bright cyan
-            QVector<float> centerLineVerts = {centerX, 0, centerX, h};
+            float markerWidth = 2.0f;
+            QVector<float> centerLineVerts = {
+                centerX, 0, centerX + markerWidth, 0, centerX + markerWidth, h, centerX, 0, centerX + markerWidth, h,
+                centerX, h};
 
             QRhiResourceUpdateBatch *clRub = m_rhi->nextResourceUpdateBatch();
             clRub->updateDynamicBuffer(m_centerLineVbo.get(), 0, centerLineVerts.size() * sizeof(float),
@@ -649,15 +721,15 @@ void MiniPanRhiWidget::render(QRhiCommandBuffer *cb) {
             clRub->updateDynamicBuffer(m_centerLineUniformBuffer.get(), 0, sizeof(clUniforms), &clUniforms);
 
             cb->resourceUpdate(clRub);
-            cb->setGraphicsPipeline(m_overlayLinePipeline.get());
+            cb->setGraphicsPipeline(m_overlayTrianglePipeline.get());
             cb->setShaderResources(m_centerLineSrb.get());
             const QRhiCommandBuffer::VertexInput clVbufBinding(m_centerLineVbo.get(), 0);
             cb->setVertexInput(0, 1, &clVbufBinding);
-            cb->draw(2);
+            cb->draw(6);
         }
 
-        // Draw notch filter marker
-        if (m_notchEnabled && m_notchPitchHz > 0) {
+        // Draw notch filter marker using DEDICATED buffers
+        if (m_notchEnabled && m_notchPitchHz > 0 && m_notchSrb) {
             int offsetHz;
             if (m_mode == "LSB") {
                 offsetHz = -m_notchPitchHz;
@@ -666,10 +738,41 @@ void MiniPanRhiWidget::render(QRhiCommandBuffer *cb) {
             }
 
             float notchX = centerX + (static_cast<float>(offsetHz) * w) / m_bandwidthHz;
+            bool inBounds = (notchX >= 0 && notchX < w);
 
-            if (notchX >= 0 && notchX < w) {
-                QVector<float> notchLine = {notchX, 0, notchX, h};
-                drawLines(notchLine, QColor(255, 0, 0)); // Red
+            if (inBounds) {
+                // Draw as filled rectangle (2px wide) instead of line for robust rendering
+                QColor notchColor(255, 0, 0); // Red
+                float notchWidth = 2.0f;
+                QVector<float> notchVerts = {
+                    notchX, 0, notchX + notchWidth, 0, notchX + notchWidth, h, notchX, 0, notchX + notchWidth, h,
+                    notchX, h};
+
+                QRhiResourceUpdateBatch *notchRub = m_rhi->nextResourceUpdateBatch();
+                notchRub->updateDynamicBuffer(m_notchVbo.get(), 0, notchVerts.size() * sizeof(float),
+                                              notchVerts.constData());
+
+                struct {
+                    float viewportWidth;
+                    float viewportHeight;
+                    float pad0, pad1; // std140: padding BEFORE color
+                    float r, g, b, a;
+                } notchUniforms = {w,
+                                   h,
+                                   0,
+                                   0,
+                                   static_cast<float>(notchColor.redF()),
+                                   static_cast<float>(notchColor.greenF()),
+                                   static_cast<float>(notchColor.blueF()),
+                                   static_cast<float>(notchColor.alphaF())};
+                notchRub->updateDynamicBuffer(m_notchUniformBuffer.get(), 0, sizeof(notchUniforms), &notchUniforms);
+
+                cb->resourceUpdate(notchRub);
+                cb->setGraphicsPipeline(m_overlayTrianglePipeline.get()); // Use triangles not lines
+                cb->setShaderResources(m_notchSrb.get());
+                const QRhiCommandBuffer::VertexInput notchVbufBinding(m_notchVbo.get(), 0);
+                cb->setVertexInput(0, 1, &notchVbufBinding);
+                cb->draw(6); // 2 triangles = 6 vertices
             }
         }
 
