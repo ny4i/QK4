@@ -30,7 +30,7 @@ void SideControlPanel::setupUi() {
     txGrid->addWidget(createTxFunctionButton("XMIT", "TEST", m_xmitBtn), 0, 1);
 
     // Row 1: ATU TUNE, VOX
-    txGrid->addWidget(createTxFunctionButton("ATU", "ATU TUNE", m_atuTuneBtn), 1, 0);
+    txGrid->addWidget(createTxFunctionButton("ATU TUNE", "ATU", m_atuTuneBtn), 1, 0);
     txGrid->addWidget(createTxFunctionButton("VOX", "QSK", m_voxBtn), 1, 1);
 
     // Row 2: ANT, RX ANT
@@ -43,7 +43,7 @@ void SideControlPanel::setupUi() {
     // Left-click signals
     connect(m_tuneBtn, &QPushButton::clicked, this, &SideControlPanel::tuneClicked);
     connect(m_xmitBtn, &QPushButton::clicked, this, &SideControlPanel::xmitClicked);
-    connect(m_atuTuneBtn, &QPushButton::clicked, this, &SideControlPanel::atuClicked);
+    connect(m_atuTuneBtn, &QPushButton::clicked, this, &SideControlPanel::atuTuneClicked);
     connect(m_voxBtn, &QPushButton::clicked, this, &SideControlPanel::voxClicked);
     connect(m_antBtn, &QPushButton::clicked, this, &SideControlPanel::antClicked);
     connect(m_rxAntBtn, &QPushButton::clicked, this, &SideControlPanel::rxAntClicked);
@@ -667,7 +667,7 @@ bool SideControlPanel::eventFilter(QObject *watched, QEvent *event) {
                 emit testClicked();
                 return true;
             } else if (watched == m_atuTuneBtn) {
-                emit atuTuneClicked();
+                emit atuClicked();
                 return true;
             } else if (watched == m_voxBtn) {
                 emit qskClicked();
