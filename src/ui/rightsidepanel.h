@@ -93,7 +93,8 @@ protected:
 
 private:
     void setupUi();
-    QWidget *createFunctionButton(const QString &mainText, const QString &subText, QPushButton *&btnOut);
+    QWidget *createFunctionButton(const QString &mainText, const QString &subText, QPushButton *&btnOut,
+                                  bool isLighter = false);
 
     QVBoxLayout *m_layout;
 

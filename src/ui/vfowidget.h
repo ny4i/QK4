@@ -8,7 +8,6 @@
 #include <QStackedWidget>
 #include <QColor>
 
-class SMeterWidget;
 class MiniPanRhiWidget;
 class TxMeterWidget;
 
@@ -31,11 +30,11 @@ public:
     void setNR(bool on);
     void setNotch(bool autoEnabled, bool manualEnabled);
 
-    // TX Meter support (multifunction meter - Po, ALC, COMP, SWR, Id)
-    void showTxMeter(bool show);
+    // TX Meter support (multifunction meter - S/Po, ALC, COMP, SWR, Id)
+    void setTransmitting(bool isTx);        // Switch meter between RX (S-meter) and TX (Po) mode
+    void setAmplifierEnabled(bool enabled); // Switch to KPA1500 power scale when amp in Operate mode
     void setTxMeters(int alc, int compDb, double fwdPower, double swr);
     void setTxMeterCurrent(double amps);
-    bool isTxMeterVisible() const;
 
     // Mini-pan support
     void updateMiniPan(const QByteArray &data);
@@ -79,7 +78,6 @@ private:
 
     // Widgets
     QLabel *m_frequencyLabel;
-    SMeterWidget *m_sMeter;
     QLabel *m_agcLabel;
     QLabel *m_preampLabel;
     QLabel *m_attLabel;

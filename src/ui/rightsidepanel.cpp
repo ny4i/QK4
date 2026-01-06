@@ -88,13 +88,13 @@ void RightSidePanel::setupUi() {
     pfGrid->setHorizontalSpacing(4);
     pfGrid->setVerticalSpacing(8);
 
-    // Row 0: B SET/PF 1, CLR/PF 2
-    pfGrid->addWidget(createFunctionButton("B SET", "PF 1", m_bsetBtn), 0, 0);
-    pfGrid->addWidget(createFunctionButton("CLR", "PF 2", m_clrBtn), 0, 1);
+    // Row 0: B SET/PF 1, CLR/PF 2 (lighter grey)
+    pfGrid->addWidget(createFunctionButton("B SET", "PF 1", m_bsetBtn, true), 0, 0);
+    pfGrid->addWidget(createFunctionButton("CLR", "PF 2", m_clrBtn, true), 0, 1);
 
-    // Row 1: RIT/PF 3, XIT/PF 4
-    pfGrid->addWidget(createFunctionButton("RIT", "PF 3", m_ritBtn), 1, 0);
-    pfGrid->addWidget(createFunctionButton("XIT", "PF 4", m_xitBtn), 1, 1);
+    // Row 1: RIT/PF 3, XIT/PF 4 (lighter grey)
+    pfGrid->addWidget(createFunctionButton("RIT", "PF 3", m_ritBtn, true), 1, 0);
+    pfGrid->addWidget(createFunctionButton("XIT", "PF 4", m_xitBtn, true), 1, 1);
 
     m_layout->addLayout(pfGrid);
 
@@ -140,7 +140,8 @@ void RightSidePanel::setupUi() {
     m_subBtn->installEventFilter(this);
 }
 
-QWidget *RightSidePanel::createFunctionButton(const QString &mainText, const QString &subText, QPushButton *&btnOut) {
+QWidget *RightSidePanel::createFunctionButton(const QString &mainText, const QString &subText, QPushButton *&btnOut,
+                                              bool isLighter) {
     // Container widget for button + sub-text label
     auto *container = new QWidget(this);
     auto *layout = new QVBoxLayout(container);
@@ -151,31 +152,62 @@ QWidget *RightSidePanel::createFunctionButton(const QString &mainText, const QSt
     auto *btn = new QPushButton(mainText, container);
     btn->setFixedHeight(28);
     btn->setCursor(Qt::PointingHandCursor);
-    btn->setStyleSheet(R"(
-        QPushButton {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #4a4a4a, stop:0.4 #3a3a3a,
-                stop:0.6 #353535, stop:1 #2a2a2a);
-            color: #FFFFFF;
-            border: 1px solid #606060;
-            border-radius: 4px;
-            font-size: 9px;
-            font-weight: bold;
-            padding: 2px 4px;
-        }
-        QPushButton:hover {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #5a5a5a, stop:0.4 #4a4a4a,
-                stop:0.6 #454545, stop:1 #3a3a3a);
-            border: 1px solid #808080;
-        }
-        QPushButton:pressed {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #2a2a2a, stop:0.4 #353535,
-                stop:0.6 #3a3a3a, stop:1 #4a4a4a);
-            border: 1px solid #909090;
-        }
-    )");
+
+    if (isLighter) {
+        // Lighter grey gradient for PF buttons (B SET, CLR, RIT, XIT) - 2 shades lighter
+        btn->setStyleSheet(R"(
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #888888, stop:0.4 #777777,
+                    stop:0.6 #6a6a6a, stop:1 #606060);
+                color: #FFFFFF;
+                border: 1px solid #909090;
+                border-radius: 4px;
+                font-size: 9px;
+                font-weight: bold;
+                padding: 2px 4px;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #989898, stop:0.4 #878787,
+                    stop:0.6 #7a7a7a, stop:1 #707070);
+                border: 1px solid #a0a0a0;
+            }
+            QPushButton:pressed {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #606060, stop:0.4 #6a6a6a,
+                    stop:0.6 #777777, stop:1 #888888);
+                border: 1px solid #b0b0b0;
+            }
+        )");
+    } else {
+        // Standard dark grey gradient
+        btn->setStyleSheet(R"(
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #4a4a4a, stop:0.4 #3a3a3a,
+                    stop:0.6 #353535, stop:1 #2a2a2a);
+                color: #FFFFFF;
+                border: 1px solid #606060;
+                border-radius: 4px;
+                font-size: 9px;
+                font-weight: bold;
+                padding: 2px 4px;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #5a5a5a, stop:0.4 #4a4a4a,
+                    stop:0.6 #454545, stop:1 #3a3a3a);
+                border: 1px solid #808080;
+            }
+            QPushButton:pressed {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #2a2a2a, stop:0.4 #353535,
+                    stop:0.6 #3a3a3a, stop:1 #4a4a4a);
+                border: 1px solid #909090;
+            }
+        )");
+    }
     btnOut = btn;
     layout->addWidget(btn);
 

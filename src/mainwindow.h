@@ -153,9 +153,8 @@ private:
     VFOWidget *m_vfoA;
     VFOWidget *m_vfoB;
 
-    // TX Meters (multifunction meters for TX - positioned left or right based on split)
-    TxMeterWidget *m_txMeterA; // Left side (VFO A TX)
-    TxMeterWidget *m_txMeterB; // Right side (VFO B TX)
+    // NOTE: TX meters are now integrated into VFOWidgets as multifunction S/Po meters
+    // (see VFOWidget::m_txMeter - displays S-meter when RX, Po when TX)
 
     // Mode labels (in center section, not in VFOWidget)
     QLabel *m_modeALabel;
@@ -181,6 +180,15 @@ private:
     QLabel *m_atuLabel;
     QLabel *m_filterALabel; // VFO A filter position (FIL1/FIL2/FIL3)
     QLabel *m_filterBLabel; // VFO B filter position (FIL1/FIL2/FIL3)
+
+    // Memory buttons (M1-M4, REC, STORE, RCL)
+    QPushButton *m_m1Btn;
+    QPushButton *m_m2Btn;
+    QPushButton *m_m3Btn;
+    QPushButton *m_m4Btn;
+    QPushButton *m_recBtn;
+    QPushButton *m_storeBtn;
+    QPushButton *m_rclBtn;
     QLabel *m_voxLabel;
     QLabel *m_qskLabel;
     QLabel *m_testLabel;

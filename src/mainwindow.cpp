@@ -220,7 +220,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_radioState, &RadioState::supplyCurrentChanged, this, &MainWindow::onSupplyCurrentChanged);
     connect(m_radioState, &RadioState::swrChanged, this, &MainWindow::onSwrChanged);
 
-    // TX Meter data -> update power displays and VFO TX meters during TX
+    // TX Meter data -> update power displays and VFO multifunction meters during TX
     connect(m_radioState, &RadioState::txMeterChanged, this, [this](int alc, int comp, double fwdPower, double swr) {
         // Update status bar power label
         QString powerStr;
@@ -242,38 +242,22 @@ MainWindow::MainWindow(QWidget *parent)
             paCurrent = fwdPower / (voltage * 0.34);
         }
 
-        // Update TX meter widget on the active TX VFO
-        // Split OFF: TX on VFO A, Split ON: TX on VFO B
-        if (m_radioState->splitEnabled()) {
-            m_txMeterB->setTxMeters(alc, comp, fwdPower, swr);
-            m_txMeterB->setCurrent(paCurrent);
-        } else {
-            m_txMeterA->setTxMeters(alc, comp, fwdPower, swr);
-            m_txMeterA->setCurrent(paCurrent);
-        }
+        // Update TX meters in VFO widgets (multifunction S/Po meters)
+        // Both VFOs receive TX data - display based on which is transmitting
+        m_vfoA->setTxMeters(alc, comp, fwdPower, swr);
+        m_vfoA->setTxMeterCurrent(paCurrent);
+        m_vfoB->setTxMeters(alc, comp, fwdPower, swr);
+        m_vfoB->setTxMeterCurrent(paCurrent);
     });
 
-    // TX state changes -> show/hide TX meter on correct side
-    // TODO: Enable when TX meter placement is finalized
-    // connect(m_radioState, &RadioState::transmitStateChanged, this, [this](bool transmitting) {
-    //     if (transmitting) {
-    //         // Show TX meter on TX side (split OFF: A/left, split ON: B/right)
-    //         if (m_radioState->splitEnabled()) {
-    //             m_txMeterA->setVisible(false);
-    //             m_txMeterB->setVisible(true);
-    //         } else {
-    //             m_txMeterA->setVisible(true);
-    //             m_txMeterB->setVisible(false);
-    //         }
-    //     } else {
-    //         // TX ended - hide both TX meters
-    //         m_txMeterA->setVisible(false);
-    //         m_txMeterB->setVisible(false);
-    //     }
-    // });
+    // TX state changes -> switch VFO meters between S-meter (RX) and Po (TX) mode
+    connect(m_radioState, &RadioState::transmitStateChanged, this, [this](bool transmitting) {
+        // Both VFOs switch mode together - the active TX meter will show power
+        m_vfoA->setTransmitting(transmitting);
+        m_vfoB->setTransmitting(transmitting);
+    });
 
-    // Note: TX meter Id bar is now calculated from forward power in txMeterChanged handler
-    // Supply current (DC input) is displayed elsewhere but not used for PA drain current
+    // NOTE: KPA1500 amplifier integration groundwork is in the KPA1500 section (after m_kpa1500Client creation)
 
     // RadioState signals -> Side control panel updates (BW/SHFT/HI/LO)
     // Helper to update all 4 filter display values (called on BW or SHFT change)
@@ -593,6 +577,16 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_kpa1500Client, &KPA1500Client::connected, this, &MainWindow::onKpa1500Connected);
     connect(m_kpa1500Client, &KPA1500Client::disconnected, this, &MainWindow::onKpa1500Disconnected);
     connect(m_kpa1500Client, &KPA1500Client::errorOccurred, this, &MainWindow::onKpa1500Error);
+
+    // KPA1500 amplifier integration groundwork:
+    // When amp is in Operate mode, switch VFO meters to KPA1500 power scale (0-1900W)
+    // connect(m_kpa1500Client, &KPA1500Client::operatingStateChanged, this, [this](KPA1500Client::OperatingState state)
+    // {
+    //     bool ampEnabled = (state == KPA1500Client::StateOperate);
+    //     m_vfoA->setAmplifierEnabled(ampEnabled);
+    //     m_vfoB->setAmplifierEnabled(ampEnabled);
+    // });
+    // TODO: Route KPA1500 power/SWR readings when amp is enabled (future enhancement)
 
     // Connect to settings for KPA1500 enable/disable and settings changes
     connect(RadioSettings::instance(), &RadioSettings::kpa1500EnabledChanged, this,
@@ -1302,6 +1296,21 @@ void MainWindow::setupUi() {
     connect(m_rightSidePanel, &RightSidePanel::khzClicked, this,
             [this]() { m_tcpClient->sendCAT("SW150;"); }); // Jump to 100kHz
 
+    // Connect memory buttons (M1-M4, REC, STORE, RCL)
+    // Primary actions (left click)
+    connect(m_m1Btn, &QPushButton::clicked, this, [this]() { m_tcpClient->sendCAT("SW17;"); });
+    connect(m_m2Btn, &QPushButton::clicked, this, [this]() { m_tcpClient->sendCAT("SW51;"); });
+    connect(m_m3Btn, &QPushButton::clicked, this, [this]() { m_tcpClient->sendCAT("SW18;"); });
+    connect(m_m4Btn, &QPushButton::clicked, this, [this]() { m_tcpClient->sendCAT("SW52;"); });
+    connect(m_recBtn, &QPushButton::clicked, this, [this]() { m_tcpClient->sendCAT("SW19;"); });
+    connect(m_storeBtn, &QPushButton::clicked, this, [this]() { m_tcpClient->sendCAT("SW20;"); });
+    connect(m_rclBtn, &QPushButton::clicked, this, [this]() { m_tcpClient->sendCAT("SW34;"); });
+
+    // Install event filters for right-click (alternate actions)
+    m_recBtn->installEventFilter(this);
+    m_storeBtn->installEventFilter(this);
+    m_rclBtn->installEventFilter(this);
+
     // Connect bottom menu bar signals
     connect(m_bottomMenuBar, &BottomMenuBar::menuClicked, this, &MainWindow::showMenuOverlay);
     connect(m_bottomMenuBar, &BottomMenuBar::fnClicked, this, &MainWindow::toggleFnPopup);
@@ -1424,7 +1433,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     m_vfoA->setMiniPanSpectrumColor(QColor(0, 128, 255));     // Blue spectrum
     m_vfoA->setMiniPanPassbandColor(QColor(0, 128, 255, 64)); // Blue passband
 
-    layout->addWidget(m_vfoA, 1);
+    layout->addWidget(m_vfoA, 1, Qt::AlignTop);
 
     // ===== Center Section =====
     auto *centerWidget = new QWidget(parent);
@@ -1646,14 +1655,170 @@ void MainWindow::setupVfoSection(QWidget *parent) {
 
     centerLayout->addLayout(filterRitXitRow);
 
-    // ATU indicator (orange, visible when AT=2/AUTO)
-    m_atuLabel = new QLabel("ATU", centerWidget);
-    m_atuLabel->setAlignment(Qt::AlignCenter);
-    m_atuLabel->setStyleSheet(QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Colors::VfoAAmber));
-    m_atuLabel->setVisible(false);
-    centerLayout->addWidget(m_atuLabel, 0, Qt::AlignHCenter);
+    // VOX / ATU / QSK indicator row (fixed-height container so visibility toggles don't shift layout)
+    auto *indicatorContainer = new QWidget(centerWidget);
+    indicatorContainer->setFixedHeight(20);
+    auto *indicatorLayout = new QHBoxLayout(indicatorContainer);
+    indicatorLayout->setContentsMargins(0, 0, 0, 0);
+    indicatorLayout->setSpacing(8);
 
-    centerLayout->addStretch();
+    indicatorLayout->addStretch();
+
+    // VOX indicator - orange when on, grey when off
+    m_voxLabel = new QLabel("VOX", indicatorContainer);
+    m_voxLabel->setAlignment(Qt::AlignCenter);
+    m_voxLabel->setStyleSheet("color: #999999; font-size: 11px; font-weight: bold;");
+    indicatorLayout->addWidget(m_voxLabel);
+
+    // ATU indicator (orange when AUTO, grey when off)
+    m_atuLabel = new QLabel("ATU", indicatorContainer);
+    m_atuLabel->setAlignment(Qt::AlignCenter);
+    m_atuLabel->setStyleSheet("color: #999999; font-size: 11px; font-weight: bold;");
+    indicatorLayout->addWidget(m_atuLabel);
+
+    // QSK indicator - white when on, grey when off
+    m_qskLabel = new QLabel("QSK", indicatorContainer);
+    m_qskLabel->setAlignment(Qt::AlignCenter);
+    m_qskLabel->setStyleSheet("color: #999999; font-size: 11px; font-weight: bold;");
+    indicatorLayout->addWidget(m_qskLabel);
+
+    indicatorLayout->addStretch();
+
+    centerLayout->addWidget(indicatorContainer);
+
+    // ===== Memory Buttons Row (M1-M4, REC, STORE, RCL) =====
+    centerLayout->addStretch(); // Push buttons to vertical center
+
+    // Helper lambda to create memory button with optional sub-label
+    auto createMemoryButton = [centerWidget](const QString &label, const QString &subLabel,
+                                             bool isLighter) -> QWidget * {
+        auto *container = new QWidget(centerWidget);
+        auto *layout = new QVBoxLayout(container);
+        layout->setContentsMargins(0, 0, 0, 0);
+        layout->setSpacing(2);
+
+        auto *btn = new QPushButton(label, container);
+        btn->setFixedSize(36, 24);
+        btn->setCursor(Qt::PointingHandCursor);
+
+        if (isLighter) {
+            // Lighter grey for REC, STORE, RCL (2 shades lighter)
+            btn->setStyleSheet(R"(
+                QPushButton {
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                        stop:0 #888888, stop:0.4 #777777,
+                        stop:0.6 #6a6a6a, stop:1 #606060);
+                    color: #FFFFFF;
+                    border: 1px solid #909090;
+                    border-radius: 3px;
+                    font-size: 9px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                        stop:0 #989898, stop:0.4 #878787,
+                        stop:0.6 #7a7a7a, stop:1 #707070);
+                    border: 1px solid #a0a0a0;
+                }
+                QPushButton:pressed {
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                        stop:0 #606060, stop:0.4 #6a6a6a,
+                        stop:0.6 #777777, stop:1 #888888);
+                    border: 1px solid #b0b0b0;
+                }
+            )");
+        } else {
+            // Standard dark grey for M1-M4, REC
+            btn->setStyleSheet(R"(
+                QPushButton {
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                        stop:0 #4a4a4a, stop:0.4 #3a3a3a,
+                        stop:0.6 #353535, stop:1 #2a2a2a);
+                    color: #FFFFFF;
+                    border: 1px solid #606060;
+                    border-radius: 3px;
+                    font-size: 9px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                        stop:0 #5a5a5a, stop:0.4 #4a4a4a,
+                        stop:0.6 #454545, stop:1 #3a3a3a);
+                    border: 1px solid #808080;
+                }
+                QPushButton:pressed {
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                        stop:0 #2a2a2a, stop:0.4 #353535,
+                        stop:0.6 #3a3a3a, stop:1 #4a4a4a);
+                    border: 1px solid #909090;
+                }
+            )");
+        }
+        layout->addWidget(btn, 0, Qt::AlignHCenter);
+
+        // Add sub-label if provided
+        if (!subLabel.isEmpty()) {
+            auto *sub = new QLabel(subLabel, container);
+            sub->setStyleSheet("color: #FFB000; font-size: 7px;");
+            sub->setAlignment(Qt::AlignCenter);
+            layout->addWidget(sub);
+        }
+
+        return container;
+    };
+
+    // Row 1: M1-M4 (standard grey, no sub-labels)
+    auto *memoryRow1 = new QHBoxLayout();
+    memoryRow1->setContentsMargins(0, 0, 0, 0);
+    memoryRow1->setSpacing(4);
+
+    memoryRow1->addStretch();
+
+    auto *m1Container = createMemoryButton("M1", "", false);
+    m_m1Btn = m1Container->findChild<QPushButton *>();
+    memoryRow1->addWidget(m1Container);
+
+    auto *m2Container = createMemoryButton("M2", "", false);
+    m_m2Btn = m2Container->findChild<QPushButton *>();
+    memoryRow1->addWidget(m2Container);
+
+    auto *m3Container = createMemoryButton("M3", "", false);
+    m_m3Btn = m3Container->findChild<QPushButton *>();
+    memoryRow1->addWidget(m3Container);
+
+    auto *m4Container = createMemoryButton("M4", "", false);
+    m_m4Btn = m4Container->findChild<QPushButton *>();
+    memoryRow1->addWidget(m4Container);
+
+    memoryRow1->addStretch();
+    centerLayout->addLayout(memoryRow1);
+
+    // Row 2: REC, STORE, RCL (centered below M1-M4)
+    auto *memoryRow2 = new QHBoxLayout();
+    memoryRow2->setContentsMargins(0, 0, 0, 0);
+    memoryRow2->setSpacing(4);
+
+    memoryRow2->addStretch();
+
+    // REC (lighter grey, BANK sub-label)
+    auto *recContainer = createMemoryButton("REC", "BANK", true);
+    m_recBtn = recContainer->findChild<QPushButton *>();
+    memoryRow2->addWidget(recContainer);
+
+    // STORE (lighter grey, AF REC sub-label)
+    auto *storeContainer = createMemoryButton("STORE", "AF REC", true);
+    m_storeBtn = storeContainer->findChild<QPushButton *>();
+    memoryRow2->addWidget(storeContainer);
+
+    // RCL (lighter grey, AF PLAY sub-label)
+    auto *rclContainer = createMemoryButton("RCL", "AF PLAY", true);
+    m_rclBtn = rclContainer->findChild<QPushButton *>();
+    memoryRow2->addWidget(rclContainer);
+
+    memoryRow2->addStretch();
+    centerLayout->addLayout(memoryRow2);
+
+    centerLayout->addStretch(); // Balance below
     layout->addWidget(centerWidget);
 
     // ===== VFO B (Right - Cyan) - Using VFOWidget =====
@@ -1674,26 +1839,13 @@ void MainWindow::setupVfoSection(QWidget *parent) {
         m_tcpClient->sendCAT("#MP$0;");          // Disable Mini-Pan B streaming
     });
 
-    layout->addWidget(m_vfoB, 1);
+    layout->addWidget(m_vfoB, 1, Qt::AlignTop);
 
     // Add the VFO row to main layout
     mainVLayout->addWidget(vfoRowWidget);
 
-    // ===== TX Meter Row (below VFO section) =====
-    // Two TX meters: left (VFO A) and right (VFO B), show based on split state
-    auto *txMeterRow = new QHBoxLayout();
-    txMeterRow->setContentsMargins(8, 0, 8, 0);
-    txMeterRow->setSpacing(8);
-
-    m_txMeterA = new TxMeterWidget(parent);
-    m_txMeterB = new TxMeterWidget(parent);
-
-    // VFO A TX meter on left, VFO B TX meter on right
-    txMeterRow->addWidget(m_txMeterA);
-    txMeterRow->addStretch(1); // Center space
-    txMeterRow->addWidget(m_txMeterB);
-
-    mainVLayout->addLayout(txMeterRow);
+    // NOTE: TX meters are now integrated into VFOWidgets as multifunction S/Po meters
+    // (see VFOWidget::m_txMeter - displays S-meter when RX, Po when TX)
 
     // ===== Antenna Row (below VFO section, centered) =====
     auto *antennaRow = new QHBoxLayout();
@@ -1708,23 +1860,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     m_rxAntALabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::TextWhite));
     antennaRow->addWidget(m_rxAntALabel);
 
-    antennaRow->addSpacing(8); // Small gap between RX A and VOX
-
-    // VOX indicator - orange when on, grey when off
-    m_voxLabel = new QLabel("VOX", parent);
-    m_voxLabel->setAlignment(Qt::AlignCenter);
-    m_voxLabel->setStyleSheet("color: #999999; font-size: 11px; font-weight: bold;");
-    antennaRow->addWidget(m_voxLabel);
-
-    antennaRow->addSpacing(8); // Small gap between VOX and QSK
-
-    // QSK indicator - white when on, grey when off
-    m_qskLabel = new QLabel("QSK", parent);
-    m_qskLabel->setAlignment(Qt::AlignCenter);
-    m_qskLabel->setStyleSheet("color: #999999; font-size: 11px; font-weight: bold;");
-    antennaRow->addWidget(m_qskLabel);
-
-    antennaRow->addSpacing(32); // Spacing between QSK and TX antenna
+    antennaRow->addSpacing(16); // Gap between RX A and TX antenna
 
     // TX Antenna - orange color, centered
     m_txAntennaLabel = new QLabel("1:ANT1", parent);
@@ -2314,8 +2450,12 @@ void MainWindow::onTestModeChanged(bool enabled) {
 }
 
 void MainWindow::onAtuModeChanged(int mode) {
-    // ATU indicator: visible in orange when ATU is in AUTO mode (2)
-    m_atuLabel->setVisible(mode == 2);
+    // ATU indicator: orange when AUTO mode (2), grey otherwise
+    if (mode == 2) {
+        m_atuLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::VfoAAmber));
+    } else {
+        m_atuLabel->setStyleSheet("color: #999999; font-size: 11px; font-weight: bold;");
+    }
 }
 
 void MainWindow::onRitXitChanged(bool ritEnabled, bool xitEnabled, int offset) {
@@ -2551,6 +2691,23 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
 
         // VFO indicator at bottom-left corner
         m_vfoIndicatorB->move(0, h - 30);
+    }
+
+    // Handle right-click on memory buttons (alternate actions)
+    if (event->type() == QEvent::MouseButtonPress) {
+        auto *mouseEvent = static_cast<QMouseEvent *>(event);
+        if (mouseEvent->button() == Qt::RightButton) {
+            if (watched == m_recBtn) {
+                m_tcpClient->sendCAT("SW137;"); // BANK
+                return true;
+            } else if (watched == m_storeBtn) {
+                m_tcpClient->sendCAT("SW138;"); // AF REC
+                return true;
+            } else if (watched == m_rclBtn) {
+                m_tcpClient->sendCAT("SW139;"); // AF PLAY
+                return true;
+            }
+        }
     }
 
     return QMainWindow::eventFilter(watched, event);

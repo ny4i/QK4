@@ -1,5 +1,4 @@
 #include "vfowidget.h"
-#include "smeterwidget.h"
 #include "txmeterwidget.h"
 #include "../dsp/minipan_rhi.h"
 #include <QMouseEvent>
@@ -55,7 +54,7 @@ void VFOWidget::setupUi() {
     m_stackedWidget->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
     m_stackedWidget->setMaximumWidth(200); // Match mini-pan max width
 
-    // Page 0: Normal content (S-meter + features)
+    // Page 0: Normal content (multifunction meter + features)
     // Height must match MiniPanRhiWidget (110px) to prevent layout shift when toggling
     m_normalContent = new QWidget(m_stackedWidget);
     m_normalContent->setFixedHeight(110); // Match mini-pan height for consistent layout
@@ -63,22 +62,22 @@ void VFOWidget::setupUi() {
     normalLayout->setContentsMargins(0, 0, 0, 0);
     normalLayout->setSpacing(2);
 
-    // Row 2: S-Meter (compressed width, aligned to outer edge)
-    auto *sMeterRow = new QHBoxLayout();
-    sMeterRow->setContentsMargins(0, 0, 0, 0);
-    m_sMeter = new SMeterWidget(m_normalContent);
-    m_sMeter->setColor(QColor(m_primaryColor));
+    // Row 2: Multifunction Meter (S/Po, ALC, COMP, SWR, Id) - replaces old S-meter
+    auto *meterRow = new QHBoxLayout();
+    meterRow->setContentsMargins(0, 0, 0, 0);
+    m_txMeter = new TxMeterWidget(m_normalContent);
+    m_txMeter->setFixedWidth(200); // Match mini-pan width
 
     if (m_type == VFO_A) {
-        // VFO A: S-meter left, space right (for filter indicator)
-        sMeterRow->addWidget(m_sMeter);
-        sMeterRow->addStretch();
+        // VFO A: meter left-aligned
+        meterRow->addWidget(m_txMeter);
+        meterRow->addStretch();
     } else {
-        // VFO B: space left (for filter indicator), S-meter right
-        sMeterRow->addStretch();
-        sMeterRow->addWidget(m_sMeter);
+        // VFO B: meter right-aligned
+        meterRow->addStretch();
+        meterRow->addWidget(m_txMeter);
     }
-    normalLayout->addLayout(sMeterRow);
+    normalLayout->addLayout(meterRow);
 
     // Row 3: AGC, PRE, ATT, NB, NR labels (aligned with S-meter)
     auto *featuresRow = new QHBoxLayout();
@@ -145,9 +144,8 @@ void VFOWidget::setupUi() {
     }
     mainLayout->addLayout(stackedRow);
 
-    // NOTE: TX Meter is now managed by MainWindow, not VFOWidget
-    // This allows proper placement in the main layout hierarchy
-    m_txMeter = nullptr;
+    // NOTE: TX Meter (m_txMeter) is now created in normal content area above
+    // It displays multifunction meters: S/Po, ALC, COMP, SWR, Id
 
     // Install event filter for click-to-toggle on normal content
     m_normalContent->installEventFilter(this);
@@ -243,7 +241,8 @@ void VFOWidget::drawTuningRateIndicator(QPainter &painter) {
 }
 
 void VFOWidget::setSMeterValue(double value) {
-    m_sMeter->setValue(value);
+    if (m_txMeter)
+        m_txMeter->setSMeter(value);
 }
 
 void VFOWidget::setAGC(const QString &mode) {
@@ -378,10 +377,15 @@ bool VFOWidget::isMiniPanVisible() const {
     return m_stackedWidget->currentIndex() == 1;
 }
 
-// TX Meter methods - TX meter is now managed by MainWindow
-void VFOWidget::showTxMeter(bool show) {
+// Multifunction meter methods (S/Po, ALC, COMP, SWR, Id)
+void VFOWidget::setTransmitting(bool isTx) {
     if (m_txMeter)
-        m_txMeter->setVisible(show);
+        m_txMeter->setTransmitting(isTx);
+}
+
+void VFOWidget::setAmplifierEnabled(bool enabled) {
+    if (m_txMeter)
+        m_txMeter->setAmplifierEnabled(enabled);
 }
 
 void VFOWidget::setTxMeters(int alc, int compDb, double fwdPower, double swr) {
@@ -392,8 +396,4 @@ void VFOWidget::setTxMeters(int alc, int compDb, double fwdPower, double swr) {
 void VFOWidget::setTxMeterCurrent(double amps) {
     if (m_txMeter)
         m_txMeter->setCurrent(amps);
-}
-
-bool VFOWidget::isTxMeterVisible() const {
-    return m_txMeter ? m_txMeter->isVisible() : false;
 }

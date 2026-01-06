@@ -73,7 +73,6 @@ set(SOURCES
     src/ui/sidecontrolpanel.cpp
     src/ui/bottommenubar.cpp
     src/ui/menuoverlay.cpp
-    src/ui/smeterwidget.cpp
     src/ui/micmeterwidget.cpp
     src/ui/vfowidget.cpp
     src/ui/bandpopupwidget.cpp
@@ -105,7 +104,6 @@ set(HEADERS
     src/ui/sidecontrolpanel.h
     src/ui/bottommenubar.h
     src/ui/menuoverlay.h
-    src/ui/smeterwidget.h
     src/ui/micmeterwidget.h
     src/ui/vfowidget.h
     src/ui/bandpopupwidget.h
