@@ -15,12 +15,14 @@ Current implementation state of K4Controller (January 2026).
 
 ### VFO Display
 - **Tuning rate indicator**: White underline below frequency digit
-- **S-Meter with peak hold**: 500ms decay, gradient transitions from green→yellow→orange→red
+- **Multifunction S/Po meter**: Shows S-meter when RX, power when TX (scales: K4 0-110W, QRP 0-10W, KPA1500 0-1900W)
+- **TX meters**: ALC, COMP, SWR, Id (shown in combined meter widget)
 - **Mode display**: Full mode with data sub-modes (AFSK, FSK, PSK, DATA)
 - Processing indicators: AGC, PRE, ATT, NB, NR, NTCH
-- Mini-pan toggle (click S-meter to show spectrum)
+- Mini-pan toggle (click meter area to show spectrum)
 - VOX indicator (mode-aware: VXC/VXV/VXD)
 - **Clickable VFO squares**: Open mode popup targeting A or B
+- **Memory buttons**: M1-M4, REC, STORE, RCL
 
 ### Panadapter
 - Spectrum styles: Blue gradient, BlueAmplitude (LUT-based)
