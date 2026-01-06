@@ -49,6 +49,8 @@ connect(m_panadapterA, &PanadapterWidget::frequencyClicked,
 4. Include in `mainwindow.h`, create instance in `setupUi()`
 5. Connect signals/slots in MainWindow constructor
 
+**GPU-accelerated widgets:** For high-performance rendering (spectrum, waterfall), subclass `QRhiWidget` instead of `QWidget`. See `src/dsp/panadapter_rhi.cpp` for the pattern. Requires shader compilation via `qt6_add_shaders()` in CMakeLists.txt.
+
 ### Adding a New Menu Item
 
 ```cpp
