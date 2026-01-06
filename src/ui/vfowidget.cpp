@@ -57,27 +57,16 @@ void VFOWidget::setupUi() {
     // Page 0: Normal content (multifunction meter + features)
     // Height must match MiniPanRhiWidget (110px) to prevent layout shift when toggling
     m_normalContent = new QWidget(m_stackedWidget);
-    m_normalContent->setFixedHeight(110); // Match mini-pan height for consistent layout
+    m_normalContent->setFixedSize(200, 110); // Match mini-pan size for consistent layout
     auto *normalLayout = new QVBoxLayout(m_normalContent);
     normalLayout->setContentsMargins(0, 0, 0, 0);
     normalLayout->setSpacing(2);
 
     // Row 2: Multifunction Meter (S/Po, ALC, COMP, SWR, Id) - replaces old S-meter
-    auto *meterRow = new QHBoxLayout();
-    meterRow->setContentsMargins(0, 0, 0, 0);
+    // Meter fills full width of normal content (both are 200px)
     m_txMeter = new TxMeterWidget(m_normalContent);
     m_txMeter->setFixedWidth(200); // Match mini-pan width
-
-    if (m_type == VFO_A) {
-        // VFO A: meter left-aligned
-        meterRow->addWidget(m_txMeter);
-        meterRow->addStretch();
-    } else {
-        // VFO B: meter right-aligned
-        meterRow->addStretch();
-        meterRow->addWidget(m_txMeter);
-    }
-    normalLayout->addLayout(meterRow);
+    normalLayout->addWidget(m_txMeter);
 
     // Row 3: AGC, PRE, ATT, NB, NR labels (aligned with S-meter)
     auto *featuresRow = new QHBoxLayout();
