@@ -19,14 +19,16 @@ jobs:
             ~/Library/Caches/Homebrew
             /opt/homebrew/Cellar/qt@6
             /opt/homebrew/Cellar/opus
+            /opt/homebrew/Cellar/openssl@3
             /opt/homebrew/Cellar/hidapi
             /opt/homebrew/opt/qt@6
+            /opt/homebrew/opt/openssl@3
           key: brew-macos-14-qt6-${{ hashFiles('.github/workflows/build-macos.yml') }}
           restore-keys: |
             brew-macos-14-qt6-
 
       - name: Install dependencies
-        run: brew install qt@6 opus hidapi
+        run: brew install qt@6 opus openssl@3 hidapi
 
       - name: Configure CMake
         run: cmake -B build -DCMAKE_PREFIX_PATH="$(brew --prefix qt@6)"
