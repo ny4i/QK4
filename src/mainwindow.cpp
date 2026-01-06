@@ -1871,20 +1871,19 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     // NOTE: TX meters are now integrated into VFOWidgets as multifunction S/Po meters
     // (see VFOWidget::m_txMeter - displays S-meter when RX, Po when TX)
 
-    // ===== Antenna Row (below VFO section, centered) =====
+    // ===== Antenna Row (below VFO section) =====
+    // Layout: [RX Ant A (left)] --- [TX Antenna (center)] --- [RX Ant B (right)]
     auto *antennaRow = new QHBoxLayout();
     antennaRow->setContentsMargins(8, 0, 8, 0);
     antennaRow->setSpacing(0);
 
-    antennaRow->addStretch(1); // Push content toward center
-
-    // RX Antenna A (Main) - white color, left of VOX
+    // RX Antenna A (Main) - white color, left-justified
     m_rxAntALabel = new QLabel("1:ANT1", parent);
-    m_rxAntALabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    m_rxAntALabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     m_rxAntALabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::TextWhite));
     antennaRow->addWidget(m_rxAntALabel);
 
-    antennaRow->addSpacing(16); // Gap between RX A and TX antenna
+    antennaRow->addStretch(1); // Push TX antenna to center
 
     // TX Antenna - orange color, centered
     m_txAntennaLabel = new QLabel("1:ANT1", parent);
@@ -1892,15 +1891,13 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     m_txAntennaLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::VfoAAmber));
     antennaRow->addWidget(m_txAntennaLabel);
 
-    antennaRow->addSpacing(8); // Small gap between TX and RX B
+    antennaRow->addStretch(1); // Push RX Ant B to right
 
-    // RX Antenna B (Sub) - white color, right of TX antenna
+    // RX Antenna B (Sub) - white color, right-justified
     m_rxAntBLabel = new QLabel("1:ANT1", parent);
-    m_rxAntBLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    m_rxAntBLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
     m_rxAntBLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::TextWhite));
     antennaRow->addWidget(m_rxAntBLabel);
-
-    antennaRow->addStretch(1); // Push content toward center
 
     mainVLayout->addLayout(antennaRow);
 }
