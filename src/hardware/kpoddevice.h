@@ -8,6 +8,7 @@
 // Forward declaration for hidapi
 typedef struct hid_device_ hid_device;
 
+
 struct KpodDeviceInfo {
     bool detected = false;
     QString productName;
@@ -59,17 +60,30 @@ signals:
 
 private slots:
     void poll();
+    void onDeviceArrived();
+    void onDeviceRemoved();
 
 private:
     bool openDevice();
     void closeDevice();
     void processResponse(const unsigned char *buffer);
 
+    // Hotplug monitoring
+    void setupHotplugMonitoring();
+    void teardownHotplugMonitoring();
+
     KpodDeviceInfo m_deviceInfo;
     hid_device *m_hidDevice = nullptr;
     QTimer *m_pollTimer = nullptr;
     static const int POLL_INTERVAL_MS = 20;
     RockerPosition m_lastRockerPosition = RockerCenter;
+
+    // Hotplug monitoring via periodic enumeration
+    // Note: We use hid_enumerate() instead of IOKit callbacks because hidapi
+    // internally uses IOHIDManager on macOS, and two managers conflict.
+    QTimer *m_presenceTimer = nullptr;
+    static const int PRESENCE_CHECK_INTERVAL_MS = 2000;
+    void checkDevicePresence();
 };
 
 #endif // KPODDEVICE_H

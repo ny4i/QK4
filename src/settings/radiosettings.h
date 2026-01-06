@@ -58,6 +58,10 @@ public:
     QString micDevice() const;
     void setMicDevice(const QString &deviceId);
 
+    // Audio output (speaker) settings
+    QString speakerDevice() const;
+    void setSpeakerDevice(const QString &deviceId);
+
 signals:
     void radiosChanged();
     void kpodEnabledChanged(bool enabled);
@@ -66,6 +70,7 @@ signals:
     void kpa1500PollIntervalChanged(int intervalMs);
     void micGainChanged(int value);
     void micDeviceChanged(const QString &deviceId);
+    void speakerDeviceChanged(const QString &deviceId);
 
 private:
     explicit RadioSettings(QObject *parent = nullptr);

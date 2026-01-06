@@ -67,7 +67,24 @@ void AudioEngine::stop() {
 }
 
 bool AudioEngine::setupAudioOutput() {
-    QAudioDevice outputDevice = QMediaDevices::defaultAudioOutput();
+    // Find the output device - use selected device or fall back to default
+    QAudioDevice outputDevice;
+
+    if (!m_selectedOutputDeviceId.isEmpty()) {
+        // Try to find the selected device
+        for (const QAudioDevice &device : QMediaDevices::audioOutputs()) {
+            if (device.id() == m_selectedOutputDeviceId) {
+                outputDevice = device;
+                break;
+            }
+        }
+    }
+
+    // Fall back to default if selected device not found
+    if (outputDevice.isNull()) {
+        outputDevice = QMediaDevices::defaultAudioOutput();
+    }
+
     if (outputDevice.isNull()) {
         qWarning() << "AudioEngine: No audio output device available";
         return false;
@@ -289,6 +306,40 @@ QList<QPair<QString, QString>> AudioEngine::availableInputDevices() {
 
     // Add all available input devices
     for (const QAudioDevice &device : QMediaDevices::audioInputs()) {
+        devices.append(qMakePair(QString(device.id()), device.description()));
+    }
+
+    return devices;
+}
+
+void AudioEngine::setOutputDevice(const QString &deviceId) {
+    if (m_selectedOutputDeviceId != deviceId) {
+        m_selectedOutputDeviceId = deviceId;
+
+        // Restart audio output with the new device if currently running
+        if (m_audioSink) {
+            m_audioSink->stop();
+            delete m_audioSink;
+            m_audioSink = nullptr;
+            m_audioSinkDevice = nullptr;
+
+            setupAudioOutput();
+        }
+    }
+}
+
+QString AudioEngine::outputDeviceId() const {
+    return m_selectedOutputDeviceId;
+}
+
+QList<QPair<QString, QString>> AudioEngine::availableOutputDevices() {
+    QList<QPair<QString, QString>> devices;
+
+    // Add "System Default" as the first option
+    devices.append(qMakePair(QString(""), QString("System Default")));
+
+    // Add all available output devices
+    for (const QAudioDevice &device : QMediaDevices::audioOutputs()) {
         devices.append(qMakePair(QString(device.id()), device.description()));
     }
 

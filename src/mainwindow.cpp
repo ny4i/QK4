@@ -83,6 +83,17 @@ MainWindow::MainWindow(QWidget *parent)
     // Initialize Opus encoder for TX audio (12kHz mono)
     m_opusEncoder->initialize(12000, 1);
 
+    // Load saved audio device settings
+    QString savedMicDevice = RadioSettings::instance()->micDevice();
+    if (!savedMicDevice.isEmpty()) {
+        m_audioEngine->setMicDevice(savedMicDevice);
+    }
+    QString savedSpeakerDevice = RadioSettings::instance()->speakerDevice();
+    if (!savedSpeakerDevice.isEmpty()) {
+        m_audioEngine->setOutputDevice(savedSpeakerDevice);
+    }
+    m_audioEngine->setMicGain(RadioSettings::instance()->micGain() / 100.0f);
+
     // IMPORTANT: setupUi() MUST be called BEFORE setupMenuBar()!
     // Qt 6.10.1 bug on macOS Tahoe: calling menuBar() before creating QRhiWidget
     // prevents the RHI backing store from being set up correctly, causing
@@ -556,6 +567,18 @@ MainWindow::MainWindow(QWidget *parent)
             [this](KpodDevice::RockerPosition pos) { onKpodRockerChanged(static_cast<int>(pos)); });
     connect(m_kpodDevice, &KpodDevice::pollError, this, &MainWindow::onKpodPollError);
 
+    // Connect KPOD hotplug signals - auto-start polling when device arrives
+    connect(m_kpodDevice, &KpodDevice::deviceConnected, this, [this]() {
+        qDebug() << "KPOD: Device arrived via hotplug";
+        if (RadioSettings::instance()->kpodEnabled() && !m_kpodDevice->isPolling()) {
+            qDebug() << "KPOD: Auto-starting polling (enabled in settings)";
+            m_kpodDevice->startPolling();
+        }
+    });
+    connect(m_kpodDevice, &KpodDevice::deviceDisconnected, this, [this]() {
+        qDebug() << "KPOD: Device removed via hotplug";
+    });
+
     // Connect to settings for KPOD enable/disable
     connect(RadioSettings::instance(), &RadioSettings::kpodEnabledChanged, this, &MainWindow::onKpodEnabledChanged);
 
@@ -608,7 +631,7 @@ void MainWindow::setupMenuBar() {
     QAction *optionsAction = new QAction("Settings...", this);
     optionsAction->setMenuRole(QAction::NoRole); // Prevent macOS from moving to app menu
     connect(optionsAction, &QAction::triggered, this, [this]() {
-        OptionsDialog dialog(m_radioState, m_kpa1500Client, m_audioEngine, this);
+        OptionsDialog dialog(m_radioState, m_kpa1500Client, m_audioEngine, m_kpodDevice, this);
         dialog.exec();
     });
     optionsMenu->addAction(optionsAction);

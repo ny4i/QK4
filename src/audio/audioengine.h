@@ -36,6 +36,13 @@ public:
     // Get list of available input devices (for settings UI)
     static QList<QPair<QString, QString>> availableInputDevices(); // (id, description)
 
+    // Output device settings
+    void setOutputDevice(const QString &deviceId);
+    QString outputDeviceId() const;
+
+    // Get list of available output devices (for settings UI)
+    static QList<QPair<QString, QString>> availableOutputDevices(); // (id, description)
+
 signals:
     void microphoneData(const QByteArray &pcmData);    // Raw Float32 mic data (variable size)
     void microphoneFrame(const QByteArray &s16leData); // Complete frame (240 samples, S16LE @ 12kHz)
@@ -65,7 +72,8 @@ private:
     QAudioSource *m_audioSource;
     QIODevice *m_audioSourceDevice;
     bool m_micEnabled;
-    QString m_selectedMicDeviceId; // Empty = use system default
+    QString m_selectedMicDeviceId;    // Empty = use system default
+    QString m_selectedOutputDeviceId; // Empty = use system default
 
     // Volume control
     float m_volume = 1.0f;

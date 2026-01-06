@@ -159,6 +159,19 @@ void RadioSettings::setMicDevice(const QString &deviceId) {
     }
 }
 
+QString RadioSettings::speakerDevice() const {
+    return m_settings.value("audio/speakerDevice", "").toString();
+}
+
+void RadioSettings::setSpeakerDevice(const QString &deviceId) {
+    QString oldDevice = m_settings.value("audio/speakerDevice", "").toString();
+    if (oldDevice != deviceId) {
+        m_settings.setValue("audio/speakerDevice", deviceId);
+        m_settings.sync();
+        emit speakerDeviceChanged(deviceId);
+    }
+}
+
 void RadioSettings::load() {
     int count = m_settings.beginReadArray("radios");
     m_radios.clear();

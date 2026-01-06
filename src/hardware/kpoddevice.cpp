@@ -2,6 +2,10 @@
 #include <hidapi/hidapi.h>
 #include <QDebug>
 
+#ifdef Q_OS_MACOS
+#include <CoreFoundation/CoreFoundation.h>
+#endif
+
 KpodDevice::KpodDevice(QObject *parent)
     : QObject(parent), m_hidDevice(nullptr), m_pollTimer(new QTimer(this)), m_lastRockerPosition(RockerCenter) {
     m_deviceInfo = detectDevice();
@@ -9,10 +13,14 @@ KpodDevice::KpodDevice(QObject *parent)
     // Setup poll timer
     m_pollTimer->setInterval(POLL_INTERVAL_MS);
     connect(m_pollTimer, &QTimer::timeout, this, &KpodDevice::poll);
+
+    // Setup hotplug monitoring for device arrival/removal
+    setupHotplugMonitoring();
 }
 
 KpodDevice::~KpodDevice() {
     stopPolling();
+    teardownHotplugMonitoring();
 }
 
 bool KpodDevice::isDetected() const {
@@ -216,4 +224,88 @@ KpodDeviceInfo KpodDevice::detectDevice() {
     hid_exit();
 
     return info;
+}
+
+// ============== Hotplug Monitoring ==============
+//
+// Note: We use periodic hid_enumerate() instead of IOKit's IOHIDManager callbacks
+// because hidapi internally uses IOHIDManager on macOS. Having two IOHIDManagers
+// for the same device causes crashes due to resource conflicts.
+//
+// The periodic check is very lightweight - hid_enumerate() only reads USB
+// descriptors from the OS kernel, no device I/O.
+
+void KpodDevice::setupHotplugMonitoring() {
+    // Create a timer for periodic device presence checking
+    m_presenceTimer = new QTimer(this);
+    m_presenceTimer->setInterval(PRESENCE_CHECK_INTERVAL_MS);
+    connect(m_presenceTimer, &QTimer::timeout, this, &KpodDevice::checkDevicePresence);
+    m_presenceTimer->start();
+
+    qDebug() << "KPOD: Hotplug monitoring started (periodic check every"
+             << PRESENCE_CHECK_INTERVAL_MS << "ms)";
+}
+
+void KpodDevice::teardownHotplugMonitoring() {
+    if (m_presenceTimer) {
+        m_presenceTimer->stop();
+        delete m_presenceTimer;
+        m_presenceTimer = nullptr;
+        qDebug() << "KPOD: Hotplug monitoring stopped";
+    }
+}
+
+void KpodDevice::checkDevicePresence() {
+    // Quick check using hid_enumerate - very lightweight, no device I/O
+    if (hid_init() != 0) {
+        return;
+    }
+
+    struct hid_device_info *devs = hid_enumerate(VENDOR_ID, PRODUCT_ID);
+    bool nowDetected = (devs != nullptr);
+    hid_free_enumeration(devs);
+    hid_exit();
+
+    bool wasDetected = m_deviceInfo.detected;
+
+    if (!wasDetected && nowDetected) {
+        // Device just arrived
+        onDeviceArrived();
+    } else if (wasDetected && !nowDetected) {
+        // Device just departed
+        onDeviceRemoved();
+    }
+}
+
+void KpodDevice::onDeviceArrived() {
+    qDebug() << "KPOD: Device connected (hotplug)";
+
+    // Refresh device info
+    m_deviceInfo = detectDevice();
+
+    // Emit signal for UI update
+    emit deviceConnected();
+}
+
+void KpodDevice::onDeviceRemoved() {
+    qDebug() << "KPOD: Device disconnected (hotplug)";
+
+    // Stop polling if active
+    if (m_pollTimer->isActive()) {
+        m_pollTimer->stop();
+        qDebug() << "KPOD: Polling stopped due to device removal";
+    }
+
+    // Close device handle if open
+    if (m_hidDevice) {
+        hid_close(m_hidDevice);
+        m_hidDevice = nullptr;
+        hid_exit();
+    }
+
+    // Update device info
+    m_deviceInfo.detected = false;
+
+    // Emit signal for UI update
+    emit deviceDisconnected();
 }

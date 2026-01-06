@@ -15,13 +15,14 @@ class RadioState;
 class KPA1500Client;
 class AudioEngine;
 class MicMeterWidget;
+class KpodDevice;
 
 class OptionsDialog : public QDialog {
     Q_OBJECT
 
 public:
     explicit OptionsDialog(RadioState *radioState, KPA1500Client *kpa1500Client, AudioEngine *audioEngine,
-                           QWidget *parent = nullptr);
+                           KpodDevice *kpodDevice, QWidget *parent = nullptr);
     ~OptionsDialog();
 
 private slots:
@@ -30,6 +31,7 @@ private slots:
     void onMicLevelChanged(float level);
     void onMicDeviceChanged(int index);
     void onMicGainChanged(int value);
+    void updateKpodStatus();
 
 private:
     void setupUi();
@@ -45,9 +47,21 @@ private:
     RadioState *m_radioState;
     KPA1500Client *m_kpa1500Client;
     AudioEngine *m_audioEngine;
+    KpodDevice *m_kpodDevice;
     QListWidget *m_tabList;
     QStackedWidget *m_pageStack;
+
+    // KPOD page elements (for real-time updates)
     QCheckBox *m_kpodEnableCheckbox;
+    QLabel *m_kpodStatusLabel;
+    QLabel *m_kpodProductLabel;
+    QLabel *m_kpodManufacturerLabel;
+    QLabel *m_kpodVendorIdLabel;
+    QLabel *m_kpodProductIdLabel;
+    QLabel *m_kpodDeviceTypeLabel;
+    QLabel *m_kpodFirmwareLabel;
+    QLabel *m_kpodDeviceIdLabel;
+    QLabel *m_kpodHelpLabel;
 
     // KPA1500 settings
     QLabel *m_kpa1500StatusLabel;
@@ -63,6 +77,12 @@ private:
     QPushButton *m_micTestBtn;
     MicMeterWidget *m_micMeter;
     bool m_micTestActive = false;
+
+    // Audio Output settings
+    QComboBox *m_speakerDeviceCombo;
+
+    void populateSpeakerDevices();
+    void onSpeakerDeviceChanged(int index);
 };
 
 #endif // OPTIONSDIALOG_H

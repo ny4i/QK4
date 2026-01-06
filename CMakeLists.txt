@@ -167,6 +167,14 @@ if(QT_GUI_PRIVATE_FOUND)
     target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::GuiPrivate)
 endif()
 
+# macOS frameworks for KPOD hotplug detection (IOKit)
+if(APPLE)
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        "-framework IOKit"
+        "-framework CoreFoundation"
+    )
+endif()
+
 # Compile shaders for QRhi (Metal/DirectX/Vulkan/OpenGL)
 qt6_add_shaders(${PROJECT_NAME} "panadapter_shaders"
     BATCHABLE

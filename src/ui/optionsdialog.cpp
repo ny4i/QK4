@@ -28,10 +28,10 @@ const QString BorderColor = "#333333";
 } // namespace
 
 OptionsDialog::OptionsDialog(RadioState *radioState, KPA1500Client *kpa1500Client, AudioEngine *audioEngine,
-                             QWidget *parent)
+                             KpodDevice *kpodDevice, QWidget *parent)
     : QDialog(parent), m_radioState(radioState), m_kpa1500Client(kpa1500Client), m_audioEngine(audioEngine),
-      m_kpa1500StatusLabel(nullptr), m_micDeviceCombo(nullptr), m_micGainSlider(nullptr), m_micGainValueLabel(nullptr),
-      m_micTestBtn(nullptr), m_micMeter(nullptr) {
+      m_kpodDevice(kpodDevice), m_kpa1500StatusLabel(nullptr), m_micDeviceCombo(nullptr), m_micGainSlider(nullptr),
+      m_micGainValueLabel(nullptr), m_micTestBtn(nullptr), m_micMeter(nullptr), m_speakerDeviceCombo(nullptr) {
     setupUi();
 
     // Connect to KPA1500 client signals for status updates
@@ -44,6 +44,12 @@ OptionsDialog::OptionsDialog(RadioState *radioState, KPA1500Client *kpa1500Clien
     // Connect to AudioEngine for mic level updates
     if (m_audioEngine) {
         connect(m_audioEngine, &AudioEngine::micLevelChanged, this, &OptionsDialog::onMicLevelChanged);
+    }
+
+    // Connect to KPOD device signals for real-time status updates
+    if (m_kpodDevice) {
+        connect(m_kpodDevice, &KpodDevice::deviceConnected, this, &OptionsDialog::updateKpodStatus);
+        connect(m_kpodDevice, &KpodDevice::deviceDisconnected, this, &OptionsDialog::updateKpodStatus);
     }
 }
 
@@ -285,22 +291,15 @@ QWidget *OptionsDialog::createKpodPage() {
     layout->setContentsMargins(20, 20, 20, 20);
     layout->setSpacing(15);
 
-    // Detect KPOD device
-    KpodDeviceInfo kpodInfo = KpodDevice::detectDevice();
-
     // Status indicator
     auto *statusLayout = new QHBoxLayout();
     auto *statusLabel = new QLabel("Status:", page);
     statusLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(TextGray));
     statusLabel->setFixedWidth(80);
 
-    QString statusText = kpodInfo.detected ? "Detected" : "Not Detected";
-    QString statusColor = kpodInfo.detected ? "#00FF00" : "#FF6666";
-    auto *statusValue = new QLabel(statusText, page);
-    statusValue->setStyleSheet(QString("color: %1; font-size: 13px; font-weight: bold;").arg(statusColor));
-
+    m_kpodStatusLabel = new QLabel("Not Detected", page);
     statusLayout->addWidget(statusLabel);
-    statusLayout->addWidget(statusValue);
+    statusLayout->addWidget(m_kpodStatusLabel);
     statusLayout->addStretch();
     layout->addLayout(statusLayout);
 
@@ -325,42 +324,22 @@ QWidget *OptionsDialog::createKpodPage() {
 
     // Table styling
     QString headerStyle = QString("color: %1; font-size: 12px; font-weight: bold; padding: 5px;").arg(TextGray);
-    QString valueStyle = QString("color: %1; font-size: 12px; padding: 5px;").arg(TextWhite);
-    QString notDetectedStyle = QString("color: %1; font-size: 12px; font-style: italic; padding: 5px;").arg(TextGray);
 
-    // Row data
-    struct TableRow {
-        QString property;
-        QString value;
-    };
+    // Create labels with property names
+    QStringList properties = {"Product Name", "Manufacturer", "Vendor ID", "Product ID",
+                              "Device Type",  "Firmware Version", "Device ID"};
+    QVector<QLabel **> valueLabels = {&m_kpodProductLabel,      &m_kpodManufacturerLabel, &m_kpodVendorIdLabel,
+                                      &m_kpodProductIdLabel,    &m_kpodDeviceTypeLabel,   &m_kpodFirmwareLabel,
+                                      &m_kpodDeviceIdLabel};
 
-    QVector<TableRow> rows = {
-        {"Product Name", kpodInfo.detected ? kpodInfo.productName : "N/A"},
-        {"Manufacturer", kpodInfo.detected ? kpodInfo.manufacturer : "N/A"},
-        {"Vendor ID",
-         kpodInfo.detected
-             ? QString("%1 (0x%2)").arg(kpodInfo.vendorId).arg(kpodInfo.vendorId, 4, 16, QChar('0')).toUpper()
-             : "N/A"},
-        {"Product ID",
-         kpodInfo.detected
-             ? QString("%1 (0x%2)").arg(kpodInfo.productId).arg(kpodInfo.productId, 4, 16, QChar('0')).toUpper()
-             : "N/A"},
-        {"Device Type", kpodInfo.detected ? "USB HID (Human Interface Device)" : "N/A"},
-        {"Firmware Version",
-         kpodInfo.detected && !kpodInfo.firmwareVersion.isEmpty() ? kpodInfo.firmwareVersion : "N/A"},
-        {"Device ID", kpodInfo.detected && !kpodInfo.deviceId.isEmpty() ? kpodInfo.deviceId : "N/A"}};
-
-    int row = 0;
-    for (const auto &rowData : rows) {
-        auto *propLabel = new QLabel(rowData.property, tableWidget);
+    for (int row = 0; row < properties.size(); ++row) {
+        auto *propLabel = new QLabel(properties[row], tableWidget);
         propLabel->setStyleSheet(headerStyle);
 
-        auto *valueLabel = new QLabel(rowData.value, tableWidget);
-        valueLabel->setStyleSheet(rowData.value == "N/A" ? notDetectedStyle : valueStyle);
+        *valueLabels[row] = new QLabel("N/A", tableWidget);
 
         tableLayout->addWidget(propLabel, row, 0, Qt::AlignLeft);
-        tableLayout->addWidget(valueLabel, row, 1, Qt::AlignLeft);
-        row++;
+        tableLayout->addWidget(*valueLabels[row], row, 1, Qt::AlignLeft);
     }
 
     tableLayout->setColumnStretch(1, 1);
@@ -375,25 +354,7 @@ QWidget *OptionsDialog::createKpodPage() {
 
     // Enable checkbox
     m_kpodEnableCheckbox = new QCheckBox("Enable K-Pod", page);
-    m_kpodEnableCheckbox->setStyleSheet(
-        QString("QCheckBox { color: %1; font-size: 13px; spacing: 8px; }"
-                "QCheckBox::indicator { width: 18px; height: 18px; }"
-                "QCheckBox::indicator:unchecked { border: 2px solid %2; background: %3; border-radius: 3px; }"
-                "QCheckBox::indicator:checked { border: 2px solid %4; background: %4; border-radius: 3px; }"
-                "QCheckBox::indicator:checked::after { content: ''; }")
-            .arg(TextWhite, TextGray, DarkBackground, TextAmber));
-
-    // Load current setting and set enabled state
     m_kpodEnableCheckbox->setChecked(RadioSettings::instance()->kpodEnabled());
-    m_kpodEnableCheckbox->setEnabled(kpodInfo.detected);
-
-    if (!kpodInfo.detected) {
-        m_kpodEnableCheckbox->setStyleSheet(
-            QString("QCheckBox { color: %1; font-size: 13px; spacing: 8px; }"
-                    "QCheckBox::indicator { width: 18px; height: 18px; }"
-                    "QCheckBox::indicator:unchecked { border: 2px solid %1; background: %2; border-radius: 3px; }")
-                .arg(TextGray, DarkBackground));
-    }
 
     connect(m_kpodEnableCheckbox, &QCheckBox::toggled, this,
             [](bool checked) { RadioSettings::instance()->setKpodEnabled(checked); });
@@ -401,16 +362,74 @@ QWidget *OptionsDialog::createKpodPage() {
     layout->addWidget(m_kpodEnableCheckbox);
 
     // Help text
-    auto *helpLabel =
-        new QLabel(kpodInfo.detected ? "When enabled, the K-Pod VFO knob and buttons will control the radio."
-                                     : "Connect a K-Pod device to enable this feature.",
-                   page);
-    helpLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-style: italic;").arg(TextGray));
-    helpLabel->setWordWrap(true);
-    layout->addWidget(helpLabel);
+    m_kpodHelpLabel = new QLabel("Connect a K-Pod device to enable this feature.", page);
+    m_kpodHelpLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-style: italic;").arg(TextGray));
+    m_kpodHelpLabel->setWordWrap(true);
+    layout->addWidget(m_kpodHelpLabel);
 
     layout->addStretch();
+
+    // Initialize with current status
+    updateKpodStatus();
+
     return page;
+}
+
+void OptionsDialog::updateKpodStatus() {
+    if (!m_kpodDevice)
+        return;
+
+    KpodDeviceInfo info = m_kpodDevice->deviceInfo();
+    bool detected = info.detected;
+
+    // Styling
+    QString valueStyle = QString("color: %1; font-size: 12px; padding: 5px;").arg(TextWhite);
+    QString notDetectedStyle = QString("color: %1; font-size: 12px; font-style: italic; padding: 5px;").arg(TextGray);
+
+    // Update status label
+    QString statusText = detected ? "Detected" : "Not Detected";
+    QString statusColor = detected ? "#00FF00" : "#FF6666";
+    m_kpodStatusLabel->setText(statusText);
+    m_kpodStatusLabel->setStyleSheet(QString("color: %1; font-size: 13px; font-weight: bold;").arg(statusColor));
+
+    // Update device info labels
+    auto setLabel = [&](QLabel *label, const QString &value) {
+        QString displayValue = value.isEmpty() ? "N/A" : value;
+        label->setText(displayValue);
+        label->setStyleSheet(displayValue == "N/A" ? notDetectedStyle : valueStyle);
+    };
+
+    setLabel(m_kpodProductLabel, detected ? info.productName : "");
+    setLabel(m_kpodManufacturerLabel, detected ? info.manufacturer : "");
+    setLabel(m_kpodVendorIdLabel,
+             detected ? QString("%1 (0x%2)").arg(info.vendorId).arg(info.vendorId, 4, 16, QChar('0')).toUpper() : "");
+    setLabel(m_kpodProductIdLabel,
+             detected ? QString("%1 (0x%2)").arg(info.productId).arg(info.productId, 4, 16, QChar('0')).toUpper() : "");
+    setLabel(m_kpodDeviceTypeLabel, detected ? "USB HID (Human Interface Device)" : "");
+    setLabel(m_kpodFirmwareLabel, detected ? info.firmwareVersion : "");
+    setLabel(m_kpodDeviceIdLabel, detected ? info.deviceId : "");
+
+    // Update checkbox enabled state and styling
+    m_kpodEnableCheckbox->setEnabled(detected);
+    if (detected) {
+        m_kpodEnableCheckbox->setStyleSheet(
+            QString("QCheckBox { color: %1; font-size: 13px; spacing: 8px; }"
+                    "QCheckBox::indicator { width: 18px; height: 18px; }"
+                    "QCheckBox::indicator:unchecked { border: 2px solid %2; background: %3; border-radius: 3px; }"
+                    "QCheckBox::indicator:checked { border: 2px solid %4; background: %4; border-radius: 3px; }"
+                    "QCheckBox::indicator:checked::after { content: ''; }")
+                .arg(TextWhite, TextGray, DarkBackground, TextAmber));
+    } else {
+        m_kpodEnableCheckbox->setStyleSheet(
+            QString("QCheckBox { color: %1; font-size: 13px; spacing: 8px; }"
+                    "QCheckBox::indicator { width: 18px; height: 18px; }"
+                    "QCheckBox::indicator:unchecked { border: 2px solid %1; background: %2; border-radius: 3px; }")
+                .arg(TextGray, DarkBackground));
+    }
+
+    // Update help text
+    m_kpodHelpLabel->setText(detected ? "When enabled, the K-Pod VFO knob and buttons will control the radio."
+                                      : "Connect a K-Pod device to enable this feature.");
 }
 
 QWidget *OptionsDialog::createKpa1500Page() {
@@ -813,14 +832,73 @@ QWidget *OptionsDialog::createAudioOutputPage() {
     line->setFixedHeight(1);
     layout->addWidget(line);
 
-    // Placeholder message
-    auto *placeholderLabel = new QLabel("Speaker and audio output settings will be configured here.", page);
-    placeholderLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(TextGray));
-    placeholderLabel->setWordWrap(true);
-    layout->addWidget(placeholderLabel);
+    // === Speaker Device Selection ===
+    auto *deviceLabel = new QLabel("Speaker:", page);
+    deviceLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(TextGray));
+    layout->addWidget(deviceLabel);
+
+    m_speakerDeviceCombo = new QComboBox(page);
+    m_speakerDeviceCombo->setStyleSheet(
+        QString("QComboBox { background-color: %1; color: %2; border: 1px solid %3; "
+                "           padding: 6px; font-size: 13px; border-radius: 3px; }"
+                "QComboBox:focus { border-color: %4; }"
+                "QComboBox::drop-down { border: none; width: 20px; }"
+                "QComboBox::down-arrow { image: none; border-left: 5px solid transparent; "
+                "           border-right: 5px solid transparent; border-top: 5px solid %2; }"
+                "QComboBox QAbstractItemView { background-color: %1; color: %2; selection-background-color: %4; }")
+            .arg(DarkBackground, TextWhite, BorderColor, TextAmber));
+    populateSpeakerDevices();
+    connect(m_speakerDeviceCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+            &OptionsDialog::onSpeakerDeviceChanged);
+    layout->addWidget(m_speakerDeviceCombo);
+
+    layout->addSpacing(10);
+
+    // Help text
+    auto *helpLabel = new QLabel("Select the audio output device for radio receive audio. "
+                                 "Volume is controlled by the MAIN and SUB sliders on the side panel.",
+                                 page);
+    helpLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-style: italic;").arg(TextGray));
+    helpLabel->setWordWrap(true);
+    layout->addWidget(helpLabel);
 
     layout->addStretch();
     return page;
+}
+
+void OptionsDialog::populateSpeakerDevices() {
+    if (!m_speakerDeviceCombo)
+        return;
+
+    m_speakerDeviceCombo->clear();
+
+    auto devices = AudioEngine::availableOutputDevices();
+    QString savedDevice = RadioSettings::instance()->speakerDevice();
+    int selectedIndex = 0;
+
+    for (int i = 0; i < devices.size(); i++) {
+        const auto &device = devices[i];
+        m_speakerDeviceCombo->addItem(device.second, device.first);
+
+        // Find the saved device
+        if (device.first == savedDevice) {
+            selectedIndex = i;
+        }
+    }
+
+    m_speakerDeviceCombo->setCurrentIndex(selectedIndex);
+}
+
+void OptionsDialog::onSpeakerDeviceChanged(int index) {
+    if (!m_speakerDeviceCombo || index < 0)
+        return;
+
+    QString deviceId = m_speakerDeviceCombo->currentData().toString();
+    RadioSettings::instance()->setSpeakerDevice(deviceId);
+
+    if (m_audioEngine) {
+        m_audioEngine->setOutputDevice(deviceId);
+    }
 }
 
 QWidget *OptionsDialog::createNetworkPage() {
