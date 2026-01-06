@@ -68,29 +68,34 @@ void VFOWidget::setupUi() {
     m_txMeter->setFixedWidth(200); // Match mini-pan width
     normalLayout->addWidget(m_txMeter);
 
-    // Row 3: AGC, PRE, ATT, NB, NR labels (aligned with S-meter)
-    auto *featuresRow = new QHBoxLayout();
+    // Row 3: AGC, PRE, ATT, NB, NR labels (aligned with meter)
+    // Use a container widget to ensure full width for proper alignment
+    auto *featuresContainer = new QWidget(m_normalContent);
+    featuresContainer->setFixedWidth(200); // Match meter width
+    auto *featuresRow = new QHBoxLayout(featuresContainer);
+    featuresRow->setContentsMargins(0, 0, 0, 0);
+    featuresRow->setSpacing(4);
 
-    m_agcLabel = new QLabel("AGC-S", m_normalContent);
+    m_agcLabel = new QLabel("AGC-S", featuresContainer);
     m_agcLabel->setStyleSheet("color: #999999; font-size: 11px;");
 
-    m_preampLabel = new QLabel("PRE", m_normalContent);
+    m_preampLabel = new QLabel("PRE", featuresContainer);
     m_preampLabel->setStyleSheet("color: #999999; font-size: 11px;");
 
-    m_attLabel = new QLabel("ATT", m_normalContent);
+    m_attLabel = new QLabel("ATT", featuresContainer);
     m_attLabel->setStyleSheet("color: #999999; font-size: 11px;");
 
-    m_nbLabel = new QLabel("NB", m_normalContent);
+    m_nbLabel = new QLabel("NB", featuresContainer);
     m_nbLabel->setStyleSheet("color: #999999; font-size: 11px;");
 
-    m_nrLabel = new QLabel("NR", m_normalContent);
+    m_nrLabel = new QLabel("NR", featuresContainer);
     m_nrLabel->setStyleSheet("color: #999999; font-size: 11px;");
 
-    m_ntchLabel = new QLabel("NTCH", m_normalContent);
+    m_ntchLabel = new QLabel("NTCH", featuresContainer);
     m_ntchLabel->setStyleSheet("color: #999999; font-size: 11px;");
 
     if (m_type == VFO_A) {
-        // VFO A: features left-aligned with S-meter
+        // VFO A: features left-aligned with meter
         featuresRow->addWidget(m_agcLabel);
         featuresRow->addWidget(m_preampLabel);
         featuresRow->addWidget(m_attLabel);
@@ -99,7 +104,7 @@ void VFOWidget::setupUi() {
         featuresRow->addWidget(m_ntchLabel);
         featuresRow->addStretch();
     } else {
-        // VFO B: features right-aligned with S-meter
+        // VFO B: features right-aligned with meter
         featuresRow->addStretch();
         featuresRow->addWidget(m_agcLabel);
         featuresRow->addWidget(m_preampLabel);
@@ -108,7 +113,7 @@ void VFOWidget::setupUi() {
         featuresRow->addWidget(m_nrLabel);
         featuresRow->addWidget(m_ntchLabel);
     }
-    normalLayout->addLayout(featuresRow);
+    normalLayout->addWidget(featuresContainer);
 
     m_stackedWidget->addWidget(m_normalContent); // Index 0
 
