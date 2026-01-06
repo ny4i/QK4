@@ -530,7 +530,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_displayPopup, &DisplayPopupWidget::scaleIncrementRequested, this, [this]() {
         int currentScale = m_radioState->scale();
         if (currentScale < 0)
-            currentScale = 75; // Default if not yet received
+            currentScale = 75;                      // Default if not yet received
         int newScale = qMin(currentScale + 1, 150); // Increment by 1, max 150
         if (newScale != currentScale) {
             m_tcpClient->sendCAT(QString("#SCL%1;").arg(newScale));
@@ -539,7 +539,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_displayPopup, &DisplayPopupWidget::scaleDecrementRequested, this, [this]() {
         int currentScale = m_radioState->scale();
         if (currentScale < 0)
-            currentScale = 75; // Default if not yet received
+            currentScale = 75;                     // Default if not yet received
         int newScale = qMax(currentScale - 1, 10); // Decrement by 1, min 10
         if (newScale != currentScale) {
             m_tcpClient->sendCAT(QString("#SCL%1;").arg(newScale));
@@ -575,9 +575,8 @@ MainWindow::MainWindow(QWidget *parent)
             m_kpodDevice->startPolling();
         }
     });
-    connect(m_kpodDevice, &KpodDevice::deviceDisconnected, this, [this]() {
-        qDebug() << "KPOD: Device removed via hotplug";
-    });
+    connect(m_kpodDevice, &KpodDevice::deviceDisconnected, this,
+            [this]() { qDebug() << "KPOD: Device removed via hotplug"; });
 
     // Connect to settings for KPOD enable/disable
     connect(RadioSettings::instance(), &RadioSettings::kpodEnabledChanged, this, &MainWindow::onKpodEnabledChanged);

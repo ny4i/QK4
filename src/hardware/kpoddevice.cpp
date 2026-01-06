@@ -242,8 +242,7 @@ void KpodDevice::setupHotplugMonitoring() {
     connect(m_presenceTimer, &QTimer::timeout, this, &KpodDevice::checkDevicePresence);
     m_presenceTimer->start();
 
-    qDebug() << "KPOD: Hotplug monitoring started (periodic check every"
-             << PRESENCE_CHECK_INTERVAL_MS << "ms)";
+    qDebug() << "KPOD: Hotplug monitoring started (periodic check every" << PRESENCE_CHECK_INTERVAL_MS << "ms)";
 }
 
 void KpodDevice::teardownHotplugMonitoring() {

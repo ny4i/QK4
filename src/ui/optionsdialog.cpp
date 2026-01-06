@@ -326,10 +326,10 @@ QWidget *OptionsDialog::createKpodPage() {
     QString headerStyle = QString("color: %1; font-size: 12px; font-weight: bold; padding: 5px;").arg(TextGray);
 
     // Create labels with property names
-    QStringList properties = {"Product Name", "Manufacturer", "Vendor ID", "Product ID",
+    QStringList properties = {"Product Name", "Manufacturer",     "Vendor ID", "Product ID",
                               "Device Type",  "Firmware Version", "Device ID"};
-    QVector<QLabel **> valueLabels = {&m_kpodProductLabel,      &m_kpodManufacturerLabel, &m_kpodVendorIdLabel,
-                                      &m_kpodProductIdLabel,    &m_kpodDeviceTypeLabel,   &m_kpodFirmwareLabel,
+    QVector<QLabel **> valueLabels = {&m_kpodProductLabel,   &m_kpodManufacturerLabel, &m_kpodVendorIdLabel,
+                                      &m_kpodProductIdLabel, &m_kpodDeviceTypeLabel,   &m_kpodFirmwareLabel,
                                       &m_kpodDeviceIdLabel};
 
     for (int row = 0; row < properties.size(); ++row) {

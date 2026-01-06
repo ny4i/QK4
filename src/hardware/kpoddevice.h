@@ -8,7 +8,6 @@
 // Forward declaration for hidapi
 typedef struct hid_device_ hid_device;
 
-
 struct KpodDeviceInfo {
     bool detected = false;
     QString productName;

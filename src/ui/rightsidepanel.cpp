@@ -138,7 +138,6 @@ void RightSidePanel::setupUi() {
     // Install event filter for right-click on RATE and SUB buttons
     m_rateBtn->installEventFilter(this);
     m_subBtn->installEventFilter(this);
-
 }
 
 QWidget *RightSidePanel::createFunctionButton(const QString &mainText, const QString &subText, QPushButton *&btnOut) {

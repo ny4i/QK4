@@ -45,10 +45,10 @@ TcpClient::TcpClient(QObject *parent)
             // FA, FB, MD, MD$, BW, BW$, IS, CW, KS, PC, SD (per mode), SQ, RG, SQ$, RG$,
             // #SPN, #REF, VXC, VXV, VXD, and all menu definitions (MEDF)
             qDebug() << "Sending initialization commands...";
-            sendCAT("RDY;");   // Ready - triggers comprehensive state dump (also enables AI mode)
-            sendCAT("K41;");   // Enable advanced K4 protocol mode
-            sendCAT("ER1;");   // Request long format error messages
-            sendCAT("EM3;");   // Set audio to Opus Float 32-bit mode (required for audio streaming)
+            sendCAT("RDY;"); // Ready - triggers comprehensive state dump (also enables AI mode)
+            sendCAT("K41;"); // Enable advanced K4 protocol mode
+            sendCAT("ER1;"); // Request long format error messages
+            sendCAT("EM3;"); // Set audio to Opus Float 32-bit mode (required for audio streaming)
         }
     });
     connect(m_protocol, &Protocol::catResponseReceived, this, &TcpClient::onCatResponse);
@@ -105,8 +105,8 @@ void TcpClient::connectToHost(const QString &host, quint16 port, const QString &
                 }
             }
         }
-        qDebug() << "Configured" << pskCiphers.size() << "PSK ciphers, first:"
-                 << (pskCiphers.isEmpty() ? "none" : pskCiphers.first().name());
+        qDebug() << "Configured" << pskCiphers.size()
+                 << "PSK ciphers, first:" << (pskCiphers.isEmpty() ? "none" : pskCiphers.first().name());
 
         if (pskCiphers.isEmpty()) {
             qWarning() << "No PSK ciphers available! TLS/PSK connection will likely fail.";
