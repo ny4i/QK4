@@ -57,8 +57,9 @@ int main(int argc, char *argv[]) {
 
     QApplication app(argc, argv);
     app.setApplicationName("K4Controller");
-    app.setApplicationVersion("0.1.0");
-    app.setOrganizationName("K4Radio");
+    app.setApplicationVersion(K4CONTROLLER_VERSION);
+    app.setOrganizationName("AI5QK");
+    app.setOrganizationDomain("ai5qk.com");
 
     // Debug: System info
     qDebug() << "=== K4Controller Startup ===";

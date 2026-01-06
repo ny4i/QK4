@@ -131,8 +131,14 @@ if(APPLE)
         MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/resources/Info.plist.in"
     )
 elseif(WIN32)
+    # Configure Windows version resource file
+    configure_file(
+        ${CMAKE_SOURCE_DIR}/resources/K4Controller.rc.in
+        ${CMAKE_BINARY_DIR}/K4Controller.rc
+        @ONLY
+    )
     # WIN32 flag creates a GUI app without console window
-    add_executable(${PROJECT_NAME} WIN32 ${SOURCES} ${HEADERS})
+    add_executable(${PROJECT_NAME} WIN32 ${SOURCES} ${HEADERS} ${CMAKE_BINARY_DIR}/K4Controller.rc)
 else()
     add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 endif()
@@ -141,6 +147,11 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${OPUS_INCLUDE_DIRS}
     ${HIDAPI_INCLUDE_DIRS}
+)
+
+# Pass version to source code as compile definition
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    K4CONTROLLER_VERSION="${PROJECT_VERSION}"
 )
 
 # Add Qt private headers for QRhi access

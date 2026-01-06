@@ -24,7 +24,9 @@
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QAction>
+#include <QCoreApplication>
 #include <QDebug>
+#include <QMessageBox>
 #include <QFont>
 #include <QDateTime>
 #include <QPainter>
@@ -610,33 +612,55 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow() {}
 
 void MainWindow::setupMenuBar() {
-    // Match K4 menu style: Connect, File, Tools, View
+    // Standard menu bar order: File, Connect, Tools, View, Help
+    // On macOS, Qt automatically creates the app menu with About/Preferences
     menuBar()->setStyleSheet(QString("QMenuBar { background-color: %1; color: %2; }"
                                      "QMenuBar::item:selected { background-color: #333; }")
                                  .arg(K4Colors::DarkBackground, K4Colors::TextWhite));
 
-    QMenu *connectMenu = menuBar()->addMenu("Connect");
-    QAction *radiosAction = new QAction("Radios...", this);
+    // File menu (first, per Windows convention)
+    QMenu *fileMenu = menuBar()->addMenu("&File");
+    QAction *quitAction = new QAction("E&xit", this);
+    quitAction->setMenuRole(QAction::QuitRole); // macOS: moves to app menu
+    quitAction->setShortcut(QKeySequence::Quit);
+    connect(quitAction, &QAction::triggered, this, &QMainWindow::close);
+    fileMenu->addAction(quitAction);
+
+    // Connect menu
+    QMenu *connectMenu = menuBar()->addMenu("&Connect");
+    QAction *radiosAction = new QAction("&Radios...", this);
     connect(radiosAction, &QAction::triggered, this, &MainWindow::showRadioManager);
     connectMenu->addAction(radiosAction);
 
-    QMenu *optionsMenu = menuBar()->addMenu("Options");
-    QAction *optionsAction = new QAction("Settings...", this);
-    optionsAction->setMenuRole(QAction::NoRole); // Prevent macOS from moving to app menu
+    // Tools menu
+    QMenu *toolsMenu = menuBar()->addMenu("&Tools");
+    QAction *optionsAction = new QAction("&Settings...", this);
+    optionsAction->setMenuRole(QAction::PreferencesRole); // macOS: moves to app menu as Preferences
     connect(optionsAction, &QAction::triggered, this, [this]() {
         OptionsDialog dialog(m_radioState, m_kpa1500Client, m_audioEngine, m_kpodDevice, this);
         dialog.exec();
     });
-    optionsMenu->addAction(optionsAction);
+    toolsMenu->addAction(optionsAction);
 
-    QMenu *fileMenu = menuBar()->addMenu("File");
-    Q_UNUSED(fileMenu)
-
-    QMenu *toolsMenu = menuBar()->addMenu("Tools");
-    Q_UNUSED(toolsMenu)
-
-    QMenu *viewMenu = menuBar()->addMenu("View");
+    // View menu
+    QMenu *viewMenu = menuBar()->addMenu("&View");
     Q_UNUSED(viewMenu)
+
+    // Help menu
+    QMenu *helpMenu = menuBar()->addMenu("&Help");
+    QAction *aboutAction = new QAction("&About K4Controller", this);
+    aboutAction->setMenuRole(QAction::AboutRole); // macOS: moves to app menu
+    connect(aboutAction, &QAction::triggered, this, [this]() {
+        QMessageBox::about(
+            this, "About K4Controller",
+            QString("<h2>K4Controller</h2>"
+                    "<p>Version %1</p>"
+                    "<p>Remote control application for Elecraft K4 radios.</p>"
+                    "<p>Copyright &copy; 2024-2025 AI5QK</p>"
+                    "<p><a href='https://github.com/mikeg-dal/K4Controller'>github.com/mikeg-dal/K4Controller</a></p>")
+                .arg(QCoreApplication::applicationVersion()));
+    });
+    helpMenu->addAction(aboutAction);
 }
 
 void MainWindow::setupUi() {
