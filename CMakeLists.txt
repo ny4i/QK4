@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 3.16)
 project(K4Controller VERSION 0.1.0 LANGUAGES CXX)
 
+# Full version string can include prerelease info (e.g., "0.1.0-alpha.123")
+# CI sets this via -DK4CONTROLLER_VERSION_FULL="x.y.z-prerelease"
+# If not set, defaults to PROJECT_VERSION
+if(NOT DEFINED K4CONTROLLER_VERSION_FULL)
+    set(K4CONTROLLER_VERSION_FULL "${PROJECT_VERSION}")
+endif()
+message(STATUS "K4Controller version: ${K4CONTROLLER_VERSION_FULL}")
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
@@ -151,7 +159,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 # Pass version to source code as compile definition
 target_compile_definitions(${PROJECT_NAME} PRIVATE
-    K4CONTROLLER_VERSION="${PROJECT_VERSION}"
+    K4CONTROLLER_VERSION="${K4CONTROLLER_VERSION_FULL}"
 )
 
 # Add Qt private headers for QRhi access

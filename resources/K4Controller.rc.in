@@ -22,12 +22,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "AI5QK"
             VALUE "FileDescription", "K4 Remote Controller"
-            VALUE "FileVersion", "@PROJECT_VERSION@"
+            VALUE "FileVersion", "@K4CONTROLLER_VERSION_FULL@"
             VALUE "InternalName", "K4Controller"
             VALUE "LegalCopyright", "Copyright (C) 2024-2025 AI5QK"
             VALUE "OriginalFilename", "K4Controller.exe"
             VALUE "ProductName", "K4Controller"
-            VALUE "ProductVersion", "@PROJECT_VERSION@"
+            VALUE "ProductVersion", "@K4CONTROLLER_VERSION_FULL@"
         END
     END
     BLOCK "VarFileInfo"
