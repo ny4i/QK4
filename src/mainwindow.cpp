@@ -547,9 +547,9 @@ MainWindow::MainWindow(QWidget *parent)
     m_clockTimer->start(1000);
     updateDateTime();
 
-    // KPOD device - TEMPORARILY DISABLED FOR QRhi DEBUG
-    m_kpodDevice = nullptr; // new KpodDevice(this);
-#if 0
+    // KPOD device
+    m_kpodDevice = new KpodDevice(this);
+
     // Connect KPOD signals
     connect(m_kpodDevice, &KpodDevice::encoderRotated, this, &MainWindow::onKpodEncoderRotated);
     connect(m_kpodDevice, &KpodDevice::rockerPositionChanged, this,
@@ -563,11 +563,10 @@ MainWindow::MainWindow(QWidget *parent)
     if (RadioSettings::instance()->kpodEnabled() && m_kpodDevice->isDetected()) {
         m_kpodDevice->startPolling();
     }
-#endif
 
-    // KPA1500 amplifier client - TEMPORARILY DISABLED FOR QRhi DEBUG
-    m_kpa1500Client = nullptr; // new KPA1500Client(this);
-#if 0
+    // KPA1500 amplifier client
+    m_kpa1500Client = new KPA1500Client(this);
+
     // Connect KPA1500 signals
     connect(m_kpa1500Client, &KPA1500Client::connected, this, &MainWindow::onKpa1500Connected);
     connect(m_kpa1500Client, &KPA1500Client::disconnected, this, &MainWindow::onKpa1500Disconnected);
@@ -587,7 +586,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Initialize KPA1500 status display
     updateKpa1500Status();
-#endif
 
     // resize directly instead of deferring - testing if deferred resize affects QRhi
     // QTimer::singleShot(0, this, [this]() { resize(1340, 800); });
