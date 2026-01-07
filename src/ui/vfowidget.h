@@ -24,8 +24,8 @@ public:
     void setTuningRate(int rate); // 0-5: 1Hz, 10Hz, 100Hz, 1kHz, 10kHz, 100kHz
     void setSMeterValue(double value);
     void setAGC(const QString &mode);
-    void setPreamp(bool on);
-    void setAtt(bool on);
+    void setPreamp(bool on, int level);
+    void setAtt(bool on, int level);
     void setNB(bool on);
     void setNR(bool on);
     void setNotch(bool autoEnabled, bool manualEnabled);

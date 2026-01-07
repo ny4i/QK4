@@ -2526,11 +2526,12 @@ void MainWindow::onProcessingChanged() {
     }
     m_vfoA->setAGC(agcText);
 
-    // Preamp
-    m_vfoA->setPreamp(m_radioState->preampEnabled() && m_radioState->preamp() > 0);
+    // Preamp (level 0-3)
+    m_vfoA->setPreamp(m_radioState->preampEnabled() && m_radioState->preamp() > 0, m_radioState->preamp());
 
-    // Attenuator
-    m_vfoA->setAtt(m_radioState->attenuatorEnabled() && m_radioState->attenuatorLevel() > 0);
+    // Attenuator (level 0-21 dB)
+    m_vfoA->setAtt(m_radioState->attenuatorEnabled() && m_radioState->attenuatorLevel() > 0,
+                   m_radioState->attenuatorLevel());
 
     // Noise Blanker
     m_vfoA->setNB(m_radioState->noiseBlankerEnabled());
@@ -2555,11 +2556,12 @@ void MainWindow::onProcessingChangedB() {
     }
     m_vfoB->setAGC(agcText);
 
-    // Preamp
-    m_vfoB->setPreamp(m_radioState->preampEnabledB() && m_radioState->preampB() > 0);
+    // Preamp (level 0-3)
+    m_vfoB->setPreamp(m_radioState->preampEnabledB() && m_radioState->preampB() > 0, m_radioState->preampB());
 
-    // Attenuator
-    m_vfoB->setAtt(m_radioState->attenuatorEnabledB() && m_radioState->attenuatorLevelB() > 0);
+    // Attenuator (level 0-21 dB)
+    m_vfoB->setAtt(m_radioState->attenuatorEnabledB() && m_radioState->attenuatorLevelB() > 0,
+                   m_radioState->attenuatorLevelB());
 
     // Noise Blanker
     m_vfoB->setNB(m_radioState->noiseBlankerEnabledB());

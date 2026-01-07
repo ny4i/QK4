@@ -235,11 +235,23 @@ void VFOWidget::setAGC(const QString &mode) {
     m_agcLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(active ? "#FFFFFF" : "#999999"));
 }
 
-void VFOWidget::setPreamp(bool on) {
+void VFOWidget::setPreamp(bool on, int level) {
+    // Show level when active (PRE-1, PRE-2, PRE-3), just "PRE" when off
+    if (on && level > 0) {
+        m_preampLabel->setText(QString("PRE-%1").arg(level));
+    } else {
+        m_preampLabel->setText("PRE");
+    }
     m_preampLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(on ? "#FFFFFF" : "#999999"));
 }
 
-void VFOWidget::setAtt(bool on) {
+void VFOWidget::setAtt(bool on, int level) {
+    // Show level when active (ATT-3, ATT-6, etc.), just "ATT" when off
+    if (on && level > 0) {
+        m_attLabel->setText(QString("ATT-%1").arg(level));
+    } else {
+        m_attLabel->setText("ATT");
+    }
     m_attLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(on ? "#FFFFFF" : "#999999"));
 }
 
