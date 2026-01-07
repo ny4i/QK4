@@ -52,12 +52,12 @@ void VFOWidget::setupUi() {
     // Use Maximum horizontal policy so it doesn't expand beyond content width
     m_stackedWidget = new QStackedWidget(this);
     m_stackedWidget->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
-    m_stackedWidget->setMaximumWidth(200); // Match mini-pan max width
+    m_stackedWidget->setMaximumWidth(200);
 
     // Page 0: Normal content (multifunction meter + features)
     // Height must match MiniPanRhiWidget (110px) to prevent layout shift when toggling
     m_normalContent = new QWidget(m_stackedWidget);
-    m_normalContent->setFixedSize(200, 110); // Match mini-pan size for consistent layout
+    m_normalContent->setFixedSize(200, 110);
     auto *normalLayout = new QVBoxLayout(m_normalContent);
     normalLayout->setContentsMargins(0, 0, 0, 0);
     normalLayout->setSpacing(2);
@@ -69,9 +69,7 @@ void VFOWidget::setupUi() {
     normalLayout->addWidget(m_txMeter);
 
     // Row 3: AGC, PRE, ATT, NB, NR labels (aligned with meter)
-    // Use a container widget to ensure full width for proper alignment
     auto *featuresContainer = new QWidget(m_normalContent);
-    featuresContainer->setFixedWidth(200); // Match meter width
     auto *featuresRow = new QHBoxLayout(featuresContainer);
     featuresRow->setContentsMargins(0, 0, 0, 0);
     featuresRow->setSpacing(4);
@@ -94,26 +92,17 @@ void VFOWidget::setupUi() {
     m_ntchLabel = new QLabel("NTCH", featuresContainer);
     m_ntchLabel->setStyleSheet("color: #999999; font-size: 11px;");
 
-    if (m_type == VFO_A) {
-        // VFO A: features left-aligned with meter
-        featuresRow->addWidget(m_agcLabel);
-        featuresRow->addWidget(m_preampLabel);
-        featuresRow->addWidget(m_attLabel);
-        featuresRow->addWidget(m_nbLabel);
-        featuresRow->addWidget(m_nrLabel);
-        featuresRow->addWidget(m_ntchLabel);
-        featuresRow->addStretch();
-    } else {
-        // VFO B: features right-aligned with meter
-        featuresRow->addStretch();
-        featuresRow->addWidget(m_agcLabel);
-        featuresRow->addWidget(m_preampLabel);
-        featuresRow->addWidget(m_attLabel);
-        featuresRow->addWidget(m_nbLabel);
-        featuresRow->addWidget(m_nrLabel);
-        featuresRow->addWidget(m_ntchLabel);
-    }
-    normalLayout->addWidget(featuresContainer);
+    // Add labels to layout
+    featuresRow->addWidget(m_agcLabel);
+    featuresRow->addWidget(m_preampLabel);
+    featuresRow->addWidget(m_attLabel);
+    featuresRow->addWidget(m_nbLabel);
+    featuresRow->addWidget(m_nrLabel);
+    featuresRow->addWidget(m_ntchLabel);
+
+    // Features row is left-aligned within its container for both VFOs
+    // VFO B's entire container is pushed right by stackedRow layout
+    normalLayout->addWidget(featuresContainer, 0, Qt::AlignLeft);
 
     m_stackedWidget->addWidget(m_normalContent); // Index 0
 
