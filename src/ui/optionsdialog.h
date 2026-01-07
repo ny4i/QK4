@@ -16,13 +16,14 @@ class KPA1500Client;
 class AudioEngine;
 class MicMeterWidget;
 class KpodDevice;
+class RigctldServer;
 
 class OptionsDialog : public QDialog {
     Q_OBJECT
 
 public:
     explicit OptionsDialog(RadioState *radioState, KPA1500Client *kpa1500Client, AudioEngine *audioEngine,
-                           KpodDevice *kpodDevice, QWidget *parent = nullptr);
+                           KpodDevice *kpodDevice, RigctldServer *rigctldServer, QWidget *parent = nullptr);
     ~OptionsDialog();
 
 private slots:
@@ -41,13 +42,16 @@ private:
     QWidget *createAudioInputPage();
     QWidget *createAudioOutputPage();
     QWidget *createNetworkPage();
+    QWidget *createRigControlPage();
     void updateKpa1500Status();
+    void updateRigctldStatus();
     void populateMicDevices();
 
     RadioState *m_radioState;
     KPA1500Client *m_kpa1500Client;
     AudioEngine *m_audioEngine;
     KpodDevice *m_kpodDevice;
+    RigctldServer *m_rigctldServer;
     QListWidget *m_tabList;
     QStackedWidget *m_pageStack;
 
@@ -80,6 +84,12 @@ private:
 
     // Audio Output settings
     QComboBox *m_speakerDeviceCombo;
+
+    // Rig Control page elements
+    QCheckBox *m_rigctldEnableCheckbox;
+    QLineEdit *m_rigctldPortEdit;
+    QLabel *m_rigctldStatusLabel;
+    QLabel *m_rigctldClientsLabel;
 
     void populateSpeakerDevices();
     void onSpeakerDeviceChanged(int index);

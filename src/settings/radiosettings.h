@@ -62,6 +62,12 @@ public:
     QString speakerDevice() const;
     void setSpeakerDevice(const QString &deviceId);
 
+    // Rig Control (rigctld) settings
+    bool rigctldEnabled() const;
+    void setRigctldEnabled(bool enabled);
+    quint16 rigctldPort() const;
+    void setRigctldPort(quint16 port);
+
 signals:
     void radiosChanged();
     void kpodEnabledChanged(bool enabled);
@@ -71,6 +77,8 @@ signals:
     void micGainChanged(int value);
     void micDeviceChanged(const QString &deviceId);
     void speakerDeviceChanged(const QString &deviceId);
+    void rigctldEnabledChanged(bool enabled);
+    void rigctldPortChanged(quint16 port);
 
 private:
     explicit RadioSettings(QObject *parent = nullptr);
@@ -86,6 +94,10 @@ private:
     quint16 m_kpa1500Port = 1500;
     bool m_kpa1500Enabled = false;
     int m_kpa1500PollInterval = 800; // Default: 800ms
+
+    // Rigctld settings
+    bool m_rigctldEnabled = false;
+    quint16 m_rigctldPort = 4532;
 
     QSettings m_settings;
 };

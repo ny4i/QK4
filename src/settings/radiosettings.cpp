@@ -172,6 +172,32 @@ void RadioSettings::setSpeakerDevice(const QString &deviceId) {
     }
 }
 
+bool RadioSettings::rigctldEnabled() const {
+    return m_rigctldEnabled;
+}
+
+void RadioSettings::setRigctldEnabled(bool enabled) {
+    if (m_rigctldEnabled != enabled) {
+        m_rigctldEnabled = enabled;
+        save();
+        emit rigctldEnabledChanged(enabled);
+    }
+}
+
+quint16 RadioSettings::rigctldPort() const {
+    return m_rigctldPort;
+}
+
+void RadioSettings::setRigctldPort(quint16 port) {
+    // Clamp to valid port range (1024-65535)
+    port = qBound(quint16(1024), port, quint16(65535));
+    if (m_rigctldPort != port) {
+        m_rigctldPort = port;
+        save();
+        emit rigctldPortChanged(port);
+    }
+}
+
 void RadioSettings::load() {
     int count = m_settings.beginReadArray("radios");
     m_radios.clear();
@@ -196,6 +222,10 @@ void RadioSettings::load() {
     m_kpa1500Port = m_settings.value("kpa1500/port", 1500).toUInt();
     m_kpa1500Enabled = m_settings.value("kpa1500/enabled", false).toBool();
     m_kpa1500PollInterval = m_settings.value("kpa1500/pollInterval", 800).toInt();
+
+    // Rigctld settings
+    m_rigctldEnabled = m_settings.value("rigctld/enabled", false).toBool();
+    m_rigctldPort = m_settings.value("rigctld/port", 4532).toUInt();
 }
 
 void RadioSettings::save() {
@@ -219,6 +249,10 @@ void RadioSettings::save() {
     m_settings.setValue("kpa1500/port", m_kpa1500Port);
     m_settings.setValue("kpa1500/enabled", m_kpa1500Enabled);
     m_settings.setValue("kpa1500/pollInterval", m_kpa1500PollInterval);
+
+    // Rigctld settings
+    m_settings.setValue("rigctld/enabled", m_rigctldEnabled);
+    m_settings.setValue("rigctld/port", m_rigctldPort);
 
     m_settings.sync();
 }

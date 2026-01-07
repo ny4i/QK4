@@ -4,6 +4,7 @@
 #include "../hardware/kpoddevice.h"
 #include "../settings/radiosettings.h"
 #include "../network/kpa1500client.h"
+#include "../network/rigctldserver.h"
 #include "../audio/audioengine.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -28,10 +29,12 @@ const QString BorderColor = "#333333";
 } // namespace
 
 OptionsDialog::OptionsDialog(RadioState *radioState, KPA1500Client *kpa1500Client, AudioEngine *audioEngine,
-                             KpodDevice *kpodDevice, QWidget *parent)
+                             KpodDevice *kpodDevice, RigctldServer *rigctldServer, QWidget *parent)
     : QDialog(parent), m_radioState(radioState), m_kpa1500Client(kpa1500Client), m_audioEngine(audioEngine),
-      m_kpodDevice(kpodDevice), m_kpa1500StatusLabel(nullptr), m_micDeviceCombo(nullptr), m_micGainSlider(nullptr),
-      m_micGainValueLabel(nullptr), m_micTestBtn(nullptr), m_micMeter(nullptr), m_speakerDeviceCombo(nullptr) {
+      m_kpodDevice(kpodDevice), m_rigctldServer(rigctldServer), m_kpa1500StatusLabel(nullptr),
+      m_micDeviceCombo(nullptr), m_micGainSlider(nullptr), m_micGainValueLabel(nullptr), m_micTestBtn(nullptr),
+      m_micMeter(nullptr), m_speakerDeviceCombo(nullptr), m_rigctldEnableCheckbox(nullptr), m_rigctldPortEdit(nullptr),
+      m_rigctldStatusLabel(nullptr), m_rigctldClientsLabel(nullptr) {
     setupUi();
 
     // Connect to KPA1500 client signals for status updates
@@ -50,6 +53,14 @@ OptionsDialog::OptionsDialog(RadioState *radioState, KPA1500Client *kpa1500Clien
     if (m_kpodDevice) {
         connect(m_kpodDevice, &KpodDevice::deviceConnected, this, &OptionsDialog::updateKpodStatus);
         connect(m_kpodDevice, &KpodDevice::deviceDisconnected, this, &OptionsDialog::updateKpodStatus);
+    }
+
+    // Connect to RigctldServer signals for status updates
+    if (m_rigctldServer) {
+        connect(m_rigctldServer, &RigctldServer::started, this, &OptionsDialog::updateRigctldStatus);
+        connect(m_rigctldServer, &RigctldServer::stopped, this, &OptionsDialog::updateRigctldStatus);
+        connect(m_rigctldServer, &RigctldServer::clientConnected, this, &OptionsDialog::updateRigctldStatus);
+        connect(m_rigctldServer, &RigctldServer::clientDisconnected, this, &OptionsDialog::updateRigctldStatus);
     }
 }
 
@@ -85,6 +96,7 @@ void OptionsDialog::setupUi() {
     m_tabList->addItem("About");
     m_tabList->addItem("Audio Input");
     m_tabList->addItem("Audio Output");
+    m_tabList->addItem("Rig Control");
     m_tabList->addItem("Network");
     m_tabList->addItem("K-Pod");
     m_tabList->addItem("KPA1500");
@@ -95,6 +107,7 @@ void OptionsDialog::setupUi() {
     m_pageStack->addWidget(createAboutPage());
     m_pageStack->addWidget(createAudioInputPage());
     m_pageStack->addWidget(createAudioOutputPage());
+    m_pageStack->addWidget(createRigControlPage());
     m_pageStack->addWidget(createNetworkPage());
     m_pageStack->addWidget(createKpodPage());
     m_pageStack->addWidget(createKpa1500Page());
@@ -929,4 +942,165 @@ QWidget *OptionsDialog::createNetworkPage() {
 
     layout->addStretch();
     return page;
+}
+
+QWidget *OptionsDialog::createRigControlPage() {
+    auto *page = new QWidget(this);
+    page->setStyleSheet(QString("background-color: %1;").arg(Background));
+
+    auto *layout = new QVBoxLayout(page);
+    layout->setContentsMargins(20, 20, 20, 20);
+    layout->setSpacing(15);
+
+    // Title
+    auto *titleLabel = new QLabel("Rig Control Server", page);
+    titleLabel->setStyleSheet(QString("color: %1; font-size: 16px; font-weight: bold;").arg(TextAmber));
+    layout->addWidget(titleLabel);
+
+    // Description
+    auto *descLabel =
+        new QLabel("Enable the rigctld-compatible server to allow external applications (loggers, WSJT-X, fldigi) "
+                   "to query and control the radio via the Hamlib protocol.",
+                   page);
+    descLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(TextGray));
+    descLabel->setWordWrap(true);
+    layout->addWidget(descLabel);
+
+    // Separator line
+    auto *line = new QFrame(page);
+    line->setFrameShape(QFrame::HLine);
+    line->setStyleSheet(QString("background-color: %1;").arg(BorderColor));
+    line->setFixedHeight(1);
+    layout->addWidget(line);
+
+    // Status indicator
+    auto *statusLayout = new QHBoxLayout();
+    auto *statusTitleLabel = new QLabel("Status:", page);
+    statusTitleLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(TextGray));
+    statusTitleLabel->setFixedWidth(80);
+
+    m_rigctldStatusLabel = new QLabel("Not running", page);
+    m_rigctldStatusLabel->setStyleSheet(QString("color: #FF6666; font-size: 13px; font-weight: bold;"));
+
+    statusLayout->addWidget(statusTitleLabel);
+    statusLayout->addWidget(m_rigctldStatusLabel);
+    statusLayout->addStretch();
+    layout->addLayout(statusLayout);
+
+    // Clients indicator
+    auto *clientsLayout = new QHBoxLayout();
+    auto *clientsTitleLabel = new QLabel("Clients:", page);
+    clientsTitleLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(TextGray));
+    clientsTitleLabel->setFixedWidth(80);
+
+    m_rigctldClientsLabel = new QLabel("0 connected", page);
+    m_rigctldClientsLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(TextWhite));
+
+    clientsLayout->addWidget(clientsTitleLabel);
+    clientsLayout->addWidget(m_rigctldClientsLabel);
+    clientsLayout->addStretch();
+    layout->addLayout(clientsLayout);
+
+    // Separator line
+    auto *line2 = new QFrame(page);
+    line2->setFrameShape(QFrame::HLine);
+    line2->setStyleSheet(QString("background-color: %1;").arg(BorderColor));
+    line2->setFixedHeight(1);
+    layout->addWidget(line2);
+
+    // Connection Settings section
+    auto *sectionLabel = new QLabel("Settings", page);
+    sectionLabel->setStyleSheet(QString("color: %1; font-size: 14px; font-weight: bold;").arg(TextWhite));
+    layout->addWidget(sectionLabel);
+
+    // Port input
+    auto *portLayout = new QHBoxLayout();
+    auto *portLabel = new QLabel("Port:", page);
+    portLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(TextGray));
+    portLabel->setFixedWidth(80);
+
+    m_rigctldPortEdit = new QLineEdit(page);
+    m_rigctldPortEdit->setPlaceholderText("4532");
+    m_rigctldPortEdit->setFixedWidth(100);
+    m_rigctldPortEdit->setStyleSheet(QString("QLineEdit { background-color: %1; color: %2; border: 1px solid %3; "
+                                             "           padding: 6px; font-size: 13px; border-radius: 3px; }"
+                                             "QLineEdit:focus { border-color: %4; }")
+                                         .arg(DarkBackground, TextWhite, BorderColor, TextAmber));
+    m_rigctldPortEdit->setText(QString::number(RadioSettings::instance()->rigctldPort()));
+
+    auto *portHint = new QLabel("(default: 4532)", page);
+    portHint->setStyleSheet(QString("color: %1; font-size: 11px;").arg(TextGray));
+
+    portLayout->addWidget(portLabel);
+    portLayout->addWidget(m_rigctldPortEdit);
+    portLayout->addWidget(portHint);
+    portLayout->addStretch();
+    layout->addLayout(portLayout);
+
+    // Separator line
+    auto *line3 = new QFrame(page);
+    line3->setFrameShape(QFrame::HLine);
+    line3->setStyleSheet(QString("background-color: %1;").arg(BorderColor));
+    line3->setFixedHeight(1);
+    layout->addWidget(line3);
+
+    // Enable checkbox
+    m_rigctldEnableCheckbox = new QCheckBox("Enable rigctld server", page);
+    m_rigctldEnableCheckbox->setStyleSheet(
+        QString("QCheckBox { color: %1; font-size: 13px; spacing: 8px; }"
+                "QCheckBox::indicator { width: 18px; height: 18px; }"
+                "QCheckBox::indicator:unchecked { border: 2px solid %2; background: %3; border-radius: 3px; }"
+                "QCheckBox::indicator:checked { border: 2px solid %4; background: %4; border-radius: 3px; }")
+            .arg(TextWhite, TextGray, DarkBackground, TextAmber));
+    m_rigctldEnableCheckbox->setChecked(RadioSettings::instance()->rigctldEnabled());
+    layout->addWidget(m_rigctldEnableCheckbox);
+
+    // Help text
+    auto *helpLabel = new QLabel("When enabled, external applications can connect to localhost on the configured port "
+                                 "to read frequency, mode, and PTT state. Supports standard rigctld protocol commands.",
+                                 page);
+    helpLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-style: italic;").arg(TextGray));
+    helpLabel->setWordWrap(true);
+    layout->addWidget(helpLabel);
+
+    // Connect signals to save settings
+    connect(m_rigctldPortEdit, &QLineEdit::editingFinished, this, [this]() {
+        bool ok;
+        quint16 port = m_rigctldPortEdit->text().toUShort(&ok);
+        if (ok && port >= 1024) {
+            RadioSettings::instance()->setRigctldPort(port);
+        } else {
+            // Reset to current value if invalid
+            m_rigctldPortEdit->setText(QString::number(RadioSettings::instance()->rigctldPort()));
+        }
+    });
+
+    connect(m_rigctldEnableCheckbox, &QCheckBox::toggled, this,
+            [](bool checked) { RadioSettings::instance()->setRigctldEnabled(checked); });
+
+    layout->addStretch();
+
+    // Initialize status display
+    updateRigctldStatus();
+
+    return page;
+}
+
+void OptionsDialog::updateRigctldStatus() {
+    if (!m_rigctldStatusLabel || !m_rigctldClientsLabel) {
+        return;
+    }
+
+    bool isListening = m_rigctldServer && m_rigctldServer->isListening();
+
+    if (isListening) {
+        m_rigctldStatusLabel->setText(QString("Listening on port %1").arg(m_rigctldServer->port()));
+        m_rigctldStatusLabel->setStyleSheet(QString("color: #00FF00; font-size: 13px; font-weight: bold;"));
+    } else {
+        m_rigctldStatusLabel->setText("Not running");
+        m_rigctldStatusLabel->setStyleSheet(QString("color: #FF6666; font-size: 13px; font-weight: bold;"));
+    }
+
+    int clientCount = m_rigctldServer ? m_rigctldServer->clientCount() : 0;
+    m_rigctldClientsLabel->setText(QString("%1 connected").arg(clientCount));
 }
