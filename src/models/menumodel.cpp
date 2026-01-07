@@ -92,7 +92,6 @@ bool MenuModel::parseMEDF(const QString &medfLine) {
     // Split by comma
     QStringList parts = line.split(',');
     if (parts.size() < 10) {
-        qDebug() << "MEDF parse error: not enough parts:" << parts.size();
         return false;
     }
 
@@ -103,7 +102,6 @@ bool MenuModel::parseMEDF(const QString &medfLine) {
     bool ok;
     item.id = idStr.toInt(&ok);
     if (!ok) {
-        qDebug() << "MEDF parse error: invalid ID:" << idStr;
         return false;
     }
 

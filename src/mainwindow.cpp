@@ -19,7 +19,7 @@
 #include "audio/opusencoder.h"
 #include "hardware/kpoddevice.h"
 #include "network/kpa1500client.h"
-#include "network/rigctldserver.h"
+#include "network/catserver.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
@@ -204,12 +204,8 @@ MainWindow::MainWindow(QWidget *parent)
         onVoxChanged(false); // Refresh VOX display when mode changes (VOX is mode-specific)
     });
     // Data sub-mode changes also update mode label (AFSK, FSK, PSK, DATA)
-    connect(m_radioState, &RadioState::dataSubModeChanged, this, [this](int subMode) {
-        QString fullMode = m_radioState->modeStringFull();
-        qDebug() << "dataSubModeChanged handler: subMode=" << subMode
-                 << "mode=" << static_cast<int>(m_radioState->mode()) << "modeStringFull=" << fullMode;
-        m_modeALabel->setText(fullMode);
-    });
+    connect(m_radioState, &RadioState::dataSubModeChanged, this,
+            [this](int) { m_modeALabel->setText(m_radioState->modeStringFull()); });
     connect(m_radioState, &RadioState::sMeterChanged, this, &MainWindow::onSMeterChanged);
     connect(m_radioState, &RadioState::filterBandwidthChanged, this, &MainWindow::onBandwidthChanged);
 
@@ -611,126 +607,44 @@ MainWindow::MainWindow(QWidget *parent)
     // Initialize KPA1500 status display
     updateKpa1500Status();
 
-    // Rigctld server for external app integration (loggers, WSJT-X, etc.)
-    m_rigctldServer = new RigctldServer(m_radioState, this);
+    // CAT server for external app integration (WSJT-X, MacLoggerDX, etc.)
+    // Apps connect using their built-in K4 support - no protocol translation needed
+    m_catServer = new CatServer(m_radioState, this);
+    m_catServer->setTcpClient(m_tcpClient);
 
-    // Wire rigctld SET operations to send CAT commands to radio
-    connect(m_rigctldServer, &RigctldServer::frequencyRequested, this,
-            [this](quint64 freq) { m_tcpClient->sendCAT(QString("FA%1;").arg(freq, 11, 10, QChar('0'))); });
-    connect(m_rigctldServer, &RigctldServer::modeRequested, this, [this](const QString &mode, int bandwidth) {
-        Q_UNUSED(bandwidth) // K4 handles bandwidth separately
-        // Convert Hamlib mode string to K4 MD command
-        int mdCode = 2; // Default USB
-        QString m = mode.toUpper();
-        if (m == "LSB")
-            mdCode = 1;
-        else if (m == "USB")
-            mdCode = 2;
-        else if (m == "CW")
-            mdCode = 3;
-        else if (m == "FM")
-            mdCode = 4;
-        else if (m == "AM")
-            mdCode = 5;
-        else if (m == "DATA" || m == "PKTUSB" || m == "DIGU")
-            mdCode = 6;
-        else if (m == "CWR" || m == "CW-R")
-            mdCode = 7;
-        else if (m == "PKTLSB" || m == "DIGL")
-            mdCode = 9;
-        m_tcpClient->sendCAT(QString("MD%1;").arg(mdCode));
-    });
-    connect(m_rigctldServer, &RigctldServer::pttRequested, this,
-            [this](bool on) { m_tcpClient->sendCAT(on ? "TX;" : "RX;"); });
-    connect(m_rigctldServer, &RigctldServer::splitRequested, this,
-            [this](bool enabled) { m_tcpClient->sendCAT(QString("FT%1;").arg(enabled ? 1 : 0)); });
-    connect(m_rigctldServer, &RigctldServer::splitFrequencyRequested, this,
-            [this](quint64 freq) { m_tcpClient->sendCAT(QString("FB%1;").arg(freq, 11, 10, QChar('0'))); });
-    connect(m_rigctldServer, &RigctldServer::ritRequested, this, [this](int offset) {
-        // Enable/disable RIT based on offset, then set offset
-        m_tcpClient->sendCAT(QString("RT%1;").arg(offset != 0 ? 1 : 0));
-        if (offset != 0) {
-            m_tcpClient->sendCAT(QString("RO%1%2;").arg(offset >= 0 ? "+" : "").arg(offset, 5, 10, QChar('0')));
+    // Forward CAT commands from external apps to the real K4
+    connect(m_catServer, &CatServer::catCommandReceived, this,
+            [this](const QString &command) { m_tcpClient->sendCAT(command); });
+
+    // TX;/RX; from external apps controls audio input gate
+    // Audio stream itself triggers K4 TX - timing-critical for FT8/FT4
+    connect(m_catServer, &CatServer::pttRequested, this, [this](bool on) {
+        m_pttActive = on;
+        if (on) {
+            m_txSequence = 0;
         }
-    });
-    connect(m_rigctldServer, &RigctldServer::xitRequested, this, [this](int offset) {
-        // Enable/disable XIT based on offset, then set offset
-        m_tcpClient->sendCAT(QString("XT%1;").arg(offset != 0 ? 1 : 0));
-        if (offset != 0) {
-            m_tcpClient->sendCAT(QString("RO%1%2;").arg(offset >= 0 ? "+" : "").arg(offset, 5, 10, QChar('0')));
-        }
-    });
-    connect(m_rigctldServer, &RigctldServer::antennaRequested, this,
-            [this](int antenna) { m_tcpClient->sendCAT(QString("AN%1;").arg(antenna)); });
-    connect(m_rigctldServer, &RigctldServer::levelRequested, this, [this](const QString &level, int value) {
-        QString lvl = level.toUpper();
-        if (lvl == "RFPOWER") {
-            // K4 PC command: PCxxxL (QRP) or PCxxxH (QRO)
-            QString suffix = value <= 10 ? "L" : "H";
-            m_tcpClient->sendCAT(QString("PC%1%2;").arg(value, 3, 10, QChar('0')).arg(suffix));
-        } else if (lvl == "KEYSPD") {
-            m_tcpClient->sendCAT(QString("KS%1;").arg(value, 3, 10, QChar('0')));
-        } else if (lvl == "CWPITCH") {
-            // CW pitch stored as pitch/10 (e.g., 50 = 500Hz)
-            m_tcpClient->sendCAT(QString("CW%1;").arg(value / 10, 2, 10, QChar('0')));
-        } else if (lvl == "MICGAIN") {
-            m_tcpClient->sendCAT(QString("MG%1;").arg(value, 3, 10, QChar('0')));
-        } else if (lvl == "COMP") {
-            m_tcpClient->sendCAT(QString("CP%1;").arg(value, 2, 10, QChar('0')));
-        } else if (lvl == "IF") {
-            // IF shift: 0-99 where 50 = center
-            int shifted = (value / 20) + 50; // Convert Hz offset to 0-99 range
-            shifted = qBound(0, shifted, 99);
-            m_tcpClient->sendCAT(QString("IS%1;").arg(shifted, 2, 10, QChar('0')));
-        } else if (lvl == "NR") {
-            m_tcpClient->sendCAT(QString("NR%1%2;").arg(value, 2, 10, QChar('0')).arg(value > 0 ? 1 : 0));
-        } else if (lvl == "NB") {
-            m_tcpClient->sendCAT(QString("NB%1%2;").arg(value, 2, 10, QChar('0')).arg(value > 0 ? 1 : 0));
-        }
-    });
-    connect(m_rigctldServer, &RigctldServer::funcRequested, this, [this](const QString &func, bool enabled) {
-        QString fn = func.toUpper();
-        if (fn == "VOX") {
-            // VOX mode depends on current operating mode - use Voice mode
-            m_tcpClient->sendCAT(QString("VXV%1;").arg(enabled ? 1 : 0));
-        } else if (fn == "NB") {
-            // Toggle NB - preserve current level
-            int level = m_radioState->noiseBlankerLevel();
-            m_tcpClient->sendCAT(QString("NB%1%2;").arg(level, 2, 10, QChar('0')).arg(enabled ? 1 : 0));
-        } else if (fn == "NR") {
-            // Toggle NR - preserve current level
-            int level = m_radioState->noiseReductionLevel();
-            m_tcpClient->sendCAT(QString("NR%1%2;").arg(level, 2, 10, QChar('0')).arg(enabled ? 1 : 0));
-        } else if (fn == "ANF") {
-            m_tcpClient->sendCAT(QString("NT%1;").arg(enabled ? 1 : 0));
-        } else if (fn == "MN") {
-            m_tcpClient->sendCAT(QString("NT%1;").arg(enabled ? 2 : 0)); // 2 = manual notch
-        } else if (fn == "FBKIN") {
-            // QSK (full break-in) - need mode suffix
-            m_tcpClient->sendCAT(QString("QS%1C;").arg(enabled ? 1 : 0));
-        } else if (fn == "TUNER") {
-            m_tcpClient->sendCAT(QString("AT%1;").arg(enabled ? 2 : 0)); // 2 = auto, 0 = off
-        }
+        m_audioEngine->setMicEnabled(on);
+        m_bottomMenuBar->setPttActive(on);
     });
 
-    // Connect to settings for rigctld enable/disable
+    // Connect to settings for CAT server enable/disable
     connect(RadioSettings::instance(), &RadioSettings::rigctldEnabledChanged, this, [this](bool enabled) {
         if (enabled) {
-            m_rigctldServer->start(RadioSettings::instance()->rigctldPort());
+            m_catServer->start(RadioSettings::instance()->rigctldPort());
         } else {
-            m_rigctldServer->stop();
+            m_catServer->stop();
         }
     });
     connect(RadioSettings::instance(), &RadioSettings::rigctldPortChanged, this, [this](quint16 port) {
         if (RadioSettings::instance()->rigctldEnabled()) {
-            m_rigctldServer->stop();
-            m_rigctldServer->start(port);
+            m_catServer->stop();
+            m_catServer->start(port);
         }
     });
 
-    // Start rigctld server if enabled
+    // Start CAT server if enabled
     if (RadioSettings::instance()->rigctldEnabled()) {
-        m_rigctldServer->start(RadioSettings::instance()->rigctldPort());
+        m_catServer->start(RadioSettings::instance()->rigctldPort());
     }
 
     // resize directly instead of deferring - testing if deferred resize affects QRhi
@@ -765,7 +679,7 @@ void MainWindow::setupMenuBar() {
     QAction *optionsAction = new QAction("&Settings...", this);
     optionsAction->setMenuRole(QAction::PreferencesRole); // macOS: moves to app menu as Preferences
     connect(optionsAction, &QAction::triggered, this, [this]() {
-        OptionsDialog dialog(m_radioState, m_kpa1500Client, m_audioEngine, m_kpodDevice, m_rigctldServer, this);
+        OptionsDialog dialog(m_radioState, m_kpa1500Client, m_audioEngine, m_kpodDevice, m_catServer, this);
         dialog.exec();
     });
     toolsMenu->addAction(optionsAction);
@@ -2406,8 +2320,6 @@ void MainWindow::onAuthenticated() {
     m_tcpClient->sendCAT("#HDSM;"); // Display mode (EXT) - not in RDY
     m_tcpClient->sendCAT("#FRZ;");  // Freeze - not in RDY
     m_tcpClient->sendCAT("SIRC1;"); // Enable 1-second client stats updates
-    qDebug() << "Sent SIRC1; to enable 1-second client stats updates";
-    qDebug() << "Sending initialization commands...";
 }
 
 void MainWindow::onAuthenticationFailed() {
@@ -2454,10 +2366,7 @@ void MainWindow::onFrequencyBChanged(quint64 freq) {
 void MainWindow::onModeChanged(RadioState::Mode mode) {
     Q_UNUSED(mode)
     // Use full mode string which includes data sub-mode (AFSK, FSK, PSK, DATA)
-    QString fullMode = m_radioState->modeStringFull();
-    qDebug() << "onModeChanged: mode=" << static_cast<int>(mode) << "modeStringFull=" << fullMode
-             << "dataSubMode=" << m_radioState->dataSubMode();
-    m_modeALabel->setText(fullMode);
+    m_modeALabel->setText(m_radioState->modeStringFull());
 }
 
 void MainWindow::onModeBChanged(RadioState::Mode mode) {
@@ -2779,22 +2688,10 @@ void MainWindow::onMicrophoneFrame(const QByteArray &s16leData) {
         return;
     }
 
-    // Debug: log frame reception periodically
-    static int txFrameCount = 0;
-    if (txFrameCount++ % 50 == 0) {
-        qDebug() << "MainWindow: TX frame" << txFrameCount << "- input size:" << s16leData.size() << "bytes";
-    }
-
     // Encode the audio frame using Opus
     QByteArray opusData = m_opusEncoder->encode(s16leData);
     if (opusData.isEmpty()) {
-        qWarning() << "MainWindow: Opus encoding failed for frame" << txFrameCount;
         return;
-    }
-
-    // Debug: log encoded size periodically
-    if (txFrameCount % 50 == 1) {
-        qDebug() << "MainWindow: Opus encoded to" << opusData.size() << "bytes, sending packet seq" << m_txSequence;
     }
 
     // Build and send the audio packet

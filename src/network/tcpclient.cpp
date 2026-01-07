@@ -44,7 +44,6 @@ TcpClient::TcpClient(QObject *parent)
             // RDY triggers comprehensive state dump containing all radio state:
             // FA, FB, MD, MD$, BW, BW$, IS, CW, KS, PC, SD (per mode), SQ, RG, SQ$, RG$,
             // #SPN, #REF, VXC, VXV, VXD, and all menu definitions (MEDF)
-            qDebug() << "Sending initialization commands...";
             sendCAT("RDY;"); // Ready - triggers comprehensive state dump (also enables AI mode)
             sendCAT("K41;"); // Enable advanced K4 protocol mode
             sendCAT("ER1;"); // Request long format error messages

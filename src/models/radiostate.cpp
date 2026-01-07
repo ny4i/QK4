@@ -259,7 +259,6 @@ void RadioState::parseCATCommand(const QString &command) {
                         m_noiseBlankerFilterWidthB = qMin(filter, 2);
                     }
                 }
-                qDebug() << "NB$ CAT received:" << cmd << "parsed: level=" << level << "enabled=" << enabled;
                 emit processingChangedB();
             }
         }
@@ -282,7 +281,6 @@ void RadioState::parseCATCommand(const QString &command) {
                         m_noiseBlankerFilterWidth = qMin(filter, 2);
                     }
                 }
-                qDebug() << "NB CAT received:" << cmd << "parsed: level=" << level << "enabled=" << enabled;
                 emit processingChanged();
             }
         }
@@ -308,8 +306,6 @@ void RadioState::parseCATCommand(const QString &command) {
             bool ok1, ok2;
             int level = nrStr.left(2).toInt(&ok1);
             int enabled = nrStr.right(1).toInt(&ok2);
-            qDebug() << "NR CAT received:" << cmd << "parsed: level=" << level << "enabled=" << enabled << "ok:" << ok1
-                     << ok2;
             if (ok1 && ok2) {
                 m_noiseReductionLevel = level;
                 m_noiseReductionEnabled = (enabled == 1);
@@ -890,7 +886,6 @@ void RadioState::parseCATCommand(const QString &command) {
     }
     // Display Mode - EXT (#HDSM) - must check before #DSM
     else if (cmd.startsWith("#HDSM") && cmd.length() > 5) {
-        qDebug() << "Display HDSM (EXT) command received:" << cmd;
         bool ok;
         int mode = cmd.mid(5, 1).toInt(&ok);
         if (ok && mode >= 0 && mode <= 1 && mode != m_displayModeExt) {
@@ -900,7 +895,6 @@ void RadioState::parseCATCommand(const QString &command) {
     }
     // Display Mode - LCD (#DSM)
     else if (cmd.startsWith("#DSM") && cmd.length() > 4) {
-        qDebug() << "Display DSM (LCD) command received:" << cmd;
         bool ok;
         int mode = cmd.mid(4, 1).toInt(&ok);
         if (ok && mode >= 0 && mode <= 1 && mode != m_displayModeLcd) {
@@ -1033,17 +1027,13 @@ void RadioState::parseCATCommand(const QString &command) {
     else if (cmd.startsWith("DT$") && cmd.length() >= 4) {
         bool ok;
         int subMode = cmd.mid(3, 1).toInt(&ok);
-        qDebug() << "DT$ parsed:" << cmd << "subMode=" << subMode << "ok=" << ok << "current=" << m_dataSubModeB;
         if (ok && subMode >= 0 && subMode <= 3) {
             // Ignore echoes within 500ms of optimistic update (K4 echoes stale values)
             qint64 now = QDateTime::currentMSecsSinceEpoch();
             bool inCooldown = (now - m_dataSubModeBOptimisticTime) < 500;
-            if (inCooldown) {
-                qDebug() << "DT$ ignored (cooldown active)";
-            } else if (subMode != m_dataSubModeB) {
+            if (!inCooldown && subMode != m_dataSubModeB) {
                 m_dataSubModeB = subMode;
                 emit dataSubModeBChanged(subMode);
-                qDebug() << "DT$ emitted dataSubModeBChanged:" << subMode;
             }
         }
     }
@@ -1051,43 +1041,21 @@ void RadioState::parseCATCommand(const QString &command) {
     else if (cmd.startsWith("DT") && cmd.length() >= 3) {
         bool ok;
         int subMode = cmd.mid(2, 1).toInt(&ok);
-        qDebug() << "DT parsed:" << cmd << "subMode=" << subMode << "ok=" << ok << "current=" << m_dataSubMode;
         if (ok && subMode >= 0 && subMode <= 3) {
             // Ignore echoes within 500ms of optimistic update (K4 echoes stale values)
             qint64 now = QDateTime::currentMSecsSinceEpoch();
             bool inCooldown = (now - m_dataSubModeOptimisticTime) < 500;
-            if (inCooldown) {
-                qDebug() << "DT ignored (cooldown active)";
-            } else if (subMode != m_dataSubMode) {
+            if (!inCooldown && subMode != m_dataSubMode) {
                 m_dataSubMode = subMode;
                 emit dataSubModeChanged(subMode);
-                qDebug() << "DT emitted dataSubModeChanged:" << subMode;
             }
         }
     }
     // Remote Client Stats (SIRC) - SIRCR:73.88,T:0.03,P:2,C:14,A:74
     // R=RX kB/s, T=TX kB/s, P=Ping ms, C=Connected time, A=Audio buffer ms
+    // TODO: Wire these stats to UI status bar
     else if (cmd.startsWith("SIRC") && cmd.length() > 4) {
-        qDebug() << "SIRC received:" << cmd;
-        QString stats = cmd.mid(4); // Remove "SIRC" prefix
-        // Parse: R:73.88,T:0.03,P:2,C:14,A:74
-        QStringList parts = stats.split(',');
-        QString rxKBps, txKBps, pingMs, connTime, audioBufMs;
-        for (const QString &part : parts) {
-            if (part.startsWith("R:"))
-                rxKBps = part.mid(2);
-            else if (part.startsWith("T:"))
-                txKBps = part.mid(2);
-            else if (part.startsWith("P:"))
-                pingMs = part.mid(2);
-            else if (part.startsWith("C:"))
-                connTime = part.mid(2);
-            else if (part.startsWith("A:"))
-                audioBufMs = part.mid(2);
-        }
-        qDebug() << "=== K4 Remote Client Stats ===";
-        qDebug() << "  RX:" << rxKBps << "kB/s | TX:" << txKBps << "kB/s";
-        qDebug() << "  Ping:" << pingMs << "ms | Connected:" << connTime << "s | Audio Buffer:" << audioBufMs << "ms";
+        // Currently parsed but not displayed - stats available for future UI integration
     }
 
     emit stateUpdated();
