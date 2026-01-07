@@ -16,14 +16,14 @@ class KPA1500Client;
 class AudioEngine;
 class MicMeterWidget;
 class KpodDevice;
-class RigctldServer;
+class CatServer;
 
 class OptionsDialog : public QDialog {
     Q_OBJECT
 
 public:
     explicit OptionsDialog(RadioState *radioState, KPA1500Client *kpa1500Client, AudioEngine *audioEngine,
-                           KpodDevice *kpodDevice, RigctldServer *rigctldServer, QWidget *parent = nullptr);
+                           KpodDevice *kpodDevice, CatServer *catServer, QWidget *parent = nullptr);
     ~OptionsDialog();
 
 private slots:
@@ -44,14 +44,14 @@ private:
     QWidget *createNetworkPage();
     QWidget *createRigControlPage();
     void updateKpa1500Status();
-    void updateRigctldStatus();
+    void updateCatServerStatus();
     void populateMicDevices();
 
     RadioState *m_radioState;
     KPA1500Client *m_kpa1500Client;
     AudioEngine *m_audioEngine;
     KpodDevice *m_kpodDevice;
-    RigctldServer *m_rigctldServer;
+    CatServer *m_catServer;
     QListWidget *m_tabList;
     QStackedWidget *m_pageStack;
 
@@ -85,11 +85,11 @@ private:
     // Audio Output settings
     QComboBox *m_speakerDeviceCombo;
 
-    // Rig Control page elements
-    QCheckBox *m_rigctldEnableCheckbox;
-    QLineEdit *m_rigctldPortEdit;
-    QLabel *m_rigctldStatusLabel;
-    QLabel *m_rigctldClientsLabel;
+    // CAT Server page elements
+    QCheckBox *m_catServerEnableCheckbox;
+    QLineEdit *m_catServerPortEdit;
+    QLabel *m_catServerStatusLabel;
+    QLabel *m_catServerClientsLabel;
 
     void populateSpeakerDevices();
     void onSpeakerDeviceChanged(int index);

@@ -31,7 +31,7 @@ class ModePopupWidget;
 class KpodDevice;
 class TxMeterWidget;
 class KPA1500Client;
-class RigctldServer;
+class CatServer;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -243,8 +243,8 @@ private:
     // KPA1500 amplifier client
     KPA1500Client *m_kpa1500Client;
 
-    // Rigctld server for external app integration
-    RigctldServer *m_rigctldServer;
+    // CAT server for external app integration (WSJT-X, MacLoggerDX, etc.)
+    CatServer *m_catServer;
 };
 
 #endif // MAINWINDOW_H

@@ -68,7 +68,7 @@ set(SOURCES
     src/network/tcpclient.cpp
     src/network/protocol.cpp
     src/network/kpa1500client.cpp
-    src/network/rigctldserver.cpp
+    src/network/catserver.cpp
     src/audio/audioengine.cpp
     src/audio/opusdecoder.cpp
     src/audio/opusencoder.cpp
@@ -100,7 +100,7 @@ set(HEADERS
     src/network/tcpclient.h
     src/network/protocol.h
     src/network/kpa1500client.h
-    src/network/rigctldserver.h
+    src/network/catserver.h
     src/audio/audioengine.h
     src/audio/opusdecoder.h
     src/audio/opusencoder.h
