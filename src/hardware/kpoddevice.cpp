@@ -43,6 +43,7 @@ bool KpodDevice::startPolling() {
 
     // Reset state tracking
     m_lastRockerPosition = RockerCenter;
+    m_lastButtonState = 0;
 
     m_pollTimer->start();
     emit deviceConnected();
@@ -119,9 +120,9 @@ void KpodDevice::poll() {
         return;
     }
 
-    // Read response (non-blocking with timeout)
+    // Read response (short timeout to avoid blocking event loop)
     unsigned char buffer[8];
-    int readResult = hid_read_timeout(m_hidDevice, buffer, sizeof(buffer), 50);
+    int readResult = hid_read_timeout(m_hidDevice, buffer, sizeof(buffer), 5);
 
     if (readResult < 0) {
         // Read error - device may be disconnected
@@ -131,8 +132,10 @@ void KpodDevice::poll() {
         return;
     }
 
-    // Process response if we got a full packet with new event
-    if (readResult == 8 && buffer[0] == 'u') {
+    // Process response if we got data
+    // Note: According to spec, cmd='u' only for new events, but we always
+    // check controls byte for button/rocker state changes
+    if (readResult == 8) {
         processResponse(buffer);
     }
     // readResult == 0 means no data available (normal for non-blocking)
@@ -149,6 +152,26 @@ void KpodDevice::processResponse(const unsigned char *buffer) {
 
     // Extract controls byte
     quint8 controlsByte = buffer[3];
+
+    // Extract button state (bits 0-3: button number 1-8, 0=none)
+    quint8 buttonNum = controlsByte & 0x0F;
+    bool isHold = (controlsByte >> 4) & 0x01; // bit 4: 0=tap, 1=hold
+
+    // Detect button press (transition from 0 to non-zero)
+    if (buttonNum != 0 && m_lastButtonState == 0) {
+        // Button pressed - wait for release to determine tap vs hold
+        m_lastButtonState = buttonNum;
+    } else if (buttonNum == 0 && m_lastButtonState != 0) {
+        // Button released - emit appropriate signal
+        if (isHold) {
+            emit buttonHeld(m_lastButtonState);
+            qDebug() << "KPOD: Button" << m_lastButtonState << "held";
+        } else {
+            emit buttonTapped(m_lastButtonState);
+            qDebug() << "KPOD: Button" << m_lastButtonState << "tapped";
+        }
+        m_lastButtonState = 0;
+    }
 
     // Extract rocker position (bits 5-6)
     RockerPosition rocker = static_cast<RockerPosition>((controlsByte >> 5) & 0x03);

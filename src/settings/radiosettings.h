@@ -1,10 +1,25 @@
 #ifndef RADIOSETTINGS_H
 #define RADIOSETTINGS_H
 
+#include <QMap>
 #include <QObject>
 #include <QSettings>
 #include <QString>
 #include <QVector>
+
+// Macro entry for programmable function keys
+struct MacroEntry {
+    QString functionId; // "PF1", "Fn.F1", "K-pod.1T", etc.
+    QString label;      // Custom label or empty
+    QString command;    // CAT command or empty
+
+    bool isEmpty() const { return command.isEmpty(); }
+    QString displayLabel() const {
+        if (command.isEmpty())
+            return "Unused";
+        return label.isEmpty() ? "Mapped" : label;
+    }
+};
 
 struct RadioEntry {
     QString name;
@@ -68,6 +83,12 @@ public:
     quint16 rigctldPort() const;
     void setRigctldPort(quint16 port);
 
+    // Macro settings
+    QMap<QString, MacroEntry> macros() const;
+    MacroEntry macro(const QString &functionId) const;
+    void setMacro(const QString &functionId, const QString &label, const QString &command);
+    void clearMacro(const QString &functionId);
+
 signals:
     void radiosChanged();
     void kpodEnabledChanged(bool enabled);
@@ -79,6 +100,7 @@ signals:
     void speakerDeviceChanged(const QString &deviceId);
     void rigctldEnabledChanged(bool enabled);
     void rigctldPortChanged(quint16 port);
+    void macrosChanged();
 
 private:
     explicit RadioSettings(QObject *parent = nullptr);
@@ -98,6 +120,9 @@ private:
     // Rigctld settings
     bool m_rigctldEnabled = false;
     quint16 m_rigctldPort = 4532;
+
+    // Macro settings
+    QMap<QString, MacroEntry> m_macros;
 
     QSettings m_settings;
 };

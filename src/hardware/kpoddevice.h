@@ -55,6 +55,8 @@ signals:
     void deviceDisconnected();
     void encoderRotated(int ticks);
     void rockerPositionChanged(RockerPosition position);
+    void buttonTapped(int buttonNumber); // Button 1-8 brief press
+    void buttonHeld(int buttonNumber);   // Button 1-8 long press
     void pollError(const QString &error);
 
 private slots:
@@ -76,6 +78,7 @@ private:
     QTimer *m_pollTimer = nullptr;
     static const int POLL_INTERVAL_MS = 20;
     RockerPosition m_lastRockerPosition = RockerCenter;
+    quint8 m_lastButtonState = 0; // Button number (1-8) or 0 for none
 
     // Hotplug monitoring via periodic enumeration
     // Note: We use hid_enumerate() instead of IOKit callbacks because hidapi

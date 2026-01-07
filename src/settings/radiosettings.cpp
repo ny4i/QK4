@@ -198,6 +198,47 @@ void RadioSettings::setRigctldPort(quint16 port) {
     }
 }
 
+QMap<QString, MacroEntry> RadioSettings::macros() const {
+    return m_macros;
+}
+
+MacroEntry RadioSettings::macro(const QString &functionId) const {
+    return m_macros.value(functionId);
+}
+
+void RadioSettings::setMacro(const QString &functionId, const QString &label, const QString &command) {
+    MacroEntry entry;
+    entry.functionId = functionId;
+    entry.label = label;
+    entry.command = command;
+
+    if (command.isEmpty()) {
+        // Remove empty macros
+        if (m_macros.contains(functionId)) {
+            m_macros.remove(functionId);
+            save();
+            emit macrosChanged();
+        }
+    } else {
+        // Add or update macro
+        bool changed = !m_macros.contains(functionId) || m_macros[functionId].label != label ||
+                       m_macros[functionId].command != command;
+        if (changed) {
+            m_macros[functionId] = entry;
+            save();
+            emit macrosChanged();
+        }
+    }
+}
+
+void RadioSettings::clearMacro(const QString &functionId) {
+    if (m_macros.contains(functionId)) {
+        m_macros.remove(functionId);
+        save();
+        emit macrosChanged();
+    }
+}
+
 void RadioSettings::load() {
     int count = m_settings.beginReadArray("radios");
     m_radios.clear();
@@ -226,6 +267,21 @@ void RadioSettings::load() {
     // Rigctld settings
     m_rigctldEnabled = m_settings.value("rigctld/enabled", false).toBool();
     m_rigctldPort = m_settings.value("rigctld/port", 4532).toUInt();
+
+    // Macro settings
+    int macroCount = m_settings.beginReadArray("macros");
+    m_macros.clear();
+    for (int i = 0; i < macroCount; ++i) {
+        m_settings.setArrayIndex(i);
+        MacroEntry entry;
+        entry.functionId = m_settings.value("functionId").toString();
+        entry.label = m_settings.value("label").toString();
+        entry.command = m_settings.value("command").toString();
+        if (!entry.functionId.isEmpty()) {
+            m_macros[entry.functionId] = entry;
+        }
+    }
+    m_settings.endArray();
 }
 
 void RadioSettings::save() {
@@ -253,6 +309,17 @@ void RadioSettings::save() {
     // Rigctld settings
     m_settings.setValue("rigctld/enabled", m_rigctldEnabled);
     m_settings.setValue("rigctld/port", m_rigctldPort);
+
+    // Macro settings
+    m_settings.beginWriteArray("macros");
+    int i = 0;
+    for (auto it = m_macros.constBegin(); it != m_macros.constEnd(); ++it, ++i) {
+        m_settings.setArrayIndex(i);
+        m_settings.setValue("functionId", it->functionId);
+        m_settings.setValue("label", it->label);
+        m_settings.setValue("command", it->command);
+    }
+    m_settings.endArray();
 
     m_settings.sync();
 }

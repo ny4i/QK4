@@ -26,6 +26,8 @@ class MenuOverlayWidget;
 class BandPopupWidget;
 class ButtonRowPopup;
 class DisplayPopupWidget;
+class FnPopupWidget;
+class MacroDialog;
 class FeatureMenuBar;
 class ModePopupWidget;
 class KpodDevice;
@@ -117,6 +119,11 @@ private slots:
     void onPttPressed();
     void onPttReleased();
     void onMicrophoneFrame(const QByteArray &s16leData);
+
+    // Fn popup / macro slots
+    void onFnFunctionTriggered(const QString &functionId);
+    void executeMacro(const QString &functionId);
+    void openMacroDialog();
 
 private:
     void setupMenuBar();
@@ -227,7 +234,8 @@ private:
     MenuOverlayWidget *m_menuOverlay;
     BandPopupWidget *m_bandPopup;
     DisplayPopupWidget *m_displayPopup;
-    ButtonRowPopup *m_fnPopup;
+    FnPopupWidget *m_fnPopup;
+    MacroDialog *m_macroDialog;
     ButtonRowPopup *m_mainRxPopup;
     ButtonRowPopup *m_subRxPopup;
     ButtonRowPopup *m_txPopup;

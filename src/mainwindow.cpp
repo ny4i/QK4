@@ -9,6 +9,8 @@
 #include "ui/bandpopupwidget.h"
 #include "ui/displaypopupwidget.h"
 #include "ui/buttonrowpopup.h"
+#include "ui/fnpopupwidget.h"
+#include "ui/macrodialog.h"
 #include "ui/optionsdialog.h"
 #include "ui/txmeterwidget.h"
 #include "models/menumodel.h"
@@ -155,14 +157,20 @@ MainWindow::MainWindow(QWidget *parent)
     // DisplayPopup CAT commands -> TcpClient
     connect(m_displayPopup, &DisplayPopupWidget::catCommandRequested, m_tcpClient, &TcpClient::sendCAT);
 
-    // Create button row popups for Fn, MAIN RX, SUB RX, TX
-    m_fnPopup = new ButtonRowPopup(this);
-    m_fnPopup->setButtonLabels({"1", "2", "3", "4", "5", "6", "7"});
-    connect(m_fnPopup, &ButtonRowPopup::closed, this, [this]() {
+    // Create Fn popup with dual-action buttons (macro system)
+    m_fnPopup = new FnPopupWidget(this);
+    connect(m_fnPopup, &FnPopupWidget::closed, this, [this]() {
         if (m_bottomMenuBar) {
             m_bottomMenuBar->setFnActive(false);
         }
     });
+    connect(m_fnPopup, &FnPopupWidget::functionTriggered, this, &MainWindow::onFnFunctionTriggered);
+
+    // Create macro configuration dialog (full-screen overlay)
+    m_macroDialog = new MacroDialog(this);
+    m_macroDialog->hide();
+
+    // Create button row popups for MAIN RX, SUB RX, TX
 
     m_mainRxPopup = new ButtonRowPopup(this);
     m_mainRxPopup->setButtonLabels({"1", "2", "3", "4", "5", "6", "7"});
@@ -554,6 +562,16 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_kpodDevice, &KpodDevice::rockerPositionChanged, this,
             [this](KpodDevice::RockerPosition pos) { onKpodRockerChanged(static_cast<int>(pos)); });
     connect(m_kpodDevice, &KpodDevice::pollError, this, &MainWindow::onKpodPollError);
+
+    // Connect KPOD button signals to macro execution
+    connect(m_kpodDevice, &KpodDevice::buttonTapped, this, [this](int buttonNum) {
+        QString functionId = QString("K-pod.%1T").arg(buttonNum);
+        executeMacro(functionId);
+    });
+    connect(m_kpodDevice, &KpodDevice::buttonHeld, this, [this](int buttonNum) {
+        QString functionId = QString("K-pod.%1H").arg(buttonNum);
+        executeMacro(functionId);
+    });
 
     // Connect KPOD hotplug signals - auto-start polling when device arrives
     connect(m_kpodDevice, &KpodDevice::deviceConnected, this, [this]() {
@@ -1366,10 +1384,39 @@ void MainWindow::setupUi() {
     connect(m_rightSidePanel, &RightSidePanel::xitClicked, this, [this]() { m_tcpClient->sendCAT("SW74;"); });
 
     // PF row secondary (right-click) signals
-    connect(m_rightSidePanel, &RightSidePanel::pf1Clicked, this, [this]() { m_tcpClient->sendCAT("SW153;"); });
-    connect(m_rightSidePanel, &RightSidePanel::pf2Clicked, this, [this]() { m_tcpClient->sendCAT("SW154;"); });
-    connect(m_rightSidePanel, &RightSidePanel::pf3Clicked, this, [this]() { m_tcpClient->sendCAT("SW155;"); });
-    connect(m_rightSidePanel, &RightSidePanel::pf4Clicked, this, [this]() { m_tcpClient->sendCAT("SW156;"); });
+    // PF1-PF4 execute user-configured macros (or default K4 PF functions if no macro set)
+    connect(m_rightSidePanel, &RightSidePanel::pf1Clicked, this, [this]() {
+        MacroEntry macro = RadioSettings::instance()->macro(MacroIds::PF1);
+        if (!macro.command.isEmpty()) {
+            executeMacro(MacroIds::PF1);
+        } else {
+            m_tcpClient->sendCAT("SW153;"); // Default: K4 PF1
+        }
+    });
+    connect(m_rightSidePanel, &RightSidePanel::pf2Clicked, this, [this]() {
+        MacroEntry macro = RadioSettings::instance()->macro(MacroIds::PF2);
+        if (!macro.command.isEmpty()) {
+            executeMacro(MacroIds::PF2);
+        } else {
+            m_tcpClient->sendCAT("SW154;"); // Default: K4 PF2
+        }
+    });
+    connect(m_rightSidePanel, &RightSidePanel::pf3Clicked, this, [this]() {
+        MacroEntry macro = RadioSettings::instance()->macro(MacroIds::PF3);
+        if (!macro.command.isEmpty()) {
+            executeMacro(MacroIds::PF3);
+        } else {
+            m_tcpClient->sendCAT("SW155;"); // Default: K4 PF3
+        }
+    });
+    connect(m_rightSidePanel, &RightSidePanel::pf4Clicked, this, [this]() {
+        MacroEntry macro = RadioSettings::instance()->macro(MacroIds::PF4);
+        if (!macro.command.isEmpty()) {
+            executeMacro(MacroIds::PF4);
+        } else {
+            m_tcpClient->sendCAT("SW156;"); // Default: K4 PF4
+        }
+    });
 
     // Bottom row signals (SUB, DIVERSITY, RATE)
     connect(m_rightSidePanel, &RightSidePanel::subClicked, this, [this]() { m_tcpClient->sendCAT("SW83;"); });
@@ -3153,5 +3200,63 @@ void MainWindow::updateKpa1500Status() {
             m_kpa1500StatusLabel->setStyleSheet(
                 QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Colors::TxRed));
         }
+    }
+}
+
+// ============== Fn Popup / Macro Slots ==============
+
+void MainWindow::onFnFunctionTriggered(const QString &functionId) {
+    qDebug() << "Fn function triggered:" << functionId;
+
+    // Handle built-in functions
+    if (functionId == MacroIds::ScrnCap) {
+        // SS0; triggers K4 screenshot (saved to internal SD card)
+        if (m_tcpClient && m_tcpClient->isConnected()) {
+            m_tcpClient->sendCAT("SS0;");
+            qDebug() << "Screenshot captured (SS0;)";
+        }
+    } else if (functionId == MacroIds::Macros) {
+        openMacroDialog();
+    } else if (functionId == MacroIds::SwList) {
+        // TODO: Show software list
+        qDebug() << "Software list - not yet implemented";
+    } else if (functionId == MacroIds::Update) {
+        // TODO: Check for updates
+        qDebug() << "Update check - not yet implemented";
+    } else if (functionId == MacroIds::DxList) {
+        // TODO: Show DX list
+        qDebug() << "DX list - not yet implemented";
+    } else {
+        // User-configurable macro - execute CAT command
+        executeMacro(functionId);
+    }
+}
+
+void MainWindow::executeMacro(const QString &functionId) {
+    MacroEntry macro = RadioSettings::instance()->macro(functionId);
+    if (!macro.command.isEmpty()) {
+        qDebug() << "Executing macro" << functionId << ":" << macro.command;
+        if (m_tcpClient && m_tcpClient->isConnected()) {
+            m_tcpClient->sendCAT(macro.command);
+        }
+    } else {
+        qDebug() << "No macro configured for" << functionId;
+    }
+}
+
+void MainWindow::openMacroDialog() {
+    if (m_macroDialog) {
+        // Close any open popups first
+        closeAllPopups();
+
+        // Size to fill the main content area (same as menu overlay)
+        if (m_panadapterA) {
+            QPoint pos = m_panadapterA->mapTo(this, QPoint(0, 0));
+            m_macroDialog->setGeometry(pos.x(), pos.y(), m_panadapterA->width(), m_panadapterA->height());
+        }
+
+        m_macroDialog->show();
+        m_macroDialog->raise();
+        m_macroDialog->setFocus();
     }
 }
