@@ -33,6 +33,7 @@
 #include <QFrame>
 #include <QEvent>
 #include <QResizeEvent>
+#include <QRegularExpression>
 #include <QMouseEvent>
 #include <QShowEvent>
 
@@ -202,8 +203,12 @@ MainWindow::MainWindow(QWidget *parent)
         onVoxChanged(false); // Refresh VOX display when mode changes (VOX is mode-specific)
     });
     // Data sub-mode changes also update mode label (AFSK, FSK, PSK, DATA)
-    connect(m_radioState, &RadioState::dataSubModeChanged, this,
-            [this](int) { m_modeALabel->setText(m_radioState->modeStringFull()); });
+    connect(m_radioState, &RadioState::dataSubModeChanged, this, [this](int subMode) {
+        QString fullMode = m_radioState->modeStringFull();
+        qDebug() << "dataSubModeChanged handler: subMode=" << subMode
+                 << "mode=" << static_cast<int>(m_radioState->mode()) << "modeStringFull=" << fullMode;
+        m_modeALabel->setText(fullMode);
+    });
     connect(m_radioState, &RadioState::sMeterChanged, this, &MainWindow::onSMeterChanged);
     connect(m_radioState, &RadioState::filterBandwidthChanged, this, &MainWindow::onBandwidthChanged);
 
@@ -965,8 +970,25 @@ void MainWindow::setupUi() {
 
     // Mode Popup Widget (popup, positioned above bottom menu bar when shown)
     m_modePopup = new ModePopupWidget(this);
-    connect(m_modePopup, &ModePopupWidget::modeSelected, this,
-            [this](const QString &catCmd) { m_tcpClient->sendCAT(catCmd); });
+    connect(m_modePopup, &ModePopupWidget::modeSelected, this, [this](const QString &catCmd) {
+        // Send the command to the radio
+        m_tcpClient->sendCAT(catCmd);
+
+        // Optimistically update data sub-mode (K4 doesn't echo DT SET commands)
+        // Parse DT or DT$ from command like "MD6;DT1;" or "MD$6;DT$3;"
+        QRegularExpression dtRegex("DT(\\$?)(\\d)");
+        QRegularExpressionMatch match = dtRegex.match(catCmd);
+        if (match.hasMatch()) {
+            bool isSubRx = !match.captured(1).isEmpty(); // DT$ = Sub RX
+            int subMode = match.captured(2).toInt();
+            qDebug() << "Optimistic DT update: isSubRx=" << isSubRx << "subMode=" << subMode;
+            if (isSubRx) {
+                m_radioState->setDataSubModeB(subMode);
+            } else {
+                m_radioState->setDataSubMode(subMode);
+            }
+        }
+    });
     // Update mode popup when mode changes - use A or B based on B SET state
     connect(m_radioState, &RadioState::modeChanged, this, [this](RadioState::Mode mode) {
         if (!m_radioState->bSetEnabled()) {
@@ -2262,6 +2284,7 @@ void MainWindow::onAuthenticated() {
     m_tcpClient->sendCAT("#FRZ;");  // Freeze - not in RDY
     m_tcpClient->sendCAT("SIRC1;"); // Enable 1-second client stats updates
     qDebug() << "Sent SIRC1; to enable 1-second client stats updates";
+    qDebug() << "Sending initialization commands...";
 }
 
 void MainWindow::onAuthenticationFailed() {
@@ -2308,7 +2331,10 @@ void MainWindow::onFrequencyBChanged(quint64 freq) {
 void MainWindow::onModeChanged(RadioState::Mode mode) {
     Q_UNUSED(mode)
     // Use full mode string which includes data sub-mode (AFSK, FSK, PSK, DATA)
-    m_modeALabel->setText(m_radioState->modeStringFull());
+    QString fullMode = m_radioState->modeStringFull();
+    qDebug() << "onModeChanged: mode=" << static_cast<int>(mode) << "modeStringFull=" << fullMode
+             << "dataSubMode=" << m_radioState->dataSubMode();
+    m_modeALabel->setText(fullMode);
 }
 
 void MainWindow::onModeBChanged(RadioState::Mode mode) {

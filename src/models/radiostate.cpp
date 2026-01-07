@@ -1,4 +1,5 @@
 #include "radiostate.h"
+#include <QDateTime>
 #include <QDebug>
 
 RadioState::RadioState(QObject *parent) : QObject(parent) {}
@@ -1032,18 +1033,36 @@ void RadioState::parseCATCommand(const QString &command) {
     else if (cmd.startsWith("DT$") && cmd.length() >= 4) {
         bool ok;
         int subMode = cmd.mid(3, 1).toInt(&ok);
-        if (ok && subMode >= 0 && subMode <= 3 && subMode != m_dataSubModeB) {
-            m_dataSubModeB = subMode;
-            emit dataSubModeBChanged(subMode);
+        qDebug() << "DT$ parsed:" << cmd << "subMode=" << subMode << "ok=" << ok << "current=" << m_dataSubModeB;
+        if (ok && subMode >= 0 && subMode <= 3) {
+            // Ignore echoes within 500ms of optimistic update (K4 echoes stale values)
+            qint64 now = QDateTime::currentMSecsSinceEpoch();
+            bool inCooldown = (now - m_dataSubModeBOptimisticTime) < 500;
+            if (inCooldown) {
+                qDebug() << "DT$ ignored (cooldown active)";
+            } else if (subMode != m_dataSubModeB) {
+                m_dataSubModeB = subMode;
+                emit dataSubModeBChanged(subMode);
+                qDebug() << "DT$ emitted dataSubModeBChanged:" << subMode;
+            }
         }
     }
     // Data Sub-Mode Main RX (DT) - 0=DATA-A, 1=AFSK-A, 2=FSK-D, 3=PSK-D
     else if (cmd.startsWith("DT") && cmd.length() >= 3) {
         bool ok;
         int subMode = cmd.mid(2, 1).toInt(&ok);
-        if (ok && subMode >= 0 && subMode <= 3 && subMode != m_dataSubMode) {
-            m_dataSubMode = subMode;
-            emit dataSubModeChanged(subMode);
+        qDebug() << "DT parsed:" << cmd << "subMode=" << subMode << "ok=" << ok << "current=" << m_dataSubMode;
+        if (ok && subMode >= 0 && subMode <= 3) {
+            // Ignore echoes within 500ms of optimistic update (K4 echoes stale values)
+            qint64 now = QDateTime::currentMSecsSinceEpoch();
+            bool inCooldown = (now - m_dataSubModeOptimisticTime) < 500;
+            if (inCooldown) {
+                qDebug() << "DT ignored (cooldown active)";
+            } else if (subMode != m_dataSubMode) {
+                m_dataSubMode = subMode;
+                emit dataSubModeChanged(subMode);
+                qDebug() << "DT emitted dataSubModeChanged:" << subMode;
+            }
         }
     }
     // Remote Client Stats (SIRC) - SIRCR:73.88,T:0.03,P:2,C:14,A:74
@@ -1322,6 +1341,24 @@ void RadioState::setManualNotchPitchB(int pitch) {
     if (m_manualNotchPitchB != pitch) {
         m_manualNotchPitchB = pitch;
         emit notchBChanged();
+    }
+}
+
+void RadioState::setDataSubMode(int subMode) {
+    subMode = qBound(0, subMode, 3);
+    if (m_dataSubMode != subMode) {
+        m_dataSubMode = subMode;
+        m_dataSubModeOptimisticTime = QDateTime::currentMSecsSinceEpoch();
+        emit dataSubModeChanged(subMode);
+    }
+}
+
+void RadioState::setDataSubModeB(int subMode) {
+    subMode = qBound(0, subMode, 3);
+    if (m_dataSubModeB != subMode) {
+        m_dataSubModeB = subMode;
+        m_dataSubModeBOptimisticTime = QDateTime::currentMSecsSinceEpoch();
+        emit dataSubModeBChanged(subMode);
     }
 }
 

@@ -292,6 +292,10 @@ public:
     int dataSubMode() const { return m_dataSubMode; }
     int dataSubModeB() const { return m_dataSubModeB; }
 
+    // Optimistic setters for data sub-mode (radio doesn't echo DT SET commands)
+    void setDataSubMode(int subMode);
+    void setDataSubModeB(int subMode);
+
     // Full mode string including data sub-mode (DATA-A, AFSK, FSK, PSK)
     QString modeStringFull() const;  // Main RX mode with sub-mode
     QString modeStringFullB() const; // Sub RX mode with sub-mode
@@ -546,6 +550,10 @@ private:
     // Data sub-mode (DT command): 0=DATA-A, 1=AFSK-A, 2=FSK-D, 3=PSK-D
     int m_dataSubMode = -1;  // Main RX
     int m_dataSubModeB = -1; // Sub RX
+
+    // Timestamps for optimistic update cooldown (ignore echoes briefly after sending)
+    qint64 m_dataSubModeOptimisticTime = 0;
+    qint64 m_dataSubModeBOptimisticTime = 0;
 };
 
 #endif // RADIOSTATE_H

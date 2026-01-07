@@ -239,11 +239,13 @@ void ModePopupWidget::updateButtonStyles() {
 }
 
 void ModePopupWidget::setCurrentMode(int modeCode) {
+    qDebug() << "ModePopupWidget::setCurrentMode:" << modeCode << "m_currentDataSubMode=" << m_currentDataSubMode;
     m_currentMode = modeCode;
     updateButtonStyles();
 }
 
 void ModePopupWidget::setCurrentDataSubMode(int subMode) {
+    qDebug() << "ModePopupWidget::setCurrentDataSubMode:" << subMode << "m_currentMode=" << m_currentMode;
     m_currentDataSubMode = subMode;
     updateButtonStyles();
 }
