@@ -42,6 +42,11 @@ Current implementation state of K4Controller (January 2026).
 - Feature menu bar (ATTN/NB/NR/NOTCH)
 - Display popup (ref level, span, tune mode, waterfall color)
 - Options dialog (About, KPOD, KPA1500)
+- **Fn popup**: Dual-action buttons for Fn.F1-F8 macros
+- **Macro dialog**: Configure 29 macro slots (PF1-4, Fn.F1-F8, REM ANT, KPOD tap/hold)
+
+### Hardware
+- **KPOD support**: VFO encoder, rocker switch, 8 buttons (tap/hold)
 
 ### Distribution
 - **Self-contained app bundle** - macOS deploy target bundles all dependencies
