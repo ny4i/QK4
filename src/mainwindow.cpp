@@ -2334,7 +2334,7 @@ void MainWindow::connectToRadio(const RadioEntry &radio) {
     m_titleLabel->setText("Elecraft K4 - " + radio.name);
 
     qDebug() << "Connecting to" << radio.host << ":" << radio.port << (radio.useTls ? "(TLS/PSK)" : "(unencrypted)");
-    m_tcpClient->connectToHost(radio.host, radio.port, radio.password, radio.useTls, radio.psk);
+    m_tcpClient->connectToHost(radio.host, radio.port, radio.password, radio.useTls, radio.identity);
 }
 
 void MainWindow::onConnectClicked() {

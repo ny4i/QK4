@@ -17,7 +17,7 @@ public:
     ~TcpClient();
 
     void connectToHost(const QString &host, quint16 port, const QString &password, bool useTls = false,
-                       const QString &psk = QString());
+                       const QString &identity = QString());
     void disconnectFromHost();
     bool isConnected() const;
     ConnectionState connectionState() const;
@@ -61,9 +61,9 @@ private:
 
     QString m_host;
     quint16 m_port;
-    QString m_password;
+    QString m_password; // Also used as PSK when TLS enabled
     bool m_useTls;
-    QString m_psk;
+    QString m_identity; // TLS-PSK identity (optional)
     ConnectionState m_state;
     bool m_authResponseReceived;
 };

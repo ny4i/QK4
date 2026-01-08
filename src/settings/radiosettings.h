@@ -24,10 +24,10 @@ struct MacroEntry {
 struct RadioEntry {
     QString name;
     QString host;
-    QString password;
+    QString password; // Password (used as PSK when TLS enabled)
     quint16 port;
     bool useTls = false; // Use TLS/PSK encryption (port 9204)
-    QString psk;         // Pre-Shared Key for TLS connections
+    QString identity;    // TLS-PSK identity (optional, empty = default)
 
     bool operator==(const RadioEntry &other) const {
         return name == other.name && host == other.host && port == other.port;

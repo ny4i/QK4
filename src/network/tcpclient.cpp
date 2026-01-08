@@ -61,16 +61,16 @@ TcpClient::~TcpClient() {
 }
 
 void TcpClient::connectToHost(const QString &host, quint16 port, const QString &password, bool useTls,
-                              const QString &psk) {
+                              const QString &identity) {
     if (m_state != Disconnected) {
         disconnectFromHost();
     }
 
     m_host = host;
     m_port = port;
-    m_password = password;
+    m_password = password; // Also used as PSK when TLS enabled
     m_useTls = useTls;
-    m_psk = psk;
+    m_identity = identity; // TLS-PSK identity (optional)
     m_authResponseReceived = false;
 
     setState(Connecting);
@@ -82,40 +82,30 @@ void TcpClient::connectToHost(const QString &host, quint16 port, const QString &
         qDebug() << "  Runtime version:" << QSslSocket::sslLibraryVersionString();
         qDebug() << "  Supports SSL:" << QSslSocket::supportsSsl();
 
-        // Configure TLS with PSK cipher suites
+        // Configure TLS for PSK authentication - require TLS 1.2 minimum
         QSslConfiguration sslConfig = QSslConfiguration::defaultConfiguration();
-        sslConfig.setProtocol(QSsl::TlsV1_2);
+        sslConfig.setProtocol(QSsl::TlsV1_2OrLater);
         sslConfig.setPeerVerifyMode(QSslSocket::VerifyNone); // PSK doesn't use certificates
 
-        // PSK cipher suite - only ECDHE-PSK-CHACHA20-POLY1305 gives us TLSv1.2 + forward secrecy
-        // K4 server prefers weaker ciphers, so we only offer the best one
-        // Other PSK ciphers (even ECDHE variants) fall back to TLSv1.0 in Qt's OpenSSL
-        QList<QSslCipher> pskCiphers;
-        const QStringList pskCipherNames = {"ECDHE-PSK-CHACHA20-POLY1305"};
-
-        // Add ciphers in our preference order (not system order)
-        QList<QSslCipher> allCiphers = QSslConfiguration::supportedCiphers();
-        for (const QString &name : pskCipherNames) {
-            for (const QSslCipher &cipher : allCiphers) {
-                if (cipher.name() == name) {
-                    pskCiphers.append(cipher);
-                    qDebug() << "Added PSK cipher:" << cipher.name() << "protocol:" << cipher.protocolString();
-                    break;
+        // Filter to only TLS 1.2+ PSK ciphers
+        QList<QSslCipher> tls12PskCiphers;
+        qDebug() << "=== Available PSK Ciphers ===";
+        for (const QSslCipher &cipher : QSslConfiguration::supportedCiphers()) {
+            if (cipher.name().contains("PSK")) {
+                qDebug() << "  " << cipher.name() << "(" << cipher.protocolString() << ")";
+                // Only include TLS 1.2+ ciphers
+                if (cipher.protocol() == QSsl::TlsV1_2 || cipher.protocol() == QSsl::TlsV1_3) {
+                    tls12PskCiphers.append(cipher);
                 }
             }
         }
-        qDebug() << "Configured" << pskCiphers.size()
-                 << "PSK ciphers, first:" << (pskCiphers.isEmpty() ? "none" : pskCiphers.first().name());
-
-        if (pskCiphers.isEmpty()) {
-            qWarning() << "No PSK ciphers available! TLS/PSK connection will likely fail.";
-            qWarning() << "Ensure OpenSSL 3.x is installed (brew install openssl@3)";
-            emit errorOccurred("TLS/PSK not available: No PSK cipher suites found. "
-                               "Install OpenSSL 3.x or use unencrypted connection (port 9205).");
-            setState(Disconnected);
-            return;
+        qDebug() << "=== Offering" << tls12PskCiphers.size() << "TLS 1.2+ PSK ciphers ===";
+        for (const QSslCipher &cipher : tls12PskCiphers) {
+            qDebug() << "  " << cipher.name();
         }
-        sslConfig.setCiphers(pskCiphers);
+        if (!tls12PskCiphers.isEmpty()) {
+            sslConfig.setCiphers(tls12PskCiphers);
+        }
 
         m_socket->setSslConfiguration(sslConfig);
 
@@ -252,11 +242,11 @@ void TcpClient::onSslErrors(const QList<QSslError> &errors) {
 void TcpClient::onPreSharedKeyAuthenticationRequired(QSslPreSharedKeyAuthenticator *authenticator) {
     qDebug() << "PSK authentication requested, identity hint:" << authenticator->identityHint();
 
-    // Set the identity (can be empty for K4) and the pre-shared key
-    authenticator->setIdentity(QByteArray()); // Empty identity
-    authenticator->setPreSharedKey(m_psk.toUtf8());
+    // Set the identity (empty or user-specified) and the pre-shared key (password field)
+    authenticator->setIdentity(m_identity.toUtf8());
+    authenticator->setPreSharedKey(m_password.toUtf8());
 
-    qDebug() << "PSK credentials provided";
+    qDebug() << "PSK credentials provided, identity:" << (m_identity.isEmpty() ? "(empty)" : m_identity);
 }
 
 void TcpClient::onAuthTimeout() {

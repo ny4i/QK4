@@ -127,19 +127,18 @@ void RadioManagerDialog::setupUi() {
                                  "QCheckBox::indicator { width: 14px; height: 14px; }");
     formLayout->addWidget(m_tlsCheckbox, 4, 0, 1, 2);
 
-    // Row 5: PSK (only visible when TLS is checked)
-    m_pskLabel = new QLabel("PSK", this);
-    m_pskLabel->setStyleSheet(labelStyle);
-    m_pskEdit = new QLineEdit(this);
-    m_pskEdit->setStyleSheet(lineEditStyle);
-    m_pskEdit->setEchoMode(QLineEdit::Password);
-    m_pskEdit->setPlaceholderText("Pre-Shared Key");
-    formLayout->addWidget(m_pskLabel, 5, 0);
-    formLayout->addWidget(m_pskEdit, 5, 1);
+    // Row 5: ID (only visible when TLS is checked)
+    m_identityLabel = new QLabel("ID", this);
+    m_identityLabel->setStyleSheet(labelStyle);
+    m_identityEdit = new QLineEdit(this);
+    m_identityEdit->setStyleSheet(lineEditStyle);
+    m_identityEdit->setPlaceholderText("Identity (optional)");
+    formLayout->addWidget(m_identityLabel, 5, 0);
+    formLayout->addWidget(m_identityEdit, 5, 1);
 
-    // Initially hide PSK field (shown when TLS is checked)
-    m_pskLabel->setVisible(false);
-    m_pskEdit->setVisible(false);
+    // Initially hide ID field (shown when TLS is checked)
+    m_identityLabel->setVisible(false);
+    m_identityEdit->setVisible(false);
 
     rightSection->addLayout(formLayout);
     rightSection->addStretch();
@@ -279,7 +278,7 @@ void RadioManagerDialog::onConnectClicked() {
         entry.password = m_passwordEdit->text();
         QString portText = m_portEdit->text().trimmed();
         entry.useTls = m_tlsCheckbox->isChecked();
-        entry.psk = m_pskEdit->text();
+        entry.identity = m_identityEdit->text();
 
         // Set port based on TLS mode if not specified
         if (portText.isEmpty()) {
@@ -310,7 +309,7 @@ void RadioManagerDialog::onSaveClicked() {
     QString password = m_passwordEdit->text();
     QString portText = m_portEdit->text().trimmed();
     bool useTls = m_tlsCheckbox->isChecked();
-    QString psk = m_pskEdit->text();
+    QString identity = m_identityEdit->text();
 
     if (name.isEmpty()) {
         name = host; // Use host as name if no name provided
@@ -325,7 +324,7 @@ void RadioManagerDialog::onSaveClicked() {
     entry.host = host;
     entry.password = password;
     entry.useTls = useTls;
-    entry.psk = psk;
+    entry.identity = identity;
 
     // Set port based on TLS mode if not specified
     if (portText.isEmpty()) {
@@ -397,9 +396,9 @@ void RadioManagerDialog::clearFields() {
     m_portEdit->clear();
     m_passwordEdit->clear();
     m_tlsCheckbox->setChecked(false);
-    m_pskEdit->clear();
-    m_pskLabel->setVisible(false);
-    m_pskEdit->setVisible(false);
+    m_identityEdit->clear();
+    m_identityLabel->setVisible(false);
+    m_identityEdit->setVisible(false);
 }
 
 void RadioManagerDialog::populateFieldsFromSelection() {
@@ -410,16 +409,16 @@ void RadioManagerDialog::populateFieldsFromSelection() {
         m_portEdit->setText(QString::number(radio.port));
         m_passwordEdit->setText(radio.password);
         m_tlsCheckbox->setChecked(radio.useTls);
-        m_pskEdit->setText(radio.psk);
-        m_pskLabel->setVisible(radio.useTls);
-        m_pskEdit->setVisible(radio.useTls);
+        m_identityEdit->setText(radio.identity);
+        m_identityLabel->setVisible(radio.useTls);
+        m_identityEdit->setVisible(radio.useTls);
     }
 }
 
 void RadioManagerDialog::onTlsCheckboxToggled(bool checked) {
-    // Show/hide PSK field based on TLS checkbox state
-    m_pskLabel->setVisible(checked);
-    m_pskEdit->setVisible(checked);
+    // Show/hide ID field based on TLS checkbox state
+    m_identityLabel->setVisible(checked);
+    m_identityEdit->setVisible(checked);
 
     // Auto-update port if it was at default
     QString portText = m_portEdit->text().trimmed();

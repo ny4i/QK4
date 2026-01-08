@@ -49,8 +49,8 @@ private:
     QLineEdit *m_portEdit;
     QLineEdit *m_passwordEdit;
     QCheckBox *m_tlsCheckbox;
-    QLineEdit *m_pskEdit;
-    QLabel *m_pskLabel;
+    QLineEdit *m_identityEdit;
+    QLabel *m_identityLabel;
 
     QPushButton *m_connectButton;
     QPushButton *m_newButton;
