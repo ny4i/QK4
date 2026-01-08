@@ -14,6 +14,21 @@ void RadioState::parseCATCommand(const QString &command) {
         cmd.chop(1);
     }
 
+    // Error/Notification messages (ERxx:message) - e.g., ER44:KPA1500 Status: operate.
+    if (cmd.startsWith("ER") && cmd.length() > 2) {
+        // Find the colon that separates error code from message
+        int colonPos = cmd.indexOf(':');
+        if (colonPos > 2) {
+            bool ok;
+            int errorCode = cmd.mid(2, colonPos - 2).toInt(&ok);
+            if (ok) {
+                QString message = cmd.mid(colonPos + 1);
+                emit errorNotificationReceived(errorCode, message);
+            }
+        }
+        // Don't return - let other parsers potentially handle it too
+    }
+
     // VFO A Frequency (FA)
     if (cmd.startsWith("FA") && cmd.length() > 2) {
         bool ok;

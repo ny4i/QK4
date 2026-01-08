@@ -455,8 +455,8 @@ void ToggleGroupWidget::mousePressEvent(QMouseEvent *event) {
 // ============================================================================
 
 DisplayPopupWidget::DisplayPopupWidget(QWidget *parent) : QWidget(parent), m_triangleXOffset(0) {
-    setWindowFlags(Qt::Popup | Qt::FramelessWindowHint);
-    setAttribute(Qt::WA_TranslucentBackground, false);
+    setWindowFlags(Qt::Popup | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
+    setAttribute(Qt::WA_TranslucentBackground);
     setFocusPolicy(Qt::StrongFocus);
 
     setupUi();
@@ -1000,6 +1000,10 @@ void DisplayPopupWidget::showAboveButton(QWidget *triggerButton) {
     if (!triggerButton)
         return;
 
+    // Show off-screen first to ensure geometry is realized (fixes first-show positioning bug)
+    move(-10000, -10000);
+    show();
+
     // Get the button bar (parent of trigger button) for centering
     QWidget *buttonBar = triggerButton->parentWidget();
     if (!buttonBar)
@@ -1035,7 +1039,7 @@ void DisplayPopupWidget::showAboveButton(QWidget *triggerButton) {
     }
 
     move(popupX, popupY);
-    show();
+    raise();
     setFocus();
     update();
 }
@@ -1054,16 +1058,14 @@ void DisplayPopupWidget::paintEvent(QPaintEvent *event) {
     int mainHeight = height() - TriangleHeight;
     QRect mainRect(0, 0, width(), mainHeight);
 
-    // Fill main background
-    painter.fillRect(mainRect, QColor(30, 30, 30));
+    // Fill main background with rounded corners (matches FnPopupWidget)
+    painter.setBrush(QColor(30, 30, 30));
+    painter.setPen(Qt::NoPen);
+    painter.drawRoundedRect(mainRect, 8, 8);
 
     // Gray bottom strip (inside the main rect, at bottom)
     QRect stripRect(0, mainHeight - BottomStripHeight, width(), BottomStripHeight);
     painter.fillRect(stripRect, IndicatorColor);
-
-    // Border around main popup
-    painter.setPen(QPen(QColor(60, 60, 60), 1));
-    painter.drawRect(mainRect.adjusted(0, 0, -1, -1));
 
     // Triangle pointing down from center of bottom strip
     painter.setPen(Qt::NoPen);

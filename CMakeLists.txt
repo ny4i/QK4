@@ -94,6 +94,7 @@ set(SOURCES
     src/ui/txmeterwidget.cpp
     src/ui/fnpopupwidget.cpp
     src/ui/macrodialog.cpp
+    src/ui/notificationwidget.cpp
     src/hardware/kpoddevice.cpp
 )
 
@@ -128,6 +129,7 @@ set(HEADERS
     src/ui/txmeterwidget.h
     src/ui/fnpopupwidget.h
     src/ui/macrodialog.h
+    src/ui/notificationwidget.h
     src/hardware/kpoddevice.h
 )
 

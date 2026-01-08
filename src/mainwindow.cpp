@@ -13,6 +13,7 @@
 #include "ui/macrodialog.h"
 #include "ui/optionsdialog.h"
 #include "ui/txmeterwidget.h"
+#include "ui/notificationwidget.h"
 #include "models/menumodel.h"
 #include "dsp/panadapter_rhi.h"
 #include "dsp/minipan_rhi.h"
@@ -196,6 +197,9 @@ MainWindow::MainWindow(QWidget *parent)
         }
     });
 
+    // Create notification popup for K4 error/status messages (ERxx:)
+    m_notificationWidget = new NotificationWidget(this);
+
     // TcpClient signals
     connect(m_tcpClient, &TcpClient::stateChanged, this, &MainWindow::onStateChanged);
     connect(m_tcpClient, &TcpClient::errorOccurred, this, &MainWindow::onError);
@@ -231,6 +235,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_radioState, &RadioState::supplyVoltageChanged, this, &MainWindow::onSupplyVoltageChanged);
     connect(m_radioState, &RadioState::supplyCurrentChanged, this, &MainWindow::onSupplyCurrentChanged);
     connect(m_radioState, &RadioState::swrChanged, this, &MainWindow::onSwrChanged);
+
+    // Error/notification messages from K4 (ERxx: format) -> show notification popup
+    connect(m_radioState, &RadioState::errorNotificationReceived, this, &MainWindow::onErrorNotification);
 
     // TX Meter data -> update power displays and VFO multifunction meters during TX
     connect(m_radioState, &RadioState::txMeterChanged, this, [this](int alc, int comp, double fwdPower, double swr) {
@@ -3136,6 +3143,17 @@ void MainWindow::onKpodEnabledChanged(bool enabled) {
         }
     } else {
         m_kpodDevice->stopPolling();
+    }
+}
+
+// ============== K4 Error/Notification Slots ==============
+
+void MainWindow::onErrorNotification(int errorCode, const QString &message) {
+    Q_UNUSED(errorCode)
+    // Show the notification message in a centered popup
+    // The message contains the text after "ERxx:" (e.g., "KPA1500 Status: operate.")
+    if (m_notificationWidget) {
+        m_notificationWidget->showMessage(message, 2000);
     }
 }
 

@@ -34,6 +34,7 @@ class KpodDevice;
 class TxMeterWidget;
 class KPA1500Client;
 class CatServer;
+class NotificationWidget;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -114,6 +115,9 @@ private slots:
     void onKpa1500EnabledChanged(bool enabled);
     void onKpa1500SettingsChanged();
     void updateKpa1500Status();
+
+    // Error/notification from K4 (ERxx: messages)
+    void onErrorNotification(int errorCode, const QString &message);
 
     // PTT slots
     void onPttPressed();
@@ -253,6 +257,9 @@ private:
 
     // CAT server for external app integration (WSJT-X, MacLoggerDX, etc.)
     CatServer *m_catServer;
+
+    // Notification popup for K4 error/status messages (ERxx:)
+    NotificationWidget *m_notificationWidget;
 };
 
 #endif // MAINWINDOW_H

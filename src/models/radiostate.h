@@ -380,6 +380,9 @@ signals:
     void dataSubModeChanged(int subMode);        // DT: 0=DATA-A, 1=AFSK-A, 2=FSK-D, 3=PSK-D
     void dataSubModeBChanged(int subMode);       // DT$: Sub RX data sub-mode
 
+    // Error/notification messages from K4 (ERxx: format)
+    void errorNotificationReceived(int errorCode, const QString &message);
+
     void stateUpdated();
 
 private:

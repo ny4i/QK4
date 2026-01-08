@@ -44,6 +44,11 @@ Current implementation state of K4Controller (January 2026).
 - Options dialog (About, KPOD, KPA1500)
 - **Fn popup**: Dual-action buttons for Fn.F1-F8 macros
 - **Macro dialog**: Configure 29 macro slots (PF1-4, Fn.F1-F8, REM ANT, KPOD tap/hold)
+- **Notification popup**: Center-screen auto-dismiss for K4 error/status messages (ERxx:)
+
+### KPA1500 Integration
+- K4 pushes KPA1500 status via ERxx: messages (ER41=power on, ER43=standby, ER44=operate)
+- Notification widget displays KPA1500 status changes
 
 ### Hardware
 - **KPOD support**: VFO encoder, rocker switch, 8 buttons (tap/hold)
