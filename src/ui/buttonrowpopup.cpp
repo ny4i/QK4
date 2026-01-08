@@ -125,9 +125,8 @@ void ButtonRowPopup::showAboveButton(QWidget *triggerButton) {
     if (!triggerButton)
         return;
 
-    // Show off-screen first to ensure geometry is realized (fixes first-show positioning bug)
-    move(-10000, -10000);
-    show();
+    // Ensure geometry is realized before positioning
+    adjustSize();
 
     // Get the button bar (parent of trigger button) for centering
     QWidget *buttonBar = triggerButton->parentWidget();
@@ -164,6 +163,7 @@ void ButtonRowPopup::showAboveButton(QWidget *triggerButton) {
     }
 
     move(popupX, popupY);
+    show();
     raise();
     setFocus();
     update();

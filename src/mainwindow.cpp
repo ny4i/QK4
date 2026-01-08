@@ -607,16 +607,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_kpa1500Client, &KPA1500Client::disconnected, this, &MainWindow::onKpa1500Disconnected);
     connect(m_kpa1500Client, &KPA1500Client::errorOccurred, this, &MainWindow::onKpa1500Error);
 
-    // KPA1500 amplifier integration groundwork:
-    // When amp is in Operate mode, switch VFO meters to KPA1500 power scale (0-1900W)
-    // connect(m_kpa1500Client, &KPA1500Client::operatingStateChanged, this, [this](KPA1500Client::OperatingState state)
-    // {
-    //     bool ampEnabled = (state == KPA1500Client::StateOperate);
-    //     m_vfoA->setAmplifierEnabled(ampEnabled);
-    //     m_vfoB->setAmplifierEnabled(ampEnabled);
-    // });
-    // TODO: Route KPA1500 power/SWR readings when amp is enabled (future enhancement)
-
     // Connect to settings for KPA1500 enable/disable and settings changes
     connect(RadioSettings::instance(), &RadioSettings::kpa1500EnabledChanged, this,
             &MainWindow::onKpa1500EnabledChanged);

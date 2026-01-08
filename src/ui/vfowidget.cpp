@@ -378,11 +378,6 @@ void VFOWidget::setTransmitting(bool isTx) {
         m_txMeter->setTransmitting(isTx);
 }
 
-void VFOWidget::setAmplifierEnabled(bool enabled) {
-    if (m_txMeter)
-        m_txMeter->setAmplifierEnabled(enabled);
-}
-
 void VFOWidget::setTxMeters(int alc, int compDb, double fwdPower, double swr) {
     if (m_txMeter)
         m_txMeter->setTxMeters(alc, compDb, fwdPower, swr);

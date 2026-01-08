@@ -35,9 +35,8 @@ public:
     void setTxMeters(int alc, int compDb, double fwdPower, double swr);
 
     // S-meter mode (for dual S/Po meter)
-    void setSMeter(double sValue);          // S-units (0-9 for S1-S9, 9+ for +dB over S9)
-    void setTransmitting(bool isTx);        // Switch between RX (S-meter) and TX (Po) mode
-    void setAmplifierEnabled(bool enabled); // Switch to KPA1500 scales when amp in Operate mode
+    void setSMeter(double sValue);   // S-units (0-9 for S1-S9, 9+ for +dB over S9)
+    void setTransmitting(bool isTx); // Switch between RX (S-meter) and TX (Po) mode
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -74,7 +73,6 @@ private:
 
     bool m_isQrp = false;
     bool m_isTransmitting = false; // RX mode shows S-meter, TX mode shows Po
-    bool m_kpa1500Enabled = false; // When true, use KPA1500 power scale (0-1900W)
 
     // Decay timer
     QTimer *m_decayTimer;
@@ -83,7 +81,7 @@ private:
     static constexpr double PeakDecayRate = 0.05; // Peak decays slower
 
     // Meter types for color selection
-    enum class MeterType { Gradient, Red, KPA1500 };
+    enum class MeterType { Gradient, Red };
 
     // Drawing helpers
     void drawMeterRow(QPainter &painter, int y, int rowHeight, const QString &label, double fillRatio, double peakRatio,

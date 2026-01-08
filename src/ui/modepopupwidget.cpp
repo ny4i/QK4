@@ -311,9 +311,8 @@ void ModePopupWidget::showAboveWidget(QWidget *referenceWidget, QWidget *arrowTa
     if (!referenceWidget)
         return;
 
-    // Show off-screen first to ensure geometry is realized (fixes first-show positioning bug)
-    move(-10000, -10000);
-    show();
+    // Ensure geometry is realized before positioning
+    adjustSize();
 
     // Get the reference widget's parent (button bar) for centering
     QWidget *buttonBar = referenceWidget->parentWidget();
@@ -350,6 +349,7 @@ void ModePopupWidget::showAboveWidget(QWidget *referenceWidget, QWidget *arrowTa
     }
 
     move(popupX, popupY);
+    show();
     raise();
     setFocus();
     update();

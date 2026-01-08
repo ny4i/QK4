@@ -95,14 +95,7 @@ void TxMeterWidget::setCurrent(double amps) {
 
 void TxMeterWidget::setTxMeters(int alc, int compDb, double fwdPower, double swr) {
     // Power - use appropriate max based on mode
-    double maxPower;
-    if (m_kpa1500Enabled) {
-        maxPower = 1900.0;
-    } else if (m_isQrp) {
-        maxPower = 10.0;
-    } else {
-        maxPower = 110.0; // K4 goes to 110W
-    }
+    double maxPower = m_isQrp ? 10.0 : 110.0; // K4 goes to 110W (or 10W QRP)
     double powerRatio = qMin(fwdPower / maxPower, 1.0);
     m_powerTarget = powerRatio;
     if (powerRatio > m_powerDisplay)
@@ -154,13 +147,6 @@ void TxMeterWidget::setSMeter(double sValue) {
 void TxMeterWidget::setTransmitting(bool isTx) {
     if (m_isTransmitting != isTx) {
         m_isTransmitting = isTx;
-        update();
-    }
-}
-
-void TxMeterWidget::setAmplifierEnabled(bool enabled) {
-    if (m_kpa1500Enabled != enabled) {
-        m_kpa1500Enabled = enabled;
         update();
     }
 }
@@ -242,19 +228,12 @@ void TxMeterWidget::paintEvent(QPaintEvent *event) {
     {
         QStringList labels;
         double displayValue, peakValue;
-        MeterType meterType = MeterType::Gradient;
 
         if (!m_isTransmitting) {
             // RX mode: show S-meter
             labels = {"1", "3", "5", "7", "9", "+20", "+40", "+60"};
             displayValue = m_sMeterDisplay;
             peakValue = m_sMeterPeak;
-        } else if (m_kpa1500Enabled) {
-            // TX mode with KPA1500: 0-1900W scale
-            labels = {"0", "380", "760", "1140", "1500", "1900W"};
-            displayValue = m_powerDisplay;
-            peakValue = m_powerPeak;
-            meterType = MeterType::KPA1500;
         } else if (m_isQrp) {
             // TX mode with K4 QRP: 0-10W scale
             labels = {"0", "2", "4", "6", "8", "10W"};
@@ -268,7 +247,7 @@ void TxMeterWidget::paintEvent(QPaintEvent *event) {
         }
 
         drawMeterRow(painter, y, rowHeight, "S/Po", displayValue, peakValue, labels, scaleFont, barStartX, barWidth,
-                     barHeight, meterType);
+                     barHeight, MeterType::Gradient);
         y += rowHeight + spacing;
     }
 
@@ -343,14 +322,6 @@ void TxMeterWidget::drawMeterRow(QPainter &painter, int y, int rowHeight, const 
             gradient.setColorAt(0.70, QColor("#FF6600")); // Dark orange
             gradient.setColorAt(0.85, QColor("#FF3300")); // Red-orange
             gradient.setColorAt(1.0, QColor("#FF0000"));  // Red
-        } else if (type == MeterType::KPA1500) {
-            // KPA1500 power gradient: green zone to 1500W, yellow-red for 1500-1900W
-            // 1500W = 79% of 1900W, 1700W = 89% of 1900W
-            gradient.setColorAt(0.0, QColor("#00CC00"));  // Green (0W)
-            gradient.setColorAt(0.50, QColor("#00FF00")); // Bright green (~950W)
-            gradient.setColorAt(0.79, QColor("#CCFF00")); // Yellow-green (1500W - safe max)
-            gradient.setColorAt(0.89, QColor("#FF9900")); // Orange (1700W)
-            gradient.setColorAt(1.0, QColor("#FF0000"));  // Red (1900W - absolute max)
         } else {
             // Red style for Id meter
             gradient.setColorAt(0.0, QColor(MeterBarColor));
