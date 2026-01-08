@@ -24,7 +24,7 @@ class ModePopupWidget : public QWidget {
 public:
     explicit ModePopupWidget(QWidget *parent = nullptr);
 
-    void showAboveWidget(QWidget *referenceWidget);
+    void showAboveWidget(QWidget *referenceWidget, QWidget *arrowTarget = nullptr);
     void hidePopup();
 
     // Update current mode display (call when mode changes)

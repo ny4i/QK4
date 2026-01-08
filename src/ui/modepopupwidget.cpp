@@ -41,8 +41,8 @@ const int DT_PSK_D = 3;
 } // namespace
 
 ModePopupWidget::ModePopupWidget(QWidget *parent) : QWidget(parent), m_triangleXOffset(0) {
-    setWindowFlags(Qt::Popup | Qt::FramelessWindowHint);
-    setAttribute(Qt::WA_TranslucentBackground, false);
+    setWindowFlags(Qt::Popup | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
+    setAttribute(Qt::WA_TranslucentBackground);
     setFocusPolicy(Qt::StrongFocus);
 
     setupUi();
@@ -307,42 +307,50 @@ void ModePopupWidget::onModeButtonClicked() {
     hidePopup();
 }
 
-void ModePopupWidget::showAboveWidget(QWidget *referenceWidget) {
+void ModePopupWidget::showAboveWidget(QWidget *referenceWidget, QWidget *arrowTarget) {
     if (!referenceWidget)
         return;
+
+    // Show off-screen first to ensure geometry is realized (fixes first-show positioning bug)
+    move(-10000, -10000);
+    show();
 
     // Get the reference widget's parent (button bar) for centering
     QWidget *buttonBar = referenceWidget->parentWidget();
     if (!buttonBar)
         buttonBar = referenceWidget;
 
+    // Use arrowTarget if provided, otherwise default to referenceWidget
+    QWidget *triangleTarget = arrowTarget ? arrowTarget : referenceWidget;
+
     QPoint barGlobal = buttonBar->mapToGlobal(QPoint(0, 0));
     QPoint refGlobal = referenceWidget->mapToGlobal(QPoint(0, 0));
+    QPoint targetGlobal = triangleTarget->mapToGlobal(QPoint(0, 0));
     int barCenterX = barGlobal.x() + buttonBar->width() / 2;
-    int refCenterX = refGlobal.x() + referenceWidget->width() / 2;
+    int targetCenterX = targetGlobal.x() + triangleTarget->width() / 2;
 
     // Center popup above the button bar
     int popupX = barCenterX - width() / 2;
     int popupY = refGlobal.y() - height();
 
-    // Calculate triangle offset to point at the reference widget
+    // Calculate triangle offset to point at the arrow target widget
     int popupCenterX = popupX + width() / 2;
-    m_triangleXOffset = refCenterX - popupCenterX;
+    m_triangleXOffset = targetCenterX - popupCenterX;
 
     // Ensure popup stays on screen
     QRect screenGeom = QApplication::primaryScreen()->availableGeometry();
     if (popupX < screenGeom.left()) {
         popupX = screenGeom.left();
         popupCenterX = popupX + width() / 2;
-        m_triangleXOffset = refCenterX - popupCenterX;
+        m_triangleXOffset = targetCenterX - popupCenterX;
     } else if (popupX + width() > screenGeom.right()) {
         popupX = screenGeom.right() - width();
         popupCenterX = popupX + width() / 2;
-        m_triangleXOffset = refCenterX - popupCenterX;
+        m_triangleXOffset = targetCenterX - popupCenterX;
     }
 
     move(popupX, popupY);
-    show();
+    raise();
     setFocus();
     update();
 }
@@ -365,16 +373,14 @@ void ModePopupWidget::paintEvent(QPaintEvent *event) {
     int mainHeight = height() - TriangleHeight;
     QRect mainRect(0, 0, width(), mainHeight);
 
-    // Fill main background
-    painter.fillRect(mainRect, QColor(30, 30, 30));
+    // Fill main background with rounded corners (matches FnPopupWidget)
+    painter.setBrush(QColor(30, 30, 30));
+    painter.setPen(Qt::NoPen);
+    painter.drawRoundedRect(mainRect, 8, 8);
 
     // Gray bottom strip
     QRect stripRect(0, mainHeight - BottomStripHeight, width(), BottomStripHeight);
     painter.fillRect(stripRect, IndicatorColor);
-
-    // Border around main popup
-    painter.setPen(QPen(QColor(60, 60, 60), 1));
-    painter.drawRect(mainRect.adjusted(0, 0, -1, -1));
 
     // Triangle pointing down
     painter.setPen(Qt::NoPen);
