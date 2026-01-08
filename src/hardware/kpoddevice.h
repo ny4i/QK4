@@ -79,6 +79,7 @@ private:
     static const int POLL_INTERVAL_MS = 20;
     RockerPosition m_lastRockerPosition = RockerCenter;
     quint8 m_lastButtonState = 0; // Button number (1-8) or 0 for none
+    bool m_holdEmitted = false;   // Track if hold signal was already emitted for current press
 
     // Hotplug monitoring via periodic enumeration
     // Note: We use hid_enumerate() instead of IOKit callbacks because hidapi
