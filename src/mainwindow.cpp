@@ -3133,7 +3133,7 @@ void MainWindow::onKpodRockerChanged(int position) {
         posName = "Unknown";
         break;
     }
-    qDebug() << "KPOD rocker changed to:" << posName;
+    Q_UNUSED(posName)
 }
 
 void MainWindow::onKpodPollError(const QString &error) {

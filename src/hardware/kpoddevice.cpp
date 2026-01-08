@@ -158,9 +158,6 @@ void KpodDevice::processResponse(const unsigned char *buffer) {
         if (m_lastButtonState != 0) {
             if (!m_holdEmitted) {
                 emit buttonTapped(m_lastButtonState);
-                qDebug() << "KPOD: Button" << m_lastButtonState << "tapped";
-            } else {
-                qDebug() << "KPOD: Button" << m_lastButtonState << "released";
             }
             m_lastButtonState = 0;
             m_holdEmitted = false;
@@ -183,13 +180,6 @@ void KpodDevice::processResponse(const unsigned char *buffer) {
     bool isHold = (controls >> 4) & 0x01;
     RockerPosition rocker = static_cast<RockerPosition>((controls >> 5) & 0x03);
 
-    // DEBUG: Log event with hex dump
-    qDebug().nospace() << "KPOD event: [" << Qt::hex << qSetFieldWidth(2) << qSetPadChar('0') << buffer[0] << " "
-                       << buffer[1] << " " << buffer[2] << " " << buffer[3] << " " << buffer[4] << " " << buffer[5]
-                       << " " << buffer[6] << " " << buffer[7] << "] " << Qt::dec << qSetFieldWidth(0)
-                       << "ticks=" << encoderTicks << " btn=" << buttonNum << " hold=" << isHold
-                       << " rocker=" << rocker;
-
     // Emit encoder signal if there was rotation
     if (encoderTicks != 0) {
         emit encoderRotated(encoderTicks);
@@ -207,24 +197,17 @@ void KpodDevice::processResponse(const unsigned char *buffer) {
             // Already a hold at first press (unusual but handle it)
             emit buttonHeld(buttonNum);
             m_holdEmitted = true;
-            qDebug() << "KPOD: Button" << buttonNum << "held (immediate)";
-        } else {
-            qDebug() << "KPOD: Button" << buttonNum << "pressed";
         }
     } else if (buttonNum != 0 && m_lastButtonState != 0) {
         // Button still pressed - check if hold flag became true
         if (isHold && !m_holdEmitted) {
             emit buttonHeld(m_lastButtonState);
             m_holdEmitted = true;
-            qDebug() << "KPOD: Button" << m_lastButtonState << "held";
         }
     } else if (buttonNum == 0 && m_lastButtonState != 0) {
         // Button released - emit tap only if it wasn't a hold
         if (!m_holdEmitted) {
             emit buttonTapped(m_lastButtonState);
-            qDebug() << "KPOD: Button" << m_lastButtonState << "tapped";
-        } else {
-            qDebug() << "KPOD: Button" << m_lastButtonState << "released";
         }
         m_lastButtonState = 0;
         m_holdEmitted = false;
@@ -234,10 +217,6 @@ void KpodDevice::processResponse(const unsigned char *buffer) {
     if (rocker != m_lastRockerPosition && rocker != 3) {
         m_lastRockerPosition = rocker;
         emit rockerPositionChanged(rocker);
-        qDebug() << "KPOD: Rocker changed to" << rocker
-                 << (rocker == RockerLeft     ? "(VFO A)"
-                     : rocker == RockerCenter ? "(VFO B)"
-                                              : "(RIT/XIT)");
     }
 }
 

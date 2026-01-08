@@ -155,7 +155,6 @@ void TcpClient::sendCAT(const QString &command) {
         QByteArray packet = Protocol::buildCATPacket(command);
         m_socket->write(packet);
         m_socket->flush(); // Ensure immediate send
-        qDebug() << "sendCAT:" << command << "bytes written:" << packet.size();
     }
 }
 
