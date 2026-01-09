@@ -131,6 +131,12 @@ private slots:
     void executeMacro(const QString &functionId);
     void openMacroDialog();
 
+    // MAIN RX / SUB RX popup slots
+    void onMainRxButtonClicked(int index);
+    void onMainRxButtonRightClicked(int index);
+    void onSubRxButtonClicked(int index);
+    void onSubRxButtonRightClicked(int index);
+
 private:
     void setupMenuBar();
     void setupUi();

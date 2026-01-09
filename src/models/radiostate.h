@@ -188,6 +188,16 @@ public:
     }
     void toggleBSet() { setBSetEnabled(!m_bSetEnabled); }
 
+    // Audio Effects (FX command)
+    int afxMode() const { return m_afxMode; } // 0=off, 1=delay, 2=pitch-map
+
+    // Audio Peak Filter (AP$ command, CW mode only)
+    bool apfEnabled() const { return m_apfEnabled; }
+    int apfBandwidth() const { return m_apfBandwidth; } // 0=30Hz, 1=50Hz, 2=150Hz
+
+    // VFO Link (LN command)
+    bool vfoLink() const { return m_vfoLink; }
+
     // Returns VOX state for current operating mode
     bool voxForCurrentMode() const {
         switch (m_mode) {
@@ -383,6 +393,11 @@ signals:
     // Error/notification messages from K4 (ERxx: format)
     void errorNotificationReceived(int errorCode, const QString &message);
 
+    // Audio effects and processing
+    void afxModeChanged(int mode);            // FX: 0=off, 1=delay, 2=pitch-map
+    void apfChanged(bool enabled, int width); // AP$: enabled + width (0=30Hz, 1=50Hz, 2=150Hz)
+    void vfoLinkChanged(bool linked);         // LN: VFOs linked
+
     void stateUpdated();
 
 private:
@@ -503,6 +518,16 @@ private:
     int m_qskDelayCW = -1;
     int m_qskDelayVoice = -1;
     int m_qskDelayData = -1;
+
+    // Audio effects (FX command)
+    int m_afxMode = 0; // 0=off, 1=delay, 2=pitch-map
+
+    // Audio Peak Filter (AP$ command, CW mode only)
+    bool m_apfEnabled = false;
+    int m_apfBandwidth = 0; // 0=30Hz, 1=50Hz, 2=150Hz
+
+    // VFO Link (LN command)
+    bool m_vfoLink = false;
 
     // Panadapter REF level (Main)
     int m_refLevel = -110; // Default -110 dBm

@@ -1,13 +1,13 @@
 #include "buttonrowpopup.h"
-#include "k4styles.h"
+#include <QApplication>
+#include <QHBoxLayout>
+#include <QHideEvent>
+#include <QKeyEvent>
+#include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
-#include <QHBoxLayout>
-#include <QVBoxLayout>
-#include <QKeyEvent>
-#include <QHideEvent>
-#include <QApplication>
 #include <QScreen>
+#include <QVBoxLayout>
 
 namespace {
 // Indicator bar/triangle color (matches BandPopupWidget)
@@ -27,7 +27,122 @@ const int ShadowRadius = 16;               // Drop shadow blur radius
 const int ShadowOffsetX = 2;               // Shadow horizontal offset
 const int ShadowOffsetY = 4;               // Shadow vertical offset
 const int ShadowMargin = ShadowRadius + 4; // Extra space around popup for shadow
+
+// Colors
+const char *AmberColor = "#FFB000";
 } // namespace
+
+// ============================================================================
+// RxMenuButton Implementation
+// ============================================================================
+
+RxMenuButton::RxMenuButton(const QString &primaryText, const QString &alternateText, QWidget *parent)
+    : QWidget(parent), m_primaryText(primaryText), m_alternateText(alternateText) {
+    setFixedSize(ButtonWidth, ButtonHeight);
+    setCursor(Qt::PointingHandCursor);
+}
+
+void RxMenuButton::setPrimaryText(const QString &text) {
+    if (m_primaryText != text) {
+        m_primaryText = text;
+        update();
+    }
+}
+
+void RxMenuButton::setAlternateText(const QString &text) {
+    if (m_alternateText != text) {
+        m_alternateText = text;
+        update();
+    }
+}
+
+void RxMenuButton::setHasAlternateFunction(bool has) {
+    if (m_hasAlternateFunction != has) {
+        m_hasAlternateFunction = has;
+        update();
+    }
+}
+
+void RxMenuButton::paintEvent(QPaintEvent *event) {
+    Q_UNUSED(event)
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing);
+
+    // Background - subtle gradient
+    QLinearGradient grad(0, 0, 0, height());
+    if (m_hovered) {
+        grad.setColorAt(0, QColor(90, 90, 90));
+        grad.setColorAt(0.4, QColor(74, 74, 74));
+        grad.setColorAt(0.6, QColor(69, 69, 69));
+        grad.setColorAt(1, QColor(58, 58, 58));
+    } else {
+        grad.setColorAt(0, QColor(74, 74, 74));
+        grad.setColorAt(0.4, QColor(58, 58, 58));
+        grad.setColorAt(0.6, QColor(53, 53, 53));
+        grad.setColorAt(1, QColor(42, 42, 42));
+    }
+    painter.setBrush(grad);
+    painter.setPen(QPen(QColor(96, 96, 96), 2));
+    painter.drawRoundedRect(rect().adjusted(0, 0, -1, -1), 5, 5);
+
+    // Check if we have alternate text
+    bool hasAlternate = !m_alternateText.isEmpty();
+
+    if (hasAlternate) {
+        // Dual-line mode: Primary text (white) - top
+        QFont primaryFont = font();
+        primaryFont.setPixelSize(12);
+        primaryFont.setBold(false);
+        painter.setFont(primaryFont);
+        painter.setPen(Qt::white);
+
+        QRect primaryRect(0, 4, width(), height() / 2 - 2);
+        painter.drawText(primaryRect, Qt::AlignCenter, m_primaryText);
+
+        // Alternate text - bottom (amber if has alternate function, white if just label)
+        QFont altFont = font();
+        altFont.setPixelSize(10);
+        altFont.setBold(false);
+        painter.setFont(altFont);
+        painter.setPen(m_hasAlternateFunction ? QColor(AmberColor) : Qt::white);
+
+        QRect altRect(0, height() / 2, width(), height() / 2 - 4);
+        painter.drawText(altRect, Qt::AlignCenter, m_alternateText);
+    } else {
+        // Single-line mode: Center the primary text
+        QFont primaryFont = font();
+        primaryFont.setPixelSize(12);
+        primaryFont.setBold(true);
+        painter.setFont(primaryFont);
+        painter.setPen(Qt::white);
+
+        painter.drawText(rect(), Qt::AlignCenter, m_primaryText);
+    }
+}
+
+void RxMenuButton::mousePressEvent(QMouseEvent *event) {
+    if (event->button() == Qt::LeftButton) {
+        emit clicked();
+    } else if (event->button() == Qt::RightButton) {
+        emit rightClicked();
+    }
+}
+
+void RxMenuButton::enterEvent(QEnterEvent *event) {
+    Q_UNUSED(event)
+    m_hovered = true;
+    update();
+}
+
+void RxMenuButton::leaveEvent(QEvent *event) {
+    Q_UNUSED(event)
+    m_hovered = false;
+    update();
+}
+
+// ============================================================================
+// ButtonRowPopup Implementation
+// ============================================================================
 
 ButtonRowPopup::ButtonRowPopup(QWidget *parent) : QWidget(parent), m_triangleXOffset(0) {
     setWindowFlags(Qt::Popup | Qt::FramelessWindowHint);
@@ -52,13 +167,17 @@ void ButtonRowPopup::setupUi() {
     rowLayout->setSpacing(ButtonSpacing);
 
     for (int i = 0; i < 7; ++i) {
-        auto *btn = new QPushButton(QString::number(i + 1), this);
-        btn->setFixedSize(ButtonWidth, ButtonHeight);
-        btn->setFocusPolicy(Qt::NoFocus);
+        auto *btn = new RxMenuButton(QString::number(i + 1), QString(), this);
         btn->setProperty("buttonIndex", i);
-        btn->setStyleSheet(K4Styles::popupButtonNormal());
 
-        connect(btn, &QPushButton::clicked, this, &ButtonRowPopup::onButtonClicked);
+        connect(btn, &RxMenuButton::clicked, this, [this, i]() {
+            emit buttonClicked(i);
+            hidePopup();
+        });
+        connect(btn, &RxMenuButton::rightClicked, this, [this, i]() {
+            emit buttonRightClicked(i);
+            hidePopup();
+        });
 
         m_buttons.append(btn);
         rowLayout->addWidget(btn);
@@ -76,30 +195,32 @@ void ButtonRowPopup::setupUi() {
 
 void ButtonRowPopup::setButtonLabels(const QStringList &labels) {
     for (int i = 0; i < qMin(labels.size(), m_buttons.size()); ++i) {
-        m_buttons[i]->setText(labels[i]);
+        m_buttons[i]->setPrimaryText(labels[i]);
+        m_buttons[i]->setAlternateText(QString()); // Clear alternate
     }
 }
 
-void ButtonRowPopup::setButtonLabel(int index, const QString &label) {
+void ButtonRowPopup::setButtonLabel(int index, const QString &primary, const QString &alternate,
+                                    bool hasAlternateFunction) {
     if (index >= 0 && index < m_buttons.size()) {
-        m_buttons[index]->setText(label);
+        m_buttons[index]->setPrimaryText(primary);
+        m_buttons[index]->setAlternateText(alternate);
+        m_buttons[index]->setHasAlternateFunction(hasAlternateFunction);
     }
 }
 
 QString ButtonRowPopup::buttonLabel(int index) const {
     if (index >= 0 && index < m_buttons.size()) {
-        return m_buttons[index]->text();
+        return m_buttons[index]->primaryText();
     }
     return QString();
 }
 
-void ButtonRowPopup::onButtonClicked() {
-    auto *btn = qobject_cast<QPushButton *>(sender());
-    if (btn) {
-        int index = btn->property("buttonIndex").toInt();
-        emit buttonClicked(index);
-        hidePopup();
+QString ButtonRowPopup::buttonAlternateLabel(int index) const {
+    if (index >= 0 && index < m_buttons.size()) {
+        return m_buttons[index]->alternateText();
     }
+    return QString();
 }
 
 void ButtonRowPopup::showAboveButton(QWidget *triggerButton) {

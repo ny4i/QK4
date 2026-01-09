@@ -41,6 +41,7 @@ Current implementation state of K4Controller (January 2026).
 
 ### Popups & Dialogs
 - Band popup (14 bands in 2 rows)
+- Mode popup (2×4 grid with sub-mode toggle)
 - Menu overlay on panadapter
 - Feature menu bar (ATTN/NB/NR/NOTCH)
 - Display popup (ref level, span, tune mode, waterfall color)
@@ -48,6 +49,11 @@ Current implementation state of K4Controller (January 2026).
 - **Fn popup**: Dual-action buttons for Fn.F1-F8 macros
 - **Macro dialog**: Configure 29 macro slots (PF1-4, Fn.F1-F8, REM ANT, KPOD tap/hold)
 - **Notification popup**: Center-screen auto-dismiss for K4 error/status messages (ERxx:)
+- **MAIN RX / SUB RX popups**: 7 dual-line buttons with working controls:
+  - AFX: Cycle audio effects (OFF/DELAY/PITCH)
+  - AGC: Toggle speed (Fast/Slow), right-click toggles ON/OFF
+  - APF: Cycle audio peak filter bandwidth (30/50/150 Hz, CW mode only)
+  - VFO LINK: Right-click on LINE OUT toggles VFO linking
 
 ### Visual Polish (HD Quality)
 - **Drop shadows**: All popups have 8-layer soft shadows (16px blur, offset 2,4)

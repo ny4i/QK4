@@ -1,19 +1,53 @@
 #ifndef BUTTONROWPOPUP_H
 #define BUTTONROWPOPUP_H
 
-#include <QWidget>
-#include <QPushButton>
 #include <QList>
+#include <QWidget>
 
 /**
- * ButtonRowPopup - A single-row popup menu with 7 buttons
+ * RxMenuButton - Dual-line button with white primary text and amber secondary text.
+ * Similar to FnMenuButton but for MAIN RX / SUB RX popup buttons.
+ */
+class RxMenuButton : public QWidget {
+    Q_OBJECT
+
+public:
+    explicit RxMenuButton(const QString &primaryText, const QString &alternateText = QString(),
+                          QWidget *parent = nullptr);
+
+    void setPrimaryText(const QString &text);
+    void setAlternateText(const QString &text);
+    void setHasAlternateFunction(bool has); // If false, alternate text is white (just label), not amber
+    QString primaryText() const { return m_primaryText; }
+    QString alternateText() const { return m_alternateText; }
+    bool hasAlternateFunction() const { return m_hasAlternateFunction; }
+
+signals:
+    void clicked();
+    void rightClicked();
+
+protected:
+    void paintEvent(QPaintEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
+    void enterEvent(QEnterEvent *event) override;
+    void leaveEvent(QEvent *event) override;
+
+private:
+    QString m_primaryText;
+    QString m_alternateText;
+    bool m_hovered = false;
+    bool m_hasAlternateFunction = true; // If true, alternate text is amber; if false, white
+};
+
+/**
+ * ButtonRowPopup - A single-row popup menu with 7 dual-line buttons
  *
  * Based on BandPopupWidget styling but simplified to one row.
- * Used for Fn, MAIN RX, SUB RX, and TX bottom menu popups.
+ * Used for MAIN RX, SUB RX, and TX bottom menu popups.
  * Features:
- * - 7 buttons in a horizontal row
+ * - 7 buttons in a horizontal row with primary/alternate text
  * - Gray bottom strip with triangle indicator pointing to trigger button
- * - Customizable button labels
+ * - Customizable button labels (primary white, alternate amber)
  */
 class ButtonRowPopup : public QWidget {
     Q_OBJECT
@@ -27,13 +61,19 @@ public:
     // Hide the popup
     void hidePopup();
 
-    // Configure button labels
+    // Configure button labels (primary text only, clears alternate)
     void setButtonLabels(const QStringList &labels);
-    void setButtonLabel(int index, const QString &label);
+
+    // Configure individual button (primary and alternate text)
+    // If hasAlternateFunction is false, alternate text is white (just a label, no right-click function)
+    void setButtonLabel(int index, const QString &primary, const QString &alternate = QString(),
+                        bool hasAlternateFunction = true);
     QString buttonLabel(int index) const;
+    QString buttonAlternateLabel(int index) const;
 
 signals:
-    void buttonClicked(int index); // Emits 0-6 for button clicks
+    void buttonClicked(int index);      // Emits 0-6 for left-click
+    void buttonRightClicked(int index); // Emits 0-6 for right-click
     void closed();
 
 protected:
@@ -43,9 +83,8 @@ protected:
 
 private:
     void setupUi();
-    void onButtonClicked();
 
-    QList<QPushButton *> m_buttons; // 7 buttons
+    QList<RxMenuButton *> m_buttons; // 7 buttons
 
     // Position info for drawing the indicator triangle
     int m_triangleXOffset = 0; // X offset from popup center to triangle point

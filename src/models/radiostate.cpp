@@ -490,6 +490,44 @@ void RadioState::parseCATCommand(const QString &command) {
             emit processingChanged();
         }
     }
+    // Audio Effects (FX) - FXn where n=0(off)/1(delay)/2(pitch-map)
+    else if (cmd.startsWith("FX") && cmd.length() >= 3) {
+        bool ok;
+        int fx = cmd.mid(2).toInt(&ok);
+        if (ok && fx >= 0 && fx <= 2 && fx != m_afxMode) {
+            m_afxMode = fx;
+            emit afxModeChanged(m_afxMode);
+        }
+    }
+    // Audio Peak Filter (AP$) - AP$mb where m=enabled(0/1), b=bandwidth(0/1/2)
+    else if (cmd.startsWith("AP$") && cmd.length() >= 5) {
+        bool ok;
+        int m = cmd.mid(3, 1).toInt(&ok);
+        if (ok) {
+            int b = cmd.mid(4, 1).toInt(&ok);
+            if (ok) {
+                bool enabled = (m == 1);
+                int bandwidth = qBound(0, b, 2);
+                if (enabled != m_apfEnabled || bandwidth != m_apfBandwidth) {
+                    m_apfEnabled = enabled;
+                    m_apfBandwidth = bandwidth;
+                    emit apfChanged(m_apfEnabled, m_apfBandwidth);
+                }
+            }
+        }
+    }
+    // VFO Link (LN) - LNn where n=0(not linked)/1(linked)
+    else if (cmd.startsWith("LN") && cmd.length() >= 3) {
+        bool ok;
+        int ln = cmd.mid(2).toInt(&ok);
+        if (ok) {
+            bool linked = (ln == 1);
+            if (linked != m_vfoLink) {
+                m_vfoLink = linked;
+                emit vfoLinkChanged(m_vfoLink);
+            }
+        }
+    }
     // Filter Position Sub RX (FP$) - must check before FP
     else if (cmd.startsWith("FP$") && cmd.length() > 3) {
         bool ok;

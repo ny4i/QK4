@@ -176,20 +176,38 @@ MainWindow::MainWindow(QWidget *parent)
     // Create button row popups for MAIN RX, SUB RX, TX
 
     m_mainRxPopup = new ButtonRowPopup(this);
-    m_mainRxPopup->setButtonLabels({"1", "2", "3", "4", "5", "6", "7"});
+    // Set button labels: primary (white), alternate (amber if has right-click function, white otherwise)
+    m_mainRxPopup->setButtonLabel(0, "ANT", "CFG", false);     // No alternate function - all white
+    m_mainRxPopup->setButtonLabel(1, "RX", "EQ", false);       // No alternate function - all white
+    m_mainRxPopup->setButtonLabel(2, "LINE OUT", "VFO LINK");  // Right-click toggles VFO LINK
+    m_mainRxPopup->setButtonLabel(3, "AFX OFF", "OFF");        // Right-click same as left
+    m_mainRxPopup->setButtonLabel(4, "AGC-S", "ON");           // Right-click toggles AGC on/off
+    m_mainRxPopup->setButtonLabel(5, "APF", "OFF");            // No alternate function but shows state
+    m_mainRxPopup->setButtonLabel(6, "TEXT", "DECODE", false); // No alternate function - all white
     connect(m_mainRxPopup, &ButtonRowPopup::closed, this, [this]() {
         if (m_bottomMenuBar) {
             m_bottomMenuBar->setMainRxActive(false);
         }
     });
+    connect(m_mainRxPopup, &ButtonRowPopup::buttonClicked, this, &MainWindow::onMainRxButtonClicked);
+    connect(m_mainRxPopup, &ButtonRowPopup::buttonRightClicked, this, &MainWindow::onMainRxButtonRightClicked);
 
     m_subRxPopup = new ButtonRowPopup(this);
-    m_subRxPopup->setButtonLabels({"1", "2", "3", "4", "5", "6", "7"});
+    // Set button labels: primary (white), alternate (amber if has right-click function, white otherwise)
+    m_subRxPopup->setButtonLabel(0, "ANT", "CFG", false);     // No alternate function - all white
+    m_subRxPopup->setButtonLabel(1, "RX", "EQ", false);       // No alternate function - all white
+    m_subRxPopup->setButtonLabel(2, "LINE OUT", "VFO LINK");  // Right-click toggles VFO LINK
+    m_subRxPopup->setButtonLabel(3, "AFX OFF", "OFF");        // Right-click same as left
+    m_subRxPopup->setButtonLabel(4, "AGC-S", "ON");           // Right-click toggles AGC on/off
+    m_subRxPopup->setButtonLabel(5, "APF", "OFF");            // No alternate function but shows state
+    m_subRxPopup->setButtonLabel(6, "TEXT", "DECODE", false); // No alternate function - all white
     connect(m_subRxPopup, &ButtonRowPopup::closed, this, [this]() {
         if (m_bottomMenuBar) {
             m_bottomMenuBar->setSubRxActive(false);
         }
     });
+    connect(m_subRxPopup, &ButtonRowPopup::buttonClicked, this, &MainWindow::onSubRxButtonClicked);
+    connect(m_subRxPopup, &ButtonRowPopup::buttonRightClicked, this, &MainWindow::onSubRxButtonRightClicked);
 
     m_txPopup = new ButtonRowPopup(this);
     m_txPopup->setButtonLabels({"1", "2", "3", "4", "5", "6", "7"});
@@ -428,6 +446,95 @@ MainWindow::MainWindow(QWidget *parent)
     // RadioState signals -> Processing state updates (AGC, PRE, ATT, NB, NR)
     connect(m_radioState, &RadioState::processingChanged, this, &MainWindow::onProcessingChanged);
     connect(m_radioState, &RadioState::processingChangedB, this, &MainWindow::onProcessingChangedB);
+
+    // RadioState signals -> MAIN RX / SUB RX popup button label updates
+    // AFX button: primary = "AFX ON/OFF", alternate = mode (DELAY/PITCH/OFF)
+    connect(m_radioState, &RadioState::afxModeChanged, this, [this](int mode) {
+        QString primary = (mode == 0) ? "AFX OFF" : "AFX ON";
+        QString alternate;
+        switch (mode) {
+        case 0:
+            alternate = "OFF";
+            break;
+        case 1:
+            alternate = "DELAY";
+            break;
+        case 2:
+            alternate = "PITCH";
+            break;
+        }
+        if (m_mainRxPopup)
+            m_mainRxPopup->setButtonLabel(3, primary, alternate);
+        if (m_subRxPopup)
+            m_subRxPopup->setButtonLabel(3, primary, alternate);
+    });
+
+    // AGC button: primary = speed (AGC-S/AGC-F), alternate = ON/OFF
+    connect(m_radioState, &RadioState::processingChanged, this, [this]() {
+        QString primary;
+        QString alternate;
+        switch (m_radioState->agcSpeed()) {
+        case RadioState::AGC_Off:
+            primary = "AGC";
+            alternate = "OFF";
+            break;
+        case RadioState::AGC_Slow:
+            primary = "AGC-S";
+            alternate = "ON";
+            break;
+        case RadioState::AGC_Fast:
+            primary = "AGC-F";
+            alternate = "ON";
+            break;
+        }
+        if (m_mainRxPopup)
+            m_mainRxPopup->setButtonLabel(4, primary, alternate);
+    });
+
+    connect(m_radioState, &RadioState::processingChangedB, this, [this]() {
+        QString primary;
+        QString alternate;
+        switch (m_radioState->agcSpeedB()) {
+        case RadioState::AGC_Off:
+            primary = "AGC";
+            alternate = "OFF";
+            break;
+        case RadioState::AGC_Slow:
+            primary = "AGC-S";
+            alternate = "ON";
+            break;
+        case RadioState::AGC_Fast:
+            primary = "AGC-F";
+            alternate = "ON";
+            break;
+        }
+        if (m_subRxPopup)
+            m_subRxPopup->setButtonLabel(4, primary, alternate);
+    });
+
+    // APF button: primary = "APF", alternate = bandwidth (30Hz/50Hz/150Hz/OFF)
+    connect(m_radioState, &RadioState::apfChanged, this, [this](bool enabled, int width) {
+        QString alternate;
+        if (!enabled) {
+            alternate = "OFF";
+        } else {
+            switch (width) {
+            case 0:
+                alternate = "30Hz";
+                break;
+            case 1:
+                alternate = "50Hz";
+                break;
+            case 2:
+                alternate = "150Hz";
+                break;
+            }
+        }
+        if (m_mainRxPopup)
+            m_mainRxPopup->setButtonLabel(5, "APF", alternate);
+        if (m_subRxPopup)
+            m_subRxPopup->setButtonLabel(5, "APF", alternate);
+    });
 
     // RadioState REF level -> Panadapter (for dynamic waterfall color scaling)
     connect(m_radioState, &RadioState::refLevelChanged, this, [this](int level) { m_panadapterA->setRefLevel(level); });
@@ -3275,5 +3382,128 @@ void MainWindow::openMacroDialog() {
         m_macroDialog->show();
         m_macroDialog->raise();
         m_macroDialog->setFocus();
+    }
+}
+
+// ============== MAIN RX / SUB RX Popup Slots ==============
+
+void MainWindow::onMainRxButtonClicked(int index) {
+    if (!m_tcpClient || !m_tcpClient->isConnected())
+        return;
+
+    switch (index) {
+    case 0: // ANT CFG - not implemented
+    case 1: // RX EQ - not implemented
+    case 2: // LINE OUT - not implemented
+        break;
+    case 3: // AFX - cycle OFF → DELAY → PITCH → OFF
+    {
+        int nextMode = (m_radioState->afxMode() + 1) % 3;
+        m_tcpClient->sendCAT(QString("FX%1;").arg(nextMode));
+        break;
+    }
+    case 4: // AGC - toggle Fast ↔ Slow
+    {
+        RadioState::AGCSpeed current = m_radioState->agcSpeed();
+        // Toggle between Fast (2) and Slow (1), skip Off
+        int next = (current == RadioState::AGC_Fast) ? 1 : 2;
+        m_tcpClient->sendCAT(QString("GT%1;").arg(next));
+        break;
+    }
+    case 5: // APF - cycle bandwidth
+        m_tcpClient->sendCAT("AP+;");
+        break;
+    case 6: // TEXT DECODE - not implemented
+        break;
+    }
+}
+
+void MainWindow::onMainRxButtonRightClicked(int index) {
+    if (!m_tcpClient || !m_tcpClient->isConnected())
+        return;
+
+    switch (index) {
+    case 2: // LINE OUT → VFO LINK toggle
+    {
+        bool linked = m_radioState->vfoLink();
+        m_tcpClient->sendCAT(QString("LN%1;").arg(linked ? 0 : 1));
+        break;
+    }
+    case 3: // AFX - same as left-click (cycle)
+        onMainRxButtonClicked(3);
+        break;
+    case 4: // AGC - toggle ON/OFF
+    {
+        RadioState::AGCSpeed current = m_radioState->agcSpeed();
+        if (current == RadioState::AGC_Off) {
+            // Turn on (default to Slow)
+            m_tcpClient->sendCAT("GT1;");
+        } else {
+            // Turn off
+            m_tcpClient->sendCAT("GT0;");
+        }
+        break;
+    }
+    default:
+        break;
+    }
+}
+
+void MainWindow::onSubRxButtonClicked(int index) {
+    if (!m_tcpClient || !m_tcpClient->isConnected())
+        return;
+
+    switch (index) {
+    case 0: // ANT CFG - not implemented
+    case 1: // RX EQ - not implemented
+    case 2: // LINE OUT - not implemented
+        break;
+    case 3: // AFX - cycle (same command, affects audio)
+    {
+        int nextMode = (m_radioState->afxMode() + 1) % 3;
+        m_tcpClient->sendCAT(QString("FX%1;").arg(nextMode));
+        break;
+    }
+    case 4: // AGC Sub - toggle Fast ↔ Slow
+    {
+        RadioState::AGCSpeed current = m_radioState->agcSpeedB();
+        int next = (current == RadioState::AGC_Fast) ? 1 : 2;
+        m_tcpClient->sendCAT(QString("GT$%1;").arg(next));
+        break;
+    }
+    case 5: // APF - cycle bandwidth (same command)
+        m_tcpClient->sendCAT("AP+;");
+        break;
+    case 6: // TEXT DECODE - not implemented
+        break;
+    }
+}
+
+void MainWindow::onSubRxButtonRightClicked(int index) {
+    if (!m_tcpClient || !m_tcpClient->isConnected())
+        return;
+
+    switch (index) {
+    case 2: // LINE OUT → VFO LINK toggle
+    {
+        bool linked = m_radioState->vfoLink();
+        m_tcpClient->sendCAT(QString("LN%1;").arg(linked ? 0 : 1));
+        break;
+    }
+    case 3: // AFX - same as left-click (cycle)
+        onSubRxButtonClicked(3);
+        break;
+    case 4: // AGC Sub - toggle ON/OFF
+    {
+        RadioState::AGCSpeed current = m_radioState->agcSpeedB();
+        if (current == RadioState::AGC_Off) {
+            m_tcpClient->sendCAT("GT$1;");
+        } else {
+            m_tcpClient->sendCAT("GT$0;");
+        }
+        break;
+    }
+    default:
+        break;
     }
 }
