@@ -2,6 +2,7 @@
 #include "txmeterwidget.h"
 #include "../dsp/minipan_rhi.h"
 #include <QMouseEvent>
+#include <QKeyEvent>
 #include <QPainter>
 #include <QFontMetrics>
 
@@ -36,14 +37,34 @@ void VFOWidget::setupUi() {
             "color: %1; font-size: 32px; font-weight: bold; font-family: 'JetBrains Mono', 'Courier New', monospace;")
             .arg(K4Colors::TextWhite));
     m_frequencyLabel->setFixedHeight(40);
+    m_frequencyLabel->setCursor(Qt::PointingHandCursor);
+    m_frequencyLabel->installEventFilter(this);
+
+    // Frequency entry line edit (hidden by default)
+    m_frequencyEdit = new QLineEdit(this);
+    m_frequencyEdit->setStyleSheet(
+        QString("QLineEdit { color: %1; background-color: %2; border: 2px solid %3; "
+                "font-size: 32px; font-weight: bold; font-family: 'JetBrains Mono', 'Courier New', monospace; "
+                "padding: 2px 4px; }")
+            .arg(K4Colors::TextWhite)
+            .arg(K4Colors::DarkBackground)
+            .arg(m_primaryColor));
+    m_frequencyEdit->setFixedHeight(40);
+    m_frequencyEdit->setMaxLength(11); // Max 11 digits per K4 spec
+    m_frequencyEdit->setAlignment(Qt::AlignRight);
+    m_frequencyEdit->hide();
+    m_frequencyEdit->installEventFilter(this);
+    connect(m_frequencyEdit, &QLineEdit::returnPressed, this, &VFOWidget::onFrequencyEditFinished);
 
     if (m_type == VFO_A) {
         // VFO A: frequency left-aligned with S-meter
         freqRow->addWidget(m_frequencyLabel);
+        freqRow->addWidget(m_frequencyEdit);
         freqRow->addStretch();
     } else {
         // VFO B: frequency right-aligned with S-meter
         freqRow->addStretch();
+        freqRow->addWidget(m_frequencyEdit);
         freqRow->addWidget(m_frequencyLabel);
     }
     mainLayout->addLayout(freqRow);
@@ -53,12 +74,12 @@ void VFOWidget::setupUi() {
     // Use Maximum horizontal policy so it doesn't expand beyond content width
     m_stackedWidget = new QStackedWidget(this);
     m_stackedWidget->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
-    m_stackedWidget->setMaximumWidth(230); // Wider to fit APF-xxx indicator
+    m_stackedWidget->setMaximumWidth(210); // Fit APF indicator while keeping symmetry
 
     // Page 0: Normal content (multifunction meter + features)
     // Height must match MiniPanRhiWidget (110px) to prevent layout shift when toggling
     m_normalContent = new QWidget(m_stackedWidget);
-    m_normalContent->setFixedSize(230, 110); // Wider to fit APF-xxx indicator
+    m_normalContent->setFixedSize(210, 110); // Fit APF indicator while keeping symmetry
     auto *normalLayout = new QVBoxLayout(m_normalContent);
     normalLayout->setContentsMargins(0, 0, 0, 0);
     normalLayout->setSpacing(2);
@@ -73,7 +94,7 @@ void VFOWidget::setupUi() {
     auto *featuresContainer = new QWidget(m_normalContent);
     auto *featuresRow = new QHBoxLayout(featuresContainer);
     featuresRow->setContentsMargins(0, 0, 0, 0);
-    featuresRow->setSpacing(4);
+    featuresRow->setSpacing(3); // Tighter spacing to fit APF indicator
 
     m_agcLabel = new QLabel("AGC-S", featuresContainer);
     m_agcLabel->setStyleSheet("color: #999999; font-size: 11px;");
@@ -145,6 +166,28 @@ bool VFOWidget::eventFilter(QObject *watched, QEvent *event) {
         emit normalContentClicked();
         return true;
     }
+
+    // Click on frequency label to start editing
+    if (watched == m_frequencyLabel && event->type() == QEvent::MouseButtonPress) {
+        startFrequencyEntry();
+        return true;
+    }
+
+    // Handle key events in frequency edit
+    if (watched == m_frequencyEdit && event->type() == QEvent::KeyPress) {
+        auto *keyEvent = static_cast<QKeyEvent *>(event);
+        if (keyEvent->key() == Qt::Key_Escape) {
+            cancelFrequencyEntry();
+            return true;
+        }
+    }
+
+    // Handle focus loss on frequency edit
+    if (watched == m_frequencyEdit && event->type() == QEvent::FocusOut) {
+        cancelFrequencyEntry();
+        return true;
+    }
+
     return QWidget::eventFilter(watched, event);
 }
 
@@ -402,4 +445,55 @@ void VFOWidget::setTxMeters(int alc, int compDb, double fwdPower, double swr) {
 void VFOWidget::setTxMeterCurrent(double amps) {
     if (m_txMeter)
         m_txMeter->setCurrent(amps);
+}
+
+void VFOWidget::startFrequencyEntry() {
+    if (!m_frequencyEdit)
+        return;
+
+    // Get current frequency text, remove separators (dots) for editing
+    QString currentFreq = m_frequencyLabel->text();
+    currentFreq.remove('.');
+    currentFreq.remove('-'); // Remove placeholders if no frequency set
+
+    // Show edit field, hide label
+    m_frequencyLabel->hide();
+    m_frequencyEdit->setText(currentFreq);
+    m_frequencyEdit->show();
+    m_frequencyEdit->setFocus();
+    m_frequencyEdit->selectAll();
+}
+
+void VFOWidget::onFrequencyEditFinished() {
+    if (!m_frequencyEdit)
+        return;
+
+    QString enteredFreq = m_frequencyEdit->text().trimmed();
+
+    // Validate: only digits allowed
+    bool valid = true;
+    for (const QChar &c : enteredFreq) {
+        if (!c.isDigit()) {
+            valid = false;
+            break;
+        }
+    }
+
+    // Hide edit, show label
+    m_frequencyEdit->hide();
+    m_frequencyLabel->show();
+
+    // Emit signal if valid and not empty
+    if (valid && !enteredFreq.isEmpty()) {
+        emit frequencyEntered(enteredFreq);
+    }
+}
+
+void VFOWidget::cancelFrequencyEntry() {
+    if (!m_frequencyEdit)
+        return;
+
+    // Hide edit, show label (no change to frequency)
+    m_frequencyEdit->hide();
+    m_frequencyLabel->show();
 }

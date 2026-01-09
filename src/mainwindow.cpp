@@ -1759,6 +1759,12 @@ void MainWindow::setupVfoSection(QWidget *parent) {
         m_tcpClient->sendCAT("#MP0;");           // Disable Mini-Pan A streaming
     });
 
+    // Connect VFO A frequency entry - send FA command then query to refresh display
+    connect(m_vfoA, &VFOWidget::frequencyEntered, this, [this](const QString &freqString) {
+        // FA accepts 1-11 digits: 1-2 = MHz, 3-5 = kHz, 6+ = Hz
+        m_tcpClient->sendCAT(QString("FA%1;FA;").arg(freqString));
+    });
+
     // Set Mini-Pan A colors to blue (matching main panadapter A passband)
     m_vfoA->setMiniPanSpectrumColor(QColor(0, 128, 255));     // Blue spectrum
     m_vfoA->setMiniPanPassbandColor(QColor(0, 128, 255, 64)); // Blue passband
@@ -2064,6 +2070,12 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     connect(m_vfoB, &VFOWidget::miniPanClicked, this, [this]() {
         m_radioState->setMiniPanBEnabled(false); // Set state BEFORE sending CAT
         m_tcpClient->sendCAT("#MP$0;");          // Disable Mini-Pan B streaming
+    });
+
+    // Connect VFO B frequency entry - send FB command then query to refresh display
+    connect(m_vfoB, &VFOWidget::frequencyEntered, this, [this](const QString &freqString) {
+        // FB accepts 1-11 digits: 1-2 = MHz, 3-5 = kHz, 6+ = Hz
+        m_tcpClient->sendCAT(QString("FB%1;FB;").arg(freqString));
     });
 
     layout->addWidget(m_vfoB, 1, Qt::AlignTop);

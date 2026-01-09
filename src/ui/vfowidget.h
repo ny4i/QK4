@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include <QLabel>
+#include <QLineEdit>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QStackedWidget>
@@ -60,13 +61,22 @@ public:
     // Get type
     VFOType type() const { return m_type; }
 
+    // Frequency entry
+    void startFrequencyEntry(); // Show line edit for frequency input
+    bool isFrequencyEntryActive() const { return m_frequencyEdit && m_frequencyEdit->isVisible(); }
+
 signals:
-    void normalContentClicked(); // User clicked normal view → show mini-pan
-    void miniPanClicked();       // User clicked mini-pan → show normal view
+    void normalContentClicked();                      // User clicked normal view → show mini-pan
+    void miniPanClicked();                            // User clicked mini-pan → show normal view
+    void frequencyEntered(const QString &freqString); // User entered new frequency
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
+
+private slots:
+    void onFrequencyEditFinished();
+    void cancelFrequencyEntry();
 
 private:
     void setupUi();
@@ -81,6 +91,7 @@ private:
 
     // Widgets
     QLabel *m_frequencyLabel;
+    QLineEdit *m_frequencyEdit; // Frequency entry (shown on click)
     QLabel *m_agcLabel;
     QLabel *m_preampLabel;
     QLabel *m_attLabel;

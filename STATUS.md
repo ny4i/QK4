@@ -16,6 +16,7 @@ Current implementation state of K4Controller (January 2026).
 
 ### VFO Display
 - **Tuning rate indicator**: White underline below frequency digit
+- **Direct frequency entry**: Click frequency to type new value (1-11 digits, Enter to submit, Escape to cancel)
 - **Multifunction S/Po meter**: Shows S-meter when RX, power when TX (scales: K4 0-110W, QRP 0-10W, KPA1500 0-1900W)
 - **TX meters**: ALC, COMP, SWR, Id (shown in combined meter widget)
 - **Mode display**: Full mode with data sub-modes (AFSK, FSK, PSK, DATA)
