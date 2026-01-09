@@ -1999,6 +1999,11 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     m_panadapterA->setDbRange(-140.0f, -20.0f);
     m_panadapterA->setSpectrumRatio(0.35f);
     m_panadapterA->setGridEnabled(true);
+    // Primary VFO A uses default cyan passband
+    // Secondary VFO B uses green passband
+    m_panadapterA->setSecondaryPassbandColor(QColor(0, 255, 0, 64)); // Green 25% alpha
+    m_panadapterA->setSecondaryMarkerColor(QColor(0, 255, 0, 255));  // Green 100%
+    m_panadapterA->setSecondaryVisible(true);
     layout->addWidget(m_panadapterA);
 
     // Sub panadapter for VFO B (right side) - QRhiWidget with Metal/DirectX/Vulkan
@@ -2007,8 +2012,13 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     m_panadapterB->setDbRange(-140.0f, -20.0f);
     m_panadapterB->setSpectrumRatio(0.35f);
     m_panadapterB->setGridEnabled(true);
-    m_panadapterB->setPassbandColor(QColor(0, 200, 0, 64));    // Green passband for VFO B (25% alpha)
-    m_panadapterB->setFrequencyMarkerColor(QColor(0, 140, 0)); // Darker green marker for VFO B
+    // Primary VFO B uses green passband
+    m_panadapterB->setPassbandColor(QColor(0, 255, 0, 64));         // Green 25% alpha
+    m_panadapterB->setFrequencyMarkerColor(QColor(0, 255, 0, 255)); // Green 100%
+    // Secondary VFO A uses cyan passband
+    m_panadapterB->setSecondaryPassbandColor(QColor(0, 191, 255, 64)); // Cyan 25% alpha
+    m_panadapterB->setSecondaryMarkerColor(QColor(0, 140, 200, 255));  // Darker cyan 100%
+    m_panadapterB->setSecondaryVisible(true);
     layout->addWidget(m_panadapterB);
     m_panadapterB->hide(); // Start hidden (MainOnly mode)
 
@@ -2216,6 +2226,30 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
         // Update NTCH indicator in VFO B processing row
         m_vfoB->setNotch(m_radioState->autoNotchEnabledB(), m_radioState->manualNotchEnabledB());
     });
+
+    // Secondary VFO passband display: VFO B state → PanadapterA's secondary
+    auto updatePanadapterASecondary = [this]() {
+        m_panadapterA->setSecondaryVfo(m_radioState->vfoB(), m_radioState->filterBandwidthB(),
+                                       RadioState::modeToString(m_radioState->modeB()), m_radioState->ifShiftB(),
+                                       m_radioState->cwPitch());
+    };
+    connect(m_radioState, &RadioState::frequencyBChanged, this, updatePanadapterASecondary);
+    connect(m_radioState, &RadioState::modeBChanged, this, updatePanadapterASecondary);
+    connect(m_radioState, &RadioState::filterBandwidthBChanged, this, updatePanadapterASecondary);
+    connect(m_radioState, &RadioState::ifShiftBChanged, this, updatePanadapterASecondary);
+    connect(m_radioState, &RadioState::cwPitchChanged, this, updatePanadapterASecondary);
+
+    // Secondary VFO passband display: VFO A state → PanadapterB's secondary
+    auto updatePanadapterBSecondary = [this]() {
+        m_panadapterB->setSecondaryVfo(m_radioState->vfoA(), m_radioState->filterBandwidth(),
+                                       RadioState::modeToString(m_radioState->mode()), m_radioState->ifShift(),
+                                       m_radioState->cwPitch());
+    };
+    connect(m_radioState, &RadioState::frequencyChanged, this, updatePanadapterBSecondary);
+    connect(m_radioState, &RadioState::modeChanged, this, updatePanadapterBSecondary);
+    connect(m_radioState, &RadioState::filterBandwidthChanged, this, updatePanadapterBSecondary);
+    connect(m_radioState, &RadioState::ifShiftChanged, this, updatePanadapterBSecondary);
+    connect(m_radioState, &RadioState::cwPitchChanged, this, updatePanadapterBSecondary);
 
     // Mouse control for VFO B: click to tune
     connect(m_panadapterB, &PanadapterRhiWidget::frequencyClicked, this, [this](qint64 freq) {

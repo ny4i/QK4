@@ -400,6 +400,19 @@ void PanadapterRhiWidget::initialize(QRhiCommandBuffer *cb) {
     m_notchUniformBuffer.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, 32));
     m_notchUniformBuffer->create();
 
+    // Secondary VFO passband buffers (for showing other receiver's passband)
+    m_secondaryPassbandVbo.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::VertexBuffer, 256 * sizeof(float)));
+    m_secondaryPassbandVbo->create();
+
+    m_secondaryPassbandUniformBuffer.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, 32));
+    m_secondaryPassbandUniformBuffer->create();
+
+    m_secondaryMarkerVbo.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::VertexBuffer, 64 * sizeof(float)));
+    m_secondaryMarkerVbo->create();
+
+    m_secondaryMarkerUniformBuffer.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, 32));
+    m_secondaryMarkerUniformBuffer->create();
+
     cb->resourceUpdate(rub);
 
     m_rhiInitialized = true;
@@ -535,6 +548,19 @@ void PanadapterRhiWidget::createPipelines() {
             0, QRhiShaderResourceBinding::VertexStage | QRhiShaderResourceBinding::FragmentStage,
             m_notchUniformBuffer.get())});
         m_notchSrb->create();
+
+        // Secondary VFO passband SRBs
+        m_secondaryPassbandSrb.reset(m_rhi->newShaderResourceBindings());
+        m_secondaryPassbandSrb->setBindings({QRhiShaderResourceBinding::uniformBuffer(
+            0, QRhiShaderResourceBinding::VertexStage | QRhiShaderResourceBinding::FragmentStage,
+            m_secondaryPassbandUniformBuffer.get())});
+        m_secondaryPassbandSrb->create();
+
+        m_secondaryMarkerSrb.reset(m_rhi->newShaderResourceBindings());
+        m_secondaryMarkerSrb->setBindings({QRhiShaderResourceBinding::uniformBuffer(
+            0, QRhiShaderResourceBinding::VertexStage | QRhiShaderResourceBinding::FragmentStage,
+            m_secondaryMarkerUniformBuffer.get())});
+        m_secondaryMarkerSrb->create();
 
         m_overlayLinePipeline.reset(m_rhi->newGraphicsPipeline());
         m_overlayLinePipeline->setShaderStages(
@@ -814,6 +840,119 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
         };
 
         // Grid is now drawn BEFORE spectrum fill (see above)
+
+        // Draw secondary VFO passband first (so it renders behind primary when overlapping)
+        if (m_secondaryVisible && m_secondaryFilterBw > 0 && m_secondaryTunedFreq > 0) {
+            qint64 secLowFreq, secHighFreq;
+            int secShiftOffsetHz = m_secondaryIfShift * 10;
+
+            if (m_secondaryMode == "LSB") {
+                qint64 center = m_secondaryTunedFreq - secShiftOffsetHz;
+                secLowFreq = center - m_secondaryFilterBw / 2;
+                secHighFreq = center + m_secondaryFilterBw / 2;
+            } else if (m_secondaryMode == "USB" || m_secondaryMode == "DATA" || m_secondaryMode == "DATA-R") {
+                qint64 center = m_secondaryTunedFreq + secShiftOffsetHz;
+                secLowFreq = center - m_secondaryFilterBw / 2;
+                secHighFreq = center + m_secondaryFilterBw / 2;
+            } else if (m_secondaryMode == "CW" || m_secondaryMode == "CW-R") {
+                int pitchOffset = (m_secondaryMode == "CW") ? m_secondaryCwPitch : -m_secondaryCwPitch;
+                qint64 center = m_secondaryTunedFreq + pitchOffset;
+                secLowFreq = center - m_secondaryFilterBw / 2;
+                secHighFreq = center + m_secondaryFilterBw / 2;
+            } else {
+                qint64 center = m_secondaryTunedFreq + secShiftOffsetHz;
+                secLowFreq = center - m_secondaryFilterBw / 2;
+                secHighFreq = center + m_secondaryFilterBw / 2;
+            }
+
+            float secX1 = freqToNormalized(secLowFreq) * w;
+            float secX2 = freqToNormalized(secHighFreq) * w;
+            secX1 = qBound(0.0f, secX1, w);
+            secX2 = qBound(0.0f, secX2, w);
+
+            if (secX2 > secX1) {
+                QVector<float> secQuadVerts = {
+                    secX1, 0, secX2, 0, secX2, spectrumHeight, secX1, 0, secX2, spectrumHeight, secX1, spectrumHeight};
+
+                QRhiResourceUpdateBatch *secPbRub = m_rhi->nextResourceUpdateBatch();
+                secPbRub->updateDynamicBuffer(m_secondaryPassbandVbo.get(), 0, secQuadVerts.size() * sizeof(float),
+                                              secQuadVerts.constData());
+
+                struct {
+                    float viewportWidth;
+                    float viewportHeight;
+                    float pad0, pad1;
+                    float r, g, b, a;
+                } secPbUniforms = {w,
+                                   h,
+                                   0,
+                                   0,
+                                   static_cast<float>(m_secondaryPassbandColor.redF()),
+                                   static_cast<float>(m_secondaryPassbandColor.greenF()),
+                                   static_cast<float>(m_secondaryPassbandColor.blueF()),
+                                   static_cast<float>(m_secondaryPassbandColor.alphaF())};
+                secPbRub->updateDynamicBuffer(m_secondaryPassbandUniformBuffer.get(), 0, sizeof(secPbUniforms),
+                                              &secPbUniforms);
+
+                cb->resourceUpdate(secPbRub);
+                cb->setGraphicsPipeline(m_overlayTrianglePipeline.get());
+                cb->setShaderResources(m_secondaryPassbandSrb.get());
+                const QRhiCommandBuffer::VertexInput secPbVbufBinding(m_secondaryPassbandVbo.get(), 0);
+                cb->setVertexInput(0, 1, &secPbVbufBinding);
+                cb->draw(6);
+            }
+
+            // Secondary VFO marker
+            qint64 secMarkerFreq = m_secondaryTunedFreq;
+            if (m_secondaryMode == "CW") {
+                secMarkerFreq = m_secondaryTunedFreq + m_secondaryCwPitch;
+            } else if (m_secondaryMode == "CW-R") {
+                secMarkerFreq = m_secondaryTunedFreq - m_secondaryCwPitch;
+            }
+            float secMarkerX = freqToNormalized(secMarkerFreq) * w;
+            if (secMarkerX >= 0 && secMarkerX <= w) {
+                float markerWidth = 2.0f;
+                QVector<float> secMarkerVerts = {secMarkerX,
+                                                 0.0f,
+                                                 secMarkerX + markerWidth,
+                                                 0.0f,
+                                                 secMarkerX + markerWidth,
+                                                 spectrumHeight,
+                                                 secMarkerX,
+                                                 0.0f,
+                                                 secMarkerX + markerWidth,
+                                                 spectrumHeight,
+                                                 secMarkerX,
+                                                 spectrumHeight};
+
+                QRhiResourceUpdateBatch *secMkRub = m_rhi->nextResourceUpdateBatch();
+                secMkRub->updateDynamicBuffer(m_secondaryMarkerVbo.get(), 0, secMarkerVerts.size() * sizeof(float),
+                                              secMarkerVerts.constData());
+
+                struct {
+                    float viewportWidth;
+                    float viewportHeight;
+                    float pad0, pad1;
+                    float r, g, b, a;
+                } secMkUniforms = {w,
+                                   h,
+                                   0,
+                                   0,
+                                   static_cast<float>(m_secondaryMarkerColor.redF()),
+                                   static_cast<float>(m_secondaryMarkerColor.greenF()),
+                                   static_cast<float>(m_secondaryMarkerColor.blueF()),
+                                   static_cast<float>(m_secondaryMarkerColor.alphaF())};
+                secMkRub->updateDynamicBuffer(m_secondaryMarkerUniformBuffer.get(), 0, sizeof(secMkUniforms),
+                                              &secMkUniforms);
+
+                cb->resourceUpdate(secMkRub);
+                cb->setGraphicsPipeline(m_overlayTrianglePipeline.get());
+                cb->setShaderResources(m_secondaryMarkerSrb.get());
+                const QRhiCommandBuffer::VertexInput secMkVbufBinding(m_secondaryMarkerVbo.get(), 0);
+                cb->setVertexInput(0, 1, &secMkVbufBinding);
+                cb->draw(6);
+            }
+        }
 
         // Draw passband overlay (uses separate buffers to avoid GPU conflicts)
         if (m_cursorVisible && m_filterBw > 0 && m_tunedFreq > 0) {
@@ -1304,6 +1443,33 @@ void PanadapterRhiWidget::setCursorVisible(bool visible) {
         m_cursorVisible = visible;
         update();
     }
+}
+
+// Secondary VFO setters
+void PanadapterRhiWidget::setSecondaryVfo(qint64 freq, int bwHz, const QString &mode, int ifShift, int cwPitch) {
+    m_secondaryTunedFreq = freq;
+    m_secondaryFilterBw = bwHz;
+    m_secondaryMode = mode;
+    m_secondaryIfShift = ifShift;
+    m_secondaryCwPitch = cwPitch;
+    update();
+}
+
+void PanadapterRhiWidget::setSecondaryVisible(bool visible) {
+    if (m_secondaryVisible != visible) {
+        m_secondaryVisible = visible;
+        update();
+    }
+}
+
+void PanadapterRhiWidget::setSecondaryPassbandColor(const QColor &color) {
+    m_secondaryPassbandColor = color;
+    update();
+}
+
+void PanadapterRhiWidget::setSecondaryMarkerColor(const QColor &color) {
+    m_secondaryMarkerColor = color;
+    update();
 }
 
 // Color setters

@@ -53,6 +53,12 @@ public:
     void setNotchFilter(bool enabled, int pitchHz);
     void setCursorVisible(bool visible);
 
+    // Secondary VFO (other receiver's passband)
+    void setSecondaryVfo(qint64 freq, int bwHz, const QString &mode, int ifShift, int cwPitch);
+    void setSecondaryVisible(bool visible);
+    void setSecondaryPassbandColor(const QColor &color);
+    void setSecondaryMarkerColor(const QColor &color);
+
     // Color configuration (NEW: all colors configurable)
     void setSpectrumBaseColor(const QColor &color);
     void setSpectrumPeakColor(const QColor &color);
@@ -138,6 +144,13 @@ private:
     std::unique_ptr<QRhiShaderResourceBindings> m_passbandSrb;
     std::unique_ptr<QRhiShaderResourceBindings> m_markerSrb;
     std::unique_ptr<QRhiShaderResourceBindings> m_notchSrb;
+    // Secondary passband buffers (for other VFO's overlay)
+    std::unique_ptr<QRhiBuffer> m_secondaryPassbandVbo;
+    std::unique_ptr<QRhiBuffer> m_secondaryPassbandUniformBuffer;
+    std::unique_ptr<QRhiShaderResourceBindings> m_secondaryPassbandSrb;
+    std::unique_ptr<QRhiBuffer> m_secondaryMarkerVbo;
+    std::unique_ptr<QRhiBuffer> m_secondaryMarkerUniformBuffer;
+    std::unique_ptr<QRhiShaderResourceBindings> m_secondaryMarkerSrb;
     QRhiRenderPassDescriptor *m_rpDesc = nullptr;
 
     bool m_rhiInitialized = false;
@@ -196,6 +209,16 @@ private:
     bool m_notchEnabled = false;
     int m_notchPitchHz = 0;
     bool m_cursorVisible = true;
+
+    // Secondary VFO (other receiver's passband)
+    qint64 m_secondaryTunedFreq = 0;
+    int m_secondaryFilterBw = 0;
+    QString m_secondaryMode = "";
+    int m_secondaryIfShift = 50;
+    int m_secondaryCwPitch = 500;
+    bool m_secondaryVisible = false;
+    QColor m_secondaryPassbandColor{0, 255, 0, 64}; // Green 25% alpha
+    QColor m_secondaryMarkerColor{0, 255, 0, 255};  // Green 100% alpha
 
     // Colors (all configurable)
     // Spectrum gradient uses spectrumGradientColor() for 5-stop lime-to-white
