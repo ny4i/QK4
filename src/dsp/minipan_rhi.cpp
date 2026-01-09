@@ -729,11 +729,20 @@ void MiniPanRhiWidget::render(QRhiCommandBuffer *cb) {
         }
 
         // Draw notch filter marker using DEDICATED buffers
-        if (m_notchEnabled && m_notchPitchHz > 0 && m_notchSrb) {
+        // Notch position relative to passband center (consistent with main panadapter)
+        if (m_notchEnabled && m_notchPitchHz > 0 && m_notchSrb && m_bandwidthHz > 0) {
             int offsetHz;
             if (m_mode == "LSB") {
+                // LSB: notch is below carrier (left of center)
                 offsetHz = -m_notchPitchHz;
+            } else if (m_mode == "CW") {
+                // CW: notch offset from passband center (which is at cwPitch)
+                offsetHz = m_notchPitchHz - m_cwPitch;
+            } else if (m_mode == "CW-R") {
+                // CW-R: inverted CW
+                offsetHz = -(m_notchPitchHz - m_cwPitch);
             } else {
+                // USB, DATA, DATA-R, AM, FM: notch is above carrier
                 offsetHz = m_notchPitchHz;
             }
 

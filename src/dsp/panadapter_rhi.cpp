@@ -1086,7 +1086,31 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
             }
 
             // Draw notch filter marker (red line) - uses dedicated notch buffers
-            if (m_notchEnabled && m_notchPitchHz > 0) {
+            // Calculate notch position relative to the passband center
+            // This ensures correct alignment regardless of tunedFreq/centerFreq mismatch
+            if (m_notchEnabled && m_notchPitchHz > 0 && m_spanHz > 0) {
+                // First, find where the passband center is on screen
+                // For CW: passbandCenter = tunedFreq + cwPitch
+                // For USB/DATA: passbandCenter = tunedFreq + shiftOffset
+                // For LSB: passbandCenter = tunedFreq - shiftOffset
+                // For AM/FM: passbandCenter = tunedFreq
+                qint64 passbandCenterFreq;
+                if (m_mode == "CW") {
+                    passbandCenterFreq = m_tunedFreq + m_cwPitch;
+                } else if (m_mode == "CW-R") {
+                    passbandCenterFreq = m_tunedFreq - m_cwPitch;
+                } else if (m_mode == "LSB") {
+                    int shiftOffsetHz = m_ifShift * 10;
+                    passbandCenterFreq = m_tunedFreq - shiftOffsetHz;
+                } else if (m_mode == "USB" || m_mode == "DATA" || m_mode == "DATA-R") {
+                    int shiftOffsetHz = m_ifShift * 10;
+                    passbandCenterFreq = m_tunedFreq + shiftOffsetHz;
+                } else {
+                    // AM/FM: centered on carrier
+                    passbandCenterFreq = m_tunedFreq;
+                }
+
+                // Calculate notch RF frequency - notch pitch is audio offset from carrier
                 qint64 notchFreq;
                 if (m_mode == "LSB") {
                     notchFreq = m_tunedFreq - m_notchPitchHz;
@@ -1094,7 +1118,12 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
                     notchFreq = m_tunedFreq + m_notchPitchHz;
                 }
 
-                float notchX = freqToNormalized(notchFreq) * w;
+                // Calculate notch offset from passband center in Hz
+                qint64 notchOffsetHz = notchFreq - passbandCenterFreq;
+
+                // Get passband center screen position and add the offset
+                float passbandCenterX = freqToNormalized(passbandCenterFreq) * w;
+                float notchX = passbandCenterX + (static_cast<float>(notchOffsetHz) * w) / m_spanHz;
                 bool inBounds = (notchX >= 0 && notchX <= w);
 
                 if (inBounds) {
