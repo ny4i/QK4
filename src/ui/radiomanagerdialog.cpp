@@ -121,20 +121,20 @@ void RadioManagerDialog::setupUi() {
     formLayout->addWidget(passwordLabel, 3, 0);
     formLayout->addWidget(m_passwordEdit, 3, 1);
 
-    // Row 4: TLS Checkbox
-    m_tlsCheckbox = new QCheckBox("Use TLS (Encrypted)", this);
-    m_tlsCheckbox->setStyleSheet("QCheckBox { color: #cccccc; font-size: 12px; } "
-                                 "QCheckBox::indicator { width: 14px; height: 14px; }");
-    formLayout->addWidget(m_tlsCheckbox, 4, 0, 1, 2);
-
-    // Row 5: ID (only visible when TLS is checked)
+    // Row 4: ID (only visible when TLS is checked)
     m_identityLabel = new QLabel("ID", this);
     m_identityLabel->setStyleSheet(labelStyle);
     m_identityEdit = new QLineEdit(this);
     m_identityEdit->setStyleSheet(lineEditStyle);
     m_identityEdit->setPlaceholderText("Identity (optional)");
-    formLayout->addWidget(m_identityLabel, 5, 0);
-    formLayout->addWidget(m_identityEdit, 5, 1);
+    formLayout->addWidget(m_identityLabel, 4, 0);
+    formLayout->addWidget(m_identityEdit, 4, 1);
+
+    // Row 5: TLS Checkbox (below ID field)
+    m_tlsCheckbox = new QCheckBox("Use TLS (Encrypted)", this);
+    m_tlsCheckbox->setStyleSheet("QCheckBox { color: #cccccc; font-size: 12px; spacing: 8px; } "
+                                 "QCheckBox::indicator { width: 14px; height: 14px; }");
+    formLayout->addWidget(m_tlsCheckbox, 5, 0, 1, 2);
 
     // Initially hide ID field (shown when TLS is checked)
     m_identityLabel->setVisible(false);
