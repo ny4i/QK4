@@ -40,8 +40,6 @@ protected:
 private:
     void setupUi();
     void updateForFeature();
-    QString buttonStyle() const;
-    QString buttonStyleSmall() const;
 
     QLabel *m_titleLabel;
     QPushButton *m_toggleBtn;

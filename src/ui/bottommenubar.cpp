@@ -1,4 +1,5 @@
 #include "bottommenubar.h"
+#include "k4styles.h"
 #include <QHBoxLayout>
 
 BottomMenuBar::BottomMenuBar(QWidget *parent) : QWidget(parent) {
@@ -62,120 +63,70 @@ QPushButton *BottomMenuBar::createMenuButton(const QString &text) {
     btn->setMinimumWidth(70);
     btn->setFixedHeight(36);
     btn->setCursor(Qt::PointingHandCursor);
-    btn->setStyleSheet(buttonStyleSheet());
+    btn->setStyleSheet(K4Styles::menuBarButton());
     return btn;
-}
-
-QString BottomMenuBar::buttonStyleSheet() const {
-    // Subtle rounded edges, gradient grey to white, white border with thin line
-    return R"(
-        QPushButton {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #4a4a4a,
-                stop:0.4 #3a3a3a,
-                stop:0.6 #353535,
-                stop:1 #2a2a2a);
-            color: #FFFFFF;
-            border: 2px solid #606060;
-            border-radius: 6px;
-            padding: 6px 12px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        QPushButton:hover {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #5a5a5a,
-                stop:0.4 #4a4a4a,
-                stop:0.6 #454545,
-                stop:1 #3a3a3a);
-            border: 2px solid #808080;
-        }
-        QPushButton:pressed {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #2a2a2a,
-                stop:0.4 #353535,
-                stop:0.6 #3a3a3a,
-                stop:1 #4a4a4a);
-            border: 2px solid #909090;
-        }
-    )";
-}
-
-QString BottomMenuBar::activeButtonStyleSheet() const {
-    // Inverse colors when button is active (e.g., MENU button when menu is open)
-    return R"(
-        QPushButton {
-            background: #FFFFFF;
-            color: #666666;
-            border: 2px solid #AAAAAA;
-            border-radius: 6px;
-            padding: 6px 12px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-    )";
 }
 
 void BottomMenuBar::setMenuActive(bool active) {
     if (active) {
-        m_menuBtn->setStyleSheet(activeButtonStyleSheet());
+        m_menuBtn->setStyleSheet(K4Styles::menuBarButtonActive());
     } else {
-        m_menuBtn->setStyleSheet(buttonStyleSheet());
+        m_menuBtn->setStyleSheet(K4Styles::menuBarButton());
     }
 }
 
 void BottomMenuBar::setDisplayActive(bool active) {
     if (active) {
-        m_displayBtn->setStyleSheet(activeButtonStyleSheet());
+        m_displayBtn->setStyleSheet(K4Styles::menuBarButtonActive());
     } else {
-        m_displayBtn->setStyleSheet(buttonStyleSheet());
+        m_displayBtn->setStyleSheet(K4Styles::menuBarButton());
     }
 }
 
 void BottomMenuBar::setBandActive(bool active) {
     if (active) {
-        m_bandBtn->setStyleSheet(activeButtonStyleSheet());
+        m_bandBtn->setStyleSheet(K4Styles::menuBarButtonActive());
     } else {
-        m_bandBtn->setStyleSheet(buttonStyleSheet());
+        m_bandBtn->setStyleSheet(K4Styles::menuBarButton());
     }
 }
 
 void BottomMenuBar::setFnActive(bool active) {
     if (active) {
-        m_fnBtn->setStyleSheet(activeButtonStyleSheet());
+        m_fnBtn->setStyleSheet(K4Styles::menuBarButtonActive());
     } else {
-        m_fnBtn->setStyleSheet(buttonStyleSheet());
+        m_fnBtn->setStyleSheet(K4Styles::menuBarButton());
     }
 }
 
 void BottomMenuBar::setMainRxActive(bool active) {
     if (active) {
-        m_mainRxBtn->setStyleSheet(activeButtonStyleSheet());
+        m_mainRxBtn->setStyleSheet(K4Styles::menuBarButtonActive());
     } else {
-        m_mainRxBtn->setStyleSheet(buttonStyleSheet());
+        m_mainRxBtn->setStyleSheet(K4Styles::menuBarButton());
     }
 }
 
 void BottomMenuBar::setSubRxActive(bool active) {
     if (active) {
-        m_subRxBtn->setStyleSheet(activeButtonStyleSheet());
+        m_subRxBtn->setStyleSheet(K4Styles::menuBarButtonActive());
     } else {
-        m_subRxBtn->setStyleSheet(buttonStyleSheet());
+        m_subRxBtn->setStyleSheet(K4Styles::menuBarButton());
     }
 }
 
 void BottomMenuBar::setTxActive(bool active) {
     if (active) {
-        m_txBtn->setStyleSheet(activeButtonStyleSheet());
+        m_txBtn->setStyleSheet(K4Styles::menuBarButtonActive());
     } else {
-        m_txBtn->setStyleSheet(buttonStyleSheet());
+        m_txBtn->setStyleSheet(K4Styles::menuBarButton());
     }
 }
 
 void BottomMenuBar::setPttActive(bool active) {
     if (active) {
-        m_pttBtn->setStyleSheet(activeButtonStyleSheet());
+        m_pttBtn->setStyleSheet(K4Styles::menuBarButtonActive());
     } else {
-        m_pttBtn->setStyleSheet(buttonStyleSheet());
+        m_pttBtn->setStyleSheet(K4Styles::menuBarButton());
     }
 }

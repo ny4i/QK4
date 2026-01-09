@@ -1,4 +1,5 @@
 #include "buttonrowpopup.h"
+#include "k4styles.h"
 #include <QPainter>
 #include <QPainterPath>
 #include <QHBoxLayout>
@@ -55,7 +56,7 @@ void ButtonRowPopup::setupUi() {
         btn->setFixedSize(ButtonWidth, ButtonHeight);
         btn->setFocusPolicy(Qt::NoFocus);
         btn->setProperty("buttonIndex", i);
-        btn->setStyleSheet(normalButtonStyle());
+        btn->setStyleSheet(K4Styles::popupButtonNormal());
 
         connect(btn, &QPushButton::clicked, this, &ButtonRowPopup::onButtonClicked);
 
@@ -71,38 +72,6 @@ void ButtonRowPopup::setupUi() {
     int totalWidth = contentWidth + 2 * ShadowMargin;
     int totalHeight = contentHeight + 2 * ShadowMargin;
     setFixedSize(totalWidth, totalHeight);
-}
-
-QString ButtonRowPopup::normalButtonStyle() {
-    return R"(
-        QPushButton {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #4a4a4a,
-                stop:0.4 #3a3a3a,
-                stop:0.6 #353535,
-                stop:1 #2a2a2a);
-            color: #FFFFFF;
-            border: 2px solid #606060;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        QPushButton:hover {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #5a5a5a,
-                stop:0.4 #4a4a4a,
-                stop:0.6 #454545,
-                stop:1 #3a3a3a);
-            border: 2px solid #808080;
-        }
-        QPushButton:pressed {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #2a2a2a,
-                stop:0.4 #353535,
-                stop:0.6 #3a3a3a,
-                stop:1 #4a4a4a);
-        }
-    )";
 }
 
 void ButtonRowPopup::setButtonLabels(const QStringList &labels) {

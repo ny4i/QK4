@@ -52,10 +52,6 @@ private:
 
     // Position info for drawing the indicator triangle
     int m_triangleXOffset; // X offset from popup center to triangle point
-
-    // Style sheets
-    static QString normalButtonStyle();
-    static QString selectedButtonStyle();
 };
 
 #endif // BANDPOPUPWIDGET_H

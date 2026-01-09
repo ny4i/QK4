@@ -1,5 +1,34 @@
 # K4Controller Development Log
 
+## January 9, 2026
+
+### Refactor: Centralized K4Styles System
+
+**Summary:** Created `K4Styles` namespace to consolidate duplicate button/popup stylesheets across 6 widgets, reducing ~300 lines of duplicate CSS code.
+
+**New File:** `src/ui/k4styles.h` and `src/ui/k4styles.cpp`
+
+**Functions:**
+- `K4Styles::popupButtonNormal()` - Standard dark gradient button for popups
+- `K4Styles::popupButtonSelected()` - Light/white button for selected state
+- `K4Styles::menuBarButton()` - Bottom menu bar buttons (with padding)
+- `K4Styles::menuBarButtonActive()` - Active/inverted state for menu buttons
+- `K4Styles::menuBarButtonSmall()` - Compact +/- buttons in FeatureMenuBar
+
+**Constants Namespaces:**
+- `K4Styles::Colors::*` - Button gradients, borders, text colors
+- `K4Styles::Dimensions::*` - Border width, radius, shadow constants
+
+**Files Modified:**
+- `src/ui/bandpopupwidget.cpp/.h` - Removed local style functions
+- `src/ui/modepopupwidget.cpp/.h` - Removed local style functions
+- `src/ui/buttonrowpopup.cpp/.h` - Removed local style function
+- `src/ui/featuremenubar.cpp/.h` - Removed local style functions
+- `src/ui/bottommenubar.cpp/.h` - Removed local style functions
+- `CMakeLists.txt` - Added k4styles.cpp/.h
+
+---
+
 ## January 8, 2026
 
 ### Feature: HD Visual Polish for Popups

@@ -1,4 +1,5 @@
 #include "featuremenubar.h"
+#include "k4styles.h"
 #include <QHBoxLayout>
 #include <QPainter>
 #include <QApplication>
@@ -53,14 +54,14 @@ void FeatureMenuBar::setupUi() {
     m_toggleBtn->setMinimumWidth(60);
     m_toggleBtn->setFixedHeight(36);
     m_toggleBtn->setCursor(Qt::PointingHandCursor);
-    m_toggleBtn->setStyleSheet(buttonStyle());
+    m_toggleBtn->setStyleSheet(K4Styles::menuBarButton());
 
     // Extra button (only shown for NB LEVEL - "FILTER NONE")
     m_extraBtn = new QPushButton("FILTER\nNONE", this);
     m_extraBtn->setMinimumWidth(70);
     m_extraBtn->setFixedHeight(36);
     m_extraBtn->setCursor(Qt::PointingHandCursor);
-    m_extraBtn->setStyleSheet(buttonStyle());
+    m_extraBtn->setStyleSheet(K4Styles::menuBarButton());
     m_extraBtn->hide(); // Hidden by default
 
     // Value label (center, bold)
@@ -73,13 +74,13 @@ void FeatureMenuBar::setupUi() {
     m_decrementBtn = new QPushButton("-", this);
     m_decrementBtn->setFixedSize(44, 36);
     m_decrementBtn->setCursor(Qt::PointingHandCursor);
-    m_decrementBtn->setStyleSheet(buttonStyleSmall());
+    m_decrementBtn->setStyleSheet(K4Styles::menuBarButtonSmall());
 
     // Increment button
     m_incrementBtn = new QPushButton("+", this);
     m_incrementBtn->setFixedSize(44, 36);
     m_incrementBtn->setCursor(Qt::PointingHandCursor);
-    m_incrementBtn->setStyleSheet(buttonStyleSmall());
+    m_incrementBtn->setStyleSheet(K4Styles::menuBarButtonSmall());
 
     // Layout - compact, no stretches (popup is centered by showAboveWidget)
     layout->addWidget(m_titleLabel);
@@ -94,55 +95,6 @@ void FeatureMenuBar::setupUi() {
     connect(m_decrementBtn, &QPushButton::clicked, this, &FeatureMenuBar::decrementRequested);
     connect(m_incrementBtn, &QPushButton::clicked, this, &FeatureMenuBar::incrementRequested);
     connect(m_extraBtn, &QPushButton::clicked, this, &FeatureMenuBar::extraButtonClicked);
-}
-
-QString FeatureMenuBar::buttonStyle() const {
-    return R"(
-        QPushButton {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #4a4a4a, stop:0.4 #3a3a3a, stop:0.6 #353535, stop:1 #2a2a2a);
-            color: #FFFFFF;
-            border: 2px solid #606060;
-            border-radius: 6px;
-            padding: 6px 12px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        QPushButton:hover {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #5a5a5a, stop:0.4 #4a4a4a, stop:0.6 #454545, stop:1 #3a3a3a);
-            border: 2px solid #808080;
-        }
-        QPushButton:pressed {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #2a2a2a, stop:0.4 #353535, stop:0.6 #3a3a3a, stop:1 #4a4a4a);
-            border: 2px solid #909090;
-        }
-    )";
-}
-
-QString FeatureMenuBar::buttonStyleSmall() const {
-    return R"(
-        QPushButton {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #4a4a4a, stop:0.4 #3a3a3a, stop:0.6 #353535, stop:1 #2a2a2a);
-            color: #FFFFFF;
-            border: 2px solid #606060;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        QPushButton:hover {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #5a5a5a, stop:0.4 #4a4a4a, stop:0.6 #454545, stop:1 #3a3a3a);
-            border: 2px solid #808080;
-        }
-        QPushButton:pressed {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #2a2a2a, stop:0.4 #353535, stop:0.6 #3a3a3a, stop:1 #4a4a4a);
-            border: 2px solid #909090;
-        }
-    )";
 }
 
 void FeatureMenuBar::showForFeature(Feature feature) {

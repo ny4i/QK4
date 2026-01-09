@@ -56,8 +56,6 @@ signals:
 private:
     void setupUi();
     QPushButton *createMenuButton(const QString &text);
-    QString buttonStyleSheet() const;
-    QString activeButtonStyleSheet() const;
 
     // Menu buttons
     QPushButton *m_menuBtn;

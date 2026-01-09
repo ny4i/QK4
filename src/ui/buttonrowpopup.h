@@ -49,9 +49,6 @@ private:
 
     // Position info for drawing the indicator triangle
     int m_triangleXOffset = 0; // X offset from popup center to triangle point
-
-    // Style sheets
-    static QString normalButtonStyle();
 };
 
 #endif // BUTTONROWPOPUP_H

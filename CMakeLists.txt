@@ -96,6 +96,7 @@ set(SOURCES
     src/ui/fnpopupwidget.cpp
     src/ui/macrodialog.cpp
     src/ui/notificationwidget.cpp
+    src/ui/k4styles.cpp
     src/hardware/kpoddevice.cpp
 )
 
@@ -132,6 +133,7 @@ set(HEADERS
     src/ui/fnpopupwidget.h
     src/ui/macrodialog.h
     src/ui/notificationwidget.h
+    src/ui/k4styles.h
     src/hardware/kpoddevice.h
 )
 

@@ -47,8 +47,6 @@ private:
     void updateButtonStyles();
     void onModeButtonClicked();
     QPushButton *createModeButton(const QString &text);
-    QString normalButtonStyle();
-    QString selectedButtonStyle();
     int bandDefaultSideband() const; // Returns MODE_LSB or MODE_USB based on frequency
 
     // Button pointers

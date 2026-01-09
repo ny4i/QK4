@@ -1,4 +1,5 @@
 #include "modepopupwidget.h"
+#include "k4styles.h"
 #include <QPainter>
 #include <QPainterPath>
 #include <QVBoxLayout>
@@ -135,69 +136,6 @@ QPushButton *ModePopupWidget::createModeButton(const QString &text) {
     return btn;
 }
 
-QString ModePopupWidget::normalButtonStyle() {
-    return R"(
-        QPushButton {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #4a4a4a,
-                stop:0.4 #3a3a3a,
-                stop:0.6 #353535,
-                stop:1 #2a2a2a);
-            color: #FFFFFF;
-            border: 2px solid #606060;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        QPushButton:hover {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #5a5a5a,
-                stop:0.4 #4a4a4a,
-                stop:0.6 #454545,
-                stop:1 #3a3a3a);
-            border: 2px solid #808080;
-        }
-        QPushButton:pressed {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #2a2a2a,
-                stop:0.4 #353535,
-                stop:0.6 #3a3a3a,
-                stop:1 #4a4a4a);
-        }
-    )";
-}
-
-QString ModePopupWidget::selectedButtonStyle() {
-    return R"(
-        QPushButton {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #E0E0E0,
-                stop:0.4 #D0D0D0,
-                stop:0.6 #C8C8C8,
-                stop:1 #B8B8B8);
-            color: #333333;
-            border: 2px solid #AAAAAA;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        QPushButton:hover {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #F0F0F0,
-                stop:0.4 #E0E0E0,
-                stop:0.6 #D8D8D8,
-                stop:1 #C8C8C8);
-        }
-        QPushButton:pressed {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #B8B8B8,
-                stop:0.4 #C8C8C8,
-                stop:0.6 #D0D0D0,
-                stop:1 #E0E0E0);
-        }
-    )";
-}
-
 void ModePopupWidget::updateButtonStyles() {
     // Update SSB button text based on current mode or band default
     if (m_currentMode == MODE_LSB) {
@@ -211,40 +149,40 @@ void ModePopupWidget::updateButtonStyles() {
 
     // Reset all buttons to normal style
     for (auto it = m_buttonMap.begin(); it != m_buttonMap.end(); ++it) {
-        it.value()->setStyleSheet(normalButtonStyle());
+        it.value()->setStyleSheet(K4Styles::popupButtonNormal());
     }
 
     // Highlight the current mode button
     switch (m_currentMode) {
     case MODE_CW:
     case MODE_CW_R:
-        m_cwBtn->setStyleSheet(selectedButtonStyle());
+        m_cwBtn->setStyleSheet(K4Styles::popupButtonSelected());
         break;
     case MODE_LSB:
     case MODE_USB:
-        m_ssbBtn->setStyleSheet(selectedButtonStyle());
+        m_ssbBtn->setStyleSheet(K4Styles::popupButtonSelected());
         break;
     case MODE_AM:
-        m_amBtn->setStyleSheet(selectedButtonStyle());
+        m_amBtn->setStyleSheet(K4Styles::popupButtonSelected());
         break;
     case MODE_FM:
-        m_fmBtn->setStyleSheet(selectedButtonStyle());
+        m_fmBtn->setStyleSheet(K4Styles::popupButtonSelected());
         break;
     case MODE_DATA:
     case MODE_DATA_R:
         // Highlight based on data sub-mode
         switch (m_currentDataSubMode) {
         case DT_DATA_A:
-            m_dataBtn->setStyleSheet(selectedButtonStyle());
+            m_dataBtn->setStyleSheet(K4Styles::popupButtonSelected());
             break;
         case DT_AFSK_A:
-            m_afskBtn->setStyleSheet(selectedButtonStyle());
+            m_afskBtn->setStyleSheet(K4Styles::popupButtonSelected());
             break;
         case DT_FSK_D:
-            m_fskBtn->setStyleSheet(selectedButtonStyle());
+            m_fskBtn->setStyleSheet(K4Styles::popupButtonSelected());
             break;
         case DT_PSK_D:
-            m_pskBtn->setStyleSheet(selectedButtonStyle());
+            m_pskBtn->setStyleSheet(K4Styles::popupButtonSelected());
             break;
         }
         break;
