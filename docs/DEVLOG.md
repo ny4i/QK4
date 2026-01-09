@@ -1,5 +1,53 @@
 # K4Controller Development Log
 
+## January 8, 2026
+
+### Feature: HD Visual Polish for Popups
+
+**Summary:** Added professional drop shadows, 2px borders, and consistent border radius to all popup widgets for HD-quality appearance on Retina/4K displays.
+
+**Problem:** Popups looked flat with no visual separation from background. 1px borders were invisible on high-DPI displays. Border radius varied inconsistently (4-8px).
+
+**Changes:**
+
+1. **Drop Shadows (Phase 1)**: Added 8-layer soft shadow to all popups
+   - Blur radius: 16px
+   - Offset: 2px right, 4px down
+   - Shadow margin: 20px around content
+   - Manual drawing in `paintEvent()` for custom-shaped popups
+
+2. **2px Borders (Phase 2)**: Changed all `border: 1px solid` to `border: 2px solid`
+   - CSS stylesheets updated across all widgets
+   - `QPen` thickness changed from 1 to 2 for painted borders
+
+3. **Consistent Border Radius (Phase 3)**: Standardized to 6px for buttons
+   - Changed `border-radius: 4px` and `border-radius: 5px` to `border-radius: 6px`
+   - Popup backgrounds use 8px radius
+
+**Implementation Details:**
+- Used `WA_TranslucentBackground` for manual shadow painting
+- Widget sizing includes `ShadowMargin` on all sides
+- Triangle pointer positioning recalculated relative to content area (not widget bounds)
+
+**Files Modified:**
+- `src/ui/bandpopupwidget.cpp` - Shadow, margins, positioning, styles
+- `src/ui/modepopupwidget.cpp` - Shadow, margins, positioning, styles
+- `src/ui/fnpopupwidget.cpp` - Shadow, margins, positioning, styles
+- `src/ui/buttonrowpopup.cpp` - Shadow, margins, positioning, styles
+- `src/ui/displaypopupwidget.cpp` - Shadow, margins, positioning, styles
+- `src/ui/featuremenubar.cpp` - Shadow, margins, positioning, styles
+- `src/ui/bottommenubar.cpp` - 2px borders, 6px radius
+- `src/ui/sidecontrolpanel.cpp` - 2px borders, 6px radius
+- `src/ui/rightsidepanel.cpp` - 2px borders, 6px radius
+- `src/ui/dualcontrolbutton.cpp` - QPen 2px border
+
+**Documentation Updated:**
+- `STATUS.md` - Added Visual Polish section
+- `CONVENTIONS.md` - Added Popup & Button Styling section
+- `src/ui/CLAUDE.md` - Added Popup Styling section with code examples
+
+---
+
 ## January 5, 2026
 
 ### Feature: TX Meter Widget Enhancements

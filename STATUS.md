@@ -48,6 +48,12 @@ Current implementation state of K4Controller (January 2026).
 - **Macro dialog**: Configure 29 macro slots (PF1-4, Fn.F1-F8, REM ANT, KPOD tap/hold)
 - **Notification popup**: Center-screen auto-dismiss for K4 error/status messages (ERxx:)
 
+### Visual Polish (HD Quality)
+- **Drop shadows**: All popups have 8-layer soft shadows (16px blur, offset 2,4)
+- **2px borders**: Visible on Retina/4K displays (was 1px)
+- **Consistent border radius**: 6px for buttons, 8px for popup backgrounds
+- **Triangle pointer**: Points to trigger button on Band/Mode/Fn/RX/TX popups
+
 ### KPA1500 Integration
 - K4 pushes KPA1500 status via ERxx: messages (ER41=power on, ER43=standby, ER44=operate)
 - Notification widget displays KPA1500 status changes

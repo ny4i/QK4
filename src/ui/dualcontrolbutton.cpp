@@ -111,7 +111,7 @@ void DualControlButton::paintEvent(QPaintEvent *event) {
 
     // Border (slightly brighter when indicator is shown)
     QColor borderColor = m_showIndicator ? DualButtonColors::BorderActive : DualButtonColors::Border;
-    painter.setPen(QPen(borderColor, 1));
+    painter.setPen(QPen(borderColor, 2));
     painter.drawPath(buttonPath);
 
     // Context indicator bar on the left (only if active in group)

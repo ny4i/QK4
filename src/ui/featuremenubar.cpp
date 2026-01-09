@@ -6,20 +6,32 @@
 #include <QHideEvent>
 #include <QKeyEvent>
 
+namespace {
+// Shadow constants
+const int ShadowRadius = 16;               // Drop shadow blur radius
+const int ShadowOffsetX = 2;               // Shadow horizontal offset
+const int ShadowOffsetY = 4;               // Shadow vertical offset
+const int ShadowMargin = ShadowRadius + 4; // Extra space around popup for shadow
+const int ContentHeight = 52;              // Height of content area (was setFixedHeight)
+const int ContentMargin = 12;              // Horizontal margin inside content
+} // namespace
+
 FeatureMenuBar::FeatureMenuBar(QWidget *parent) : QWidget(parent) {
     setWindowFlags(Qt::Popup | Qt::FramelessWindowHint);
-    setAttribute(Qt::WA_TranslucentBackground, false);
+    setAttribute(Qt::WA_TranslucentBackground);
     setFocusPolicy(Qt::StrongFocus);
     setupUi();
     hide(); // Hidden by default
 }
 
 void FeatureMenuBar::setupUi() {
-    setFixedHeight(52);
+    // Height includes shadow margins on top and bottom
+    setFixedHeight(ContentHeight + 2 * ShadowMargin);
 
     auto *layout = new QHBoxLayout(this);
-    // Symmetric margins for centered popup
-    layout->setContentsMargins(12, 6, 12, 6);
+    // Margins include shadow space on all sides
+    layout->setContentsMargins(ShadowMargin + ContentMargin, ShadowMargin + 6, ShadowMargin + ContentMargin,
+                               ShadowMargin + 6);
     layout->setSpacing(8);
 
     // Title label (framed box with centered text)
@@ -30,8 +42,8 @@ void FeatureMenuBar::setupUi() {
                                 "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
                                 "    stop:0 #4a4a4a, stop:0.4 #3a3a3a, stop:0.6 #353535, stop:1 #2a2a2a);"
                                 "  color: #FFFFFF;"
-                                "  border: 1px solid #606060;"
-                                "  border-radius: 5px;"
+                                "  border: 2px solid #606060;"
+                                "  border-radius: 6px;"
                                 "  font-size: 14px;"
                                 "  font-weight: bold;"
                                 "}");
@@ -90,8 +102,8 @@ QString FeatureMenuBar::buttonStyle() const {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                 stop:0 #4a4a4a, stop:0.4 #3a3a3a, stop:0.6 #353535, stop:1 #2a2a2a);
             color: #FFFFFF;
-            border: 1px solid #606060;
-            border-radius: 5px;
+            border: 2px solid #606060;
+            border-radius: 6px;
             padding: 6px 12px;
             font-size: 12px;
             font-weight: bold;
@@ -99,12 +111,12 @@ QString FeatureMenuBar::buttonStyle() const {
         QPushButton:hover {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                 stop:0 #5a5a5a, stop:0.4 #4a4a4a, stop:0.6 #454545, stop:1 #3a3a3a);
-            border: 1px solid #808080;
+            border: 2px solid #808080;
         }
         QPushButton:pressed {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                 stop:0 #2a2a2a, stop:0.4 #353535, stop:0.6 #3a3a3a, stop:1 #4a4a4a);
-            border: 1px solid #909090;
+            border: 2px solid #909090;
         }
     )";
 }
@@ -115,20 +127,20 @@ QString FeatureMenuBar::buttonStyleSmall() const {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                 stop:0 #4a4a4a, stop:0.4 #3a3a3a, stop:0.6 #353535, stop:1 #2a2a2a);
             color: #FFFFFF;
-            border: 1px solid #606060;
-            border-radius: 5px;
+            border: 2px solid #606060;
+            border-radius: 6px;
             font-size: 14px;
             font-weight: bold;
         }
         QPushButton:hover {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                 stop:0 #5a5a5a, stop:0.4 #4a4a4a, stop:0.6 #454545, stop:1 #3a3a3a);
-            border: 1px solid #808080;
+            border: 2px solid #808080;
         }
         QPushButton:pressed {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                 stop:0 #2a2a2a, stop:0.4 #353535, stop:0.6 #3a3a3a, stop:1 #4a4a4a);
-            border: 1px solid #909090;
+            border: 2px solid #909090;
         }
     )";
 }
@@ -164,20 +176,23 @@ void FeatureMenuBar::showAboveWidget(QWidget *referenceWidget) {
     QPoint refGlobal = referenceWidget->mapToGlobal(QPoint(0, 0));
     int refCenterX = refGlobal.x() + referenceWidget->width() / 2;
 
-    // Center popup horizontally above reference widget
-    int popupX = refCenterX - width() / 2;
-    int popupY = refGlobal.y() - height() - 4; // 4px gap above
+    // Content width (widget width minus shadow margins)
+    int contentWidth = width() - 2 * ShadowMargin;
+
+    // Center content area horizontally above reference widget (account for shadow margin)
+    int popupX = refCenterX - contentWidth / 2 - ShadowMargin;
+    int popupY = refGlobal.y() - ContentHeight - ShadowMargin - 4; // 4px gap above
 
     // Ensure popup stays on screen
     QRect screenGeom = QApplication::primaryScreen()->availableGeometry();
-    if (popupX < screenGeom.left()) {
-        popupX = screenGeom.left();
-    } else if (popupX + width() > screenGeom.right()) {
-        popupX = screenGeom.right() - width();
+    if (popupX < screenGeom.left() - ShadowMargin) {
+        popupX = screenGeom.left() - ShadowMargin;
+    } else if (popupX + width() > screenGeom.right() + ShadowMargin) {
+        popupX = screenGeom.right() + ShadowMargin - width();
     }
-    if (popupY < screenGeom.top()) {
+    if (popupY < screenGeom.top() - ShadowMargin) {
         // If not enough room above, show below instead
-        popupY = refGlobal.y() + referenceWidget->height() + 4;
+        popupY = refGlobal.y() + referenceWidget->height() + 4 - ShadowMargin;
     }
 
     move(popupX, popupY);
@@ -263,10 +278,22 @@ void FeatureMenuBar::paintEvent(QPaintEvent *event) {
     // Calculate tight bounding box from first to last visible widget
     int left = m_titleLabel->geometry().left() - 8; // 8px padding
     int right = m_incrementBtn->geometry().right() + 8;
-    QRect contentRect(left, 1, right - left, height() - 3);
+    QRect contentRect(left, ShadowMargin + 1, right - left, ContentHeight - 3);
+
+    // Draw drop shadow (multiple layers for soft blur effect)
+    painter.setPen(Qt::NoPen);
+    const int shadowLayers = 8;
+    for (int i = shadowLayers; i > 0; --i) {
+        int blur = i * 2;
+        int alpha = 12 + (shadowLayers - i) * 3; // Darker toward center
+        QRect shadowRect = contentRect.adjusted(-blur, -blur, blur, blur);
+        shadowRect.translate(ShadowOffsetX, ShadowOffsetY);
+        painter.setBrush(QColor(0, 0, 0, alpha));
+        painter.drawRoundedRect(shadowRect, 8 + blur / 2, 8 + blur / 2);
+    }
 
     // Gradient background (matches ControlGroupWidget style)
-    QLinearGradient grad(0, 0, 0, height());
+    QLinearGradient grad(0, contentRect.top(), 0, contentRect.bottom());
     grad.setColorAt(0, QColor(74, 74, 74));
     grad.setColorAt(0.4, QColor(58, 58, 58));
     grad.setColorAt(0.6, QColor(53, 53, 53));
@@ -279,8 +306,8 @@ void FeatureMenuBar::paintEvent(QPaintEvent *event) {
 
     // Draw vertical delimiter lines between widget groups
     painter.setPen(QPen(QColor(96, 96, 96), 1));
-    int lineTop = 8;
-    int lineBottom = height() - 8;
+    int lineTop = contentRect.top() + 7;
+    int lineBottom = contentRect.bottom() - 7;
 
     // Helper to draw delimiter after a widget
     auto drawDelimiter = [&](QWidget *widget) {

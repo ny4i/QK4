@@ -127,3 +127,44 @@ label->setStyleSheet("font-size: 12px; font-weight: bold;");
 // Frequency/data display (explicit JetBrains Mono)
 label->setStyleSheet("font-family: 'JetBrains Mono', monospace; font-size: 32px;");
 ```
+
+## Popup & Button Styling
+
+HD-quality styling for Retina/4K displays.
+
+### Border Standards
+
+| Element | Border | Radius |
+|---------|--------|--------|
+| Buttons | `2px solid #606060` | 6px |
+| Popup background | None (painted) | 8px |
+
+### Shadow Constants
+
+All popups use manual 8-layer shadow drawing for soft blur effect:
+
+```cpp
+const int ShadowRadius = 16;               // Blur radius
+const int ShadowOffsetX = 2;               // Horizontal offset
+const int ShadowOffsetY = 4;               // Vertical offset
+const int ShadowMargin = ShadowRadius + 4; // Space for shadow (20px)
+```
+
+### Button Gradient (Normal State)
+
+```cpp
+background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+    stop:0 #4a4a4a,
+    stop:0.4 #3a3a3a,
+    stop:0.6 #353535,
+    stop:1 #2a2a2a);
+```
+
+### Popup Colors
+
+| Element | Color |
+|---------|-------|
+| Popup background | `#1e1e1e` (30, 30, 30) |
+| Indicator strip | `#555555` (85, 85, 85) |
+| Button border | `#606060` |
+| Button border (hover) | `#808080` |

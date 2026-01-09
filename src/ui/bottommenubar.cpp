@@ -76,8 +76,8 @@ QString BottomMenuBar::buttonStyleSheet() const {
                 stop:0.6 #353535,
                 stop:1 #2a2a2a);
             color: #FFFFFF;
-            border: 1px solid #606060;
-            border-radius: 5px;
+            border: 2px solid #606060;
+            border-radius: 6px;
             padding: 6px 12px;
             font-size: 12px;
             font-weight: bold;
@@ -88,7 +88,7 @@ QString BottomMenuBar::buttonStyleSheet() const {
                 stop:0.4 #4a4a4a,
                 stop:0.6 #454545,
                 stop:1 #3a3a3a);
-            border: 1px solid #808080;
+            border: 2px solid #808080;
         }
         QPushButton:pressed {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
@@ -96,7 +96,7 @@ QString BottomMenuBar::buttonStyleSheet() const {
                 stop:0.4 #353535,
                 stop:0.6 #3a3a3a,
                 stop:1 #4a4a4a);
-            border: 1px solid #909090;
+            border: 2px solid #909090;
         }
     )";
 }
@@ -107,8 +107,8 @@ QString BottomMenuBar::activeButtonStyleSheet() const {
         QPushButton {
             background: #FFFFFF;
             color: #666666;
-            border: 1px solid #AAAAAA;
-            border-radius: 5px;
+            border: 2px solid #AAAAAA;
+            border-radius: 6px;
             padding: 6px 12px;
             font-size: 12px;
             font-weight: bold;

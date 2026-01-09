@@ -134,14 +134,14 @@ void SideControlPanel::setupUi() {
     m_volumeSlider->setRange(0, 100);
     m_volumeSlider->setValue(RadioSettings::instance()->volume()); // Restore from settings (default 45%)
     m_volumeSlider->setStyleSheet("QSlider::groove:horizontal {"
-                                  "    border: 1px solid #333333;"
+                                  "    border: 2px solid #333333;"
                                   "    height: 6px;"
                                   "    background: #0d0d0d;"
                                   "    border-radius: 3px;"
                                   "}"
                                   "QSlider::handle:horizontal {"
                                   "    background: #00BFFF;"
-                                  "    border: 1px solid #00BFFF;"
+                                  "    border: 2px solid #00BFFF;"
                                   "    width: 14px;"
                                   "    margin: -4px 0;"
                                   "    border-radius: 7px;"
@@ -166,14 +166,14 @@ void SideControlPanel::setupUi() {
     m_subVolumeSlider->setRange(0, 100);
     m_subVolumeSlider->setValue(RadioSettings::instance()->subVolume()); // Restore from settings (default 45%)
     m_subVolumeSlider->setStyleSheet("QSlider::groove:horizontal {"
-                                     "    border: 1px solid #333333;"
+                                     "    border: 2px solid #333333;"
                                      "    height: 6px;"
                                      "    background: #0d0d0d;"
                                      "    border-radius: 3px;"
                                      "}"
                                      "QSlider::handle:horizontal {"
                                      "    background: #00FF00;"
-                                     "    border: 1px solid #00FF00;"
+                                     "    border: 2px solid #00FF00;"
                                      "    width: 14px;"
                                      "    margin: -4px 0;"
                                      "    border-radius: 7px;"
@@ -575,8 +575,8 @@ QPushButton *SideControlPanel::createIconButton(const QString &text) {
                 stop:0 #4a4a4a, stop:0.4 #3a3a3a,
                 stop:0.6 #353535, stop:1 #2a2a2a);
             color: #FFFFFF;
-            border: 1px solid #606060;
-            border-radius: 4px;
+            border: 2px solid #606060;
+            border-radius: 6px;
             font-size: 12px;
             font-weight: bold;
         }
@@ -584,13 +584,13 @@ QPushButton *SideControlPanel::createIconButton(const QString &text) {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                 stop:0 #5a5a5a, stop:0.4 #4a4a4a,
                 stop:0.6 #454545, stop:1 #3a3a3a);
-            border: 1px solid #808080;
+            border: 2px solid #808080;
         }
         QPushButton:pressed {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                 stop:0 #2a2a2a, stop:0.4 #353535,
                 stop:0.6 #3a3a3a, stop:1 #4a4a4a);
-            border: 1px solid #909090;
+            border: 2px solid #909090;
         }
     )");
     return btn;
@@ -615,8 +615,8 @@ QWidget *SideControlPanel::createTxFunctionButton(const QString &mainText, const
                 stop:0 #888888, stop:0.4 #777777,
                 stop:0.6 #6a6a6a, stop:1 #606060);
             color: #FFFFFF;
-            border: 1px solid #909090;
-            border-radius: 4px;
+            border: 2px solid #909090;
+            border-radius: 6px;
             font-size: 9px;
             font-weight: bold;
             padding: 2px 4px;
@@ -625,13 +625,13 @@ QWidget *SideControlPanel::createTxFunctionButton(const QString &mainText, const
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                 stop:0 #989898, stop:0.4 #878787,
                 stop:0.6 #7a7a7a, stop:1 #707070);
-            border: 1px solid #a0a0a0;
+            border: 2px solid #a0a0a0;
         }
         QPushButton:pressed {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                 stop:0 #606060, stop:0.4 #6a6a6a,
                 stop:0.6 #777777, stop:1 #888888);
-            border: 1px solid #b0b0b0;
+            border: 2px solid #b0b0b0;
         }
     )");
     btnOut = btn;
