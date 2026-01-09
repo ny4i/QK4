@@ -14,6 +14,7 @@
 #include "ui/optionsdialog.h"
 #include "ui/txmeterwidget.h"
 #include "ui/notificationwidget.h"
+#include "ui/vforowwidget.h"
 #include "models/menumodel.h"
 #include "dsp/panadapter_rhi.h"
 #include "dsp/minipan_rhi.h"
@@ -270,10 +271,69 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     // TX state changes -> switch VFO meters between S-meter (RX) and Po (TX) mode
+    // Also change TX indicator color to red when transmitting
     connect(m_radioState, &RadioState::transmitStateChanged, this, [this](bool transmitting) {
         // Both VFOs switch mode together - the active TX meter will show power
         m_vfoA->setTransmitting(transmitting);
         m_vfoB->setTransmitting(transmitting);
+
+        // TX indicator and triangles turn red when transmitting
+        QString color = transmitting ? "#FF0000" : K4Colors::VfoAAmber;
+        m_txIndicator->setStyleSheet(QString("color: %1; font-size: 18px; font-weight: bold;").arg(color));
+        m_txTriangle->setStyleSheet(QString("color: %1; font-size: 18px;").arg(color));
+        m_txTriangleB->setStyleSheet(QString("color: %1; font-size: 18px;").arg(color));
+    });
+
+    // SUB indicator - green when sub RX enabled, grey when off
+    // Also updates DIV indicator since DIV requires SUB to be on
+    connect(m_radioState, &RadioState::subRxEnabledChanged, this, [this](bool enabled) {
+        if (enabled) {
+            m_subLabel->setStyleSheet("background-color: #00FF00;"
+                                      "color: black;"
+                                      "font-size: 9px;"
+                                      "font-weight: bold;"
+                                      "border-radius: 2px;");
+            // If DIV is also on, light up the DIV indicator (handles timing when SB3 comes after DV1)
+            if (m_radioState->diversityEnabled()) {
+                m_divLabel->setStyleSheet("background-color: #00FF00;"
+                                          "color: black;"
+                                          "font-size: 9px;"
+                                          "font-weight: bold;"
+                                          "border-radius: 2px;");
+            }
+        } else {
+            m_subLabel->setStyleSheet("background-color: #444444;"
+                                      "color: #888888;"
+                                      "font-size: 9px;"
+                                      "font-weight: bold;"
+                                      "border-radius: 2px;");
+            // DIV requires SUB - turn off DIV indicator when SUB is off
+            m_divLabel->setStyleSheet("background-color: #444444;"
+                                      "color: #888888;"
+                                      "font-size: 9px;"
+                                      "font-weight: bold;"
+                                      "border-radius: 2px;");
+        }
+    });
+
+    // DIV indicator - green only when BOTH diversity AND sub RX are enabled
+    // (DIV requires SUB to be on - can't have DIV without SUB)
+    connect(m_radioState, &RadioState::diversityChanged, this, [this](bool enabled) {
+        // DIV only shows green if both diversity is enabled AND sub RX is enabled
+        bool showActive = enabled && m_radioState->subReceiverEnabled();
+        if (showActive) {
+            m_divLabel->setStyleSheet("background-color: #00FF00;"
+                                      "color: black;"
+                                      "font-size: 9px;"
+                                      "font-weight: bold;"
+                                      "border-radius: 2px;");
+        } else {
+            m_divLabel->setStyleSheet("background-color: #444444;"
+                                      "color: #888888;"
+                                      "font-size: 9px;"
+                                      "font-weight: bold;"
+                                      "border-radius: 2px;");
+        }
     });
 
     // NOTE: KPA1500 amplifier integration groundwork is in the KPA1500 section (after m_kpa1500Client creation)
@@ -1566,119 +1626,34 @@ void MainWindow::setupVfoSection(QWidget *parent) {
 
     // ===== Center Section =====
     auto *centerWidget = new QWidget(parent);
-    centerWidget->setFixedWidth(200);
+    centerWidget->setFixedWidth(310);
     centerWidget->setStyleSheet(QString("background-color: %1;").arg(K4Colors::Background));
     auto *centerLayout = new QVBoxLayout(centerWidget);
     centerLayout->setContentsMargins(4, 4, 4, 4);
     centerLayout->setSpacing(3);
 
-    // Row 1: [A + Mode] [triangle space] TX [triangle space] [B + Mode]
-    // Triangle moves between left and right side of TX based on split state
-    // Both sides have equal fixed-width spaces for symmetry
-    auto *txRow = new QHBoxLayout();
-    txRow->setSpacing(2);
+    // Row 1: VFO Row with absolute positioning for perfect TX centering
+    // Uses VfoRowWidget to position A, TX, B, SUB/DIV independently
+    m_vfoRow = new VfoRowWidget(centerWidget);
+    centerLayout->addWidget(m_vfoRow);
 
-    // A column: square + mode below (in fixed-width container for proper centering)
-    auto *vfoAContainer = new QWidget(centerWidget);
-    vfoAContainer->setFixedWidth(45); // Match mode label width for consistent centering
-    auto *vfoAColumn = new QVBoxLayout(vfoAContainer);
-    vfoAColumn->setContentsMargins(0, 0, 0, 0);
-    vfoAColumn->setSpacing(2);
+    // Get pointers to VfoRowWidget children for signal connections
+    m_vfoASquare = m_vfoRow->vfoASquare();
+    m_vfoBSquare = m_vfoRow->vfoBSquare();
+    m_modeALabel = m_vfoRow->modeALabel();
+    m_modeBLabel = m_vfoRow->modeBLabel();
+    m_txIndicator = m_vfoRow->txIndicator();
+    m_txTriangle = m_vfoRow->txTriangle();
+    m_txTriangleB = m_vfoRow->txTriangleB();
+    m_testLabel = m_vfoRow->testLabel();
+    m_subLabel = m_vfoRow->subLabel();
+    m_divLabel = m_vfoRow->divLabel();
 
-    m_vfoASquare = new QLabel("A", vfoAContainer);
-    m_vfoASquare->setFixedSize(30, 30);
-    m_vfoASquare->setAlignment(Qt::AlignCenter);
-    m_vfoASquare->setCursor(Qt::PointingHandCursor);
-    m_vfoASquare->setStyleSheet(
-        QString("background-color: %1; color: %2; font-size: 16px; font-weight: bold; border-radius: 4px;")
-            .arg(K4Colors::VfoBCyan, K4Colors::DarkBackground));
+    // Install event filters for clickable labels
     m_vfoASquare->installEventFilter(this);
-    vfoAColumn->addWidget(m_vfoASquare, 0, Qt::AlignHCenter);
-
-    m_modeALabel = new QLabel("USB", vfoAContainer);
-    m_modeALabel->setFixedWidth(45); // Wide enough for "DATA-R"
-    m_modeALabel->setAlignment(Qt::AlignCenter);
-    m_modeALabel->setCursor(Qt::PointingHandCursor);
-    m_modeALabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::TextWhite));
-    m_modeALabel->installEventFilter(this);
-    vfoAColumn->addWidget(m_modeALabel, 0, Qt::AlignHCenter);
-
-    txRow->addWidget(vfoAContainer);
-    txRow->addStretch();   // Push center elements away from A
-    txRow->addSpacing(15); // Extra spacing for filter UI room
-
-    // Center TX area container (TEST indicator above TX/triangles)
-    auto *txCenterContainer = new QWidget(centerWidget);
-    auto *txCenterVLayout = new QVBoxLayout(txCenterContainer);
-    txCenterVLayout->setContentsMargins(0, 0, 0, 0);
-    txCenterVLayout->setSpacing(0);
-
-    // TEST indicator - large red, hidden by default
-    m_testLabel = new QLabel("TEST", txCenterContainer);
-    m_testLabel->setAlignment(Qt::AlignCenter);
-    m_testLabel->setStyleSheet("color: #FF0000; font-size: 14px; font-weight: bold;");
-    m_testLabel->setVisible(false); // Hidden until test mode is enabled
-    txCenterVLayout->addWidget(m_testLabel);
-
-    // TX row (triangles + TX label)
-    auto *txIndicatorRow = new QHBoxLayout();
-    txIndicatorRow->setSpacing(0);
-
-    // Left triangle space - visible when split is OFF (pointing at A)
-    // Uses fixed size container to maintain space even when hidden
-    m_txTriangle = new QLabel("◀", txCenterContainer);
-    m_txTriangle->setFixedSize(24, 24);
-    m_txTriangle->setAlignment(Qt::AlignCenter);
-    m_txTriangle->setStyleSheet(QString("color: %1; font-size: 18px;").arg(K4Colors::VfoAAmber));
-    txIndicatorRow->addWidget(m_txTriangle);
-
-    // TX indicator in orange
-    m_txIndicator = new QLabel("TX", txCenterContainer);
-    m_txIndicator->setStyleSheet(QString("color: %1; font-size: 18px; font-weight: bold;").arg(K4Colors::VfoAAmber));
-    txIndicatorRow->addWidget(m_txIndicator);
-
-    // Right triangle space - visible when split is ON (pointing at B)
-    // Uses fixed size container to maintain space even when hidden
-    m_txTriangleB = new QLabel("", txCenterContainer); // Empty by default
-    m_txTriangleB->setFixedSize(24, 24);
-    m_txTriangleB->setAlignment(Qt::AlignCenter);
-    m_txTriangleB->setStyleSheet(QString("color: %1; font-size: 18px;").arg(K4Colors::VfoAAmber));
-    txIndicatorRow->addWidget(m_txTriangleB);
-
-    txCenterVLayout->addLayout(txIndicatorRow);
-    txRow->addWidget(txCenterContainer);
-    txRow->addSpacing(15); // Extra spacing for filter UI room
-    txRow->addStretch();   // Push center elements away from B
-
-    // B column: square + mode below (in fixed-width container for proper centering)
-    auto *vfoBContainer = new QWidget(centerWidget);
-    vfoBContainer->setFixedWidth(45); // Match mode label width for consistent centering
-    auto *vfoBColumn = new QVBoxLayout(vfoBContainer);
-    vfoBColumn->setContentsMargins(0, 0, 0, 0);
-    vfoBColumn->setSpacing(2);
-
-    m_vfoBSquare = new QLabel("B", vfoBContainer);
-    m_vfoBSquare->setFixedSize(30, 30);
-    m_vfoBSquare->setAlignment(Qt::AlignCenter);
-    m_vfoBSquare->setCursor(Qt::PointingHandCursor);
-    m_vfoBSquare->setStyleSheet(
-        QString("background-color: %1; color: %2; font-size: 16px; font-weight: bold; border-radius: 4px;")
-            .arg(K4Colors::AgcGreen, K4Colors::DarkBackground));
     m_vfoBSquare->installEventFilter(this);
-    vfoBColumn->addWidget(m_vfoBSquare, 0, Qt::AlignHCenter);
-
-    m_modeBLabel = new QLabel("USB", vfoBContainer);
-    m_modeBLabel->setFixedWidth(45); // Wide enough for "DATA-R"
-    m_modeBLabel->setAlignment(Qt::AlignCenter);
-    m_modeBLabel->setCursor(Qt::PointingHandCursor);
-    m_modeBLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::TextWhite));
+    m_modeALabel->installEventFilter(this);
     m_modeBLabel->installEventFilter(this);
-    vfoBColumn->addWidget(m_modeBLabel, 0, Qt::AlignHCenter);
-
-    txRow->addWidget(vfoBContainer);
-
-    txRow->setAlignment(Qt::AlignCenter);
-    centerLayout->addLayout(txRow);
 
     // SPLIT indicator
     m_splitLabel = new QLabel("SPLIT OFF", centerWidget);
@@ -3261,10 +3236,10 @@ void MainWindow::openMacroDialog() {
         // Close any open popups first
         closeAllPopups();
 
-        // Size to fill the main content area (same as menu overlay)
-        if (m_panadapterA) {
-            QPoint pos = m_panadapterA->mapTo(this, QPoint(0, 0));
-            m_macroDialog->setGeometry(pos.x(), pos.y(), m_panadapterA->width(), m_panadapterA->height());
+        // Size to fill the spectrum container (same as menu overlay)
+        if (m_spectrumContainer) {
+            QPoint pos = m_spectrumContainer->mapTo(this, QPoint(0, 0));
+            m_macroDialog->setGeometry(pos.x(), pos.y(), m_spectrumContainer->width(), m_spectrumContainer->height());
         }
 
         m_macroDialog->show();

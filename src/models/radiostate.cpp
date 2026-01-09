@@ -596,8 +596,9 @@ void RadioState::parseCATCommand(const QString &command) {
         }
     }
     // Sub Receiver (SB)
+    // SB0 = off, SB1 = on (standalone), SB3 = on (for diversity)
     else if (cmd.startsWith("SB") && cmd.length() > 2) {
-        bool newState = (cmd.mid(2) == "1");
+        bool newState = (cmd.mid(2) != "0"); // Any non-zero value means SUB is enabled
         if (newState != m_subReceiverEnabled) {
             m_subReceiverEnabled = newState;
             emit subRxEnabledChanged(m_subReceiverEnabled);

@@ -35,6 +35,7 @@ class TxMeterWidget;
 class KPA1500Client;
 class CatServer;
 class NotificationWidget;
+class VfoRowWidget;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -176,7 +177,10 @@ private:
     QLabel *m_rxAntALabel;
     QLabel *m_rxAntBLabel;
 
-    // Center section
+    // Center section - first row with absolute positioning
+    VfoRowWidget *m_vfoRow;
+
+    // Center section labels (pointers to VfoRowWidget children)
     QLabel *m_vfoASquare;
     QLabel *m_txTriangle;  // Left triangle (pointing at A) - shown when split OFF
     QLabel *m_txTriangleB; // Right triangle (pointing at B) - shown when split ON
@@ -184,6 +188,8 @@ private:
     QLabel *m_vfoBSquare;
     QLabel *m_splitLabel;
     QLabel *m_bSetLabel;
+    QLabel *m_subLabel; // SUB indicator (green when sub RX enabled)
+    QLabel *m_divLabel; // DIV indicator (green when diversity enabled)
     QLabel *m_msgBankLabel;
     QWidget *m_ritXitBox;
     QLabel *m_ritLabel;
