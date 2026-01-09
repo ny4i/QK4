@@ -860,9 +860,9 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
                 secLowFreq = center - m_secondaryFilterBw / 2;
                 secHighFreq = center + m_secondaryFilterBw / 2;
             } else {
-                qint64 center = m_secondaryTunedFreq + secShiftOffsetHz;
-                secLowFreq = center - m_secondaryFilterBw / 2;
-                secHighFreq = center + m_secondaryFilterBw / 2;
+                // AM/FM - symmetric around carrier (both sidebands, no IF shift)
+                secLowFreq = m_secondaryTunedFreq - m_secondaryFilterBw / 2;
+                secHighFreq = m_secondaryTunedFreq + m_secondaryFilterBw / 2;
             }
 
             float secX1 = freqToNormalized(secLowFreq) * w;
@@ -982,10 +982,9 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
                 lowFreq = center - m_filterBw / 2;
                 highFreq = center + m_filterBw / 2;
             } else {
-                // AM/FM - symmetric around tuned freq + shift
-                qint64 center = m_tunedFreq + shiftOffsetHz;
-                lowFreq = center - m_filterBw / 2;
-                highFreq = center + m_filterBw / 2;
+                // AM/FM - symmetric around carrier (both sidebands, no IF shift)
+                lowFreq = m_tunedFreq - m_filterBw / 2;
+                highFreq = m_tunedFreq + m_filterBw / 2;
             }
 
             // Convert to pixel coordinates
