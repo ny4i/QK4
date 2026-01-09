@@ -85,6 +85,7 @@ set(SOURCES
     src/ui/micmeterwidget.cpp
     src/ui/vfowidget.cpp
     src/ui/vforowwidget.cpp
+    src/ui/filterindicatorwidget.cpp
     src/ui/bandpopupwidget.cpp
     src/ui/buttonrowpopup.cpp
     src/ui/displaypopupwidget.cpp
@@ -122,6 +123,7 @@ set(HEADERS
     src/ui/micmeterwidget.h
     src/ui/vfowidget.h
     src/ui/vforowwidget.h
+    src/ui/filterindicatorwidget.h
     src/ui/bandpopupwidget.h
     src/ui/buttonrowpopup.h
     src/ui/displaypopupwidget.h

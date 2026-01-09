@@ -15,6 +15,7 @@
 #include "ui/txmeterwidget.h"
 #include "ui/notificationwidget.h"
 #include "ui/vforowwidget.h"
+#include "ui/filterindicatorwidget.h"
 #include "models/menumodel.h"
 #include "dsp/panadapter_rhi.h"
 #include "dsp/minipan_rhi.h"
@@ -407,9 +408,22 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Filter position indicators
     connect(m_radioState, &RadioState::filterPositionChanged, this,
-            [this](int pos) { m_filterALabel->setText(QString("FIL%1").arg(pos)); });
+            [this](int pos) { m_filterAWidget->setFilterPosition(pos); });
     connect(m_radioState, &RadioState::filterPositionBChanged, this,
-            [this](int pos) { m_filterBLabel->setText(QString("FIL%1").arg(pos)); });
+            [this](int pos) { m_filterBWidget->setFilterPosition(pos); });
+
+    // Filter bandwidth and shift → FilterIndicatorWidget shape
+    connect(m_radioState, &RadioState::filterBandwidthChanged, this,
+            [this](int bw) { m_filterAWidget->setBandwidth(bw); });
+    connect(m_radioState, &RadioState::filterBandwidthBChanged, this,
+            [this](int bw) { m_filterBWidget->setBandwidth(bw); });
+    connect(m_radioState, &RadioState::ifShiftChanged, this, [this](int shift) { m_filterAWidget->setShift(shift); });
+    connect(m_radioState, &RadioState::ifShiftBChanged, this, [this](int shift) { m_filterBWidget->setShift(shift); });
+    // Mode affects filter indicator shift center calculation
+    connect(m_radioState, &RadioState::modeChanged, this,
+            [this](RadioState::Mode mode) { m_filterAWidget->setMode(RadioState::modeToString(mode)); });
+    connect(m_radioState, &RadioState::modeBChanged, this,
+            [this](RadioState::Mode mode) { m_filterBWidget->setMode(RadioState::modeToString(mode)); });
 
     // RadioState signals -> Processing state updates (AGC, PRE, ATT, NB, NR)
     connect(m_radioState, &RadioState::processingChanged, this, &MainWindow::onProcessingChanged);
@@ -1723,19 +1737,10 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     filterRitXitRow->setContentsMargins(0, 0, 0, 0);
     filterRitXitRow->setSpacing(0);
 
-    // VFO A filter indicator (left side, 45px to match A square above)
-    auto *filterAContainer = new QWidget(centerWidget);
-    filterAContainer->setFixedWidth(45);
-    auto *filterALayout = new QVBoxLayout(filterAContainer);
-    filterALayout->setContentsMargins(0, 0, 0, 0);
-    filterALayout->setSpacing(0);
-
-    m_filterALabel = new QLabel("FIL2", filterAContainer);
-    m_filterALabel->setAlignment(Qt::AlignCenter);
-    m_filterALabel->setStyleSheet("color: #FFD040; font-size: 10px; font-weight: bold;");
-    filterALayout->addWidget(m_filterALabel);
-
-    filterRitXitRow->addWidget(filterAContainer);
+    // VFO A filter indicator (left side, cyan #00BFFF to match VFO A square/slider)
+    m_filterAWidget = new FilterIndicatorWidget(centerWidget);
+    m_filterAWidget->setShapeColor(QColor(0x00, 0xBF, 0xFF), QColor(0x00, 0xBF, 0xFF)); // Cyan solid
+    filterRitXitRow->addWidget(m_filterAWidget);
     filterRitXitRow->addStretch();
 
     // RIT/XIT box (centered)
@@ -1743,19 +1748,10 @@ void MainWindow::setupVfoSection(QWidget *parent) {
 
     filterRitXitRow->addStretch();
 
-    // VFO B filter indicator (right side, 45px to match B square above)
-    auto *filterBContainer = new QWidget(centerWidget);
-    filterBContainer->setFixedWidth(45);
-    auto *filterBLayout = new QVBoxLayout(filterBContainer);
-    filterBLayout->setContentsMargins(0, 0, 0, 0);
-    filterBLayout->setSpacing(0);
-
-    m_filterBLabel = new QLabel("FIL2", filterBContainer);
-    m_filterBLabel->setAlignment(Qt::AlignCenter);
-    m_filterBLabel->setStyleSheet("color: #FFD040; font-size: 10px; font-weight: bold;");
-    filterBLayout->addWidget(m_filterBLabel);
-
-    filterRitXitRow->addWidget(filterBContainer);
+    // VFO B filter indicator (right side, green #00FF00 to match VFO B square/slider)
+    m_filterBWidget = new FilterIndicatorWidget(centerWidget);
+    m_filterBWidget->setShapeColor(QColor(0x00, 0xFF, 0x00), QColor(0x00, 0xFF, 0x00)); // Green solid
+    filterRitXitRow->addWidget(m_filterBWidget);
 
     centerLayout->addLayout(filterRitXitRow);
 

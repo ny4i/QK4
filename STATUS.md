@@ -25,6 +25,7 @@ Current implementation state of K4Controller (January 2026).
 - **Clickable VFO squares**: Open mode popup targeting A or B
 - **Memory buttons**: M1-M4, REC, STORE, RCL
 - **SUB/DIV indicators**: LED-style indicators next to VFO B (DIV only lights when both SUB and DIV are enabled)
+- **Filter indicator**: Visual bandwidth shape (triangle→trapezoid) with mode-aware shift positioning (VFO A=cyan, VFO B=green)
 
 ### Panadapter
 - Spectrum styles: Blue gradient, BlueAmplitude (LUT-based)

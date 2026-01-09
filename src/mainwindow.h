@@ -28,6 +28,7 @@ class ButtonRowPopup;
 class DisplayPopupWidget;
 class FnPopupWidget;
 class MacroDialog;
+class FilterIndicatorWidget;
 class FeatureMenuBar;
 class ModePopupWidget;
 class KpodDevice;
@@ -196,8 +197,8 @@ private:
     QLabel *m_xitLabel;
     QLabel *m_ritXitValueLabel;
     QLabel *m_atuLabel;
-    QLabel *m_filterALabel; // VFO A filter position (FIL1/FIL2/FIL3)
-    QLabel *m_filterBLabel; // VFO B filter position (FIL1/FIL2/FIL3)
+    FilterIndicatorWidget *m_filterAWidget; // VFO A filter indicator
+    FilterIndicatorWidget *m_filterBWidget; // VFO B filter indicator
 
     // Memory buttons (M1-M4, REC, STORE, RCL)
     QPushButton *m_m1Btn;
