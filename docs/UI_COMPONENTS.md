@@ -637,7 +637,10 @@ RadioManagerDialog::connectRequested → MainWindow::connectToRadio
 
 ## Stylesheets
 
-### Common Button Style
+> **DEPRECATED:** Use `K4Styles` functions from `src/ui/k4styles.h` instead of inline CSS.
+> See `src/ui/CLAUDE.md` → "Creating New Popups" and `PATTERNS.md` → "Adding a Popup Menu" for current patterns.
+
+### Common Button Style (Legacy Reference)
 
 ```css
 QPushButton {

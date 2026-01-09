@@ -143,8 +143,7 @@ private:
 #include <QScreen>
 
 namespace {
-// Copy these constants from bandpopupwidget.cpp or buttonrowpopup.cpp
-const QColor IndicatorColor(85, 85, 85);
+// Layout constants - adjust these for your popup's specific dimensions
 const int ButtonWidth = 70;
 const int ButtonHeight = 44;
 const int ButtonSpacing = 8;
@@ -152,10 +151,15 @@ const int ContentMargin = 12;
 const int TriangleWidth = 24;
 const int TriangleHeight = 12;
 const int BottomStripHeight = 8;
-const int ShadowRadius = 16;
-const int ShadowOffsetX = 2;
-const int ShadowOffsetY = 4;
-const int ShadowMargin = ShadowRadius + 4;
+
+// Use K4Styles::Dimensions for shadow constants:
+using K4Styles::Dimensions::ShadowRadius;
+using K4Styles::Dimensions::ShadowOffsetX;
+using K4Styles::Dimensions::ShadowOffsetY;
+using K4Styles::Dimensions::ShadowMargin;
+
+// Colors - use values from K4Styles::Colors namespace
+const QColor IndicatorColor(85, 85, 85);  // K4Styles::Colors::IndicatorStrip = #555555
 }
 
 MyPopup::MyPopup(QWidget *parent) : QWidget(parent), m_triangleXOffset(0) {
