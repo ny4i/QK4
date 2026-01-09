@@ -12,6 +12,7 @@ Current implementation state of K4Controller (January 2026).
 - **Dual-channel audio mixing**: MAIN volume (left), SUB volume (right)
 - Opus audio decoding and playback
 - Server manager dialog with TLS checkbox and PSK field
+- **HD fonts**: Inter (UI) + JetBrains Mono (frequency/data) for crisp rendering
 
 ### VFO Display
 - **Tuning rate indicator**: White underline below frequency digit

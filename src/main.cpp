@@ -2,6 +2,7 @@
 #include <QDebug>
 #include <QSysInfo>
 #include <QGuiApplication>
+#include <QFontDatabase>
 #include <rhi/qrhi.h>
 #ifdef Q_OS_MACOS
 #include <QtGui/private/qguiapplication_p.h>
@@ -11,6 +12,42 @@
 #include <QFileInfo>
 #endif
 #include "mainwindow.h"
+
+// Load embedded fonts and set application defaults
+void setupFonts() {
+    // Load Inter font family (screen-optimized sans-serif)
+    int interRegular = QFontDatabase::addApplicationFont(":/fonts/Inter-Regular.ttf");
+    int interMedium = QFontDatabase::addApplicationFont(":/fonts/Inter-Medium.ttf");
+    int interSemiBold = QFontDatabase::addApplicationFont(":/fonts/Inter-SemiBold.ttf");
+    int interBold = QFontDatabase::addApplicationFont(":/fonts/Inter-Bold.ttf");
+
+    // Load JetBrains Mono (crisp monospace for frequency/data display)
+    int monoRegular = QFontDatabase::addApplicationFont(":/fonts/JetBrainsMono-Regular.ttf");
+    int monoMedium = QFontDatabase::addApplicationFont(":/fonts/JetBrainsMono-Medium.ttf");
+    int monoBold = QFontDatabase::addApplicationFont(":/fonts/JetBrainsMono-Bold.ttf");
+
+    // Verify fonts loaded
+    if (interRegular < 0 || interMedium < 0) {
+        qWarning() << "Failed to load Inter font - using system default";
+    } else {
+        qDebug() << "Loaded Inter font family";
+    }
+
+    if (monoRegular < 0) {
+        qWarning() << "Failed to load JetBrains Mono - using system monospace";
+    } else {
+        qDebug() << "Loaded JetBrains Mono font family";
+    }
+
+    // Set Inter Medium as the default application font (crisper than Regular)
+    QFont defaultFont("Inter", 11);
+    defaultFont.setWeight(QFont::Medium);
+    defaultFont.setHintingPreference(QFont::PreferFullHinting);
+    defaultFont.setStyleStrategy(QFont::PreferAntialias);
+    QApplication::setFont(defaultFont);
+
+    qDebug() << "Default font set to:" << defaultFont.family() << defaultFont.pointSize() << "pt";
+}
 
 int main(int argc, char *argv[]) {
 #ifdef Q_OS_MACOS
@@ -55,11 +92,17 @@ int main(int argc, char *argv[]) {
     }
 #endif
 
+    // Enable HiDPI scaling for crisp rendering on Retina/4K displays
+    QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
+
     QApplication app(argc, argv);
     app.setApplicationName("K4Controller");
     app.setApplicationVersion(K4CONTROLLER_VERSION);
     app.setOrganizationName("AI5QK");
     app.setOrganizationDomain("ai5qk.com");
+
+    // Load embedded fonts (Inter + JetBrains Mono)
+    setupFonts();
 
     // Debug: System info
     qDebug() << "=== K4Controller Startup ===";

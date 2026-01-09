@@ -32,7 +32,8 @@ void VFOWidget::setupUi() {
     auto *freqRow = new QHBoxLayout();
     m_frequencyLabel = new QLabel("---.---.---", this);
     m_frequencyLabel->setStyleSheet(
-        QString("color: %1; font-size: 32px; font-weight: bold; font-family: 'Courier New', monospace;")
+        QString(
+            "color: %1; font-size: 32px; font-weight: bold; font-family: 'JetBrains Mono', 'Courier New', monospace;")
             .arg(K4Colors::TextWhite));
     m_frequencyLabel->setFixedHeight(40);
 

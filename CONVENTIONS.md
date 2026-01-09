@@ -97,3 +97,33 @@ namespace K4Colors {
 - **Main Panadapter Line**: Lime green `#32FF32` with gradient fill
 - **Mini-Pan Line**: Amber `#FFB000`
 - **Waterfall**: 8-stage LUT (Black → Blue → Cyan → Green → Yellow → Red)
+
+## Fonts
+
+Embedded HD fonts for crisp rendering on Retina/4K displays.
+
+| Font | Type | Usage |
+|------|------|-------|
+| **Inter** | Sans-serif | Default UI font (Medium weight, 11pt) |
+| **JetBrains Mono** | Monospace | Frequency display, CAT commands |
+
+### Font Sizes
+
+| Size | Usage |
+|------|-------|
+| 32px | VFO frequency display |
+| 18px | TX indicator |
+| 14px | Title, RIT/XIT value |
+| 12px | Status bar labels |
+| 11px | Mode labels, indicators |
+| 9-10px | Small indicators, mini-pan |
+
+### Stylesheet Usage
+
+```cpp
+// UI text (uses Inter automatically via QApplication::setFont)
+label->setStyleSheet("font-size: 12px; font-weight: bold;");
+
+// Frequency/data display (explicit JetBrains Mono)
+label->setStyleSheet("font-family: 'JetBrains Mono', monospace; font-size: 32px;");
+```

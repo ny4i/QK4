@@ -57,15 +57,15 @@ MacroItemWidget::MacroItemWidget(const QString &functionId, const QString &displ
     // Column 3: CAT Command (editable) - 33.3% width
     m_commandDisplay = new QLabel("", this);
     m_commandDisplay->setStyleSheet(
-        "color: #888888; font-size: 13px; font-family: 'Menlo', 'Consolas', 'Courier New';");
+        "color: #888888; font-size: 13px; font-family: 'JetBrains Mono', 'Menlo', 'Consolas', monospace;");
     m_commandDisplay->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     layout->addWidget(m_commandDisplay, 1); // stretch factor 1
 
     m_commandEdit = new QLineEdit(this);
     m_commandEdit->setMaxLength(64);
-    m_commandEdit->setStyleSheet(
-        "QLineEdit { background: #333; color: white; border: 1px solid #666; "
-        "border-radius: 3px; padding: 2px 5px; font-size: 13px; font-family: 'Menlo', 'Consolas', 'Courier New'; }");
+    m_commandEdit->setStyleSheet("QLineEdit { background: #333; color: white; border: 1px solid #666; "
+                                 "border-radius: 3px; padding: 2px 5px; font-size: 13px; font-family: 'JetBrains "
+                                 "Mono', 'Menlo', 'Consolas', monospace; }");
     m_commandEdit->hide();
     connect(m_commandEdit, &QLineEdit::editingFinished, this, &MacroItemWidget::finishEditing);
     layout->addWidget(m_commandEdit, 1); // stretch factor 1
@@ -117,7 +117,7 @@ void MacroItemWidget::setSelected(bool selected) {
         m_functionLabel->setStyleSheet("color: #FFFFFF; font-size: 13px; font-weight: bold;");
         m_labelDisplay->setStyleSheet("color: #FFFFFF; font-size: 13px;");
         m_commandDisplay->setStyleSheet(
-            "color: #FFFFFF; font-size: 13px; font-family: 'Menlo', 'Consolas', 'Courier New';");
+            "color: #FFFFFF; font-size: 13px; font-family: 'JetBrains Mono', 'Menlo', 'Consolas', monospace;");
     } else {
         // Grey text on dark background
         m_functionLabel->setStyleSheet("color: #AAAAAA; font-size: 13px;");
