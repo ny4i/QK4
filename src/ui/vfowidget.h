@@ -53,6 +53,9 @@ public:
     // Access to mini-pan (may return nullptr if not yet created)
     MiniPanRhiWidget *miniPan() const { return m_miniPan; }
 
+    // Access to frequency label for styling (e.g., dimming when SUB RX off)
+    QLabel *frequencyLabel() const { return m_frequencyLabel; }
+
     // Get type
     VFOType type() const { return m_type; }
 

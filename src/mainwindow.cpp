@@ -305,6 +305,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     // SUB indicator - green when sub RX enabled, grey when off
     // Also updates DIV indicator since DIV requires SUB to be on
+    // Also dims VFO B frequency and mode labels when SUB RX is off
     connect(m_radioState, &RadioState::subRxEnabledChanged, this, [this](bool enabled) {
         if (enabled) {
             m_subLabel->setStyleSheet("background-color: #00FF00;"
@@ -320,6 +321,10 @@ MainWindow::MainWindow(QWidget *parent)
                                           "font-weight: bold;"
                                           "border-radius: 2px;");
             }
+            // Restore VFO B frequency and mode to normal white
+            m_vfoB->frequencyLabel()->setStyleSheet("color: #FFFFFF; font-size: 32px; font-weight: bold; "
+                                                    "font-family: 'JetBrains Mono', 'Courier New', monospace;");
+            m_modeBLabel->setStyleSheet("color: #FFFFFF; font-size: 11px; font-weight: bold;");
         } else {
             m_subLabel->setStyleSheet("background-color: #444444;"
                                       "color: #888888;"
@@ -332,6 +337,10 @@ MainWindow::MainWindow(QWidget *parent)
                                       "font-size: 9px;"
                                       "font-weight: bold;"
                                       "border-radius: 2px;");
+            // Dim VFO B frequency and mode to indicate SUB RX is off
+            m_vfoB->frequencyLabel()->setStyleSheet("color: #666666; font-size: 32px; font-weight: bold; "
+                                                    "font-family: 'JetBrains Mono', 'Courier New', monospace;");
+            m_modeBLabel->setStyleSheet("color: #666666; font-size: 11px; font-weight: bold;");
         }
     });
 

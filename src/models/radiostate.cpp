@@ -635,12 +635,10 @@ void RadioState::parseCATCommand(const QString &command) {
     }
     // Sub Receiver (SB)
     // SB0 = off, SB1 = on (standalone), SB3 = on (for diversity)
+    // Always emit to ensure UI syncs on initial connect (can't use -1 trick for bools)
     else if (cmd.startsWith("SB") && cmd.length() > 2) {
-        bool newState = (cmd.mid(2) != "0"); // Any non-zero value means SUB is enabled
-        if (newState != m_subReceiverEnabled) {
-            m_subReceiverEnabled = newState;
-            emit subRxEnabledChanged(m_subReceiverEnabled);
-        }
+        m_subReceiverEnabled = (cmd.mid(2) != "0"); // Any non-zero value means SUB is enabled
+        emit subRxEnabledChanged(m_subReceiverEnabled);
     }
     // Diversity (DV)
     else if (cmd.startsWith("DV") && cmd.length() > 2) {
