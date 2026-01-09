@@ -6,6 +6,7 @@
 #include <QScreen>
 #include <QHideEvent>
 #include <QKeyEvent>
+#include <QWheelEvent>
 
 namespace {
 // Shadow constants
@@ -169,6 +170,15 @@ void FeatureMenuBar::keyPressEvent(QKeyEvent *event) {
     } else {
         QWidget::keyPressEvent(event);
     }
+}
+
+void FeatureMenuBar::wheelEvent(QWheelEvent *event) {
+    if (event->angleDelta().y() > 0) {
+        emit incrementRequested(); // Scroll up = increase
+    } else if (event->angleDelta().y() < 0) {
+        emit decrementRequested(); // Scroll down = decrease
+    }
+    event->accept();
 }
 
 void FeatureMenuBar::updateForFeature() {

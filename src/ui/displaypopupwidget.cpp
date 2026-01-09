@@ -5,6 +5,7 @@
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QMouseEvent>
+#include <QWheelEvent>
 #include <QHideEvent>
 #include <QApplication>
 #include <QScreen>
@@ -288,6 +289,15 @@ void ControlGroupWidget::mousePressEvent(QMouseEvent *event) {
             emit incrementClicked();
         }
     }
+}
+
+void ControlGroupWidget::wheelEvent(QWheelEvent *event) {
+    if (event->angleDelta().y() > 0) {
+        emit incrementClicked(); // Scroll up = increase
+    } else if (event->angleDelta().y() < 0) {
+        emit decrementClicked(); // Scroll down = decrease
+    }
+    event->accept();
 }
 
 // ============================================================================
