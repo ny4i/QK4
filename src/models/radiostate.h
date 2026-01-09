@@ -191,9 +191,11 @@ public:
     // Audio Effects (FX command)
     int afxMode() const { return m_afxMode; } // 0=off, 1=delay, 2=pitch-map
 
-    // Audio Peak Filter (AP$ command, CW mode only)
-    bool apfEnabled() const { return m_apfEnabled; }
-    int apfBandwidth() const { return m_apfBandwidth; } // 0=30Hz, 1=50Hz, 2=150Hz
+    // Audio Peak Filter (AP/AP$ commands, CW mode only)
+    bool apfEnabled() const { return m_apfEnabled; }      // Main RX
+    int apfBandwidth() const { return m_apfBandwidth; }   // Main RX: 0=30Hz, 1=50Hz, 2=150Hz
+    bool apfEnabledB() const { return m_apfEnabledB; }    // Sub RX
+    int apfBandwidthB() const { return m_apfBandwidthB; } // Sub RX: 0=30Hz, 1=50Hz, 2=150Hz
 
     // VFO Link (LN command)
     bool vfoLink() const { return m_vfoLink; }
@@ -394,9 +396,10 @@ signals:
     void errorNotificationReceived(int errorCode, const QString &message);
 
     // Audio effects and processing
-    void afxModeChanged(int mode);            // FX: 0=off, 1=delay, 2=pitch-map
-    void apfChanged(bool enabled, int width); // AP$: enabled + width (0=30Hz, 1=50Hz, 2=150Hz)
-    void vfoLinkChanged(bool linked);         // LN: VFOs linked
+    void afxModeChanged(int mode);             // FX: 0=off, 1=delay, 2=pitch-map
+    void apfChanged(bool enabled, int width);  // AP: Main RX APF (0=30Hz, 1=50Hz, 2=150Hz)
+    void apfBChanged(bool enabled, int width); // AP$: Sub RX APF (0=30Hz, 1=50Hz, 2=150Hz)
+    void vfoLinkChanged(bool linked);          // LN: VFOs linked
 
     void stateUpdated();
 
@@ -522,9 +525,11 @@ private:
     // Audio effects (FX command)
     int m_afxMode = 0; // 0=off, 1=delay, 2=pitch-map
 
-    // Audio Peak Filter (AP$ command, CW mode only)
-    bool m_apfEnabled = false;
-    int m_apfBandwidth = 0; // 0=30Hz, 1=50Hz, 2=150Hz
+    // Audio Peak Filter (AP/AP$ commands, CW mode only)
+    bool m_apfEnabled = false;  // Main RX
+    int m_apfBandwidth = 0;     // Main RX: 0=30Hz, 1=50Hz, 2=150Hz
+    bool m_apfEnabledB = false; // Sub RX
+    int m_apfBandwidthB = 0;    // Sub RX: 0=30Hz, 1=50Hz, 2=150Hz
 
     // VFO Link (LN command)
     bool m_vfoLink = false;

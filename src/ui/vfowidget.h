@@ -29,6 +29,7 @@ public:
     void setNB(bool on);
     void setNR(bool on);
     void setNotch(bool autoEnabled, bool manualEnabled);
+    void setApf(bool enabled, int bandwidth); // APF: 0=30Hz, 1=50Hz, 2=150Hz
 
     // TX Meter support (multifunction meter - S/Po, ALC, COMP, SWR, Id)
     void setTransmitting(bool isTx); // Switch meter between RX (S-meter) and TX (Po) mode
@@ -86,6 +87,7 @@ private:
     QLabel *m_nbLabel;
     QLabel *m_nrLabel;
     QLabel *m_ntchLabel;
+    QLabel *m_apfLabel;
 
     // Stacked widget for normal/mini-pan toggle
     QStackedWidget *m_stackedWidget;

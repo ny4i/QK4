@@ -499,12 +499,30 @@ void RadioState::parseCATCommand(const QString &command) {
             emit afxModeChanged(m_afxMode);
         }
     }
-    // Audio Peak Filter (AP$) - AP$mb where m=enabled(0/1), b=bandwidth(0/1/2)
+    // Audio Peak Filter - Sub RX (AP$) - AP$mb where m=enabled(0/1), b=bandwidth(0/1/2)
+    // Must check AP$ BEFORE AP to avoid AP$ matching AP prefix
     else if (cmd.startsWith("AP$") && cmd.length() >= 5) {
         bool ok;
         int m = cmd.mid(3, 1).toInt(&ok);
         if (ok) {
             int b = cmd.mid(4, 1).toInt(&ok);
+            if (ok) {
+                bool enabled = (m == 1);
+                int bandwidth = qBound(0, b, 2);
+                if (enabled != m_apfEnabledB || bandwidth != m_apfBandwidthB) {
+                    m_apfEnabledB = enabled;
+                    m_apfBandwidthB = bandwidth;
+                    emit apfBChanged(m_apfEnabledB, m_apfBandwidthB);
+                }
+            }
+        }
+    }
+    // Audio Peak Filter - Main RX (AP) - APmb where m=enabled(0/1), b=bandwidth(0/1/2)
+    else if (cmd.startsWith("AP") && cmd.length() >= 4) {
+        bool ok;
+        int m = cmd.mid(2, 1).toInt(&ok);
+        if (ok) {
+            int b = cmd.mid(3, 1).toInt(&ok);
             if (ok) {
                 bool enabled = (m == 1);
                 int bandwidth = qBound(0, b, 2);

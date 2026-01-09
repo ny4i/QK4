@@ -170,14 +170,8 @@ void ButtonRowPopup::setupUi() {
         auto *btn = new RxMenuButton(QString::number(i + 1), QString(), this);
         btn->setProperty("buttonIndex", i);
 
-        connect(btn, &RxMenuButton::clicked, this, [this, i]() {
-            emit buttonClicked(i);
-            hidePopup();
-        });
-        connect(btn, &RxMenuButton::rightClicked, this, [this, i]() {
-            emit buttonRightClicked(i);
-            hidePopup();
-        });
+        connect(btn, &RxMenuButton::clicked, this, [this, i]() { emit buttonClicked(i); });
+        connect(btn, &RxMenuButton::rightClicked, this, [this, i]() { emit buttonRightClicked(i); });
 
         m_buttons.append(btn);
         rowLayout->addWidget(btn);

@@ -53,12 +53,12 @@ void VFOWidget::setupUi() {
     // Use Maximum horizontal policy so it doesn't expand beyond content width
     m_stackedWidget = new QStackedWidget(this);
     m_stackedWidget->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
-    m_stackedWidget->setMaximumWidth(200);
+    m_stackedWidget->setMaximumWidth(230); // Wider to fit APF-xxx indicator
 
     // Page 0: Normal content (multifunction meter + features)
     // Height must match MiniPanRhiWidget (110px) to prevent layout shift when toggling
     m_normalContent = new QWidget(m_stackedWidget);
-    m_normalContent->setFixedSize(200, 110);
+    m_normalContent->setFixedSize(230, 110); // Wider to fit APF-xxx indicator
     auto *normalLayout = new QVBoxLayout(m_normalContent);
     normalLayout->setContentsMargins(0, 0, 0, 0);
     normalLayout->setSpacing(2);
@@ -93,6 +93,10 @@ void VFOWidget::setupUi() {
     m_ntchLabel = new QLabel("NTCH", featuresContainer);
     m_ntchLabel->setStyleSheet("color: #999999; font-size: 11px;");
 
+    m_apfLabel = new QLabel("APF", featuresContainer);
+    m_apfLabel->setMinimumWidth(42); // Wide enough for "APF-150"
+    m_apfLabel->setStyleSheet("color: #999999; font-size: 11px;");
+
     // Add labels to layout
     featuresRow->addWidget(m_agcLabel);
     featuresRow->addWidget(m_preampLabel);
@@ -100,6 +104,7 @@ void VFOWidget::setupUi() {
     featuresRow->addWidget(m_nbLabel);
     featuresRow->addWidget(m_nrLabel);
     featuresRow->addWidget(m_ntchLabel);
+    featuresRow->addWidget(m_apfLabel);
 
     // Features row is left-aligned within its container for both VFOs
     // VFO B's entire container is pushed right by stackedRow layout
@@ -278,6 +283,16 @@ void VFOWidget::setNotch(bool autoEnabled, bool manualEnabled) {
 
     m_ntchLabel->setText(text);
     m_ntchLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(active ? "#FFFFFF" : "#999999"));
+}
+
+void VFOWidget::setApf(bool enabled, int bandwidth) {
+    QString text = "APF";
+    if (enabled) {
+        static const char *bwNames[] = {"30", "50", "150"};
+        text = QString("APF-%1").arg(bwNames[qBound(0, bandwidth, 2)]);
+    }
+    m_apfLabel->setText(text);
+    m_apfLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(enabled ? "#FFFFFF" : "#999999"));
 }
 
 void VFOWidget::updateMiniPan(const QByteArray &data) {

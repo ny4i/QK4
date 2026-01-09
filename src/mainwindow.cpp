@@ -521,28 +521,32 @@ MainWindow::MainWindow(QWidget *parent)
             m_subRxPopup->setButtonLabel(4, primary, alternate);
     });
 
-    // APF button: primary = "APF", alternate = bandwidth (30Hz/50Hz/150Hz/OFF)
+    // APF button: Main RX APF state -> MAIN RX popup and VFO A indicator
     connect(m_radioState, &RadioState::apfChanged, this, [this](bool enabled, int width) {
         QString alternate;
         if (!enabled) {
             alternate = "OFF";
         } else {
-            switch (width) {
-            case 0:
-                alternate = "30Hz";
-                break;
-            case 1:
-                alternate = "50Hz";
-                break;
-            case 2:
-                alternate = "150Hz";
-                break;
-            }
+            static const char *bwNames[] = {"30Hz", "50Hz", "150Hz"};
+            alternate = bwNames[qBound(0, width, 2)];
         }
         if (m_mainRxPopup)
             m_mainRxPopup->setButtonLabel(5, "APF", alternate);
+        m_vfoA->setApf(enabled, width);
+    });
+
+    // APF button: Sub RX APF state -> SUB RX popup and VFO B indicator
+    connect(m_radioState, &RadioState::apfBChanged, this, [this](bool enabled, int width) {
+        QString alternate;
+        if (!enabled) {
+            alternate = "OFF";
+        } else {
+            static const char *bwNames[] = {"30Hz", "50Hz", "150Hz"};
+            alternate = bwNames[qBound(0, width, 2)];
+        }
         if (m_subRxPopup)
             m_subRxPopup->setButtonLabel(5, "APF", alternate);
+        m_vfoB->setApf(enabled, width);
     });
 
     // RadioState REF level -> Panadapter (for dynamic waterfall color scaling)
@@ -1559,7 +1563,14 @@ void MainWindow::setupUi() {
             [=]() { toggleFeatureMenu(FeatureMenuBar::NrAdjust); });
     connect(m_rightSidePanel, &RightSidePanel::manualClicked, this,
             [=]() { toggleFeatureMenu(FeatureMenuBar::ManualNotch); });
-    connect(m_rightSidePanel, &RightSidePanel::apfClicked, this, [this]() { m_tcpClient->sendCAT("SW144;"); });
+    connect(m_rightSidePanel, &RightSidePanel::apfClicked, this, [this]() {
+        // Toggle APF on/off for Main RX or Sub RX based on B SET state
+        if (m_radioState->bSetEnabled()) {
+            m_tcpClient->sendCAT("AP$/;"); // Sub RX toggle
+        } else {
+            m_tcpClient->sendCAT("AP/;"); // Main RX toggle
+        }
+    });
     connect(m_rightSidePanel, &RightSidePanel::splitClicked, this, [this]() { m_tcpClient->sendCAT("SW145;"); });
     connect(m_rightSidePanel, &RightSidePanel::btoaClicked, this, [this]() { m_tcpClient->sendCAT("SW147;"); });
     connect(m_rightSidePanel, &RightSidePanel::autoClicked, this, [this]() { m_tcpClient->sendCAT("SW146;"); });
@@ -3419,8 +3430,8 @@ void MainWindow::onMainRxButtonClicked(int index) {
         m_tcpClient->sendCAT(QString("GT%1;").arg(next));
         break;
     }
-    case 5: // APF - cycle bandwidth
-        m_tcpClient->sendCAT("AP+;");
+    case 5: // APF - toggle on/off (Main RX)
+        m_tcpClient->sendCAT("AP/;");
         break;
     case 6: // TEXT DECODE - not implemented
         break;
@@ -3453,6 +3464,9 @@ void MainWindow::onMainRxButtonRightClicked(int index) {
         }
         break;
     }
+    case 5: // APF - cycle bandwidth (Main RX)
+        m_tcpClient->sendCAT("AP+;");
+        break;
     default:
         break;
     }
@@ -3480,8 +3494,8 @@ void MainWindow::onSubRxButtonClicked(int index) {
         m_tcpClient->sendCAT(QString("GT$%1;").arg(next));
         break;
     }
-    case 5: // APF - cycle bandwidth (same command)
-        m_tcpClient->sendCAT("AP+;");
+    case 5: // APF - toggle on/off (Sub RX)
+        m_tcpClient->sendCAT("AP$/;");
         break;
     case 6: // TEXT DECODE - not implemented
         break;
@@ -3512,6 +3526,9 @@ void MainWindow::onSubRxButtonRightClicked(int index) {
         }
         break;
     }
+    case 5: // APF - cycle bandwidth (Sub RX)
+        m_tcpClient->sendCAT("AP$+;");
+        break;
     default:
         break;
     }
