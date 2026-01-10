@@ -1,4 +1,5 @@
 #include "notificationwidget.h"
+#include "k4styles.h"
 #include <QPainter>
 #include <QFontMetrics>
 #include <QEvent>
@@ -19,7 +20,7 @@ NotificationWidget::NotificationWidget(QWidget *parent) : QWidget(parent), m_tim
     m_label->setStyleSheet(QString("QLabel { color: %1; background: transparent; }").arg(TextColor));
 
     QFont font = m_label->font();
-    font.setPointSize(14);
+    font.setPointSize(K4Styles::Dimensions::FontSizePopup);
     font.setBold(true);
     m_label->setFont(font);
 

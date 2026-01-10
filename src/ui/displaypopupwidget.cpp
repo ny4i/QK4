@@ -65,7 +65,7 @@ void DisplayMenuButton::paintEvent(QPaintEvent *event) {
 
     // Primary text (white) - top
     QFont primaryFont = font();
-    primaryFont.setPixelSize(12);
+    primaryFont.setPointSize(K4Styles::Dimensions::FontSizeButton);
     primaryFont.setBold(m_selected);
     painter.setFont(primaryFont);
     painter.setPen(Qt::white);
@@ -75,7 +75,7 @@ void DisplayMenuButton::paintEvent(QPaintEvent *event) {
 
     // Alternate text (orange) - bottom
     QFont altFont = font();
-    altFont.setPixelSize(10);
+    altFont.setPointSize(K4Styles::Dimensions::FontSizeMedium);
     altFont.setBold(false);
     painter.setFont(altFont);
     painter.setPen(QColor(K4Styles::Colors::VfoAAmber));
@@ -206,7 +206,7 @@ void ControlGroupWidget::paintEvent(QPaintEvent *event) {
 
     // Draw label
     QFont labelFont = font();
-    labelFont.setPixelSize(11);
+    labelFont.setPointSize(K4Styles::Dimensions::FontSizeLarge);
     labelFont.setBold(true);
     painter.setFont(labelFont);
     painter.setPen(Qt::white);
@@ -221,7 +221,7 @@ void ControlGroupWidget::paintEvent(QPaintEvent *event) {
             painter.setPen(Qt::white);
         }
         QFont autoFont = font();
-        autoFont.setPixelSize(10);
+        autoFont.setPointSize(K4Styles::Dimensions::FontSizeMedium);
         autoFont.setBold(true);
         painter.setFont(autoFont);
         painter.drawText(m_autoRect, Qt::AlignCenter, "AUTO");
@@ -240,7 +240,7 @@ void ControlGroupWidget::paintEvent(QPaintEvent *event) {
 
     // Draw minus button with larger font
     QFont buttonFont = font();
-    buttonFont.setPixelSize(16);
+    buttonFont.setPointSize(K4Styles::Dimensions::FontSizeTitle);
     buttonFont.setBold(true);
     painter.setFont(buttonFont);
     painter.drawText(m_minusRect, Qt::AlignCenter, "-");
@@ -374,7 +374,7 @@ void ToggleGroupWidget::paintEvent(QPaintEvent *event) {
 
     // Draw individual button backgrounds with rounded corners and borders
     QFont labelFont = font();
-    labelFont.setPixelSize(11);
+    labelFont.setPointSize(K4Styles::Dimensions::FontSizeLarge);
     labelFont.setBold(true);
 
     auto drawButton = [&](const QRect &rect, bool selected, bool enabled, const QString &text) {

@@ -125,15 +125,15 @@ void DualControlButton::paintEvent(QPaintEvent *event) {
 
     // Text setup
     QFont labelFont = font();
-    labelFont.setPointSize(11);
+    labelFont.setPointSize(K4Styles::Dimensions::FontSizeLarge);
     labelFont.setBold(true);
 
     QFont valueFont = font();
-    valueFont.setPointSize(12);
+    valueFont.setPointSize(K4Styles::Dimensions::FontSizeButton);
     valueFont.setBold(true);
 
     QFont altFont = font();
-    altFont.setPointSize(9);
+    altFont.setPointSize(K4Styles::Dimensions::FontSizeNormal);
 
     int textLeft = buttonLeft + 6;
     int textRight = w - 6;

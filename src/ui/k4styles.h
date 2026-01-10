@@ -177,15 +177,17 @@ constexpr int VfoSquareSize = 45;   // VFO A/B indicator squares and mode labels
 constexpr int NavButtonWidth = 54;  // Navigation buttons in overlays
 
 // =============================================================================
-// Font Sizes (in pixels)
+// Font Sizes (in points) - use with QFont::setPointSize()
 // =============================================================================
+constexpr int FontSizeMicro = 6;   // Meter scale numbers
 constexpr int FontSizeTiny = 7;    // Sub-labels (BANK, AF REC, MESSAGE)
-constexpr int FontSizeSmall = 8;   // TX function sub-labels
-constexpr int FontSizeNormal = 9;  // Memory buttons
-constexpr int FontSizeMedium = 10; // Volume labels
-constexpr int FontSizeLarge = 11;  // Feature labels, time/power display
-constexpr int FontSizeButton = 12; // Menu bar buttons
-constexpr int FontSizePopup = 14;  // Popup buttons
+constexpr int FontSizeSmall = 8;   // Scale fonts, secondary text
+constexpr int FontSizeNormal = 9;  // Alt/secondary button text
+constexpr int FontSizeMedium = 10; // Labels, descriptions
+constexpr int FontSizeLarge = 11;  // Feature labels, primary labels
+constexpr int FontSizeButton = 12; // Button text, value displays
+constexpr int FontSizePopup = 14;  // Notifications, popup titles
+constexpr int FontSizeTitle = 16;  // Large control buttons (+/-)
 } // namespace Dimensions
 
 // =============================================================================

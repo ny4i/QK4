@@ -60,7 +60,7 @@ void RxMenuButton::paintEvent(QPaintEvent *event) {
     if (hasAlternate) {
         // Dual-line mode: Primary text (white) - top
         QFont primaryFont = font();
-        primaryFont.setPixelSize(12);
+        primaryFont.setPointSize(K4Styles::Dimensions::FontSizeButton);
         primaryFont.setBold(false);
         painter.setFont(primaryFont);
         painter.setPen(Qt::white);
@@ -70,7 +70,7 @@ void RxMenuButton::paintEvent(QPaintEvent *event) {
 
         // Alternate text - bottom (amber if has alternate function, white if just label)
         QFont altFont = font();
-        altFont.setPixelSize(10);
+        altFont.setPointSize(K4Styles::Dimensions::FontSizeMedium);
         altFont.setBold(false);
         painter.setFont(altFont);
         painter.setPen(m_hasAlternateFunction ? QColor(K4Styles::Colors::VfoAAmber) : Qt::white);
@@ -80,7 +80,7 @@ void RxMenuButton::paintEvent(QPaintEvent *event) {
     } else {
         // Single-line mode: Center the primary text
         QFont primaryFont = font();
-        primaryFont.setPixelSize(12);
+        primaryFont.setPointSize(K4Styles::Dimensions::FontSizeButton);
         primaryFont.setBold(true);
         painter.setFont(primaryFont);
         painter.setPen(Qt::white);

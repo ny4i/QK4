@@ -210,13 +210,13 @@ void TxMeterWidget::paintEvent(QPaintEvent *event) {
 
     // Font for labels
     QFont labelFont = font();
-    labelFont.setPointSize(8);
+    labelFont.setPointSize(K4Styles::Dimensions::FontSizeSmall);
     labelFont.setBold(true);
     painter.setFont(labelFont);
 
     // Scale font (smaller)
     QFont scaleFont = font();
-    scaleFont.setPointSize(6);
+    scaleFont.setPointSize(K4Styles::Dimensions::FontSizeMicro);
 
     int y = 0;
 
@@ -291,7 +291,7 @@ void TxMeterWidget::drawMeterRow(QPainter &painter, int y, int rowHeight, const 
     // Label text
     painter.setPen(QColor(K4Styles::Colors::TextWhite));
     QFont labelFont = font();
-    labelFont.setPointSize(8);
+    labelFont.setPointSize(K4Styles::Dimensions::FontSizeSmall);
     labelFont.setBold(true);
     painter.setFont(labelFont);
     painter.drawText(labelRect, Qt::AlignCenter, label);

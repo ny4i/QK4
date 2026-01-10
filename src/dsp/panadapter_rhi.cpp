@@ -1,4 +1,5 @@
 #include "panadapter_rhi.h"
+#include "ui/k4styles.h"
 #include <QFile>
 #include <QMouseEvent>
 #include <QPainter>
@@ -27,7 +28,7 @@ protected:
 
         QFont scaleFont;
         scaleFont.setStyleHint(QFont::Monospace);
-        scaleFont.setPointSize(8);
+        scaleFont.setPointSize(K4Styles::Dimensions::FontSizeSmall);
 #ifdef Q_OS_MACOS
         scaleFont.setFamily("Menlo");
 #elif defined(Q_OS_WIN)
