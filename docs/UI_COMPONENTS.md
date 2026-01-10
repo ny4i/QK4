@@ -66,31 +66,6 @@ Complete inventory of all Qt widgets, layouts, and UI elements in K4Controller.
 
 ## Custom Widgets
 
-### SMeterWidget
-
-| Property | Value |
-|----------|-------|
-| Type | `QWidget` subclass |
-| File | `src/mainwindow.h` (lines 149-163) |
-| Min Height | 16 px |
-| Max Height | 20 px |
-| Min Width | 200 px |
-
-**Member Variables:**
-```cpp
-double m_value;     // S-units (0-9, then 9+dB)
-QColor m_color;     // Bar color (amber for A, cyan for B)
-```
-
-**Gradient Colors:**
-- 0.0: `#0066FF` (Blue, S1-S3)
-- 0.4: `#00FF00` (Green, S5-S7)
-- 0.6: `#FFFF00` (Yellow, S9)
-- 0.8: `#FF6600` (Orange, S9+20)
-- 1.0: `#FF0000` (Red, S9+60)
-
----
-
 ### PanadapterRhiWidget
 
 | Property | Value |

@@ -16,6 +16,7 @@
 #include "ui/notificationwidget.h"
 #include "ui/vforowwidget.h"
 #include "ui/filterindicatorwidget.h"
+#include "ui/k4styles.h"
 #include "models/menumodel.h"
 #include "dsp/panadapter_rhi.h"
 #include "dsp/minipan_rhi.h"
@@ -42,20 +43,6 @@
 #include <QRegularExpression>
 #include <QMouseEvent>
 #include <QShowEvent>
-
-// K4 Color scheme
-namespace K4Colors {
-const QString Background = "#1a1a1a";
-const QString DarkBackground = "#0d0d0d";
-const QString VfoAAmber = "#FFB000";
-const QString VfoBCyan = "#00BFFF";
-const QString TxRed = "#FF0000";
-const QString AgcGreen = "#00FF00";
-const QString InactiveGray = "#666666";
-const QString TextWhite = "#FFFFFF";
-const QString TextGray = "#999999";
-const QString RitCyan = "#00CED1";
-} // namespace K4Colors
 
 // K4 Span range: 5 kHz to 368 kHz
 // UP (zoom out): +1 kHz until 144, then +4 kHz until 368
@@ -301,7 +288,7 @@ MainWindow::MainWindow(QWidget *parent)
         m_vfoB->setTransmitting(transmitting);
 
         // TX indicator and triangles turn red when transmitting
-        QString color = transmitting ? "#FF0000" : K4Colors::VfoAAmber;
+        QString color = transmitting ? "#FF0000" : K4Styles::Colors::VfoAAmber;
         m_txIndicator->setStyleSheet(QString("color: %1; font-size: 18px; font-weight: bold;").arg(color));
         m_txTriangle->setStyleSheet(QString("color: %1; font-size: 18px;").arg(color));
         m_txTriangleB->setStyleSheet(QString("color: %1; font-size: 18px;").arg(color));
@@ -874,7 +861,7 @@ void MainWindow::setupMenuBar() {
     // On macOS, Qt automatically creates the app menu with About/Preferences
     menuBar()->setStyleSheet(QString("QMenuBar { background-color: %1; color: %2; }"
                                      "QMenuBar::item:selected { background-color: #333; }")
-                                 .arg(K4Colors::DarkBackground, K4Colors::TextWhite));
+                                 .arg(K4Styles::Colors::DarkBackground, K4Styles::Colors::TextWhite));
 
     // File menu (first, per Windows convention)
     QMenu *fileMenu = menuBar()->addMenu("&File");
@@ -931,10 +918,10 @@ void MainWindow::setupUi() {
     // before QRhiWidget can configure it for MetalSurface, causing
     // "QMetalSwapChain only supports MetalSurface windows" crash.
 
-    setStyleSheet(QString("QMainWindow { background-color: %1; }").arg(K4Colors::Background));
+    setStyleSheet(QString("QMainWindow { background-color: %1; }").arg(K4Styles::Colors::Background));
 
     auto *centralWidget = new QWidget(this);
-    centralWidget->setStyleSheet(QString("background-color: %1;").arg(K4Colors::Background));
+    centralWidget->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::Background));
     setCentralWidget(centralWidget);
 
     // Main vertical layout
@@ -1688,7 +1675,7 @@ void MainWindow::setupUi() {
 void MainWindow::setupTopStatusBar(QWidget *parent) {
     auto *statusBar = new QWidget(parent);
     statusBar->setFixedHeight(28);
-    statusBar->setStyleSheet(QString("background-color: %1;").arg(K4Colors::DarkBackground));
+    statusBar->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::DarkBackground));
 
     auto *layout = new QHBoxLayout(statusBar);
     layout->setContentsMargins(8, 2, 8, 2);
@@ -1696,47 +1683,48 @@ void MainWindow::setupTopStatusBar(QWidget *parent) {
 
     // Elecraft K4 title
     m_titleLabel = new QLabel("Elecraft K4", statusBar);
-    m_titleLabel->setStyleSheet(QString("color: %1; font-weight: bold; font-size: 14px;").arg(K4Colors::TextWhite));
+    m_titleLabel->setStyleSheet(
+        QString("color: %1; font-weight: bold; font-size: 14px;").arg(K4Styles::Colors::TextWhite));
     layout->addWidget(m_titleLabel);
 
     // Date/Time
     m_dateTimeLabel = new QLabel("--/-- --:--:-- Z", statusBar);
-    m_dateTimeLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Colors::TextGray));
+    m_dateTimeLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::TextGray));
     layout->addWidget(m_dateTimeLabel);
 
     layout->addStretch();
 
     // Power
     m_powerLabel = new QLabel("--- W", statusBar);
-    m_powerLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Colors::VfoAAmber));
+    m_powerLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::VfoAAmber));
     layout->addWidget(m_powerLabel);
 
     // SWR
     m_swrLabel = new QLabel("-.-:1", statusBar);
-    m_swrLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Colors::VfoAAmber));
+    m_swrLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::VfoAAmber));
     layout->addWidget(m_swrLabel);
 
     // Voltage
     m_voltageLabel = new QLabel("--.- V", statusBar);
-    m_voltageLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Colors::VfoAAmber));
+    m_voltageLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::VfoAAmber));
     layout->addWidget(m_voltageLabel);
 
     // Current
     m_currentLabel = new QLabel("-.- A", statusBar);
-    m_currentLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Colors::VfoAAmber));
+    m_currentLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::VfoAAmber));
     layout->addWidget(m_currentLabel);
 
     layout->addStretch();
 
     // KPA1500 status (to left of K4 status)
     m_kpa1500StatusLabel = new QLabel("", statusBar);
-    m_kpa1500StatusLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Colors::InactiveGray));
+    m_kpa1500StatusLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::InactiveGray));
     m_kpa1500StatusLabel->hide(); // Hidden when not enabled
     layout->addWidget(m_kpa1500StatusLabel);
 
     // K4 Connection status
     m_connectionStatusLabel = new QLabel("K4 Disconnected", statusBar);
-    m_connectionStatusLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Colors::InactiveGray));
+    m_connectionStatusLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::InactiveGray));
     layout->addWidget(m_connectionStatusLabel);
 }
 
@@ -1781,7 +1769,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     // ===== Center Section =====
     auto *centerWidget = new QWidget(parent);
     centerWidget->setFixedWidth(310);
-    centerWidget->setStyleSheet(QString("background-color: %1;").arg(K4Colors::Background));
+    centerWidget->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::Background));
     auto *centerLayout = new QVBoxLayout(centerWidget);
     centerLayout->setContentsMargins(4, 4, 4, 4);
     centerLayout->setSpacing(3);
@@ -1812,7 +1800,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     // SPLIT indicator
     m_splitLabel = new QLabel("SPLIT OFF", centerWidget);
     m_splitLabel->setAlignment(Qt::AlignCenter);
-    m_splitLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(K4Colors::VfoAAmber));
+    m_splitLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(K4Styles::Colors::VfoAAmber));
     centerLayout->addWidget(m_splitLabel);
 
     // B SET indicator (green rounded rect with black text, hidden by default)
@@ -1830,12 +1818,12 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     // Message Bank indicator
     m_msgBankLabel = new QLabel("MSG: I", centerWidget);
     m_msgBankLabel->setAlignment(Qt::AlignCenter);
-    m_msgBankLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(K4Colors::TextGray));
+    m_msgBankLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(K4Styles::Colors::TextGray));
     centerLayout->addWidget(m_msgBankLabel);
 
     // RIT/XIT Box with border - constrained size
     m_ritXitBox = new QWidget(centerWidget);
-    m_ritXitBox->setStyleSheet(QString("border: 1px solid %1;").arg(K4Colors::InactiveGray));
+    m_ritXitBox->setStyleSheet(QString("border: 1px solid %1;").arg(K4Styles::Colors::InactiveGray));
     m_ritXitBox->setMaximumWidth(80);
     m_ritXitBox->setMaximumHeight(40);
     auto *ritXitLayout = new QVBoxLayout(m_ritXitBox);
@@ -1847,11 +1835,11 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     ritXitLabelsRow->setSpacing(8);
 
     m_ritLabel = new QLabel("RIT", m_ritXitBox);
-    m_ritLabel->setStyleSheet(QString("color: %1; font-size: 10px; border: none;").arg(K4Colors::InactiveGray));
+    m_ritLabel->setStyleSheet(QString("color: %1; font-size: 10px; border: none;").arg(K4Styles::Colors::InactiveGray));
     ritXitLabelsRow->addWidget(m_ritLabel);
 
     m_xitLabel = new QLabel("XIT", m_ritXitBox);
-    m_xitLabel->setStyleSheet(QString("color: %1; font-size: 10px; border: none;").arg(K4Colors::InactiveGray));
+    m_xitLabel->setStyleSheet(QString("color: %1; font-size: 10px; border: none;").arg(K4Styles::Colors::InactiveGray));
     ritXitLabelsRow->addWidget(m_xitLabel);
 
     ritXitLabelsRow->setAlignment(Qt::AlignCenter);
@@ -1861,7 +1849,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     auto *ritXitSeparator = new QFrame(m_ritXitBox);
     ritXitSeparator->setFrameShape(QFrame::HLine);
     ritXitSeparator->setFrameShadow(QFrame::Plain);
-    ritXitSeparator->setStyleSheet(QString("background-color: %1; border: none;").arg(K4Colors::InactiveGray));
+    ritXitSeparator->setStyleSheet(QString("background-color: %1; border: none;").arg(K4Styles::Colors::InactiveGray));
     ritXitSeparator->setFixedHeight(1);
     ritXitLayout->addWidget(ritXitSeparator);
 
@@ -1869,7 +1857,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     m_ritXitValueLabel->setAlignment(Qt::AlignCenter);
     m_ritXitValueLabel->setStyleSheet(
         QString("color: %1; font-size: 14px; font-weight: bold; border: none; padding: 0 11px;")
-            .arg(K4Colors::TextWhite));
+            .arg(K4Styles::Colors::TextWhite));
     ritXitLayout->addWidget(m_ritXitValueLabel);
 
     // Create filter/RIT/XIT row - filter indicators flanking the RIT/XIT box
@@ -2007,56 +1995,114 @@ void MainWindow::setupVfoSection(QWidget *parent) {
         return container;
     };
 
-    // Row 1: M1-M4 (standard grey, no sub-labels)
-    auto *memoryRow1 = new QHBoxLayout();
-    memoryRow1->setContentsMargins(0, 0, 0, 0);
-    memoryRow1->setSpacing(4);
+    // Single row: M1-M4 group, REC, STORE, RCL (all centered)
+    auto *memoryRow = new QHBoxLayout();
+    memoryRow->setContentsMargins(0, 0, 0, 0);
+    memoryRow->setSpacing(4);
 
-    memoryRow1->addStretch();
+    memoryRow->addStretch();
 
-    auto *m1Container = createMemoryButton("M1", "", false);
-    m_m1Btn = m1Container->findChild<QPushButton *>();
-    memoryRow1->addWidget(m1Container);
+    // M1-M4 group with MESSAGE label underneath
+    auto *messageGroup = new QWidget(centerWidget);
+    auto *messageGroupLayout = new QVBoxLayout(messageGroup);
+    messageGroupLayout->setContentsMargins(0, 0, 0, 0);
+    messageGroupLayout->setSpacing(2);
 
-    auto *m2Container = createMemoryButton("M2", "", false);
-    m_m2Btn = m2Container->findChild<QPushButton *>();
-    memoryRow1->addWidget(m2Container);
+    // M1-M4 button row
+    auto *m1m4Row = new QHBoxLayout();
+    m1m4Row->setContentsMargins(0, 0, 0, 0);
+    m1m4Row->setSpacing(4);
 
-    auto *m3Container = createMemoryButton("M3", "", false);
-    m_m3Btn = m3Container->findChild<QPushButton *>();
-    memoryRow1->addWidget(m3Container);
+    // Helper to create just a button (no sub-label container)
+    auto createSimpleButton = [centerWidget](const QString &label) -> QPushButton * {
+        auto *btn = new QPushButton(label, centerWidget);
+        btn->setFixedSize(36, 24);
+        btn->setCursor(Qt::PointingHandCursor);
+        btn->setStyleSheet(R"(
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #4a4a4a, stop:0.4 #3a3a3a,
+                    stop:0.6 #353535, stop:1 #2a2a2a);
+                color: #FFFFFF;
+                border: 1px solid #606060;
+                border-radius: 3px;
+                font-size: 9px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #5a5a5a, stop:0.4 #4a4a4a,
+                    stop:0.6 #454545, stop:1 #3a3a3a);
+                border: 1px solid #808080;
+            }
+            QPushButton:pressed {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #2a2a2a, stop:0.4 #353535,
+                    stop:0.6 #3a3a3a, stop:1 #4a4a4a);
+                border: 1px solid #909090;
+            }
+        )");
+        return btn;
+    };
 
-    auto *m4Container = createMemoryButton("M4", "", false);
-    m_m4Btn = m4Container->findChild<QPushButton *>();
-    memoryRow1->addWidget(m4Container);
+    m_m1Btn = createSimpleButton("M1");
+    m1m4Row->addWidget(m_m1Btn);
 
-    memoryRow1->addStretch();
-    centerLayout->addLayout(memoryRow1);
+    m_m2Btn = createSimpleButton("M2");
+    m1m4Row->addWidget(m_m2Btn);
 
-    // Row 2: REC, STORE, RCL (centered below M1-M4)
-    auto *memoryRow2 = new QHBoxLayout();
-    memoryRow2->setContentsMargins(0, 0, 0, 0);
-    memoryRow2->setSpacing(4);
+    m_m3Btn = createSimpleButton("M3");
+    m1m4Row->addWidget(m_m3Btn);
 
-    memoryRow2->addStretch();
+    m_m4Btn = createSimpleButton("M4");
+    m1m4Row->addWidget(m_m4Btn);
 
-    // REC (lighter grey, BANK sub-label)
-    auto *recContainer = createMemoryButton("REC", "BANK", true);
+    messageGroupLayout->addLayout(m1m4Row);
+
+    // MESSAGE label with connecting lines: ——— MESSAGE ———
+    auto *messageLabel = new QWidget(messageGroup);
+    auto *messageLabelLayout = new QHBoxLayout(messageLabel);
+    messageLabelLayout->setContentsMargins(0, 0, 0, 0);
+    messageLabelLayout->setSpacing(2);
+
+    auto *leftLine = new QFrame(messageLabel);
+    leftLine->setFrameShape(QFrame::HLine);
+    leftLine->setStyleSheet("background-color: #AAAAAA; max-height: 1px;");
+    leftLine->setFixedHeight(1);
+
+    auto *msgText = new QLabel("MESSAGE", messageLabel);
+    msgText->setStyleSheet("color: #AAAAAA; font-size: 7px;");
+    msgText->setAlignment(Qt::AlignCenter);
+
+    auto *rightLine = new QFrame(messageLabel);
+    rightLine->setFrameShape(QFrame::HLine);
+    rightLine->setStyleSheet("background-color: #AAAAAA; max-height: 1px;");
+    rightLine->setFixedHeight(1);
+
+    messageLabelLayout->addWidget(leftLine, 1);
+    messageLabelLayout->addWidget(msgText, 0);
+    messageLabelLayout->addWidget(rightLine, 1);
+
+    messageGroupLayout->addWidget(messageLabel);
+    memoryRow->addWidget(messageGroup);
+
+    // REC (dark grey like M keys, BANK sub-label)
+    auto *recContainer = createMemoryButton("REC", "BANK", false);
     m_recBtn = recContainer->findChild<QPushButton *>();
-    memoryRow2->addWidget(recContainer);
+    memoryRow->addWidget(recContainer);
 
     // STORE (lighter grey, AF REC sub-label)
     auto *storeContainer = createMemoryButton("STORE", "AF REC", true);
     m_storeBtn = storeContainer->findChild<QPushButton *>();
-    memoryRow2->addWidget(storeContainer);
+    memoryRow->addWidget(storeContainer);
 
     // RCL (lighter grey, AF PLAY sub-label)
     auto *rclContainer = createMemoryButton("RCL", "AF PLAY", true);
     m_rclBtn = rclContainer->findChild<QPushButton *>();
-    memoryRow2->addWidget(rclContainer);
+    memoryRow->addWidget(rclContainer);
 
-    memoryRow2->addStretch();
-    centerLayout->addLayout(memoryRow2);
+    memoryRow->addStretch();
+    centerLayout->addLayout(memoryRow);
 
     centerLayout->addStretch(); // Balance below
     layout->addWidget(centerWidget);
@@ -2109,7 +2155,8 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     // RX Antenna A (Main) - white color, left-justified
     m_rxAntALabel = new QLabel("1:ANT1", parent);
     m_rxAntALabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    m_rxAntALabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::TextWhite));
+    m_rxAntALabel->setStyleSheet(
+        QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextWhite));
     antennaRow->addWidget(m_rxAntALabel);
 
     antennaRow->addStretch(1); // Push TX antenna to center
@@ -2117,7 +2164,8 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     // TX Antenna - orange color, centered
     m_txAntennaLabel = new QLabel("1:ANT1", parent);
     m_txAntennaLabel->setAlignment(Qt::AlignCenter);
-    m_txAntennaLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::VfoAAmber));
+    m_txAntennaLabel->setStyleSheet(
+        QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::VfoAAmber));
     antennaRow->addWidget(m_txAntennaLabel);
 
     antennaRow->addStretch(1); // Push RX Ant B to right
@@ -2125,7 +2173,8 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     // RX Antenna B (Sub) - white color, right-justified
     m_rxAntBLabel = new QLabel("1:ANT1", parent);
     m_rxAntBLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-    m_rxAntBLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::TextWhite));
+    m_rxAntBLabel->setStyleSheet(
+        QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextWhite));
     antennaRow->addWidget(m_rxAntBLabel);
 
     mainVLayout->addLayout(antennaRow);
@@ -2134,7 +2183,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
 void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     // Container for spectrum displays
     m_spectrumContainer = new QWidget(parent);
-    m_spectrumContainer->setStyleSheet(QString("background-color: %1;").arg(K4Colors::DarkBackground));
+    m_spectrumContainer->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::DarkBackground));
     m_spectrumContainer->setMinimumHeight(300);
 
     // Use QHBoxLayout for side-by-side panadapters (Main left, Sub right)
@@ -2144,7 +2193,7 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
 
     // Main panadapter for VFO A (left side) - QRhiWidget with Metal/DirectX/Vulkan
     m_panadapterA = new PanadapterRhiWidget(m_spectrumContainer);
-    m_panadapterA->setSpectrumLineColor(QColor(K4Colors::VfoAAmber));
+    m_panadapterA->setSpectrumLineColor(QColor(K4Styles::Colors::VfoAAmber));
     m_panadapterA->setDbRange(-140.0f, -20.0f);
     m_panadapterA->setSpectrumRatio(0.35f);
     m_panadapterA->setGridEnabled(true);
@@ -2157,7 +2206,7 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
 
     // Sub panadapter for VFO B (right side) - QRhiWidget with Metal/DirectX/Vulkan
     m_panadapterB = new PanadapterRhiWidget(m_spectrumContainer);
-    m_panadapterB->setSpectrumLineColor(QColor(K4Colors::VfoBCyan));
+    m_panadapterB->setSpectrumLineColor(QColor(K4Styles::Colors::VfoBCyan));
     m_panadapterB->setDbRange(-140.0f, -20.0f);
     m_panadapterB->setSpectrumRatio(0.35f);
     m_panadapterB->setGridEnabled(true);
@@ -2572,7 +2621,7 @@ void MainWindow::onStateChanged(TcpClient::ConnectionState state) {
 void MainWindow::onError(const QString &error) {
     m_connectionStatusLabel->setText("Error: " + error);
     m_connectionStatusLabel->setStyleSheet(
-        QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Colors::TxRed));
+        QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Styles::Colors::TxRed));
 }
 
 void MainWindow::onAuthenticated() {
@@ -2602,7 +2651,7 @@ void MainWindow::onAuthenticationFailed() {
     qDebug() << "Authentication failed";
     m_connectionStatusLabel->setText("Auth Failed");
     m_connectionStatusLabel->setStyleSheet(
-        QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Colors::TxRed));
+        QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Styles::Colors::TxRed));
 }
 
 void MainWindow::onCatResponse(const QString &response) {
@@ -2682,7 +2731,8 @@ void MainWindow::updateConnectionState(TcpClient::ConnectionState state) {
     switch (state) {
     case TcpClient::Disconnected:
         m_connectionStatusLabel->setText("K4 Disconnected");
-        m_connectionStatusLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Colors::InactiveGray));
+        m_connectionStatusLabel->setStyleSheet(
+            QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::InactiveGray));
         m_titleLabel->setText("Elecraft K4");
         // Stop audio engine to prevent accessing invalid data
         if (m_audioEngine) {
@@ -2693,19 +2743,19 @@ void MainWindow::updateConnectionState(TcpClient::ConnectionState state) {
     case TcpClient::Connecting:
         m_connectionStatusLabel->setText("K4 Connecting...");
         m_connectionStatusLabel->setStyleSheet(
-            QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Colors::VfoAAmber));
+            QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Styles::Colors::VfoAAmber));
         break;
 
     case TcpClient::Authenticating:
         m_connectionStatusLabel->setText("K4 Authenticating...");
         m_connectionStatusLabel->setStyleSheet(
-            QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Colors::VfoAAmber));
+            QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Styles::Colors::VfoAAmber));
         break;
 
     case TcpClient::Connected:
         m_connectionStatusLabel->setText("K4 Connected");
         m_connectionStatusLabel->setStyleSheet(
-            QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Colors::AgcGreen));
+            QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Styles::Colors::AgcGreen));
         break;
     }
 }
@@ -2736,13 +2786,14 @@ void MainWindow::onSwrChanged(double swr) {
 void MainWindow::onSplitChanged(bool enabled) {
     if (enabled) {
         m_splitLabel->setText("SPLIT ON");
-        m_splitLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::AgcGreen));
+        m_splitLabel->setStyleSheet(
+            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::AgcGreen));
         // When split is on, TX goes to VFO B - clear left triangle, show right triangle
         m_txTriangle->setText("");
         m_txTriangleB->setText("▶");
     } else {
         m_splitLabel->setText("SPLIT OFF");
-        m_splitLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(K4Colors::VfoAAmber));
+        m_splitLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(K4Styles::Colors::VfoAAmber));
         // When split is off, TX stays on VFO A - show left triangle, clear right triangle
         m_txTriangle->setText("◀");
         m_txTriangleB->setText("");
@@ -2793,7 +2844,8 @@ void MainWindow::onVoxChanged(bool enabled) {
     // Use mode-specific VOX state (CW modes use VXC, Voice modes use VXV, Data modes use VXD)
     bool voxOn = m_radioState->voxForCurrentMode();
     if (voxOn) {
-        m_voxLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::VfoAAmber));
+        m_voxLabel->setStyleSheet(
+            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::VfoAAmber));
     } else {
         m_voxLabel->setStyleSheet("color: #999999; font-size: 11px; font-weight: bold;");
     }
@@ -2816,7 +2868,8 @@ void MainWindow::onTestModeChanged(bool enabled) {
 void MainWindow::onAtuModeChanged(int mode) {
     // ATU indicator: orange when AUTO mode (2), grey otherwise
     if (mode == 2) {
-        m_atuLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::VfoAAmber));
+        m_atuLabel->setStyleSheet(
+            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::VfoAAmber));
     } else {
         m_atuLabel->setStyleSheet("color: #999999; font-size: 11px; font-weight: bold;");
     }
@@ -2826,17 +2879,19 @@ void MainWindow::onRitXitChanged(bool ritEnabled, bool xitEnabled, int offset) {
     // Update RIT label
     if (ritEnabled) {
         m_ritLabel->setStyleSheet(
-            QString("color: %1; font-size: 10px; font-weight: bold; border: none;").arg(K4Colors::TextWhite));
+            QString("color: %1; font-size: 10px; font-weight: bold; border: none;").arg(K4Styles::Colors::TextWhite));
     } else {
-        m_ritLabel->setStyleSheet(QString("color: %1; font-size: 10px; border: none;").arg(K4Colors::InactiveGray));
+        m_ritLabel->setStyleSheet(
+            QString("color: %1; font-size: 10px; border: none;").arg(K4Styles::Colors::InactiveGray));
     }
 
     // Update XIT label
     if (xitEnabled) {
         m_xitLabel->setStyleSheet(
-            QString("color: %1; font-size: 10px; font-weight: bold; border: none;").arg(K4Colors::TextWhite));
+            QString("color: %1; font-size: 10px; font-weight: bold; border: none;").arg(K4Styles::Colors::TextWhite));
     } else {
-        m_xitLabel->setStyleSheet(QString("color: %1; font-size: 10px; border: none;").arg(K4Colors::InactiveGray));
+        m_xitLabel->setStyleSheet(
+            QString("color: %1; font-size: 10px; border: none;").arg(K4Styles::Colors::InactiveGray));
     }
 
     // Update offset value (in kHz)
@@ -3461,11 +3516,11 @@ void MainWindow::updateKpa1500Status() {
         if (connected) {
             m_kpa1500StatusLabel->setText("KPA1500 Connected");
             m_kpa1500StatusLabel->setStyleSheet(
-                QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Colors::AgcGreen));
+                QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Styles::Colors::AgcGreen));
         } else {
             m_kpa1500StatusLabel->setText("KPA1500 Not Connected");
             m_kpa1500StatusLabel->setStyleSheet(
-                QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Colors::TxRed));
+                QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Styles::Colors::TxRed));
         }
     }
 }

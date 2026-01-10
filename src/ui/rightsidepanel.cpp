@@ -1,15 +1,8 @@
 #include "rightsidepanel.h"
+#include "k4styles.h"
 #include <QEvent>
 #include <QGridLayout>
 #include <QMouseEvent>
-
-// K4 Color scheme (matching left panel)
-namespace {
-const QString Background = "#1a1a1a";
-const QString TextWhite = "#FFFFFF";
-const QString TextGray = "#999999";
-const QString AmberOrange = "#FFB000";
-} // namespace
 
 RightSidePanel::RightSidePanel(QWidget *parent)
     : QWidget(parent), m_preBtn(nullptr), m_nbBtn(nullptr), m_nrBtn(nullptr), m_ntchBtn(nullptr), m_filBtn(nullptr),

@@ -1,6 +1,7 @@
 #ifndef K4STYLES_H
 #define K4STYLES_H
 
+#include <QPainter>
 #include <QString>
 
 /**
@@ -59,51 +60,140 @@ QString menuBarButtonSmall();
 // =============================================================================
 
 namespace Colors {
-// Button gradients
+// =============================================================================
+// App-Level Theme Colors (consolidated from K4Colors namespaces)
+// =============================================================================
+
+// Backgrounds
+constexpr const char *Background = "#1a1a1a";
+constexpr const char *DarkBackground = "#0d0d0d";
+constexpr const char *PopupBackground = "#1e1e1e";
+
+// VFO Text/Label Colors (frequency display, mode labels)
+constexpr const char *VfoAText = "#FFB000"; // Amber for VFO A text/labels
+constexpr const char *VfoBText = "#00BFFF"; // Cyan for VFO B text/labels
+
+// VFO Spectrum/Passband Colors (panadapter, mini-pan)
+constexpr const char *VfoASpectrum = "#0080FF"; // Cyan/Blue for VFO A spectrum
+constexpr const char *VfoBSpectrum = "#00C800"; // Green for VFO B spectrum
+
+// Legacy aliases (for backward compatibility)
+constexpr const char *VfoAAmber = "#FFB000"; // Same as VfoAText
+constexpr const char *VfoBCyan = "#00BFFF";  // Same as VfoBText
+
+// Status Colors
+constexpr const char *TxRed = "#FF0000";
+constexpr const char *AgcGreen = "#00FF00";
+constexpr const char *RitCyan = "#00CED1";
+
+// Text Colors
+constexpr const char *TextWhite = "#FFFFFF";
+constexpr const char *TextDark = "#333333";
+constexpr const char *TextGray = "#999999";
+constexpr const char *InactiveGray = "#666666";
+
+// Indicator/Strip
+constexpr const char *IndicatorStrip = "#555555";
+
+// =============================================================================
+// Button Gradient Colors
+// =============================================================================
+
+// Normal state gradients
 constexpr const char *GradientTop = "#4a4a4a";
 constexpr const char *GradientMid1 = "#3a3a3a";
 constexpr const char *GradientMid2 = "#353535";
 constexpr const char *GradientBottom = "#2a2a2a";
 
-// Hover gradients
+// Hover state gradients
 constexpr const char *HoverTop = "#5a5a5a";
 constexpr const char *HoverMid1 = "#4a4a4a";
 constexpr const char *HoverMid2 = "#454545";
 constexpr const char *HoverBottom = "#3a3a3a";
+
+// Lighter button gradients (for TX function buttons, REC/STORE/RCL)
+constexpr const char *LightGradientTop = "#888888";
+constexpr const char *LightGradientMid1 = "#777777";
+constexpr const char *LightGradientMid2 = "#6a6a6a";
+constexpr const char *LightGradientBottom = "#606060";
+
+// Selected button gradients
+constexpr const char *SelectedTop = "#E0E0E0";
+constexpr const char *SelectedMid1 = "#D0D0D0";
+constexpr const char *SelectedMid2 = "#C8C8C8";
+constexpr const char *SelectedBottom = "#B8B8B8";
 
 // Borders
 constexpr const char *BorderNormal = "#606060";
 constexpr const char *BorderHover = "#808080";
 constexpr const char *BorderPressed = "#909090";
 constexpr const char *BorderSelected = "#AAAAAA";
-
-// Text
-constexpr const char *TextWhite = "#FFFFFF";
-constexpr const char *TextDark = "#333333";
-constexpr const char *TextGray = "#666666";
-
-// Selected button
-constexpr const char *SelectedTop = "#E0E0E0";
-constexpr const char *SelectedMid1 = "#D0D0D0";
-constexpr const char *SelectedMid2 = "#C8C8C8";
-constexpr const char *SelectedBottom = "#B8B8B8";
-
-// Popup
-constexpr const char *PopupBackground = "#1e1e1e";
-constexpr const char *IndicatorStrip = "#555555";
+constexpr const char *BorderLight = "#909090";
 } // namespace Colors
 
 namespace Dimensions {
+// =============================================================================
+// Border & Radius
+// =============================================================================
 constexpr int BorderWidth = 2;
 constexpr int BorderRadius = 6;
 constexpr int BorderRadiusLarge = 8;
 
-// Shadow
+// =============================================================================
+// Shadow (for popup widgets)
+// =============================================================================
 constexpr int ShadowRadius = 16;
 constexpr int ShadowOffsetX = 2;
 constexpr int ShadowOffsetY = 4;
 constexpr int ShadowMargin = ShadowRadius + 4; // 20px
+constexpr int ShadowLayers = 8;
+
+// =============================================================================
+// Button Heights
+// =============================================================================
+constexpr int ButtonHeightLarge = 44;  // Menu overlay nav buttons
+constexpr int ButtonHeightMedium = 36; // Bottom menu bar, popup buttons
+constexpr int ButtonHeightSmall = 28;  // Function buttons (side panels)
+constexpr int ButtonHeightMini = 24;   // Memory buttons (M1-M4, REC, etc.)
+
+// =============================================================================
+// Popup Layout
+// =============================================================================
+constexpr int PopupButtonWidth = 70;
+constexpr int PopupButtonHeight = 44;
+constexpr int PopupButtonSpacing = 8;
+constexpr int PopupContentMargin = 12;
+constexpr int PopupTriangleWidth = 24;
+constexpr int PopupTriangleHeight = 12;
+constexpr int PopupBottomStripHeight = 8;
+
+// =============================================================================
+// Font Sizes (in pixels)
+// =============================================================================
+constexpr int FontSizeTiny = 7;    // Sub-labels (BANK, AF REC, MESSAGE)
+constexpr int FontSizeSmall = 8;   // TX function sub-labels
+constexpr int FontSizeNormal = 9;  // Memory buttons
+constexpr int FontSizeMedium = 10; // Volume labels
+constexpr int FontSizeLarge = 11;  // Feature labels, time/power display
+constexpr int FontSizeButton = 12; // Menu bar buttons
+constexpr int FontSizePopup = 14;  // Popup buttons
 } // namespace Dimensions
+
+// =============================================================================
+// Utility Functions
+// =============================================================================
+
+/**
+ * @brief Draw a soft drop shadow behind popup content.
+ *
+ * Uses 8-layer blur technique for smooth shadow appearance.
+ * Call this in paintEvent() before drawing content.
+ *
+ * @param painter The painter to draw with (should have NoPen set)
+ * @param contentRect The rectangle of the popup content (not including shadow margin)
+ * @param cornerRadius Corner radius for the shadow rounded rect
+ */
+void drawDropShadow(QPainter &painter, const QRect &contentRect, int cornerRadius = 8);
 
 } // namespace K4Styles
 

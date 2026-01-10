@@ -1,4 +1,5 @@
 #include "vfowidget.h"
+#include "k4styles.h"
 #include "txmeterwidget.h"
 #include "../dsp/minipan_rhi.h"
 #include <QMouseEvent>
@@ -6,24 +7,15 @@
 #include <QPainter>
 #include <QFontMetrics>
 
-// K4 Color constants
-namespace K4Colors {
-const QString Background = "#1a1a1a";
-const QString DarkBackground = "#0d0d0d";
-const QString VfoAAmber = "#FFB000";
-const QString VfoBCyan = "#00BFFF";
-const QString InactiveGray = "#666666";
-const QString TextWhite = "#FFFFFF";
-} // namespace K4Colors
-
 VFOWidget::VFOWidget(VFOType type, QWidget *parent)
-    : QWidget(parent), m_type(type), m_primaryColor(type == VFO_A ? K4Colors::VfoAAmber : K4Colors::VfoBCyan),
-      m_inactiveColor(K4Colors::InactiveGray) {
+    : QWidget(parent), m_type(type),
+      m_primaryColor(type == VFO_A ? K4Styles::Colors::VfoAAmber : K4Styles::Colors::VfoBCyan),
+      m_inactiveColor(K4Styles::Colors::InactiveGray) {
     setupUi();
 }
 
 void VFOWidget::setupUi() {
-    setStyleSheet(QString("background-color: %1;").arg(K4Colors::Background));
+    setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::Background));
 
     auto *mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(8, 4, 8, 4);
@@ -35,7 +27,7 @@ void VFOWidget::setupUi() {
     m_frequencyLabel->setStyleSheet(
         QString(
             "color: %1; font-size: 32px; font-weight: bold; font-family: 'JetBrains Mono', 'Courier New', monospace;")
-            .arg(K4Colors::TextWhite));
+            .arg(K4Styles::Colors::TextWhite));
     m_frequencyLabel->setFixedHeight(40);
     m_frequencyLabel->setCursor(Qt::PointingHandCursor);
     m_frequencyLabel->installEventFilter(this);
@@ -46,8 +38,8 @@ void VFOWidget::setupUi() {
         QString("QLineEdit { color: %1; background-color: %2; border: 2px solid %3; "
                 "font-size: 32px; font-weight: bold; font-family: 'JetBrains Mono', 'Courier New', monospace; "
                 "padding: 2px 4px; }")
-            .arg(K4Colors::TextWhite)
-            .arg(K4Colors::DarkBackground)
+            .arg(K4Styles::Colors::TextWhite)
+            .arg(K4Styles::Colors::DarkBackground)
             .arg(m_primaryColor));
     m_frequencyEdit->setFixedHeight(40);
     m_frequencyEdit->setMaxLength(11); // Max 11 digits per K4 spec
@@ -357,7 +349,7 @@ void VFOWidget::showMiniPan() {
             m_miniPan->setSpectrumColor(m_pendingSpectrumColor);
         } else {
             // Default color based on VFO type
-            m_miniPan->setSpectrumColor(QColor(m_type == VFO_A ? K4Colors::VfoAAmber : "#00FF00"));
+            m_miniPan->setSpectrumColor(QColor(m_type == VFO_A ? K4Styles::Colors::VfoAAmber : "#00FF00"));
         }
         if (m_pendingPassbandColor.isValid()) {
             m_miniPan->setPassbandColor(m_pendingPassbandColor);

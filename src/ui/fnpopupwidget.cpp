@@ -1,4 +1,5 @@
 #include "fnpopupwidget.h"
+#include "k4styles.h"
 #include "../settings/radiosettings.h"
 #include <QApplication>
 #include <QHideEvent>
@@ -17,17 +18,6 @@ const int ContentMargin = 12; // Margin around button content
 const int TriangleWidth = 24;
 const int TriangleHeight = 12;
 const int BottomStripHeight = 8;
-
-// Shadow constants
-const int ShadowRadius = 16;               // Drop shadow blur radius
-const int ShadowOffsetX = 2;               // Shadow horizontal offset
-const int ShadowOffsetY = 4;               // Shadow vertical offset
-const int ShadowMargin = ShadowRadius + 4; // Extra space around popup for shadow
-
-// Colors
-const QColor IndicatorColor(85, 85, 85); // #555555
-const char *AmberColor = "#FFB000";
-const char *BackgroundColor = "#1E1E1E";
 } // namespace
 
 // ============================================================================
@@ -92,7 +82,7 @@ void FnMenuButton::paintEvent(QPaintEvent *event) {
         altFont.setPixelSize(10);
         altFont.setBold(false);
         painter.setFont(altFont);
-        painter.setPen(QColor(AmberColor));
+        painter.setPen(QColor(K4Styles::Colors::VfoAAmber));
 
         QRect altRect(0, height() / 2, width(), height() / 2 - 4);
         painter.drawText(altRect, Qt::AlignCenter, m_alternateText);
@@ -130,8 +120,8 @@ FnPopupWidget::FnPopupWidget(QWidget *parent) : QWidget(parent) {
     // Calculate size: content + shadow margins on all sides
     int contentWidth = 7 * ButtonWidth + 6 * ButtonSpacing + 2 * ContentMargin;
     int contentHeight = ButtonHeight + 2 * ContentMargin + BottomStripHeight + TriangleHeight;
-    int totalWidth = contentWidth + 2 * ShadowMargin;
-    int totalHeight = contentHeight + 2 * ShadowMargin;
+    int totalWidth = contentWidth + 2 * K4Styles::Dimensions::ShadowMargin;
+    int totalHeight = contentHeight + 2 * K4Styles::Dimensions::ShadowMargin;
     setFixedSize(totalWidth, totalHeight);
 
     setupButtons();
@@ -173,8 +163,8 @@ void FnPopupWidget::setupButtons() {
         btn->setAlternateFunctionId(buttonDefs[i].alternateId);
 
         // Position button (offset by shadow margin)
-        int x = ShadowMargin + ContentMargin + i * (ButtonWidth + ButtonSpacing);
-        int y = ShadowMargin + ContentMargin;
+        int x = K4Styles::Dimensions::ShadowMargin + ContentMargin + i * (ButtonWidth + ButtonSpacing);
+        int y = K4Styles::Dimensions::ShadowMargin + ContentMargin;
         btn->move(x, y);
 
         // Connect signals
@@ -251,27 +241,27 @@ void FnPopupWidget::showAboveButton(QWidget *triggerButton) {
     int contentHeight = ButtonHeight + 2 * ContentMargin + BottomStripHeight + TriangleHeight;
 
     // Center content area above the button bar (account for shadow margin offset)
-    int popupX = barCenterX - contentWidth / 2 - ShadowMargin;
-    int popupY = btnGlobal.y() - contentHeight - ShadowMargin;
+    int popupX = barCenterX - contentWidth / 2 - K4Styles::Dimensions::ShadowMargin;
+    int popupY = btnGlobal.y() - contentHeight - K4Styles::Dimensions::ShadowMargin;
 
     // Calculate triangle offset to point at the trigger button
-    int contentCenterX = popupX + ShadowMargin + contentWidth / 2;
+    int contentCenterX = popupX + K4Styles::Dimensions::ShadowMargin + contentWidth / 2;
     m_triangleOffset = btnCenterX - contentCenterX;
 
     // Ensure popup stays on screen (adjust position, recalculate triangle)
     QScreen *screen = QApplication::screenAt(btnGlobal);
     if (screen) {
         QRect screenRect = screen->availableGeometry();
-        if (popupX < screenRect.left() - ShadowMargin) {
-            popupX = screenRect.left() - ShadowMargin;
-            contentCenterX = popupX + ShadowMargin + contentWidth / 2;
+        if (popupX < screenRect.left() - K4Styles::Dimensions::ShadowMargin) {
+            popupX = screenRect.left() - K4Styles::Dimensions::ShadowMargin;
+            contentCenterX = popupX + K4Styles::Dimensions::ShadowMargin + contentWidth / 2;
             m_triangleOffset = btnCenterX - contentCenterX;
-        } else if (popupX + width() > screenRect.right() + ShadowMargin) {
-            popupX = screenRect.right() + ShadowMargin - width();
-            contentCenterX = popupX + ShadowMargin + contentWidth / 2;
+        } else if (popupX + width() > screenRect.right() + K4Styles::Dimensions::ShadowMargin) {
+            popupX = screenRect.right() + K4Styles::Dimensions::ShadowMargin - width();
+            contentCenterX = popupX + K4Styles::Dimensions::ShadowMargin + contentWidth / 2;
             m_triangleOffset = btnCenterX - contentCenterX;
         }
-        popupY = qMax(screenRect.top() - ShadowMargin, popupY);
+        popupY = qMax(screenRect.top() - K4Styles::Dimensions::ShadowMargin, popupY);
     }
 
     move(popupX, popupY);
@@ -294,33 +284,25 @@ void FnPopupWidget::paintEvent(QPaintEvent *event) {
     int contentHeight = ButtonHeight + 2 * ContentMargin + BottomStripHeight;
 
     // Content rect position (offset by shadow margin)
-    QRect contentRect(ShadowMargin, ShadowMargin, contentWidth, contentHeight);
+    QRect contentRect(K4Styles::Dimensions::ShadowMargin, K4Styles::Dimensions::ShadowMargin, contentWidth,
+                      contentHeight);
 
-    // Draw drop shadow (multiple layers for soft blur effect)
-    painter.setPen(Qt::NoPen);
-    const int shadowLayers = 8;
-    for (int i = shadowLayers; i > 0; --i) {
-        int blur = i * 2;
-        int alpha = 12 + (shadowLayers - i) * 3; // Darker toward center
-        QRect shadowRect = contentRect.adjusted(-blur, -blur, blur, blur);
-        shadowRect.translate(ShadowOffsetX, ShadowOffsetY);
-        painter.setBrush(QColor(0, 0, 0, alpha));
-        painter.drawRoundedRect(shadowRect, 8 + blur / 2, 8 + blur / 2);
-    }
+    // Draw drop shadow
+    K4Styles::drawDropShadow(painter, contentRect, 8);
 
     // Main popup background
-    painter.setBrush(QColor(BackgroundColor));
+    painter.setBrush(QColor(K4Styles::Colors::PopupBackground));
     painter.setPen(Qt::NoPen);
     painter.drawRoundedRect(contentRect, 8, 8);
 
     // Gray bottom strip (inside the content rect, at bottom)
     QRect stripRect(contentRect.left(), contentRect.bottom() - BottomStripHeight + 1, contentRect.width(),
                     BottomStripHeight);
-    painter.fillRect(stripRect, IndicatorColor);
+    painter.fillRect(stripRect, QColor(K4Styles::Colors::IndicatorStrip));
 
     // Triangle pointing down from center of bottom strip
     painter.setPen(Qt::NoPen);
-    painter.setBrush(IndicatorColor);
+    painter.setBrush(QColor(K4Styles::Colors::IndicatorStrip));
     int triangleX = contentRect.center().x() + m_triangleOffset;
     int triangleTop = contentRect.bottom() + 1;
     QPainterPath triangle;

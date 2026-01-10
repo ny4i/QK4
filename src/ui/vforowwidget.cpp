@@ -1,16 +1,7 @@
 #include "vforowwidget.h"
+#include "k4styles.h"
 #include <QHBoxLayout>
 #include <QResizeEvent>
-
-// K4 Color constants (matching mainwindow.cpp)
-namespace K4Colors {
-const QString Background = "#1a1a1a";
-const QString DarkBackground = "#0d0d0d";
-const QString VfoAAmber = "#FFB000";
-const QString VfoBCyan = "#00BFFF";
-const QString AgcGreen = "#00FF00";
-const QString TextWhite = "#FFFFFF";
-} // namespace K4Colors
 
 VfoRowWidget::VfoRowWidget(QWidget *parent) : QWidget(parent) {
     setupWidgets();
@@ -35,14 +26,15 @@ void VfoRowWidget::setupWidgets() {
     m_vfoASquare->setCursor(Qt::PointingHandCursor);
     m_vfoASquare->setStyleSheet(
         QString("background-color: %1; color: %2; font-size: 16px; font-weight: bold; border-radius: 4px;")
-            .arg(K4Colors::VfoBCyan, K4Colors::DarkBackground));
+            .arg(K4Styles::Colors::VfoBCyan, K4Styles::Colors::DarkBackground));
     vfoAColumn->addWidget(m_vfoASquare, 0, Qt::AlignHCenter);
 
     m_modeALabel = new QLabel("USB", m_vfoAContainer);
     m_modeALabel->setFixedWidth(45);
     m_modeALabel->setAlignment(Qt::AlignCenter);
     m_modeALabel->setCursor(Qt::PointingHandCursor);
-    m_modeALabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::TextWhite));
+    m_modeALabel->setStyleSheet(
+        QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextWhite));
     vfoAColumn->addWidget(m_modeALabel, 0, Qt::AlignHCenter);
 
     // === TX Container (TEST label + triangles + TX) ===
@@ -65,17 +57,18 @@ void VfoRowWidget::setupWidgets() {
     m_txTriangle = new QLabel(QString::fromUtf8("\u25C0"), m_txContainer); // ◀
     m_txTriangle->setFixedSize(24, 24);
     m_txTriangle->setAlignment(Qt::AlignCenter);
-    m_txTriangle->setStyleSheet(QString("color: %1; font-size: 18px;").arg(K4Colors::VfoAAmber));
+    m_txTriangle->setStyleSheet(QString("color: %1; font-size: 18px;").arg(K4Styles::Colors::VfoAAmber));
     txIndicatorRow->addWidget(m_txTriangle);
 
     m_txIndicator = new QLabel("TX", m_txContainer);
-    m_txIndicator->setStyleSheet(QString("color: %1; font-size: 18px; font-weight: bold;").arg(K4Colors::VfoAAmber));
+    m_txIndicator->setStyleSheet(
+        QString("color: %1; font-size: 18px; font-weight: bold;").arg(K4Styles::Colors::VfoAAmber));
     txIndicatorRow->addWidget(m_txIndicator);
 
     m_txTriangleB = new QLabel("", m_txContainer); // Empty by default
     m_txTriangleB->setFixedSize(24, 24);
     m_txTriangleB->setAlignment(Qt::AlignCenter);
-    m_txTriangleB->setStyleSheet(QString("color: %1; font-size: 18px;").arg(K4Colors::VfoAAmber));
+    m_txTriangleB->setStyleSheet(QString("color: %1; font-size: 18px;").arg(K4Styles::Colors::VfoAAmber));
     txIndicatorRow->addWidget(m_txTriangleB);
 
     txVLayout->addLayout(txIndicatorRow);
@@ -96,14 +89,15 @@ void VfoRowWidget::setupWidgets() {
     m_vfoBSquare->setCursor(Qt::PointingHandCursor);
     m_vfoBSquare->setStyleSheet(
         QString("background-color: %1; color: %2; font-size: 16px; font-weight: bold; border-radius: 4px;")
-            .arg(K4Colors::AgcGreen, K4Colors::DarkBackground));
+            .arg(K4Styles::Colors::AgcGreen, K4Styles::Colors::DarkBackground));
     vfoBColumn->addWidget(m_vfoBSquare, 0, Qt::AlignHCenter);
 
     m_modeBLabel = new QLabel("USB", m_vfoBContainer);
     m_modeBLabel->setFixedWidth(45);
     m_modeBLabel->setAlignment(Qt::AlignCenter);
     m_modeBLabel->setCursor(Qt::PointingHandCursor);
-    m_modeBLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Colors::TextWhite));
+    m_modeBLabel->setStyleSheet(
+        QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextWhite));
     vfoBColumn->addWidget(m_modeBLabel, 0, Qt::AlignHCenter);
 
     // === SUB/DIV Container ===

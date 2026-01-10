@@ -146,4 +146,16 @@ QString menuBarButtonSmall() {
     )";
 }
 
+void drawDropShadow(QPainter &painter, const QRect &contentRect, int cornerRadius) {
+    painter.setPen(Qt::NoPen);
+    for (int i = Dimensions::ShadowLayers; i > 0; --i) {
+        int blur = i * 2;
+        int alpha = 12 + (Dimensions::ShadowLayers - i) * 3;
+        QRect shadowRect = contentRect.adjusted(-blur, -blur, blur, blur);
+        shadowRect.translate(Dimensions::ShadowOffsetX, Dimensions::ShadowOffsetY);
+        painter.setBrush(QColor(0, 0, 0, alpha));
+        painter.drawRoundedRect(shadowRect, cornerRadius + blur / 2, cornerRadius + blur / 2);
+    }
+}
+
 } // namespace K4Styles

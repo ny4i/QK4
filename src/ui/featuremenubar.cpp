@@ -9,13 +9,8 @@
 #include <QWheelEvent>
 
 namespace {
-// Shadow constants
-const int ShadowRadius = 16;               // Drop shadow blur radius
-const int ShadowOffsetX = 2;               // Shadow horizontal offset
-const int ShadowOffsetY = 4;               // Shadow vertical offset
-const int ShadowMargin = ShadowRadius + 4; // Extra space around popup for shadow
-const int ContentHeight = 52;              // Height of content area (was setFixedHeight)
-const int ContentMargin = 12;              // Horizontal margin inside content
+const int ContentHeight = 52; // Height of content area (was setFixedHeight)
+const int ContentMargin = 12; // Horizontal margin inside content
 } // namespace
 
 FeatureMenuBar::FeatureMenuBar(QWidget *parent) : QWidget(parent) {
@@ -28,12 +23,13 @@ FeatureMenuBar::FeatureMenuBar(QWidget *parent) : QWidget(parent) {
 
 void FeatureMenuBar::setupUi() {
     // Height includes shadow margins on top and bottom
-    setFixedHeight(ContentHeight + 2 * ShadowMargin);
+    setFixedHeight(ContentHeight + 2 * K4Styles::Dimensions::ShadowMargin);
 
     auto *layout = new QHBoxLayout(this);
     // Margins include shadow space on all sides
-    layout->setContentsMargins(ShadowMargin + ContentMargin, ShadowMargin + 6, ShadowMargin + ContentMargin,
-                               ShadowMargin + 6);
+    layout->setContentsMargins(
+        K4Styles::Dimensions::ShadowMargin + ContentMargin, K4Styles::Dimensions::ShadowMargin + 6,
+        K4Styles::Dimensions::ShadowMargin + ContentMargin, K4Styles::Dimensions::ShadowMargin + 6);
     layout->setSpacing(8);
 
     // Title label (framed box with centered text)
@@ -130,22 +126,22 @@ void FeatureMenuBar::showAboveWidget(QWidget *referenceWidget) {
     int refCenterX = refGlobal.x() + referenceWidget->width() / 2;
 
     // Content width (widget width minus shadow margins)
-    int contentWidth = width() - 2 * ShadowMargin;
+    int contentWidth = width() - 2 * K4Styles::Dimensions::ShadowMargin;
 
     // Center content area horizontally above reference widget (account for shadow margin)
-    int popupX = refCenterX - contentWidth / 2 - ShadowMargin;
-    int popupY = refGlobal.y() - ContentHeight - ShadowMargin - 4; // 4px gap above
+    int popupX = refCenterX - contentWidth / 2 - K4Styles::Dimensions::ShadowMargin;
+    int popupY = refGlobal.y() - ContentHeight - K4Styles::Dimensions::ShadowMargin - 4; // 4px gap above
 
     // Ensure popup stays on screen
     QRect screenGeom = QApplication::primaryScreen()->availableGeometry();
-    if (popupX < screenGeom.left() - ShadowMargin) {
-        popupX = screenGeom.left() - ShadowMargin;
-    } else if (popupX + width() > screenGeom.right() + ShadowMargin) {
-        popupX = screenGeom.right() + ShadowMargin - width();
+    if (popupX < screenGeom.left() - K4Styles::Dimensions::ShadowMargin) {
+        popupX = screenGeom.left() - K4Styles::Dimensions::ShadowMargin;
+    } else if (popupX + width() > screenGeom.right() + K4Styles::Dimensions::ShadowMargin) {
+        popupX = screenGeom.right() + K4Styles::Dimensions::ShadowMargin - width();
     }
-    if (popupY < screenGeom.top() - ShadowMargin) {
+    if (popupY < screenGeom.top() - K4Styles::Dimensions::ShadowMargin) {
         // If not enough room above, show below instead
-        popupY = refGlobal.y() + referenceWidget->height() + 4 - ShadowMargin;
+        popupY = refGlobal.y() + referenceWidget->height() + 4 - K4Styles::Dimensions::ShadowMargin;
     }
 
     move(popupX, popupY);
@@ -240,19 +236,10 @@ void FeatureMenuBar::paintEvent(QPaintEvent *event) {
     // Calculate tight bounding box from first to last visible widget
     int left = m_titleLabel->geometry().left() - 8; // 8px padding
     int right = m_incrementBtn->geometry().right() + 8;
-    QRect contentRect(left, ShadowMargin + 1, right - left, ContentHeight - 3);
+    QRect contentRect(left, K4Styles::Dimensions::ShadowMargin + 1, right - left, ContentHeight - 3);
 
-    // Draw drop shadow (multiple layers for soft blur effect)
-    painter.setPen(Qt::NoPen);
-    const int shadowLayers = 8;
-    for (int i = shadowLayers; i > 0; --i) {
-        int blur = i * 2;
-        int alpha = 12 + (shadowLayers - i) * 3; // Darker toward center
-        QRect shadowRect = contentRect.adjusted(-blur, -blur, blur, blur);
-        shadowRect.translate(ShadowOffsetX, ShadowOffsetY);
-        painter.setBrush(QColor(0, 0, 0, alpha));
-        painter.drawRoundedRect(shadowRect, 8 + blur / 2, 8 + blur / 2);
-    }
+    // Draw drop shadow
+    K4Styles::drawDropShadow(painter, contentRect, 8);
 
     // Gradient background (matches ControlGroupWidget style)
     QLinearGradient grad(0, contentRect.top(), 0, contentRect.bottom());

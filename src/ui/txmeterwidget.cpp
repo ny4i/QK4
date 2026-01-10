@@ -1,16 +1,12 @@
 #include "txmeterwidget.h"
+#include "k4styles.h"
 #include <QPainter>
 #include <QLinearGradient>
 
+// Meter-specific colors (not in K4Styles)
 namespace {
-const QString DarkBackground = "#0d0d0d";
-const QString TrackBackground = "#1a1a1a";
-const QString LabelBoxBorder = "#666666";
-const QString LabelBoxFill = "#1a1a1a";
 const QString MeterBarColor = "#8B0000";     // Dark red/maroon for Id meter
 const QString MeterBarHighlight = "#CD5C5C"; // Lighter red for Id gradient
-const QString TextWhite = "#FFFFFF";
-const QString TextGray = "#888888";
 const QString ScaleGray = "#666666";
 } // namespace
 
@@ -202,7 +198,7 @@ void TxMeterWidget::paintEvent(QPaintEvent *event) {
     int h = height();
 
     // Background
-    painter.fillRect(rect(), QColor(DarkBackground));
+    painter.fillRect(rect(), QColor(K4Styles::Colors::DarkBackground));
 
     // Layout constants
     const int labelWidth = 36; // Width of label box (Po, ALC, etc.)
@@ -288,12 +284,12 @@ void TxMeterWidget::drawMeterRow(QPainter &painter, int y, int rowHeight, const 
                                  int barStartX, int barWidth, int barHeight, MeterType type) {
     // Label box on the left
     QRect labelRect(2, y + 2, 32, rowHeight - 4);
-    painter.setPen(QColor(LabelBoxBorder));
-    painter.setBrush(QColor(LabelBoxFill));
+    painter.setPen(QColor(K4Styles::Colors::InactiveGray));
+    painter.setBrush(QColor(K4Styles::Colors::Background));
     painter.drawRect(labelRect);
 
     // Label text
-    painter.setPen(QColor(TextWhite));
+    painter.setPen(QColor(K4Styles::Colors::TextWhite));
     QFont labelFont = font();
     labelFont.setPointSize(8);
     labelFont.setBold(true);
@@ -303,7 +299,7 @@ void TxMeterWidget::drawMeterRow(QPainter &painter, int y, int rowHeight, const 
     // Meter bar track (dark background)
     int barY = y + 2;
     QRect trackRect(barStartX, barY, barWidth, barHeight);
-    painter.fillRect(trackRect, QColor(TrackBackground));
+    painter.fillRect(trackRect, QColor(K4Styles::Colors::Background));
     painter.setPen(QColor(ScaleGray));
     painter.drawRect(trackRect);
 
@@ -340,7 +336,7 @@ void TxMeterWidget::drawMeterRow(QPainter &painter, int y, int rowHeight, const 
 
     // Scale labels below bar
     painter.setFont(scaleFont);
-    painter.setPen(QColor(TextGray));
+    painter.setPen(QColor(K4Styles::Colors::TextGray));
     int scaleY = barY + barHeight + 1;
     int numLabels = scaleLabels.size();
     if (numLabels > 0) {
