@@ -26,7 +26,7 @@ void VfoRowWidget::setupWidgets() {
     m_vfoASquare->setCursor(Qt::PointingHandCursor);
     m_vfoASquare->setStyleSheet(
         QString("background-color: %1; color: %2; font-size: 16px; font-weight: bold; border-radius: 4px;")
-            .arg(K4Styles::Colors::VfoBCyan, K4Styles::Colors::DarkBackground));
+            .arg(K4Styles::Colors::VfoACyan, K4Styles::Colors::DarkBackground));
     vfoAColumn->addWidget(m_vfoASquare, 0, Qt::AlignHCenter);
 
     m_modeALabel = new QLabel("USB", m_vfoAContainer);
@@ -57,18 +57,18 @@ void VfoRowWidget::setupWidgets() {
     m_txTriangle = new QLabel(QString::fromUtf8("\u25C0"), m_txContainer); // ◀
     m_txTriangle->setFixedSize(K4Styles::Dimensions::ButtonHeightMini, K4Styles::Dimensions::ButtonHeightMini);
     m_txTriangle->setAlignment(Qt::AlignCenter);
-    m_txTriangle->setStyleSheet(QString("color: %1; font-size: 18px;").arg(K4Styles::Colors::VfoAAmber));
+    m_txTriangle->setStyleSheet(QString("color: %1; font-size: 18px;").arg(K4Styles::Colors::AccentAmber));
     txIndicatorRow->addWidget(m_txTriangle);
 
     m_txIndicator = new QLabel("TX", m_txContainer);
     m_txIndicator->setStyleSheet(
-        QString("color: %1; font-size: 18px; font-weight: bold;").arg(K4Styles::Colors::VfoAAmber));
+        QString("color: %1; font-size: 18px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
     txIndicatorRow->addWidget(m_txIndicator);
 
     m_txTriangleB = new QLabel("", m_txContainer); // Empty by default
     m_txTriangleB->setFixedSize(K4Styles::Dimensions::ButtonHeightMini, K4Styles::Dimensions::ButtonHeightMini);
     m_txTriangleB->setAlignment(Qt::AlignCenter);
-    m_txTriangleB->setStyleSheet(QString("color: %1; font-size: 18px;").arg(K4Styles::Colors::VfoAAmber));
+    m_txTriangleB->setStyleSheet(QString("color: %1; font-size: 18px;").arg(K4Styles::Colors::AccentAmber));
     txIndicatorRow->addWidget(m_txTriangleB);
 
     txVLayout->addLayout(txIndicatorRow);

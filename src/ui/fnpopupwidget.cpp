@@ -64,7 +64,7 @@ void FnMenuButton::paintEvent(QPaintEvent *event) {
         altFont.setPointSize(K4Styles::Dimensions::FontSizeMedium);
         altFont.setBold(false);
         painter.setFont(altFont);
-        painter.setPen(QColor(K4Styles::Colors::VfoAAmber));
+        painter.setPen(QColor(K4Styles::Colors::AccentAmber));
 
         QRect altRect(0, height() / 2, width(), height() / 2 - 4);
         painter.drawText(altRect, Qt::AlignCenter, m_alternateText);

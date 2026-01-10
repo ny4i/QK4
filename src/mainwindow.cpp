@@ -288,7 +288,7 @@ MainWindow::MainWindow(QWidget *parent)
         m_vfoB->setTransmitting(transmitting);
 
         // TX indicator and triangles turn red when transmitting
-        QString color = transmitting ? "#FF0000" : K4Styles::Colors::VfoAAmber;
+        QString color = transmitting ? "#FF0000" : K4Styles::Colors::AccentAmber;
         m_txIndicator->setStyleSheet(QString("color: %1; font-size: 18px; font-weight: bold;").arg(color));
         m_txTriangle->setStyleSheet(QString("color: %1; font-size: 18px;").arg(color));
         m_txTriangleB->setStyleSheet(QString("color: %1; font-size: 18px;").arg(color));
@@ -1694,22 +1694,22 @@ void MainWindow::setupTopStatusBar(QWidget *parent) {
 
     // Power
     m_powerLabel = new QLabel("--- W", statusBar);
-    m_powerLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::VfoAAmber));
+    m_powerLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::AccentAmber));
     layout->addWidget(m_powerLabel);
 
     // SWR
     m_swrLabel = new QLabel("-.-:1", statusBar);
-    m_swrLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::VfoAAmber));
+    m_swrLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::AccentAmber));
     layout->addWidget(m_swrLabel);
 
     // Voltage
     m_voltageLabel = new QLabel("--.- V", statusBar);
-    m_voltageLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::VfoAAmber));
+    m_voltageLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::AccentAmber));
     layout->addWidget(m_voltageLabel);
 
     // Current
     m_currentLabel = new QLabel("-.- A", statusBar);
-    m_currentLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::VfoAAmber));
+    m_currentLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::AccentAmber));
     layout->addWidget(m_currentLabel);
 
     layout->addStretch();
@@ -1798,7 +1798,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     // SPLIT indicator
     m_splitLabel = new QLabel("SPLIT OFF", centerWidget);
     m_splitLabel->setAlignment(Qt::AlignCenter);
-    m_splitLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(K4Styles::Colors::VfoAAmber));
+    m_splitLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(K4Styles::Colors::AccentAmber));
     centerLayout->addWidget(m_splitLabel);
 
     // B SET indicator (green rounded rect with black text, hidden by default)
@@ -2163,7 +2163,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     m_txAntennaLabel = new QLabel("1:ANT1", parent);
     m_txAntennaLabel->setAlignment(Qt::AlignCenter);
     m_txAntennaLabel->setStyleSheet(
-        QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::VfoAAmber));
+        QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
     antennaRow->addWidget(m_txAntennaLabel);
 
     antennaRow->addStretch(1); // Push RX Ant B to right
@@ -2191,7 +2191,7 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
 
     // Main panadapter for VFO A (left side) - QRhiWidget with Metal/DirectX/Vulkan
     m_panadapterA = new PanadapterRhiWidget(m_spectrumContainer);
-    m_panadapterA->setSpectrumLineColor(QColor(K4Styles::Colors::VfoAAmber));
+    m_panadapterA->setSpectrumLineColor(QColor(K4Styles::Colors::VfoACyan));
     m_panadapterA->setDbRange(-140.0f, -20.0f);
     m_panadapterA->setSpectrumRatio(0.35f);
     m_panadapterA->setGridEnabled(true);
@@ -2204,7 +2204,7 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
 
     // Sub panadapter for VFO B (right side) - QRhiWidget with Metal/DirectX/Vulkan
     m_panadapterB = new PanadapterRhiWidget(m_spectrumContainer);
-    m_panadapterB->setSpectrumLineColor(QColor(K4Styles::Colors::VfoBCyan));
+    m_panadapterB->setSpectrumLineColor(QColor(K4Styles::Colors::VfoBGreen));
     m_panadapterB->setDbRange(-140.0f, -20.0f);
     m_panadapterB->setSpectrumRatio(0.35f);
     m_panadapterB->setGridEnabled(true);
@@ -2741,13 +2741,13 @@ void MainWindow::updateConnectionState(TcpClient::ConnectionState state) {
     case TcpClient::Connecting:
         m_connectionStatusLabel->setText("K4 Connecting...");
         m_connectionStatusLabel->setStyleSheet(
-            QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Styles::Colors::VfoAAmber));
+            QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
         break;
 
     case TcpClient::Authenticating:
         m_connectionStatusLabel->setText("K4 Authenticating...");
         m_connectionStatusLabel->setStyleSheet(
-            QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Styles::Colors::VfoAAmber));
+            QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
         break;
 
     case TcpClient::Connected:
@@ -2791,7 +2791,7 @@ void MainWindow::onSplitChanged(bool enabled) {
         m_txTriangleB->setText("▶");
     } else {
         m_splitLabel->setText("SPLIT OFF");
-        m_splitLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(K4Styles::Colors::VfoAAmber));
+        m_splitLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(K4Styles::Colors::AccentAmber));
         // When split is off, TX stays on VFO A - show left triangle, clear right triangle
         m_txTriangle->setText("◀");
         m_txTriangleB->setText("");
@@ -2843,7 +2843,7 @@ void MainWindow::onVoxChanged(bool enabled) {
     bool voxOn = m_radioState->voxForCurrentMode();
     if (voxOn) {
         m_voxLabel->setStyleSheet(
-            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::VfoAAmber));
+            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
     } else {
         m_voxLabel->setStyleSheet("color: #999999; font-size: 11px; font-weight: bold;");
     }
@@ -2867,7 +2867,7 @@ void MainWindow::onAtuModeChanged(int mode) {
     // ATU indicator: orange when AUTO mode (2), grey otherwise
     if (mode == 2) {
         m_atuLabel->setStyleSheet(
-            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::VfoAAmber));
+            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
     } else {
         m_atuLabel->setStyleSheet("color: #999999; font-size: 11px; font-weight: bold;");
     }

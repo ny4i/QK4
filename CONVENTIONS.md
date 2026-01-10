@@ -80,15 +80,12 @@ MainWindow::MainWindow(QWidget *parent)
 **Source of truth:** `src/ui/k4styles.h` - All colors are `constexpr const char*` in `K4Styles::Colors::*`
 
 ```cpp
-// VFO Colors (text/labels vs spectrum distinction)
-K4Styles::Colors::VfoAText       // "#FFB000" - Amber for VFO A labels
-K4Styles::Colors::VfoBText       // "#00BFFF" - Cyan for VFO B labels
-K4Styles::Colors::VfoASpectrum   // "#0080FF" - Cyan/Blue for panadapter
-K4Styles::Colors::VfoBSpectrum   // "#00C800" - Green for panadapter
+// App Accent Color
+K4Styles::Colors::AccentAmber    // "#FFB000" - TX indicators, labels, highlights
 
-// Legacy aliases (same values, for backward compatibility)
-K4Styles::Colors::VfoAAmber      // Same as VfoAText
-K4Styles::Colors::VfoBCyan       // Same as VfoBText
+// VFO Theme Colors (square, passband, markers, overlays)
+K4Styles::Colors::VfoACyan       // "#00BFFF" - VFO A: cyan theme
+K4Styles::Colors::VfoBGreen      // "#00FF00" - VFO B: green theme
 
 // Backgrounds
 K4Styles::Colors::Background        // "#1a1a1a"
@@ -110,8 +107,8 @@ K4Styles::Colors::RitCyan        // "#00CED1"
 
 ### Spectrum Colors
 
-- **Main Panadapter Line**: Lime green `#32FF32` with gradient fill
-- **Mini-Pan Line**: Amber `#FFB000`
+- **Main Panadapter**: QRhi gradient (green fill with lime line)
+- **Mini-Pan Line**: VfoACyan `#00BFFF` for A, VfoBGreen `#00FF00` for B
 - **Waterfall**: 8-stage LUT (Black → Blue → Cyan → Green → Yellow → Red)
 
 ## Fonts

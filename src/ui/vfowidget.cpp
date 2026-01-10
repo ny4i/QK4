@@ -9,7 +9,7 @@
 
 VFOWidget::VFOWidget(VFOType type, QWidget *parent)
     : QWidget(parent), m_type(type),
-      m_primaryColor(type == VFO_A ? K4Styles::Colors::VfoAAmber : K4Styles::Colors::VfoBCyan),
+      m_primaryColor(type == VFO_A ? K4Styles::Colors::VfoACyan : K4Styles::Colors::VfoBGreen),
       m_inactiveColor(K4Styles::Colors::InactiveGray) {
     setupUi();
 }
@@ -349,7 +349,7 @@ void VFOWidget::showMiniPan() {
             m_miniPan->setSpectrumColor(m_pendingSpectrumColor);
         } else {
             // Default color based on VFO type
-            m_miniPan->setSpectrumColor(QColor(m_type == VFO_A ? K4Styles::Colors::VfoAAmber : "#00FF00"));
+            m_miniPan->setSpectrumColor(QColor(m_type == VFO_A ? K4Styles::Colors::VfoACyan : K4Styles::Colors::VfoBGreen));
         }
         if (m_pendingPassbandColor.isValid()) {
             m_miniPan->setPassbandColor(m_pendingPassbandColor);

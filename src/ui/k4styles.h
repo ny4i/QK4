@@ -70,17 +70,12 @@ constexpr const char *Background = "#1a1a1a";
 constexpr const char *DarkBackground = "#0d0d0d";
 constexpr const char *PopupBackground = "#1e1e1e";
 
-// VFO Text/Label Colors (frequency display, mode labels)
-constexpr const char *VfoAText = "#FFB000"; // Amber for VFO A text/labels
-constexpr const char *VfoBText = "#00BFFF"; // Cyan for VFO B text/labels
+// App Accent Color
+constexpr const char *AccentAmber = "#FFB000"; // TX indicators, labels, highlights
 
-// VFO Spectrum/Passband Colors (panadapter, mini-pan)
-constexpr const char *VfoASpectrum = "#0080FF"; // Cyan/Blue for VFO A spectrum
-constexpr const char *VfoBSpectrum = "#00C800"; // Green for VFO B spectrum
-
-// Legacy aliases (for backward compatibility)
-constexpr const char *VfoAAmber = "#FFB000"; // Same as VfoAText
-constexpr const char *VfoBCyan = "#00BFFF";  // Same as VfoBText
+// VFO Theme Colors (square, passband, markers, overlays)
+constexpr const char *VfoACyan = "#00BFFF";  // VFO A: cyan theme
+constexpr const char *VfoBGreen = "#00FF00"; // VFO B: green theme
 
 // Status Colors
 constexpr const char *TxRed = "#FF0000";

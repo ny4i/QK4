@@ -16,26 +16,18 @@ Complete reference for all `K4Styles::Colors` and `K4Styles::Dimensions` constan
 | `DarkBackground` | `#0d0d0d` | Darker areas, panel backgrounds |
 | `PopupBackground` | `#1e1e1e` | Popup menu fill |
 
-### VFO Text Colors
+### App Accent Color
 
 | Constant | Value | Usage |
 |----------|-------|-------|
-| `VfoAText` | `#FFB000` | VFO A frequency display, mode labels (amber) |
-| `VfoBText` | `#00BFFF` | VFO B frequency display, mode labels (cyan) |
+| `AccentAmber` | `#FFB000` | TX indicators, labels, highlights |
 
-### VFO Spectrum Colors
+### VFO Theme Colors
 
 | Constant | Value | Usage |
 |----------|-------|-------|
-| `VfoASpectrum` | `#0080FF` | VFO A passband on panadapter (cyan/blue) |
-| `VfoBSpectrum` | `#00C800` | VFO B passband on panadapter (green) |
-
-### Legacy Aliases
-
-| Constant | Value | Note |
-|----------|-------|------|
-| `VfoAAmber` | `#FFB000` | Same as `VfoAText` (backward compatibility) |
-| `VfoBCyan` | `#00BFFF` | Same as `VfoBText` (backward compatibility) |
+| `VfoACyan` | `#00BFFF` | VFO A: square, passband, markers, overlays |
+| `VfoBGreen` | `#00FF00` | VFO B: square, passband, markers, overlays |
 
 ### Status Indicator Colors
 
@@ -264,11 +256,10 @@ Backgrounds:
   #0d0d0d ████ DarkBackground
   #1e1e1e ████ PopupBackground
 
-VFO Colors:
-  #FFB000 ████ VfoAText/VfoAAmber (amber)
-  #00BFFF ████ VfoBText/VfoBCyan (cyan)
-  #0080FF ████ VfoASpectrum (blue)
-  #00C800 ████ VfoBSpectrum (green)
+Accent & VFO Colors:
+  #FFB000 ████ AccentAmber (TX indicators, highlights)
+  #00BFFF ████ VfoACyan (VFO A theme)
+  #00FF00 ████ VfoBGreen (VFO B theme)
 
 Status:
   #FF0000 ████ TxRed
