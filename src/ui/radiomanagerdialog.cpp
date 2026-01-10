@@ -1,4 +1,5 @@
 #include "radiomanagerdialog.h"
+#include "k4styles.h"
 #include "network/protocol.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -224,7 +225,7 @@ void RadioManagerDialog::setupUi() {
 
     m_backButton = new QPushButton(QString::fromUtf8("\xE2\x86\xA9"), this); // ↩ Curved arrow
     m_backButton->setStyleSheet(backButtonStyle);
-    m_backButton->setFixedSize(36, 36);
+    m_backButton->setFixedSize(K4Styles::Dimensions::ButtonHeightMedium, K4Styles::Dimensions::ButtonHeightMedium);
     m_backButton->setToolTip("Back / Exit");
     buttonLayout->addWidget(m_backButton);
 

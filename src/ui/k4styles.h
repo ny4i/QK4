@@ -164,6 +164,19 @@ constexpr int PopupButtonSpacing = 8;
 constexpr int PopupContentMargin = 12;
 
 // =============================================================================
+// Common UI Heights
+// =============================================================================
+constexpr int SeparatorHeight = 1;  // Horizontal/vertical separator lines
+constexpr int MenuItemHeight = 40;  // Menu overlay items, frequency labels
+
+// =============================================================================
+// Common UI Widths
+// =============================================================================
+constexpr int FormLabelWidth = 80;  // Form field labels in dialogs
+constexpr int VfoSquareSize = 45;   // VFO A/B indicator squares and mode labels
+constexpr int NavButtonWidth = 54;  // Navigation buttons in overlays
+
+// =============================================================================
 // Font Sizes (in pixels)
 // =============================================================================
 constexpr int FontSizeTiny = 7;    // Sub-labels (BANK, AF REC, MESSAGE)

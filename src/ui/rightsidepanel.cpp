@@ -143,7 +143,7 @@ QWidget *RightSidePanel::createFunctionButton(const QString &mainText, const QSt
 
     // Button - scaled down from bottom menu bar style (matching left panel TX buttons)
     auto *btn = new QPushButton(mainText, container);
-    btn->setFixedHeight(28);
+    btn->setFixedHeight(K4Styles::Dimensions::ButtonHeightSmall);
     btn->setCursor(Qt::PointingHandCursor);
 
     if (isLighter) {

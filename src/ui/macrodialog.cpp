@@ -1,4 +1,5 @@
 #include "macrodialog.h"
+#include "k4styles.h"
 #include "../settings/radiosettings.h"
 #include "fnpopupwidget.h"
 #include <QDebug>
@@ -230,7 +231,7 @@ void MacroDialog::setupUi() {
     // Column headers
     QWidget *columnHeader = new QWidget(m_contentWidget);
     columnHeader->setStyleSheet("background-color: #1E1E24;");
-    columnHeader->setFixedHeight(28);
+    columnHeader->setFixedHeight(K4Styles::Dimensions::ButtonHeightSmall);
 
     QHBoxLayout *headerLayout = new QHBoxLayout(columnHeader);
     headerLayout->setContentsMargins(15, 5, 15, 5);
@@ -295,13 +296,13 @@ void MacroDialog::setupUi() {
     row1->setSpacing(8);
 
     m_upBtn = new QPushButton("\xE2\x96\xB2", navPanel); // Up arrow
-    m_upBtn->setFixedSize(54, 44);
+    m_upBtn->setFixedSize(K4Styles::Dimensions::NavButtonWidth, K4Styles::Dimensions::PopupButtonHeight);
     m_upBtn->setStyleSheet(buttonStyle);
     connect(m_upBtn, &QPushButton::clicked, this, &MacroDialog::navigateUp);
     row1->addWidget(m_upBtn);
 
     m_downBtn = new QPushButton("\xE2\x96\xBC", navPanel); // Down arrow
-    m_downBtn->setFixedSize(54, 44);
+    m_downBtn->setFixedSize(K4Styles::Dimensions::NavButtonWidth, K4Styles::Dimensions::PopupButtonHeight);
     m_downBtn->setStyleSheet(buttonStyle);
     connect(m_downBtn, &QPushButton::clicked, this, &MacroDialog::navigateDown);
     row1->addWidget(m_downBtn);
@@ -314,7 +315,7 @@ void MacroDialog::setupUi() {
     row2->setSpacing(8);
 
     m_editBtn = new QPushButton("EDIT", navPanel);
-    m_editBtn->setFixedSize(54, 44);
+    m_editBtn->setFixedSize(K4Styles::Dimensions::NavButtonWidth, K4Styles::Dimensions::PopupButtonHeight);
     m_editBtn->setStyleSheet("QPushButton { background-color: #3A3A45; color: #888; border: none; "
                              "border-radius: 6px; font-size: 10px; font-weight: bold; }"
                              "QPushButton:pressed { background-color: #505060; }");
@@ -322,7 +323,7 @@ void MacroDialog::setupUi() {
     row2->addWidget(m_editBtn);
 
     m_backBtn = new QPushButton("\xE2\x86\xA9", navPanel); // Back arrow
-    m_backBtn->setFixedSize(54, 44);
+    m_backBtn->setFixedSize(K4Styles::Dimensions::NavButtonWidth, K4Styles::Dimensions::PopupButtonHeight);
     m_backBtn->setStyleSheet("QPushButton { background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
                              "stop:0 #4a4a4a, stop:0.4 #3a3a3a, stop:0.6 #353535, stop:1 #2a2a2a);"
                              "color: white; border: 1px solid #606060; border-radius: 6px; "

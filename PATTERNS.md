@@ -87,6 +87,68 @@ connect(myAction, &QAction::triggered, this, &MainWindow::onMyAction);
 
 **All popup menus MUST inherit from `K4PopupBase`.**
 
+### K4PopupBase Class Reference
+
+Base class for all popup widgets. Defined in `src/ui/k4popupbase.h`.
+
+**Inherits:** QWidget
+
+**Inherited by:** BandPopupWidget, ButtonRowPopup, DisplayPopupWidget, FnPopupWidget, ModePopupWidget
+
+#### Public Methods
+
+| Method | Description |
+|--------|-------------|
+| `K4PopupBase(QWidget *parent)` | Constructor. Sets up window flags, translucent background, focus policy |
+| `showAboveButton(QWidget *trigger)` | Position and show popup centered above trigger button's parent |
+| `showAboveWidget(QWidget *ref)` | Position and show popup above reference widget |
+| `hidePopup()` | Hide popup and emit `closed()` signal |
+
+#### Signals
+
+| Signal | Description |
+|--------|-------------|
+| `closed()` | Emitted when popup is hidden (via hidePopup(), Escape key, or click outside) |
+
+#### Protected Methods (for subclasses)
+
+| Method | Description |
+|--------|-------------|
+| `contentSize()` | **Pure virtual.** Return QSize of content area (excluding shadow margins) |
+| `contentMargins()` | Returns QMargins for layout (shadow + content padding) |
+| `contentRect()` | Returns QRect of content area for custom painting |
+| `initPopup()` | Sets widget size from contentSize(). **Must call at end of constructor** |
+| `paintContent(QPainter&, QRect&)` | Override for custom painting after background/shadow |
+
+#### What K4PopupBase Handles Automatically
+
+- Window flags (`Qt::Popup | Qt::FramelessWindowHint`)
+- Translucent background for shadow rendering
+- Drop shadow drawing (8-layer blur via `K4Styles::drawDropShadow`)
+- Popup background fill (`K4Styles::Colors::PopupBackground`)
+- Escape key closes popup
+- Screen boundary detection (keeps popup on-screen)
+- `closed()` signal emission on hide
+
+#### Implementation Details
+
+```cpp
+// Constructor sets up:
+setWindowFlags(Qt::Popup | Qt::FramelessWindowHint);
+setAttribute(Qt::WA_TranslucentBackground);
+setFocusPolicy(Qt::StrongFocus);
+
+// contentMargins() returns:
+QMargins(ShadowMargin + PopupContentMargin, ...)  // All four sides
+
+// initPopup() calculates:
+totalSize = contentSize() + 2 * ShadowMargin
+```
+
+---
+
+### Popup Creation Guide
+
 K4PopupBase provides:
 - Window flags and frameless behavior
 - Drop shadow rendering (8-layer blur)

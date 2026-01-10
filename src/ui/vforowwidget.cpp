@@ -15,7 +15,7 @@ void VfoRowWidget::setupWidgets() {
 
     // === VFO A Container (square + mode label) ===
     m_vfoAContainer = new QWidget(this);
-    m_vfoAContainer->setFixedWidth(45);
+    m_vfoAContainer->setFixedWidth(K4Styles::Dimensions::VfoSquareSize);
     auto *vfoAColumn = new QVBoxLayout(m_vfoAContainer);
     vfoAColumn->setContentsMargins(0, 0, 0, 0);
     vfoAColumn->setSpacing(2);
@@ -30,7 +30,7 @@ void VfoRowWidget::setupWidgets() {
     vfoAColumn->addWidget(m_vfoASquare, 0, Qt::AlignHCenter);
 
     m_modeALabel = new QLabel("USB", m_vfoAContainer);
-    m_modeALabel->setFixedWidth(45);
+    m_modeALabel->setFixedWidth(K4Styles::Dimensions::VfoSquareSize);
     m_modeALabel->setAlignment(Qt::AlignCenter);
     m_modeALabel->setCursor(Qt::PointingHandCursor);
     m_modeALabel->setStyleSheet(
@@ -55,7 +55,7 @@ void VfoRowWidget::setupWidgets() {
     txIndicatorRow->setSpacing(0);
 
     m_txTriangle = new QLabel(QString::fromUtf8("\u25C0"), m_txContainer); // ◀
-    m_txTriangle->setFixedSize(24, 24);
+    m_txTriangle->setFixedSize(K4Styles::Dimensions::ButtonHeightMini, K4Styles::Dimensions::ButtonHeightMini);
     m_txTriangle->setAlignment(Qt::AlignCenter);
     m_txTriangle->setStyleSheet(QString("color: %1; font-size: 18px;").arg(K4Styles::Colors::VfoAAmber));
     txIndicatorRow->addWidget(m_txTriangle);
@@ -66,7 +66,7 @@ void VfoRowWidget::setupWidgets() {
     txIndicatorRow->addWidget(m_txIndicator);
 
     m_txTriangleB = new QLabel("", m_txContainer); // Empty by default
-    m_txTriangleB->setFixedSize(24, 24);
+    m_txTriangleB->setFixedSize(K4Styles::Dimensions::ButtonHeightMini, K4Styles::Dimensions::ButtonHeightMini);
     m_txTriangleB->setAlignment(Qt::AlignCenter);
     m_txTriangleB->setStyleSheet(QString("color: %1; font-size: 18px;").arg(K4Styles::Colors::VfoAAmber));
     txIndicatorRow->addWidget(m_txTriangleB);
@@ -78,7 +78,7 @@ void VfoRowWidget::setupWidgets() {
 
     // === VFO B Container (square + mode label) ===
     m_vfoBContainer = new QWidget(this);
-    m_vfoBContainer->setFixedWidth(45);
+    m_vfoBContainer->setFixedWidth(K4Styles::Dimensions::VfoSquareSize);
     auto *vfoBColumn = new QVBoxLayout(m_vfoBContainer);
     vfoBColumn->setContentsMargins(0, 0, 0, 0);
     vfoBColumn->setSpacing(2);
@@ -93,7 +93,7 @@ void VfoRowWidget::setupWidgets() {
     vfoBColumn->addWidget(m_vfoBSquare, 0, Qt::AlignHCenter);
 
     m_modeBLabel = new QLabel("USB", m_vfoBContainer);
-    m_modeBLabel->setFixedWidth(45);
+    m_modeBLabel->setFixedWidth(K4Styles::Dimensions::VfoSquareSize);
     m_modeBLabel->setAlignment(Qt::AlignCenter);
     m_modeBLabel->setCursor(Qt::PointingHandCursor);
     m_modeBLabel->setStyleSheet(

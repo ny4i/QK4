@@ -1,5 +1,6 @@
 #include "sidecontrolpanel.h"
 #include "dualcontrolbutton.h"
+#include "k4styles.h"
 #include "../settings/radiosettings.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -606,7 +607,7 @@ QWidget *SideControlPanel::createTxFunctionButton(const QString &mainText, const
 
     // Button - scaled down from bottom menu bar style
     auto *btn = new QPushButton(mainText, container);
-    btn->setFixedHeight(28);
+    btn->setFixedHeight(K4Styles::Dimensions::ButtonHeightSmall);
     btn->setCursor(Qt::PointingHandCursor);
     // Lighter grey gradient for TX function buttons (2 shades lighter)
     btn->setStyleSheet(R"(

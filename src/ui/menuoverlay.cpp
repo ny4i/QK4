@@ -1,4 +1,5 @@
 #include "menuoverlay.h"
+#include "k4styles.h"
 #include <QPainter>
 #include <QKeyEvent>
 #include <QMouseEvent>
@@ -8,7 +9,7 @@
 // ============== MenuItemWidget ==============
 
 MenuItemWidget::MenuItemWidget(MenuItem *item, QWidget *parent) : QWidget(parent), m_item(item) {
-    setFixedHeight(40);
+    setFixedHeight(K4Styles::Dimensions::MenuItemHeight);
     setCursor(Qt::PointingHandCursor);
 
     QHBoxLayout *layout = new QHBoxLayout(this);
@@ -191,13 +192,13 @@ void MenuOverlayWidget::setupUi() {
     row1->setSpacing(8);
 
     m_upBtn = new QPushButton("\xE2\x96\xB2", navPanel); // ▲
-    m_upBtn->setFixedSize(54, 44);
+    m_upBtn->setFixedSize(K4Styles::Dimensions::NavButtonWidth, K4Styles::Dimensions::PopupButtonHeight);
     m_upBtn->setStyleSheet(buttonStyle);
     connect(m_upBtn, &QPushButton::clicked, this, &MenuOverlayWidget::navigateUp);
     row1->addWidget(m_upBtn);
 
     m_downBtn = new QPushButton("\xE2\x96\xBC", navPanel); // ▼
-    m_downBtn->setFixedSize(54, 44);
+    m_downBtn->setFixedSize(K4Styles::Dimensions::NavButtonWidth, K4Styles::Dimensions::PopupButtonHeight);
     m_downBtn->setStyleSheet(buttonStyle);
     connect(m_downBtn, &QPushButton::clicked, this, &MenuOverlayWidget::navigateDown);
     row1->addWidget(m_downBtn);
@@ -210,7 +211,7 @@ void MenuOverlayWidget::setupUi() {
     row3->setSpacing(8);
 
     m_normBtn = new QPushButton("NORM", navPanel);
-    m_normBtn->setFixedSize(54, 44);
+    m_normBtn->setFixedSize(K4Styles::Dimensions::NavButtonWidth, K4Styles::Dimensions::PopupButtonHeight);
     m_normBtn->setStyleSheet("QPushButton { background-color: #3A3A45; color: #888; border: none; "
                              "border-radius: 6px; font-size: 10px; font-weight: bold; }"
                              "QPushButton:pressed { background-color: #505060; }");
@@ -218,7 +219,7 @@ void MenuOverlayWidget::setupUi() {
     row3->addWidget(m_normBtn);
 
     m_backBtn = new QPushButton("\xE2\x86\xA9", navPanel); // ↩
-    m_backBtn->setFixedSize(54, 44);
+    m_backBtn->setFixedSize(K4Styles::Dimensions::NavButtonWidth, K4Styles::Dimensions::PopupButtonHeight);
     m_backBtn->setStyleSheet("QPushButton { background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
                              "stop:0 #4a4a4a, stop:0.4 #3a3a3a, stop:0.6 #353535, stop:1 #2a2a2a);"
                              "color: white; border: 1px solid #606060; border-radius: 6px; "

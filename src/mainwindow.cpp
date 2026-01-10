@@ -1672,7 +1672,7 @@ void MainWindow::setupUi() {
 
 void MainWindow::setupTopStatusBar(QWidget *parent) {
     auto *statusBar = new QWidget(parent);
-    statusBar->setFixedHeight(28);
+    statusBar->setFixedHeight(K4Styles::Dimensions::ButtonHeightSmall);
     statusBar->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::DarkBackground));
 
     auto *layout = new QHBoxLayout(statusBar);
@@ -1848,7 +1848,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     ritXitSeparator->setFrameShape(QFrame::HLine);
     ritXitSeparator->setFrameShadow(QFrame::Plain);
     ritXitSeparator->setStyleSheet(QString("background-color: %1; border: none;").arg(K4Styles::Colors::InactiveGray));
-    ritXitSeparator->setFixedHeight(1);
+    ritXitSeparator->setFixedHeight(K4Styles::Dimensions::SeparatorHeight);
     ritXitLayout->addWidget(ritXitSeparator);
 
     m_ritXitValueLabel = new QLabel("+0.00", m_ritXitBox);
@@ -1924,7 +1924,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
         layout->setSpacing(2);
 
         auto *btn = new QPushButton(label, container);
-        btn->setFixedSize(36, 24);
+        btn->setFixedSize(K4Styles::Dimensions::ButtonHeightMedium, K4Styles::Dimensions::ButtonHeightMini);
         btn->setCursor(Qt::PointingHandCursor);
 
         if (isLighter) {
@@ -2014,7 +2014,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     // Helper to create just a button (no sub-label container)
     auto createSimpleButton = [centerWidget](const QString &label) -> QPushButton * {
         auto *btn = new QPushButton(label, centerWidget);
-        btn->setFixedSize(36, 24);
+        btn->setFixedSize(K4Styles::Dimensions::ButtonHeightMedium, K4Styles::Dimensions::ButtonHeightMini);
         btn->setCursor(Qt::PointingHandCursor);
         btn->setStyleSheet(R"(
             QPushButton {
@@ -2066,7 +2066,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     auto *leftLine = new QFrame(messageLabel);
     leftLine->setFrameShape(QFrame::HLine);
     leftLine->setStyleSheet("background-color: #AAAAAA; max-height: 1px;");
-    leftLine->setFixedHeight(1);
+    leftLine->setFixedHeight(K4Styles::Dimensions::SeparatorHeight);
 
     auto *msgText = new QLabel("MESSAGE", messageLabel);
     msgText->setStyleSheet("color: #AAAAAA; font-size: 7px;");
@@ -2075,7 +2075,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     auto *rightLine = new QFrame(messageLabel);
     rightLine->setFrameShape(QFrame::HLine);
     rightLine->setStyleSheet("background-color: #AAAAAA; max-height: 1px;");
-    rightLine->setFixedHeight(1);
+    rightLine->setFixedHeight(K4Styles::Dimensions::SeparatorHeight);
 
     messageLabelLayout->addWidget(leftLine, 1);
     messageLabelLayout->addWidget(msgText, 0);
@@ -2227,28 +2227,28 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     // Main panadapter (A) buttons
     m_spanDownBtn = new QPushButton("-", m_panadapterA);
     m_spanDownBtn->setStyleSheet(btnStyle);
-    m_spanDownBtn->setFixedSize(28, 24);
+    m_spanDownBtn->setFixedSize(K4Styles::Dimensions::ButtonHeightSmall, K4Styles::Dimensions::ButtonHeightMini);
 
     m_spanUpBtn = new QPushButton("+", m_panadapterA);
     m_spanUpBtn->setStyleSheet(btnStyle);
-    m_spanUpBtn->setFixedSize(28, 24);
+    m_spanUpBtn->setFixedSize(K4Styles::Dimensions::ButtonHeightSmall, K4Styles::Dimensions::ButtonHeightMini);
 
     m_centerBtn = new QPushButton("C", m_panadapterA);
     m_centerBtn->setStyleSheet(btnStyle);
-    m_centerBtn->setFixedSize(28, 24);
+    m_centerBtn->setFixedSize(K4Styles::Dimensions::ButtonHeightSmall, K4Styles::Dimensions::ButtonHeightMini);
 
     // Sub panadapter (B) buttons
     m_spanDownBtnB = new QPushButton("-", m_panadapterB);
     m_spanDownBtnB->setStyleSheet(btnStyle);
-    m_spanDownBtnB->setFixedSize(28, 24);
+    m_spanDownBtnB->setFixedSize(K4Styles::Dimensions::ButtonHeightSmall, K4Styles::Dimensions::ButtonHeightMini);
 
     m_spanUpBtnB = new QPushButton("+", m_panadapterB);
     m_spanUpBtnB->setStyleSheet(btnStyle);
-    m_spanUpBtnB->setFixedSize(28, 24);
+    m_spanUpBtnB->setFixedSize(K4Styles::Dimensions::ButtonHeightSmall, K4Styles::Dimensions::ButtonHeightMini);
 
     m_centerBtnB = new QPushButton("C", m_panadapterB);
     m_centerBtnB->setStyleSheet(btnStyle);
-    m_centerBtnB->setFixedSize(28, 24);
+    m_centerBtnB->setFixedSize(K4Styles::Dimensions::ButtonHeightSmall, K4Styles::Dimensions::ButtonHeightMini);
 
     // VFO indicator badges - bottom-left corner of waterfall, tab shape with top-right rounded
     QString vfoIndicatorStyle = "QLabel { background: #707070; color: black; "

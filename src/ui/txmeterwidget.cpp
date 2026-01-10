@@ -330,7 +330,7 @@ void TxMeterWidget::drawMeterRow(QPainter &painter, int y, int rowHeight, const 
     // Draw peak indicator
     if (peakRatio > 0.01) {
         int peakX = barStartX + static_cast<int>(barWidth * peakRatio);
-        painter.setPen(QPen(QColor("#FFFFFF"), 2));
+        painter.setPen(QPen(QColor(K4Styles::Colors::TextWhite), 2));
         painter.drawLine(peakX - 1, barY, peakX - 1, barY + barHeight);
     }
 

@@ -49,14 +49,14 @@ void FeatureMenuBar::setupUi() {
     // OFF/ON toggle button
     m_toggleBtn = new QPushButton("OFF", this);
     m_toggleBtn->setMinimumWidth(60);
-    m_toggleBtn->setFixedHeight(36);
+    m_toggleBtn->setFixedHeight(K4Styles::Dimensions::ButtonHeightMedium);
     m_toggleBtn->setCursor(Qt::PointingHandCursor);
     m_toggleBtn->setStyleSheet(K4Styles::menuBarButton());
 
     // Extra button (only shown for NB LEVEL - "FILTER NONE")
     m_extraBtn = new QPushButton("FILTER\nNONE", this);
     m_extraBtn->setMinimumWidth(70);
-    m_extraBtn->setFixedHeight(36);
+    m_extraBtn->setFixedHeight(K4Styles::Dimensions::ButtonHeightMedium);
     m_extraBtn->setCursor(Qt::PointingHandCursor);
     m_extraBtn->setStyleSheet(K4Styles::menuBarButton());
     m_extraBtn->hide(); // Hidden by default
@@ -69,13 +69,13 @@ void FeatureMenuBar::setupUi() {
 
     // Decrement button
     m_decrementBtn = new QPushButton("-", this);
-    m_decrementBtn->setFixedSize(44, 36);
+    m_decrementBtn->setFixedSize(K4Styles::Dimensions::ButtonHeightLarge, K4Styles::Dimensions::ButtonHeightMedium);
     m_decrementBtn->setCursor(Qt::PointingHandCursor);
     m_decrementBtn->setStyleSheet(K4Styles::menuBarButtonSmall());
 
     // Increment button
     m_incrementBtn = new QPushButton("+", this);
-    m_incrementBtn->setFixedSize(44, 36);
+    m_incrementBtn->setFixedSize(K4Styles::Dimensions::ButtonHeightLarge, K4Styles::Dimensions::ButtonHeightMedium);
     m_incrementBtn->setCursor(Qt::PointingHandCursor);
     m_incrementBtn->setStyleSheet(K4Styles::menuBarButtonSmall());
 

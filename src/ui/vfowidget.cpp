@@ -28,7 +28,7 @@ void VFOWidget::setupUi() {
         QString(
             "color: %1; font-size: 32px; font-weight: bold; font-family: 'JetBrains Mono', 'Courier New', monospace;")
             .arg(K4Styles::Colors::TextWhite));
-    m_frequencyLabel->setFixedHeight(40);
+    m_frequencyLabel->setFixedHeight(K4Styles::Dimensions::MenuItemHeight);
     m_frequencyLabel->setCursor(Qt::PointingHandCursor);
     m_frequencyLabel->installEventFilter(this);
 
@@ -41,7 +41,7 @@ void VFOWidget::setupUi() {
             .arg(K4Styles::Colors::TextWhite)
             .arg(K4Styles::Colors::DarkBackground)
             .arg(m_primaryColor));
-    m_frequencyEdit->setFixedHeight(40);
+    m_frequencyEdit->setFixedHeight(K4Styles::Dimensions::MenuItemHeight);
     m_frequencyEdit->setMaxLength(11); // Max 11 digits per K4 spec
     m_frequencyEdit->setAlignment(Qt::AlignRight);
     m_frequencyEdit->hide();
@@ -261,7 +261,7 @@ void VFOWidget::drawTuningRateIndicator(QPainter &painter) {
     int underlineWidth = charWidth;
 
     // Draw underline in frequency text color (white)
-    painter.fillRect(underlineX, underlineY, underlineWidth, thickness, QColor("#FFFFFF"));
+    painter.fillRect(underlineX, underlineY, underlineWidth, thickness, QColor(K4Styles::Colors::TextWhite));
 }
 
 void VFOWidget::setSMeterValue(double value) {

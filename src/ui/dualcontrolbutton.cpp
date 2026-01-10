@@ -1,4 +1,5 @@
 #include "dualcontrolbutton.h"
+#include "k4styles.h"
 #include <QPainter>
 #include <QPainterPath>
 #include <QMouseEvent>
@@ -94,11 +95,11 @@ void DualControlButton::paintEvent(QPaintEvent *event) {
     // Background with subtle gradient
     QLinearGradient bgGradient(0, 0, 0, h);
     if (m_isHovered) {
-        bgGradient.setColorAt(0.0, QColor("#454545"));
-        bgGradient.setColorAt(1.0, QColor("#303030"));
+        bgGradient.setColorAt(0.0, QColor(K4Styles::Colors::HoverMid2));
+        bgGradient.setColorAt(1.0, QColor(K4Styles::Colors::GradientMid2));
     } else {
-        bgGradient.setColorAt(0.0, QColor("#3a3a3a"));
-        bgGradient.setColorAt(1.0, QColor("#282828"));
+        bgGradient.setColorAt(0.0, QColor(K4Styles::Colors::GradientMid1));
+        bgGradient.setColorAt(1.0, QColor(K4Styles::Colors::GradientBottom));
     }
 
     // Main button area (always reserve space for indicator bar so button doesn't shift)
