@@ -127,30 +127,34 @@ void SideControlPanel::setupUi() {
     layout->addSpacing(10);
 
     m_volumeLabel = new QLabel("MAIN", this);
-    m_volumeLabel->setStyleSheet("color: #00BFFF; font-size: 10px; font-weight: bold;");
+    m_volumeLabel->setStyleSheet(QString("color: %1; font-size: 10px; font-weight: bold;")
+                                     .arg(K4Styles::Colors::VfoACyan));
     m_volumeLabel->setAlignment(Qt::AlignCenter);
     layout->addWidget(m_volumeLabel);
 
     m_volumeSlider = new QSlider(Qt::Horizontal, this);
     m_volumeSlider->setRange(0, 100);
     m_volumeSlider->setValue(RadioSettings::instance()->volume()); // Restore from settings (default 45%)
-    m_volumeSlider->setStyleSheet("QSlider::groove:horizontal {"
-                                  "    border: 2px solid #333333;"
-                                  "    height: 6px;"
-                                  "    background: #0d0d0d;"
-                                  "    border-radius: 3px;"
-                                  "}"
-                                  "QSlider::handle:horizontal {"
-                                  "    background: #00BFFF;"
-                                  "    border: 2px solid #00BFFF;"
-                                  "    width: 14px;"
-                                  "    margin: -4px 0;"
-                                  "    border-radius: 7px;"
-                                  "}"
-                                  "QSlider::sub-page:horizontal {"
-                                  "    background: #00BFFF;"
-                                  "    border-radius: 3px;"
-                                  "}");
+    m_volumeSlider->setStyleSheet(QString("QSlider::groove:horizontal {"
+                                          "    border: 2px solid %1;"
+                                          "    height: 6px;"
+                                          "    background: %2;"
+                                          "    border-radius: 3px;"
+                                          "}"
+                                          "QSlider::handle:horizontal {"
+                                          "    background: %3;"
+                                          "    border: 2px solid %3;"
+                                          "    width: 14px;"
+                                          "    margin: -4px 0;"
+                                          "    border-radius: 7px;"
+                                          "}"
+                                          "QSlider::sub-page:horizontal {"
+                                          "    background: %3;"
+                                          "    border-radius: 3px;"
+                                          "}")
+                                      .arg(K4Styles::Colors::TextDark)
+                                      .arg(K4Styles::Colors::DarkBackground)
+                                      .arg(K4Styles::Colors::VfoACyan));
     layout->addWidget(m_volumeSlider);
 
     connect(m_volumeSlider, &QSlider::valueChanged, this, &SideControlPanel::volumeChanged);
@@ -159,30 +163,34 @@ void SideControlPanel::setupUi() {
     layout->addSpacing(6);
 
     m_subVolumeLabel = new QLabel("SUB", this);
-    m_subVolumeLabel->setStyleSheet("color: #00FF00; font-size: 10px; font-weight: bold;");
+    m_subVolumeLabel->setStyleSheet(QString("color: %1; font-size: 10px; font-weight: bold;")
+                                        .arg(K4Styles::Colors::VfoBGreen));
     m_subVolumeLabel->setAlignment(Qt::AlignCenter);
     layout->addWidget(m_subVolumeLabel);
 
     m_subVolumeSlider = new QSlider(Qt::Horizontal, this);
     m_subVolumeSlider->setRange(0, 100);
     m_subVolumeSlider->setValue(RadioSettings::instance()->subVolume()); // Restore from settings (default 45%)
-    m_subVolumeSlider->setStyleSheet("QSlider::groove:horizontal {"
-                                     "    border: 2px solid #333333;"
-                                     "    height: 6px;"
-                                     "    background: #0d0d0d;"
-                                     "    border-radius: 3px;"
-                                     "}"
-                                     "QSlider::handle:horizontal {"
-                                     "    background: #00FF00;"
-                                     "    border: 2px solid #00FF00;"
-                                     "    width: 14px;"
-                                     "    margin: -4px 0;"
-                                     "    border-radius: 7px;"
-                                     "}"
-                                     "QSlider::sub-page:horizontal {"
-                                     "    background: #00FF00;"
-                                     "    border-radius: 3px;"
-                                     "}");
+    m_subVolumeSlider->setStyleSheet(QString("QSlider::groove:horizontal {"
+                                             "    border: 2px solid %1;"
+                                             "    height: 6px;"
+                                             "    background: %2;"
+                                             "    border-radius: 3px;"
+                                             "}"
+                                             "QSlider::handle:horizontal {"
+                                             "    background: %3;"
+                                             "    border: 2px solid %3;"
+                                             "    width: 14px;"
+                                             "    margin: -4px 0;"
+                                             "    border-radius: 7px;"
+                                             "}"
+                                             "QSlider::sub-page:horizontal {"
+                                             "    background: %3;"
+                                             "    border-radius: 3px;"
+                                             "}")
+                                         .arg(K4Styles::Colors::TextDark)
+                                         .arg(K4Styles::Colors::DarkBackground)
+                                         .arg(K4Styles::Colors::VfoBGreen));
     layout->addWidget(m_subVolumeSlider);
 
     connect(m_subVolumeSlider, &QSlider::valueChanged, this, &SideControlPanel::subVolumeChanged);
@@ -192,15 +200,16 @@ void SideControlPanel::setupUi() {
 
     // ===== Status Area (mirrors header data) =====
     m_timeLabel = new QLabel("00:00:00 Z", this);
-    m_timeLabel->setStyleSheet("color: #FFFFFF; font-size: 11px; font-weight: bold;");
+    m_timeLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;")
+                                   .arg(K4Styles::Colors::TextWhite));
     layout->addWidget(m_timeLabel);
 
     m_powerSwrLabel = new QLabel("0.0W  1.0:1", this);
-    m_powerSwrLabel->setStyleSheet("color: #FFFFFF; font-size: 11px;");
+    m_powerSwrLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(K4Styles::Colors::TextWhite));
     layout->addWidget(m_powerSwrLabel);
 
     m_voltageCurrentLabel = new QLabel("--.-V  -.-A", this);
-    m_voltageCurrentLabel->setStyleSheet("color: #FFFFFF; font-size: 11px;");
+    m_voltageCurrentLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(K4Styles::Colors::TextWhite));
     layout->addWidget(m_voltageCurrentLabel);
 
     layout->addSpacing(8);
@@ -640,7 +649,8 @@ QWidget *SideControlPanel::createTxFunctionButton(const QString &mainText, const
 
     // Sub-text label (orange) - add top margin to prevent overlap with button
     auto *subLabel = new QLabel(subText, container);
-    subLabel->setStyleSheet("color: #FFB000; font-size: 8px; margin-top: 4px;");
+    subLabel->setStyleSheet(QString("color: %1; font-size: 8px; margin-top: 4px;")
+                                .arg(K4Styles::Colors::AccentAmber));
     subLabel->setAlignment(Qt::AlignCenter);
     subLabel->setFixedHeight(12);
     layout->addWidget(subLabel);

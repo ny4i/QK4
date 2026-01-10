@@ -19,7 +19,7 @@ void RadioManagerDialog::setupUi() {
     setFixedSize(580, 360);
 
     // Dark theme for the dialog
-    setStyleSheet("QDialog { background-color: #2b2b2b; }");
+    setStyleSheet(QString("QDialog { background-color: %1; }").arg(K4Styles::Colors::Background));
 
     auto *mainLayout = new QVBoxLayout(this);
     mainLayout->setSpacing(12);
@@ -73,16 +73,17 @@ void RadioManagerDialog::setupUi() {
     formLayout->setHorizontalSpacing(10);
     formLayout->setVerticalSpacing(10);
 
-    QString lineEditStyle = "QLineEdit { "
-                            "  background-color: #3c3c3c; "
-                            "  color: #ffffff; "
-                            "  border: 1px solid #555555; "
-                            "  border-radius: 4px; "
-                            "  padding: 6px; "
-                            "  min-width: 150px; "
-                            "}";
+    QString lineEditStyle = QString("QLineEdit { "
+                                    "  background-color: #3c3c3c; "
+                                    "  color: %1; "
+                                    "  border: 1px solid #555555; "
+                                    "  border-radius: 4px; "
+                                    "  padding: 6px; "
+                                    "  min-width: 150px; "
+                                    "}")
+                                .arg(K4Styles::Colors::TextWhite);
 
-    QString labelStyle = "QLabel { color: #cccccc; font-size: 12px; }";
+    QString labelStyle = QString("QLabel { color: %1; font-size: 12px; }").arg(K4Styles::Colors::TextGray);
 
     // Row 0: Name
     auto *nameLabel = new QLabel("Name", this);
@@ -133,8 +134,9 @@ void RadioManagerDialog::setupUi() {
 
     // Row 5: TLS Checkbox (below ID field)
     m_tlsCheckbox = new QCheckBox("Use TLS (Encrypted)", this);
-    m_tlsCheckbox->setStyleSheet("QCheckBox { color: #cccccc; font-size: 12px; spacing: 8px; } "
-                                 "QCheckBox::indicator { width: 14px; height: 14px; }");
+    m_tlsCheckbox->setStyleSheet(QString("QCheckBox { color: %1; font-size: 12px; spacing: 8px; } "
+                                         "QCheckBox::indicator { width: 14px; height: 14px; }")
+                                     .arg(K4Styles::Colors::TextGray));
     formLayout->addWidget(m_tlsCheckbox, 5, 0, 1, 2);
 
     // Initially hide ID field (shown when TLS is checked)
