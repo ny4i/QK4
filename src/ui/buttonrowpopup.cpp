@@ -1,24 +1,15 @@
 #include "buttonrowpopup.h"
 #include "k4styles.h"
-#include <QApplication>
 #include <QHBoxLayout>
-#include <QHideEvent>
-#include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPainter>
-#include <QPainterPath>
-#include <QScreen>
 #include <QVBoxLayout>
 
 namespace {
-// Layout constants (same as BandPopupWidget)
+// Layout constants
 const int ButtonWidth = 70;
 const int ButtonHeight = 44;
 const int ButtonSpacing = 8;
-const int ContentMargin = 12; // Margin around button content
-const int TriangleWidth = 24;
-const int TriangleHeight = 12;
-const int BottomStripHeight = 8; // Gray strip at bottom of popup
 } // namespace
 
 // ============================================================================
@@ -58,20 +49,9 @@ void RxMenuButton::paintEvent(QPaintEvent *event) {
     painter.setRenderHint(QPainter::Antialiasing);
 
     // Background - subtle gradient
-    QLinearGradient grad(0, 0, 0, height());
-    if (m_hovered) {
-        grad.setColorAt(0, QColor(90, 90, 90));
-        grad.setColorAt(0.4, QColor(74, 74, 74));
-        grad.setColorAt(0.6, QColor(69, 69, 69));
-        grad.setColorAt(1, QColor(58, 58, 58));
-    } else {
-        grad.setColorAt(0, QColor(74, 74, 74));
-        grad.setColorAt(0.4, QColor(58, 58, 58));
-        grad.setColorAt(0.6, QColor(53, 53, 53));
-        grad.setColorAt(1, QColor(42, 42, 42));
-    }
+    QLinearGradient grad = K4Styles::buttonGradient(0, height(), m_hovered);
     painter.setBrush(grad);
-    painter.setPen(QPen(QColor(96, 96, 96), 2));
+    painter.setPen(QPen(K4Styles::borderColor(), 2));
     painter.drawRoundedRect(rect().adjusted(0, 0, -1, -1), 5, 5);
 
     // Check if we have alternate text
@@ -133,22 +113,23 @@ void RxMenuButton::leaveEvent(QEvent *event) {
 // ButtonRowPopup Implementation
 // ============================================================================
 
-ButtonRowPopup::ButtonRowPopup(QWidget *parent) : QWidget(parent), m_triangleXOffset(0) {
-    setWindowFlags(Qt::Popup | Qt::FramelessWindowHint);
-    setAttribute(Qt::WA_TranslucentBackground);
-    setFocusPolicy(Qt::StrongFocus);
-
+ButtonRowPopup::ButtonRowPopup(QWidget *parent) : K4PopupBase(parent) {
     setupUi();
+}
+
+QSize ButtonRowPopup::contentSize() const {
+    int cm = K4Styles::Dimensions::PopupContentMargin;
+    int bsh = K4Styles::Dimensions::PopupBottomStripHeight;
+    int th = K4Styles::Dimensions::PopupTriangleHeight;
+
+    int width = 7 * ButtonWidth + 6 * ButtonSpacing + 2 * cm;
+    int height = ButtonHeight + 2 * cm + bsh + th;
+    return QSize(width, height);
 }
 
 void ButtonRowPopup::setupUi() {
     auto *mainLayout = new QVBoxLayout(this);
-    // Margins include shadow space on all sides, plus gray strip + triangle at bottom
-    int leftMargin = K4Styles::Dimensions::ShadowMargin + ContentMargin;
-    int topMargin = K4Styles::Dimensions::ShadowMargin + ContentMargin;
-    int rightMargin = K4Styles::Dimensions::ShadowMargin + ContentMargin;
-    int bottomMargin = K4Styles::Dimensions::ShadowMargin + ContentMargin + BottomStripHeight + TriangleHeight;
-    mainLayout->setContentsMargins(leftMargin, topMargin, rightMargin, bottomMargin);
+    mainLayout->setContentsMargins(contentMargins());
     mainLayout->setSpacing(0);
 
     // Single row of 7 buttons
@@ -168,12 +149,8 @@ void ButtonRowPopup::setupUi() {
 
     mainLayout->addLayout(rowLayout);
 
-    // Calculate size (content + shadow margins on all sides)
-    int contentWidth = 7 * ButtonWidth + 6 * ButtonSpacing + 2 * ContentMargin;
-    int contentHeight = ButtonHeight + 2 * ContentMargin + BottomStripHeight + TriangleHeight;
-    int totalWidth = contentWidth + 2 * K4Styles::Dimensions::ShadowMargin;
-    int totalHeight = contentHeight + 2 * K4Styles::Dimensions::ShadowMargin;
-    setFixedSize(totalWidth, totalHeight);
+    // Initialize popup size from base class
+    initPopup();
 }
 
 void ButtonRowPopup::setButtonLabels(const QStringList &labels) {
@@ -204,112 +181,4 @@ QString ButtonRowPopup::buttonAlternateLabel(int index) const {
         return m_buttons[index]->alternateText();
     }
     return QString();
-}
-
-void ButtonRowPopup::showAboveButton(QWidget *triggerButton) {
-    if (!triggerButton)
-        return;
-
-    // Ensure geometry is realized before positioning
-    adjustSize();
-
-    // Get the button bar (parent of trigger button) for centering
-    QWidget *buttonBar = triggerButton->parentWidget();
-    if (!buttonBar)
-        buttonBar = triggerButton; // Fallback to button itself
-
-    // Get positions
-    QPoint barGlobal = buttonBar->mapToGlobal(QPoint(0, 0));
-    QPoint btnGlobal = triggerButton->mapToGlobal(QPoint(0, 0));
-    int barCenterX = barGlobal.x() + buttonBar->width() / 2;
-    int btnCenterX = btnGlobal.x() + triggerButton->width() / 2;
-
-    // Content dimensions (for positioning relative to visual content, not shadow)
-    int contentWidth = 7 * ButtonWidth + 6 * ButtonSpacing + 2 * ContentMargin;
-    int contentHeight = ButtonHeight + 2 * ContentMargin + BottomStripHeight + TriangleHeight;
-
-    // Center content area above the button bar (account for shadow margin offset)
-    int popupX = barCenterX - contentWidth / 2 - K4Styles::Dimensions::ShadowMargin;
-    int popupY = btnGlobal.y() - contentHeight - K4Styles::Dimensions::ShadowMargin;
-
-    // Calculate triangle offset to point at the trigger button
-    int contentCenterX = popupX + K4Styles::Dimensions::ShadowMargin + contentWidth / 2;
-    m_triangleXOffset = btnCenterX - contentCenterX;
-
-    // Ensure popup stays on screen (adjust position, recalculate triangle)
-    QRect screenGeom = QApplication::primaryScreen()->availableGeometry();
-    if (popupX < screenGeom.left() - K4Styles::Dimensions::ShadowMargin) {
-        popupX = screenGeom.left() - K4Styles::Dimensions::ShadowMargin;
-        // Recalculate triangle offset with new popup position
-        contentCenterX = popupX + K4Styles::Dimensions::ShadowMargin + contentWidth / 2;
-        m_triangleXOffset = btnCenterX - contentCenterX;
-    } else if (popupX + width() > screenGeom.right() + K4Styles::Dimensions::ShadowMargin) {
-        popupX = screenGeom.right() + K4Styles::Dimensions::ShadowMargin - width();
-        // Recalculate triangle offset with new popup position
-        contentCenterX = popupX + K4Styles::Dimensions::ShadowMargin + contentWidth / 2;
-        m_triangleXOffset = btnCenterX - contentCenterX;
-    }
-
-    move(popupX, popupY);
-    show();
-    raise();
-    setFocus();
-    update();
-}
-
-void ButtonRowPopup::hidePopup() {
-    hide();
-    // closed() signal is emitted by hideEvent()
-}
-
-void ButtonRowPopup::hideEvent(QHideEvent *event) {
-    QWidget::hideEvent(event);
-    emit closed();
-}
-
-void ButtonRowPopup::paintEvent(QPaintEvent *event) {
-    Q_UNUSED(event)
-    QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing);
-
-    // Content area dimensions (inside shadow margins)
-    int contentWidth = 7 * ButtonWidth + 6 * ButtonSpacing + 2 * ContentMargin;
-    int contentHeight = ButtonHeight + 2 * ContentMargin + BottomStripHeight;
-
-    // Content rect position (offset by shadow margin)
-    QRect contentRect(K4Styles::Dimensions::ShadowMargin, K4Styles::Dimensions::ShadowMargin, contentWidth,
-                      contentHeight);
-
-    // Draw drop shadow
-    K4Styles::drawDropShadow(painter, contentRect, 8);
-
-    // Main popup background
-    painter.setBrush(QColor(30, 30, 30));
-    painter.setPen(Qt::NoPen);
-    painter.drawRoundedRect(contentRect, 8, 8);
-
-    // Gray bottom strip (inside the content rect, at bottom)
-    QRect stripRect(contentRect.left(), contentRect.bottom() - BottomStripHeight + 1, contentRect.width(),
-                    BottomStripHeight);
-    painter.fillRect(stripRect, QColor(K4Styles::Colors::IndicatorStrip));
-
-    // Triangle pointing down from center of bottom strip
-    painter.setPen(Qt::NoPen);
-    painter.setBrush(QColor(K4Styles::Colors::IndicatorStrip));
-    int triangleX = contentRect.center().x() + m_triangleXOffset;
-    int triangleTop = contentRect.bottom() + 1;
-    QPainterPath triangle;
-    triangle.moveTo(triangleX - TriangleWidth / 2, triangleTop);
-    triangle.lineTo(triangleX + TriangleWidth / 2, triangleTop);
-    triangle.lineTo(triangleX, triangleTop + TriangleHeight);
-    triangle.closeSubpath();
-    painter.drawPath(triangle);
-}
-
-void ButtonRowPopup::keyPressEvent(QKeyEvent *event) {
-    if (event->key() == Qt::Key_Escape) {
-        hidePopup();
-    } else {
-        QWidget::keyPressEvent(event);
-    }
 }

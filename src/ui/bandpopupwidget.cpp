@@ -1,12 +1,7 @@
 #include "bandpopupwidget.h"
 #include "k4styles.h"
-#include <QPainter>
-#include <QPainterPath>
-#include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QKeyEvent>
-#include <QHideEvent>
-#include <QApplication>
+#include <QVBoxLayout>
 
 namespace {
 // Layout constants
@@ -14,10 +9,6 @@ const int ButtonWidth = 70;
 const int ButtonHeight = 44;
 const int ButtonSpacing = 8;
 const int RowSpacing = 2;
-const int ContentMargin = 12; // Margin around button content
-const int TriangleWidth = 24;
-const int TriangleHeight = 12;
-const int BottomStripHeight = 8; // Gray strip at bottom of popup
 
 // K4 Band Number mapping (BN command)
 // Band number -> button label
@@ -44,24 +35,24 @@ const QMap<QString, int> BandNameToNum = {
 } // namespace
 
 BandPopupWidget::BandPopupWidget(QWidget *parent)
-    : QWidget(parent), m_selectedBand("14") // Default to 20m band
-      ,
-      m_triangleXOffset(0) {
-    setWindowFlags(Qt::Popup | Qt::FramelessWindowHint);
-    setAttribute(Qt::WA_TranslucentBackground);
-    setFocusPolicy(Qt::StrongFocus);
-
+    : K4PopupBase(parent), m_selectedBand("14") // Default to 20m band
+{
     setupUi();
+}
+
+QSize BandPopupWidget::contentSize() const {
+    int cm = K4Styles::Dimensions::PopupContentMargin;
+    int bsh = K4Styles::Dimensions::PopupBottomStripHeight;
+    int th = K4Styles::Dimensions::PopupTriangleHeight;
+
+    int width = 7 * ButtonWidth + 6 * ButtonSpacing + 2 * cm;
+    int height = 2 * ButtonHeight + RowSpacing + 2 * cm + bsh + th;
+    return QSize(width, height);
 }
 
 void BandPopupWidget::setupUi() {
     auto *mainLayout = new QVBoxLayout(this);
-    // Margins include shadow space on all sides, plus gray strip + triangle at bottom
-    int leftMargin = K4Styles::Dimensions::ShadowMargin + ContentMargin;
-    int topMargin = K4Styles::Dimensions::ShadowMargin + ContentMargin;
-    int rightMargin = K4Styles::Dimensions::ShadowMargin + ContentMargin;
-    int bottomMargin = K4Styles::Dimensions::ShadowMargin + ContentMargin + BottomStripHeight + TriangleHeight;
-    mainLayout->setContentsMargins(leftMargin, topMargin, rightMargin, bottomMargin);
+    mainLayout->setContentsMargins(contentMargins());
     mainLayout->setSpacing(RowSpacing);
 
     // Row 1: 1.8, 3.5, 7, 14, 21, 28, MEM
@@ -91,12 +82,8 @@ void BandPopupWidget::setupUi() {
     // Update styles to show selected band
     updateButtonStyles();
 
-    // Calculate size (content + shadow margins on all sides)
-    int contentWidth = 7 * ButtonWidth + 6 * ButtonSpacing + 2 * ContentMargin;
-    int contentHeight = 2 * ButtonHeight + RowSpacing + 2 * ContentMargin + BottomStripHeight + TriangleHeight;
-    int totalWidth = contentWidth + 2 * K4Styles::Dimensions::ShadowMargin;
-    int totalHeight = contentHeight + 2 * K4Styles::Dimensions::ShadowMargin;
-    setFixedSize(totalWidth, totalHeight);
+    // Initialize popup size from base class
+    initPopup();
 }
 
 QPushButton *BandPopupWidget::createBandButton(const QString &text) {
@@ -138,119 +125,9 @@ void BandPopupWidget::onBandButtonClicked() {
     }
 }
 
-void BandPopupWidget::showAboveButton(QWidget *triggerButton) {
-    if (!triggerButton)
-        return;
-
-    // Ensure geometry is realized before positioning
-    adjustSize();
-
-    // Get the button bar (parent of trigger button) for centering
-    QWidget *buttonBar = triggerButton->parentWidget();
-    if (!buttonBar)
-        buttonBar = triggerButton; // Fallback to button itself
-
-    // Get positions
-    QPoint barGlobal = buttonBar->mapToGlobal(QPoint(0, 0));
-    QPoint btnGlobal = triggerButton->mapToGlobal(QPoint(0, 0));
-    int barCenterX = barGlobal.x() + buttonBar->width() / 2;
-    int btnCenterX = btnGlobal.x() + triggerButton->width() / 2;
-
-    // Content dimensions (for positioning relative to visual content, not shadow)
-    int contentWidth = 7 * ButtonWidth + 6 * ButtonSpacing + 2 * ContentMargin;
-    int contentHeight = 2 * ButtonHeight + RowSpacing + 2 * ContentMargin + BottomStripHeight + TriangleHeight;
-
-    // Center content area above the button bar (account for shadow margin offset)
-    int popupX = barCenterX - contentWidth / 2 - K4Styles::Dimensions::ShadowMargin;
-    int popupY = btnGlobal.y() - contentHeight - K4Styles::Dimensions::ShadowMargin;
-
-    // Calculate triangle offset to point at the trigger button
-    // Triangle position = button center relative to content center
-    int contentCenterX = popupX + K4Styles::Dimensions::ShadowMargin + contentWidth / 2;
-    m_triangleXOffset = btnCenterX - contentCenterX;
-
-    // Ensure popup stays on screen (adjust position, recalculate triangle)
-    QRect screenGeom = QApplication::primaryScreen()->availableGeometry();
-    if (popupX < screenGeom.left() - K4Styles::Dimensions::ShadowMargin) {
-        popupX = screenGeom.left() - K4Styles::Dimensions::ShadowMargin;
-        // Recalculate triangle offset with new popup position
-        contentCenterX = popupX + K4Styles::Dimensions::ShadowMargin + contentWidth / 2;
-        m_triangleXOffset = btnCenterX - contentCenterX;
-    } else if (popupX + width() > screenGeom.right() + K4Styles::Dimensions::ShadowMargin) {
-        popupX = screenGeom.right() + K4Styles::Dimensions::ShadowMargin - width();
-        // Recalculate triangle offset with new popup position
-        contentCenterX = popupX + K4Styles::Dimensions::ShadowMargin + contentWidth / 2;
-        m_triangleXOffset = btnCenterX - contentCenterX;
-    }
-
-    move(popupX, popupY);
-    show();
-    raise();
-    setFocus();
-    update();
-}
-
-void BandPopupWidget::hidePopup() {
-    hide();
-    // closed() signal is emitted by hideEvent()
-}
-
-void BandPopupWidget::hideEvent(QHideEvent *event) {
-    QWidget::hideEvent(event);
-    emit closed();
-}
-
-void BandPopupWidget::paintEvent(QPaintEvent *event) {
-    Q_UNUSED(event)
-    QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing);
-
-    // Content area dimensions (inside shadow margins)
-    int contentWidth = 7 * ButtonWidth + 6 * ButtonSpacing + 2 * ContentMargin;
-    int contentHeight = 2 * ButtonHeight + RowSpacing + 2 * ContentMargin + BottomStripHeight;
-
-    // Content rect position (offset by shadow margin)
-    QRect contentRect(K4Styles::Dimensions::ShadowMargin, K4Styles::Dimensions::ShadowMargin, contentWidth,
-                      contentHeight);
-
-    // Draw drop shadow
-    K4Styles::drawDropShadow(painter, contentRect, 8);
-
-    // Main popup background
-    painter.setBrush(QColor(30, 30, 30));
-    painter.setPen(Qt::NoPen);
-    painter.drawRoundedRect(contentRect, 8, 8);
-
-    // Gray bottom strip (inside the content rect, at bottom)
-    QRect stripRect(contentRect.left(), contentRect.bottom() - BottomStripHeight + 1, contentRect.width(),
-                    BottomStripHeight);
-    painter.fillRect(stripRect, QColor(K4Styles::Colors::IndicatorStrip));
-
-    // Triangle pointing down from center of bottom strip
-    painter.setPen(Qt::NoPen);
-    painter.setBrush(QColor(K4Styles::Colors::IndicatorStrip));
-    int triangleX = contentRect.center().x() + m_triangleXOffset;
-    int triangleTop = contentRect.bottom() + 1;
-    QPainterPath triangle;
-    triangle.moveTo(triangleX - TriangleWidth / 2, triangleTop);
-    triangle.lineTo(triangleX + TriangleWidth / 2, triangleTop);
-    triangle.lineTo(triangleX, triangleTop + TriangleHeight);
-    triangle.closeSubpath();
-    painter.drawPath(triangle);
-}
-
-void BandPopupWidget::keyPressEvent(QKeyEvent *event) {
-    if (event->key() == Qt::Key_Escape) {
-        hidePopup();
-    } else {
-        QWidget::keyPressEvent(event);
-    }
-}
-
 void BandPopupWidget::focusOutEvent(QFocusEvent *event) {
     Q_UNUSED(event)
     // Don't auto-close on focus out - let popup behavior handle it
-    // hidePopup();
 }
 
 int BandPopupWidget::getBandNumber(const QString &bandName) const {

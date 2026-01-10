@@ -1,7 +1,7 @@
 #ifndef FNPOPUPWIDGET_H
 #define FNPOPUPWIDGET_H
 
-#include <QWidget>
+#include "k4popupbase.h"
 #include <QVector>
 
 class QVBoxLayout;
@@ -53,7 +53,13 @@ const QString Update = "UPDATE";
 const QString DxList = "DXLIST";
 } // namespace MacroIds
 
-// Dual-action button similar to DisplayMenuButton
+/**
+ * @brief Dual-action button for Fn popup.
+ *
+ * Similar to DisplayMenuButton - shows primary text (white) on top
+ * and alternate text (amber) on bottom. Left-click triggers primary
+ * action, right-click triggers secondary.
+ */
 class FnMenuButton : public QWidget {
     Q_OBJECT
 
@@ -88,27 +94,29 @@ private:
     bool m_hovered = false;
 };
 
-// Fn popup widget with 7 dual-action buttons
-class FnPopupWidget : public QWidget {
+/**
+ * @brief Fn popup widget with 7 dual-action buttons.
+ *
+ * Layout:
+ * Buttons 1-4: Fn.F1/F2, F3/F4, F5/F6, F7/F8 (macro buttons)
+ * Button 5: SCRN CAP / MACROS
+ * Button 6: SW LIST / UPDATE
+ * Button 7: DXLIST
+ */
+class FnPopupWidget : public K4PopupBase {
     Q_OBJECT
 
 public:
     explicit FnPopupWidget(QWidget *parent = nullptr);
-
-    void showAboveButton(QWidget *triggerButton);
-    void hidePopup();
 
     // Update button labels from macro settings
     void updateButtonLabels();
 
 signals:
     void functionTriggered(const QString &functionId);
-    void closed();
 
 protected:
-    void paintEvent(QPaintEvent *event) override;
-    void hideEvent(QHideEvent *event) override;
-    bool eventFilter(QObject *watched, QEvent *event) override;
+    QSize contentSize() const override;
 
 private:
     void setupButtons();
@@ -116,7 +124,6 @@ private:
     void onButtonRightClicked(int buttonIndex);
 
     QVector<FnMenuButton *> m_buttons;
-    int m_triangleOffset = 0;
 };
 
 #endif // FNPOPUPWIDGET_H

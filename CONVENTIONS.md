@@ -12,7 +12,7 @@ Code style and naming conventions for K4Controller.
 | Signals | camelCase | `frequencyChanged`, `clicked` |
 | Slots | on + Source + Event | `onFrequencyChanged`, `onConnectClicked` |
 | Constants | SCREAMING_SNAKE | `WATERFALL_HISTORY`, `TOTAL_BANDWIDTH_HZ` |
-| Namespaces | PascalCase | `K4Colors`, `MiniPanColors` |
+| Namespaces | PascalCase | `K4Styles`, `K4Styles::Colors` |
 
 ## Member Variable Prefixes
 
@@ -75,21 +75,37 @@ MainWindow::MainWindow(QWidget *parent)
 }
 ```
 
-## Color Palette (K4Colors Namespace)
+## Color Palette (K4Styles::Colors)
+
+**Source of truth:** `src/ui/k4styles.h` - All colors are `constexpr const char*` in `K4Styles::Colors::*`
 
 ```cpp
-namespace K4Colors {
-    const char* Background      = "#1a1a1a";  // Main background
-    const char* DarkBackground  = "#0d0d0d";  // Status bars, menus
-    const char* VfoAAmber       = "#FFB000";  // VFO A, TX indicator
-    const char* VfoBCyan        = "#00BFFF";  // VFO B
-    const char* TxRed           = "#FF0000";  // Error states
-    const char* AgcGreen        = "#00FF00";  // Active/connected
-    const char* InactiveGray    = "#666666";  // Disabled controls
-    const char* TextWhite       = "#FFFFFF";  // Primary text
-    const char* TextGray        = "#999999";  // Secondary text
-    const char* RitCyan         = "#00CED1";  // RIT/XIT display
-}
+// VFO Colors (text/labels vs spectrum distinction)
+K4Styles::Colors::VfoAText       // "#FFB000" - Amber for VFO A labels
+K4Styles::Colors::VfoBText       // "#00BFFF" - Cyan for VFO B labels
+K4Styles::Colors::VfoASpectrum   // "#0080FF" - Cyan/Blue for panadapter
+K4Styles::Colors::VfoBSpectrum   // "#00C800" - Green for panadapter
+
+// Legacy aliases (same values, for backward compatibility)
+K4Styles::Colors::VfoAAmber      // Same as VfoAText
+K4Styles::Colors::VfoBCyan       // Same as VfoBText
+
+// Backgrounds
+K4Styles::Colors::Background        // "#1a1a1a"
+K4Styles::Colors::DarkBackground    // "#0d0d0d"
+K4Styles::Colors::PopupBackground   // "#1e1e1e"
+
+// Text
+K4Styles::Colors::TextWhite      // "#FFFFFF"
+K4Styles::Colors::TextDark       // "#333333"
+K4Styles::Colors::TextGray       // "#999999"
+K4Styles::Colors::TextFaded      // "#808080"
+K4Styles::Colors::InactiveGray   // "#666666"
+
+// Status
+K4Styles::Colors::TxRed          // "#FF0000"
+K4Styles::Colors::AgcGreen       // "#00FF00"
+K4Styles::Colors::RitCyan        // "#00CED1"
 ```
 
 ### Spectrum Colors
@@ -128,9 +144,11 @@ label->setStyleSheet("font-size: 12px; font-weight: bold;");
 label->setStyleSheet("font-family: 'JetBrains Mono', monospace; font-size: 32px;");
 ```
 
-## Popup & Button Styling
+## Popup & Button Styling (K4Styles)
 
 **Source of truth:** `src/ui/k4styles.h` - Use K4Styles functions instead of inline CSS.
+
+### Stylesheet Functions (for QPushButton)
 
 | Function | Usage |
 |----------|-------|
@@ -140,6 +158,32 @@ label->setStyleSheet("font-family: 'JetBrains Mono', monospace; font-size: 32px;
 | `K4Styles::menuBarButtonActive()` | Active/inverted menu button state |
 | `K4Styles::menuBarButtonSmall()` | Compact +/- buttons |
 
-**Constants:** Use `K4Styles::Dimensions::*` for shadow/border values, `K4Styles::Colors::*` for colors.
+### QPainter Helpers (for custom-painted widgets)
 
-**Creating popups:** See `PATTERNS.md` → "Adding a Popup Menu" and `src/ui/CLAUDE.md` → "Creating New Popups".
+```cpp
+// Gradients
+QLinearGradient K4Styles::buttonGradient(top, bottom, hovered)
+QLinearGradient K4Styles::selectedGradient(top, bottom)
+
+// Colors
+QColor K4Styles::borderColor()         // Normal border
+QColor K4Styles::borderColorSelected() // Selected border
+
+// Shadow
+K4Styles::drawDropShadow(painter, contentRect, cornerRadius)
+```
+
+### Dimension Constants (K4Styles::Dimensions::*)
+
+| Constant | Value | Purpose |
+|----------|-------|---------|
+| `ShadowMargin` | 20 | Space around popup for shadow |
+| `PopupContentMargin` | 12 | Padding inside popup |
+| `PopupButtonWidth` | 70 | Standard popup button |
+| `PopupButtonHeight` | 44 | Standard popup button |
+| `PopupTriangleHeight` | 12 | Triangle pointer height |
+| `PopupBottomStripHeight` | 8 | Gray indicator strip |
+| `BorderWidth` | 2 | Button border width |
+| `BorderRadius` | 6 | Standard corner radius |
+
+**Creating popups:** See `PATTERNS.md` → "Adding a Popup Menu" and `src/ui/CLAUDE.md` → K4PopupBase section.

@@ -85,10 +85,24 @@ connect(myAction, &QAction::triggered, this, &MainWindow::onMyAction);
 
 ## Adding a Popup Menu
 
-**Template files to reference:**
-- `src/ui/bandpopupwidget.cpp` - Best template for grid popups with selection
-- `src/ui/buttonrowpopup.cpp` - Simple single-row popup
-- `src/ui/k4styles.h` - Required for button styles
+**All triangle-pointer popups MUST inherit from `K4PopupBase`.**
+
+K4PopupBase provides:
+- Window flags and frameless behavior
+- Drop shadow rendering (8-layer blur)
+- Bottom indicator strip and triangle pointer
+- Positioning above trigger buttons
+- `closed()` signal on hide
+- Escape key handling
+
+### Template Files
+
+| Popup Type | Template | Copy From |
+|------------|----------|-----------|
+| Grid with selection | `bandpopupwidget.cpp` | Multi-row buttons |
+| Single row | `buttonrowpopup.cpp` | Simplest example |
+| Settings panel | `displaypopupwidget.cpp` | +/- controls, toggles |
+| Mode grid | `modepopupwidget.cpp` | Sub-mode logic |
 
 ### Step 1: Create Header File
 
@@ -97,31 +111,26 @@ connect(myAction, &QAction::triggered, this, &MainWindow::onMyAction);
 #ifndef MYPOPUP_H
 #define MYPOPUP_H
 
-#include <QWidget>
+#include "k4popupbase.h"  // REQUIRED base class
 #include <QPushButton>
 #include <QList>
 
-class MyPopup : public QWidget {
+class MyPopup : public K4PopupBase {  // Inherit from K4PopupBase
     Q_OBJECT
 
 public:
     explicit MyPopup(QWidget *parent = nullptr);
-    void showAboveButton(QWidget *triggerButton);
-    void hidePopup();
 
 signals:
-    void itemSelected(int index);  // Or QString, etc.
-    void closed();
+    void itemSelected(int index);
+    // Note: closed() is inherited from K4PopupBase
 
 protected:
-    void paintEvent(QPaintEvent *event) override;
-    void keyPressEvent(QKeyEvent *event) override;
-    void hideEvent(QHideEvent *event) override;
+    QSize contentSize() const override;  // REQUIRED - pure virtual
 
 private:
     void setupUi();
     QList<QPushButton *> m_buttons;
-    int m_triangleXOffset = 0;
 };
 
 #endif // MYPOPUP_H
@@ -132,83 +141,56 @@ private:
 ```cpp
 // src/ui/mypopup.cpp
 #include "mypopup.h"
-#include "k4styles.h"  // REQUIRED for button styles
-#include <QPainter>
-#include <QPainterPath>
+#include "k4styles.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QKeyEvent>
-#include <QHideEvent>
-#include <QApplication>
-#include <QScreen>
 
 namespace {
-// Layout constants - adjust these for your popup's specific dimensions
 const int ButtonWidth = 70;
 const int ButtonHeight = 44;
 const int ButtonSpacing = 8;
-const int ContentMargin = 12;
-const int TriangleWidth = 24;
-const int TriangleHeight = 12;
-const int BottomStripHeight = 8;
-
-// Use K4Styles::Dimensions for shadow constants:
-using K4Styles::Dimensions::ShadowRadius;
-using K4Styles::Dimensions::ShadowOffsetX;
-using K4Styles::Dimensions::ShadowOffsetY;
-using K4Styles::Dimensions::ShadowMargin;
-
-// Colors - use values from K4Styles::Colors namespace
-const QColor IndicatorColor(85, 85, 85);  // K4Styles::Colors::IndicatorStrip = #555555
 }
 
-MyPopup::MyPopup(QWidget *parent) : QWidget(parent), m_triangleXOffset(0) {
-    // REQUIRED window flags for popup behavior
-    setWindowFlags(Qt::Popup | Qt::FramelessWindowHint);
-    setAttribute(Qt::WA_TranslucentBackground);  // Required for shadow
-    setFocusPolicy(Qt::StrongFocus);
+MyPopup::MyPopup(QWidget *parent) : K4PopupBase(parent) {
     setupUi();
 }
 
 void MyPopup::setupUi() {
     auto *mainLayout = new QVBoxLayout(this);
-    // Margins include shadow space + content padding + bottom strip + triangle
-    mainLayout->setContentsMargins(
-        ShadowMargin + ContentMargin,
-        ShadowMargin + ContentMargin,
-        ShadowMargin + ContentMargin,
-        ShadowMargin + ContentMargin + BottomStripHeight + TriangleHeight
-    );
+    mainLayout->setContentsMargins(contentMargins());  // Use base class method
     mainLayout->setSpacing(0);
 
     auto *rowLayout = new QHBoxLayout();
     rowLayout->setSpacing(ButtonSpacing);
 
-    // Create buttons - USE K4Styles!
+    // Create buttons using K4Styles
     for (int i = 0; i < 7; ++i) {
         auto *btn = new QPushButton(QString::number(i + 1), this);
         btn->setFixedSize(ButtonWidth, ButtonHeight);
         btn->setFocusPolicy(Qt::NoFocus);
-        btn->setProperty("buttonIndex", i);
-        btn->setStyleSheet(K4Styles::popupButtonNormal());  // REQUIRED
+        btn->setStyleSheet(K4Styles::popupButtonNormal());
         connect(btn, &QPushButton::clicked, this, [this, i]() {
             emit itemSelected(i);
-            hidePopup();
+            hidePopup();  // Inherited from K4PopupBase
         });
         m_buttons.append(btn);
         rowLayout->addWidget(btn);
     }
     mainLayout->addLayout(rowLayout);
 
-    // Calculate and set fixed size
-    int contentWidth = 7 * ButtonWidth + 6 * ButtonSpacing + 2 * ContentMargin;
-    int contentHeight = ButtonHeight + 2 * ContentMargin + BottomStripHeight + TriangleHeight;
-    setFixedSize(contentWidth + 2 * ShadowMargin, contentHeight + 2 * ShadowMargin);
+    initPopup();  // REQUIRED - must be last in constructor/setupUi
 }
 
-// Copy paintEvent from bandpopupwidget.cpp or buttonrowpopup.cpp
-// Copy showAboveButton from bandpopupwidget.cpp (handles positioning + triangle)
-// Copy hidePopup, hideEvent, keyPressEvent from any popup
+QSize MyPopup::contentSize() const {
+    // Calculate content dimensions (excluding shadow margins)
+    int cm = K4Styles::Dimensions::PopupContentMargin;
+    int bsh = K4Styles::Dimensions::PopupBottomStripHeight;
+    int th = K4Styles::Dimensions::PopupTriangleHeight;
+
+    int width = 7 * ButtonWidth + 6 * ButtonSpacing + 2 * cm;
+    int height = ButtonHeight + 2 * cm + bsh + th;
+    return QSize(width, height);
+}
 ```
 
 ### Step 3: Add to CMakeLists.txt
@@ -231,48 +213,34 @@ MyPopup *m_myPopup;
 m_myPopup = new MyPopup(this);
 connect(m_myPopup, &MyPopup::itemSelected, this, &MainWindow::onMyItemSelected);
 connect(m_myPopup, &MyPopup::closed, this, [this]() {
-    // Reset trigger button state if needed
+    m_triggerButton->setStyleSheet(K4Styles::menuBarButton());  // Reset button
 });
 
 // Show popup when trigger button clicked
 connect(m_triggerButton, &QPushButton::clicked, this, [this]() {
     m_myPopup->showAboveButton(m_triggerButton);
+    m_triggerButton->setStyleSheet(K4Styles::menuBarButtonActive());
 });
 ```
 
-### Key Implementation Details
+### Custom Painting (Optional)
 
-**Shadow Drawing (copy from bandpopupwidget.cpp paintEvent):**
+If you need custom drawing beyond child widgets, override `paintContent()`:
+
 ```cpp
-// Draw 8-layer soft shadow
-painter.setPen(Qt::NoPen);
-const int shadowLayers = 8;
-for (int i = shadowLayers; i > 0; --i) {
-    int blur = i * 2;
-    int alpha = 12 + (shadowLayers - i) * 3;
-    QRect shadowRect = contentRect.adjusted(-blur, -blur, blur, blur);
-    shadowRect.translate(ShadowOffsetX, ShadowOffsetY);
-    painter.setBrush(QColor(0, 0, 0, alpha));
-    painter.drawRoundedRect(shadowRect, 8 + blur / 2, 8 + blur / 2);
+void MyPopup::paintContent(QPainter &painter, const QRect &contentRect) {
+    // K4PopupBase already drew: shadow, background, bottom strip, triangle
+    // Add your custom drawing here
+    painter.setPen(K4Styles::borderColor());
+    painter.drawLine(contentRect.left() + 10, contentRect.center().y(),
+                     contentRect.right() - 10, contentRect.center().y());
 }
 ```
 
-**Triangle Pointer (copy from bandpopupwidget.cpp):**
-```cpp
-// Triangle pointing to trigger button
-int triangleX = contentRect.center().x() + m_triangleXOffset;
-int triangleTop = contentRect.bottom() + 1;
-QPainterPath triangle;
-triangle.moveTo(triangleX - TriangleWidth / 2, triangleTop);
-triangle.lineTo(triangleX + TriangleWidth / 2, triangleTop);
-triangle.lineTo(triangleX, triangleTop + TriangleHeight);
-triangle.closeSubpath();
-painter.drawPath(triangle);
-```
+### Button Selection Styling
 
-**For popups with selected state:**
 ```cpp
-void updateButtonStyles() {
+void MyPopup::updateButtonStyles() {
     for (auto *btn : m_buttons) {
         if (btn == m_selectedButton) {
             btn->setStyleSheet(K4Styles::popupButtonSelected());
@@ -282,3 +250,12 @@ void updateButtonStyles() {
     }
 }
 ```
+
+### Key Points
+
+1. **Always inherit from `K4PopupBase`** - never `QWidget` directly
+2. **Implement `contentSize()`** - returns size of content area (K4PopupBase adds shadow margins)
+3. **Call `initPopup()`** - must be the last call in constructor
+4. **Use `contentMargins()`** - for layout margins (handles shadow + content padding)
+5. **Use `K4Styles::*`** - for all colors, gradients, and button styling
+6. **Never implement shadow/triangle code** - K4PopupBase handles this

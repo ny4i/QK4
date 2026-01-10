@@ -1,14 +1,7 @@
 #include "modepopupwidget.h"
 #include "k4styles.h"
-#include <QPainter>
-#include <QPainterPath>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
 #include <QGridLayout>
-#include <QKeyEvent>
-#include <QHideEvent>
-#include <QApplication>
-#include <QScreen>
+#include <QVBoxLayout>
 
 namespace {
 // Layout constants
@@ -16,10 +9,6 @@ const int ButtonWidth = 70;
 const int ButtonHeight = 44;
 const int ButtonSpacing = 8;
 const int RowSpacing = 2;
-const int ContentMargin = 12; // Margin around button content
-const int TriangleWidth = 24;
-const int TriangleHeight = 12;
-const int BottomStripHeight = 8;
 
 // Mode codes (from K4 protocol)
 const int MODE_LSB = 1;
@@ -38,22 +27,23 @@ const int DT_FSK_D = 2;
 const int DT_PSK_D = 3;
 } // namespace
 
-ModePopupWidget::ModePopupWidget(QWidget *parent) : QWidget(parent), m_triangleXOffset(0) {
-    setWindowFlags(Qt::Popup | Qt::FramelessWindowHint);
-    setAttribute(Qt::WA_TranslucentBackground);
-    setFocusPolicy(Qt::StrongFocus);
-
+ModePopupWidget::ModePopupWidget(QWidget *parent) : K4PopupBase(parent) {
     setupUi();
+}
+
+QSize ModePopupWidget::contentSize() const {
+    int cm = K4Styles::Dimensions::PopupContentMargin;
+    int bsh = K4Styles::Dimensions::PopupBottomStripHeight;
+    int th = K4Styles::Dimensions::PopupTriangleHeight;
+
+    int width = 4 * ButtonWidth + 3 * ButtonSpacing + 2 * cm;
+    int height = 2 * ButtonHeight + RowSpacing + 2 * cm + bsh + th;
+    return QSize(width, height);
 }
 
 void ModePopupWidget::setupUi() {
     auto *mainLayout = new QVBoxLayout(this);
-    // Margins include shadow space on all sides, plus gray strip + triangle at bottom
-    int leftMargin = K4Styles::Dimensions::ShadowMargin + ContentMargin;
-    int topMargin = K4Styles::Dimensions::ShadowMargin + ContentMargin;
-    int rightMargin = K4Styles::Dimensions::ShadowMargin + ContentMargin;
-    int bottomMargin = K4Styles::Dimensions::ShadowMargin + ContentMargin + BottomStripHeight + TriangleHeight;
-    mainLayout->setContentsMargins(leftMargin, topMargin, rightMargin, bottomMargin);
+    mainLayout->setContentsMargins(contentMargins());
     mainLayout->setSpacing(RowSpacing);
 
     // Create 2x4 grid
@@ -106,14 +96,10 @@ void ModePopupWidget::setupUi() {
     m_buttonMap["PSK"] = m_pskBtn;
     m_buttonMap["FSK"] = m_fskBtn;
 
-    // Calculate size (content + shadow margins on all sides)
-    int contentWidth = 4 * ButtonWidth + 3 * ButtonSpacing + 2 * ContentMargin;
-    int contentHeight = 2 * ButtonHeight + RowSpacing + 2 * ContentMargin + BottomStripHeight + TriangleHeight;
-    int totalWidth = contentWidth + 2 * K4Styles::Dimensions::ShadowMargin;
-    int totalHeight = contentHeight + 2 * K4Styles::Dimensions::ShadowMargin;
-    setFixedSize(totalWidth, totalHeight);
-
     updateButtonStyles();
+
+    // Initialize popup size from base class
+    initPopup();
 }
 
 QPushButton *ModePopupWidget::createModeButton(const QString &text) {
@@ -247,112 +233,4 @@ void ModePopupWidget::onModeButtonClicked() {
         emit modeSelected(cmd);
     }
     hidePopup();
-}
-
-void ModePopupWidget::showAboveWidget(QWidget *referenceWidget, QWidget *arrowTarget) {
-    if (!referenceWidget)
-        return;
-
-    // Ensure geometry is realized before positioning
-    adjustSize();
-
-    // Get the reference widget's parent (button bar) for centering
-    QWidget *buttonBar = referenceWidget->parentWidget();
-    if (!buttonBar)
-        buttonBar = referenceWidget;
-
-    // Use arrowTarget if provided, otherwise default to referenceWidget
-    QWidget *triangleTarget = arrowTarget ? arrowTarget : referenceWidget;
-
-    QPoint barGlobal = buttonBar->mapToGlobal(QPoint(0, 0));
-    QPoint refGlobal = referenceWidget->mapToGlobal(QPoint(0, 0));
-    QPoint targetGlobal = triangleTarget->mapToGlobal(QPoint(0, 0));
-    int barCenterX = barGlobal.x() + buttonBar->width() / 2;
-    int targetCenterX = targetGlobal.x() + triangleTarget->width() / 2;
-
-    // Content dimensions (for positioning relative to visual content, not shadow)
-    int contentWidth = 4 * ButtonWidth + 3 * ButtonSpacing + 2 * ContentMargin;
-    int contentHeight = 2 * ButtonHeight + RowSpacing + 2 * ContentMargin + BottomStripHeight + TriangleHeight;
-
-    // Center content area above the button bar (account for shadow margin offset)
-    int popupX = barCenterX - contentWidth / 2 - K4Styles::Dimensions::ShadowMargin;
-    int popupY = refGlobal.y() - contentHeight - K4Styles::Dimensions::ShadowMargin;
-
-    // Calculate triangle offset to point at the arrow target widget
-    int contentCenterX = popupX + K4Styles::Dimensions::ShadowMargin + contentWidth / 2;
-    m_triangleXOffset = targetCenterX - contentCenterX;
-
-    // Ensure popup stays on screen
-    QRect screenGeom = QApplication::primaryScreen()->availableGeometry();
-    if (popupX < screenGeom.left() - K4Styles::Dimensions::ShadowMargin) {
-        popupX = screenGeom.left() - K4Styles::Dimensions::ShadowMargin;
-        contentCenterX = popupX + K4Styles::Dimensions::ShadowMargin + contentWidth / 2;
-        m_triangleXOffset = targetCenterX - contentCenterX;
-    } else if (popupX + width() > screenGeom.right() + K4Styles::Dimensions::ShadowMargin) {
-        popupX = screenGeom.right() + K4Styles::Dimensions::ShadowMargin - width();
-        contentCenterX = popupX + K4Styles::Dimensions::ShadowMargin + contentWidth / 2;
-        m_triangleXOffset = targetCenterX - contentCenterX;
-    }
-
-    move(popupX, popupY);
-    show();
-    raise();
-    setFocus();
-    update();
-}
-
-void ModePopupWidget::hidePopup() {
-    hide();
-}
-
-void ModePopupWidget::hideEvent(QHideEvent *event) {
-    QWidget::hideEvent(event);
-    emit closed();
-}
-
-void ModePopupWidget::paintEvent(QPaintEvent *event) {
-    Q_UNUSED(event)
-    QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing);
-
-    // Content area dimensions (inside shadow margins)
-    int contentWidth = 4 * ButtonWidth + 3 * ButtonSpacing + 2 * ContentMargin;
-    int contentHeight = 2 * ButtonHeight + RowSpacing + 2 * ContentMargin + BottomStripHeight;
-
-    // Content rect position (offset by shadow margin)
-    QRect contentRect(K4Styles::Dimensions::ShadowMargin, K4Styles::Dimensions::ShadowMargin, contentWidth,
-                      contentHeight);
-
-    // Draw drop shadow
-    K4Styles::drawDropShadow(painter, contentRect, 8);
-
-    // Main popup background
-    painter.setBrush(QColor(K4Styles::Colors::PopupBackground));
-    painter.setPen(Qt::NoPen);
-    painter.drawRoundedRect(contentRect, 8, 8);
-
-    // Gray bottom strip (inside the content rect, at bottom)
-    QRect stripRect(contentRect.left(), contentRect.bottom() - BottomStripHeight + 1, contentRect.width(),
-                    BottomStripHeight);
-    painter.fillRect(stripRect, QColor(K4Styles::Colors::IndicatorStrip));
-
-    // Triangle pointing down from center of bottom strip
-    painter.setPen(Qt::NoPen);
-    painter.setBrush(QColor(K4Styles::Colors::IndicatorStrip));
-    int triangleX = contentRect.center().x() + m_triangleXOffset;
-    int triangleTop = contentRect.bottom() + 1;
-    QPainterPath triangle;
-    triangle.moveTo(triangleX - TriangleWidth / 2, triangleTop);
-    triangle.lineTo(triangleX + TriangleWidth / 2, triangleTop);
-    triangle.lineTo(triangleX, triangleTop + TriangleHeight);
-    triangle.closeSubpath();
-    painter.drawPath(triangle);
-}
-
-void ModePopupWidget::keyPressEvent(QKeyEvent *event) {
-    if (event->key() == Qt::Key_Escape) {
-        hidePopup();
-    } else {
-        QWidget::keyPressEvent(event);
-    }
 }

@@ -1,6 +1,7 @@
 #ifndef K4STYLES_H
 #define K4STYLES_H
 
+#include <QLinearGradient>
 #include <QPainter>
 #include <QString>
 
@@ -90,6 +91,7 @@ constexpr const char *RitCyan = "#00CED1";
 constexpr const char *TextWhite = "#FFFFFF";
 constexpr const char *TextDark = "#333333";
 constexpr const char *TextGray = "#999999";
+constexpr const char *TextFaded = "#808080"; // Faded text (e.g., auto mode values)
 constexpr const char *InactiveGray = "#666666";
 
 // Indicator/Strip
@@ -194,6 +196,37 @@ constexpr int FontSizePopup = 14;  // Popup buttons
  * @param cornerRadius Corner radius for the shadow rounded rect
  */
 void drawDropShadow(QPainter &painter, const QRect &contentRect, int cornerRadius = 8);
+
+/**
+ * @brief Create a standard button gradient for custom-painted widgets.
+ *
+ * @param top Y coordinate of gradient start
+ * @param bottom Y coordinate of gradient end
+ * @param hovered Whether button is in hover state
+ * @return QLinearGradient configured with proper color stops
+ */
+QLinearGradient buttonGradient(int top, int bottom, bool hovered = false);
+
+/**
+ * @brief Create a selected/active button gradient.
+ *
+ * @param top Y coordinate of gradient start
+ * @param bottom Y coordinate of gradient end
+ * @return QLinearGradient configured with light/selected colors
+ */
+QLinearGradient selectedGradient(int top, int bottom);
+
+/**
+ * @brief Get the standard border color for buttons.
+ * @return QColor for button borders
+ */
+QColor borderColor();
+
+/**
+ * @brief Get the selected/active border color.
+ * @return QColor for selected button borders
+ */
+QColor borderColorSelected();
 
 } // namespace K4Styles
 

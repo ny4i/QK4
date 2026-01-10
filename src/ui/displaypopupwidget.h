@@ -1,26 +1,23 @@
 #ifndef DISPLAYPOPUPWIDGET_H
 #define DISPLAYPOPUPWIDGET_H
 
-#include <QWidget>
-#include <QPushButton>
+#include "k4popupbase.h"
 #include <QLabel>
-#include <QStackedWidget>
 #include <QList>
+#include <QPushButton>
+#include <QStackedWidget>
 
 class DisplayMenuButton;
 class ToggleGroupWidget;
 class ControlGroupWidget;
 
-class DisplayPopupWidget : public QWidget {
+class DisplayPopupWidget : public K4PopupBase {
     Q_OBJECT
 
 public:
     enum MenuItem { PanWaterfall = 0, NbWtrClrs, RefLvlScale, SpanCenter, AveragePeak, FixedFreeze, CursAB };
 
     explicit DisplayPopupWidget(QWidget *parent = nullptr);
-
-    void showAboveButton(QWidget *triggerButton);
-    void hidePopup();
 
     MenuItem selectedItem() const { return m_selectedItem; }
     bool isLcdEnabled() const { return m_lcdEnabled; }
@@ -59,7 +56,7 @@ public slots:
     void setWaterfallHeightExt(int percent); // EXT: #HWFHxx;
 
 signals:
-    void closed();
+    // Note: closed() signal is inherited from K4PopupBase
 
     // Target toggle signals
     void lcdToggled(bool enabled);
@@ -104,10 +101,8 @@ signals:
     void dualPanModeChanged(int mode);
 
 protected:
-    void paintEvent(QPaintEvent *event) override;
-    void keyPressEvent(QKeyEvent *event) override;
+    QSize contentSize() const override;
     void focusOutEvent(QFocusEvent *event) override;
-    void hideEvent(QHideEvent *event) override;
 
 private:
     void setupUi();
@@ -175,9 +170,6 @@ private:
     // Menu buttons
     QList<DisplayMenuButton *> m_menuButtons;
     MenuItem m_selectedItem = SpanCenter;
-
-    // Triangle position offset for when popup is clamped to screen edge
-    int m_triangleXOffset = 0;
 
     // Span state - values are per-VFO (A and B can have different spans)
     double m_spanA = 100.0;

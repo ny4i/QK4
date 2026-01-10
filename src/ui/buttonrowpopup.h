@@ -1,8 +1,8 @@
 #ifndef BUTTONROWPOPUP_H
 #define BUTTONROWPOPUP_H
 
+#include "k4popupbase.h"
 #include <QList>
-#include <QWidget>
 
 /**
  * RxMenuButton - Dual-line button with white primary text and amber secondary text.
@@ -42,24 +42,18 @@ private:
 /**
  * ButtonRowPopup - A single-row popup menu with 7 dual-line buttons
  *
- * Based on BandPopupWidget styling but simplified to one row.
+ * Based on K4PopupBase for consistent popup behavior.
  * Used for MAIN RX, SUB RX, and TX bottom menu popups.
  * Features:
  * - 7 buttons in a horizontal row with primary/alternate text
  * - Gray bottom strip with triangle indicator pointing to trigger button
  * - Customizable button labels (primary white, alternate amber)
  */
-class ButtonRowPopup : public QWidget {
+class ButtonRowPopup : public K4PopupBase {
     Q_OBJECT
 
 public:
     explicit ButtonRowPopup(QWidget *parent = nullptr);
-
-    // Position and show the popup above the specified button
-    void showAboveButton(QWidget *triggerButton);
-
-    // Hide the popup
-    void hidePopup();
 
     // Configure button labels (primary text only, clears alternate)
     void setButtonLabels(const QStringList &labels);
@@ -74,20 +68,14 @@ public:
 signals:
     void buttonClicked(int index);      // Emits 0-6 for left-click
     void buttonRightClicked(int index); // Emits 0-6 for right-click
-    void closed();
 
 protected:
-    void paintEvent(QPaintEvent *event) override;
-    void keyPressEvent(QKeyEvent *event) override;
-    void hideEvent(QHideEvent *event) override;
+    QSize contentSize() const override;
 
 private:
     void setupUi();
 
     QList<RxMenuButton *> m_buttons; // 7 buttons
-
-    // Position info for drawing the indicator triangle
-    int m_triangleXOffset = 0; // X offset from popup center to triangle point
 };
 
 #endif // BUTTONROWPOPUP_H

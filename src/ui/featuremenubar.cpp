@@ -130,7 +130,8 @@ void FeatureMenuBar::showAboveWidget(QWidget *referenceWidget) {
 
     // Center content area horizontally above reference widget (account for shadow margin)
     int popupX = refCenterX - contentWidth / 2 - K4Styles::Dimensions::ShadowMargin;
-    int popupY = refGlobal.y() - ContentHeight - K4Styles::Dimensions::ShadowMargin - 4; // 4px gap above
+    // Position popup so its bottom edge (including shadow margin) is 4px above the reference widget
+    int popupY = refGlobal.y() - height() - 4;
 
     // Ensure popup stays on screen
     QRect screenGeom = QApplication::primaryScreen()->availableGeometry();
@@ -242,19 +243,15 @@ void FeatureMenuBar::paintEvent(QPaintEvent *event) {
     K4Styles::drawDropShadow(painter, contentRect, 8);
 
     // Gradient background (matches ControlGroupWidget style)
-    QLinearGradient grad(0, contentRect.top(), 0, contentRect.bottom());
-    grad.setColorAt(0, QColor(74, 74, 74));
-    grad.setColorAt(0.4, QColor(58, 58, 58));
-    grad.setColorAt(0.6, QColor(53, 53, 53));
-    grad.setColorAt(1, QColor(42, 42, 42));
+    QLinearGradient grad = K4Styles::buttonGradient(contentRect.top(), contentRect.bottom());
 
     // Draw rounded rectangle with border around content area only
     painter.setBrush(grad);
-    painter.setPen(QPen(QColor(96, 96, 96), 1)); // Light grey border
+    painter.setPen(QPen(K4Styles::borderColor(), 1));
     painter.drawRoundedRect(contentRect, 8, 8);
 
     // Draw vertical delimiter lines between widget groups
-    painter.setPen(QPen(QColor(96, 96, 96), 1));
+    painter.setPen(QPen(K4Styles::borderColor(), 1));
     int lineTop = contentRect.top() + 7;
     int lineBottom = contentRect.bottom() - 7;
 

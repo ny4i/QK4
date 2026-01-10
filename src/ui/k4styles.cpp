@@ -158,4 +158,37 @@ void drawDropShadow(QPainter &painter, const QRect &contentRect, int cornerRadiu
     }
 }
 
+QLinearGradient buttonGradient(int top, int bottom, bool hovered) {
+    QLinearGradient grad(0, top, 0, bottom);
+    if (hovered) {
+        grad.setColorAt(0, QColor(Colors::HoverTop));
+        grad.setColorAt(0.4, QColor(Colors::HoverMid1));
+        grad.setColorAt(0.6, QColor(Colors::HoverMid2));
+        grad.setColorAt(1, QColor(Colors::HoverBottom));
+    } else {
+        grad.setColorAt(0, QColor(Colors::GradientTop));
+        grad.setColorAt(0.4, QColor(Colors::GradientMid1));
+        grad.setColorAt(0.6, QColor(Colors::GradientMid2));
+        grad.setColorAt(1, QColor(Colors::GradientBottom));
+    }
+    return grad;
+}
+
+QLinearGradient selectedGradient(int top, int bottom) {
+    QLinearGradient grad(0, top, 0, bottom);
+    grad.setColorAt(0, QColor(Colors::SelectedTop));
+    grad.setColorAt(0.4, QColor(Colors::SelectedMid1));
+    grad.setColorAt(0.6, QColor(Colors::SelectedMid2));
+    grad.setColorAt(1, QColor(Colors::SelectedBottom));
+    return grad;
+}
+
+QColor borderColor() {
+    return QColor(Colors::BorderNormal);
+}
+
+QColor borderColorSelected() {
+    return QColor(Colors::BorderSelected);
+}
+
 } // namespace K4Styles

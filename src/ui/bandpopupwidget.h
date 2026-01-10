@@ -1,22 +1,23 @@
 #ifndef BANDPOPUPWIDGET_H
 #define BANDPOPUPWIDGET_H
 
-#include <QWidget>
-#include <QPushButton>
+#include "k4popupbase.h"
 #include <QList>
 #include <QMap>
+#include <QPushButton>
 
-class BandPopupWidget : public QWidget {
+/**
+ * @brief Band selection popup with 14 bands in 2 rows.
+ *
+ * Layout:
+ * Row 1: 1.8, 3.5, 7, 14, 21, 28, MEM
+ * Row 2: GEN, 5, 10, 18, 24, 50, XVTR
+ */
+class BandPopupWidget : public K4PopupBase {
     Q_OBJECT
 
 public:
     explicit BandPopupWidget(QWidget *parent = nullptr);
-
-    // Position and show the popup above the specified button
-    void showAboveButton(QWidget *triggerButton);
-
-    // Hide the popup
-    void hidePopup();
 
     // Set the currently selected band by name
     void setSelectedBand(const QString &bandName);
@@ -29,13 +30,10 @@ public:
 
 signals:
     void bandSelected(const QString &bandName);
-    void closed();
 
 protected:
-    void paintEvent(QPaintEvent *event) override;
-    void keyPressEvent(QKeyEvent *event) override;
+    QSize contentSize() const override;
     void focusOutEvent(QFocusEvent *event) override;
-    void hideEvent(QHideEvent *event) override;
 
 private:
     void setupUi();
@@ -49,9 +47,6 @@ private:
     QMap<QString, QPushButton *> m_buttonMap;
 
     QString m_selectedBand;
-
-    // Position info for drawing the indicator triangle
-    int m_triangleXOffset; // X offset from popup center to triangle point
 };
 
 #endif // BANDPOPUPWIDGET_H
