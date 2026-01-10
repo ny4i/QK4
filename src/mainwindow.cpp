@@ -299,39 +299,45 @@ MainWindow::MainWindow(QWidget *parent)
     // Also dims VFO B frequency and mode labels when SUB RX is off
     connect(m_radioState, &RadioState::subRxEnabledChanged, this, [this](bool enabled) {
         if (enabled) {
-            m_subLabel->setStyleSheet("background-color: #00FF00;"
-                                      "color: black;"
-                                      "font-size: 9px;"
-                                      "font-weight: bold;"
-                                      "border-radius: 2px;");
+            m_subLabel->setStyleSheet(QString("background-color: %1;"
+                                              "color: black;"
+                                              "font-size: 9px;"
+                                              "font-weight: bold;"
+                                              "border-radius: 2px;")
+                                          .arg(K4Styles::Colors::AgcGreen));
             // If DIV is also on, light up the DIV indicator (handles timing when SB3 comes after DV1)
             if (m_radioState->diversityEnabled()) {
-                m_divLabel->setStyleSheet("background-color: #00FF00;"
-                                          "color: black;"
-                                          "font-size: 9px;"
-                                          "font-weight: bold;"
-                                          "border-radius: 2px;");
+                m_divLabel->setStyleSheet(QString("background-color: %1;"
+                                                  "color: black;"
+                                                  "font-size: 9px;"
+                                                  "font-weight: bold;"
+                                                  "border-radius: 2px;")
+                                              .arg(K4Styles::Colors::AgcGreen));
             }
             // Restore VFO B frequency and mode to normal white
-            m_vfoB->frequencyLabel()->setStyleSheet("color: #FFFFFF; font-size: 32px; font-weight: bold; "
-                                                    "font-family: 'JetBrains Mono', 'Courier New', monospace;");
-            m_modeBLabel->setStyleSheet("color: #FFFFFF; font-size: 11px; font-weight: bold;");
+            m_vfoB->frequencyLabel()->setStyleSheet(QString("color: %1; font-size: 32px; font-weight: bold; "
+                                                            "font-family: 'JetBrains Mono', 'Courier New', monospace;")
+                                                        .arg(K4Styles::Colors::TextWhite));
+            m_modeBLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextWhite));
         } else {
-            m_subLabel->setStyleSheet("background-color: #444444;"
-                                      "color: #888888;"
-                                      "font-size: 9px;"
-                                      "font-weight: bold;"
-                                      "border-radius: 2px;");
+            m_subLabel->setStyleSheet(QString("background-color: %1;"
+                                              "color: %2;"
+                                              "font-size: 9px;"
+                                              "font-weight: bold;"
+                                              "border-radius: 2px;")
+                                          .arg(K4Styles::Colors::DisabledBackground, K4Styles::Colors::LightGradientTop));
             // DIV requires SUB - turn off DIV indicator when SUB is off
-            m_divLabel->setStyleSheet("background-color: #444444;"
-                                      "color: #888888;"
-                                      "font-size: 9px;"
-                                      "font-weight: bold;"
-                                      "border-radius: 2px;");
+            m_divLabel->setStyleSheet(QString("background-color: %1;"
+                                              "color: %2;"
+                                              "font-size: 9px;"
+                                              "font-weight: bold;"
+                                              "border-radius: 2px;")
+                                          .arg(K4Styles::Colors::DisabledBackground, K4Styles::Colors::LightGradientTop));
             // Dim VFO B frequency and mode to indicate SUB RX is off
-            m_vfoB->frequencyLabel()->setStyleSheet("color: #666666; font-size: 32px; font-weight: bold; "
-                                                    "font-family: 'JetBrains Mono', 'Courier New', monospace;");
-            m_modeBLabel->setStyleSheet("color: #666666; font-size: 11px; font-weight: bold;");
+            m_vfoB->frequencyLabel()->setStyleSheet(QString("color: %1; font-size: 32px; font-weight: bold; "
+                                                            "font-family: 'JetBrains Mono', 'Courier New', monospace;")
+                                                        .arg(K4Styles::Colors::InactiveGray));
+            m_modeBLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::InactiveGray));
 
             // Auto-hide mini pan B if VFOs are on different bands (can't have mini pan B without SUB RX)
             checkAndHideMiniPanB();
@@ -344,17 +350,19 @@ MainWindow::MainWindow(QWidget *parent)
         // DIV only shows green if both diversity is enabled AND sub RX is enabled
         bool showActive = enabled && m_radioState->subReceiverEnabled();
         if (showActive) {
-            m_divLabel->setStyleSheet("background-color: #00FF00;"
-                                      "color: black;"
-                                      "font-size: 9px;"
-                                      "font-weight: bold;"
-                                      "border-radius: 2px;");
+            m_divLabel->setStyleSheet(QString("background-color: %1;"
+                                              "color: black;"
+                                              "font-size: 9px;"
+                                              "font-weight: bold;"
+                                              "border-radius: 2px;")
+                                          .arg(K4Styles::Colors::AgcGreen));
         } else {
-            m_divLabel->setStyleSheet("background-color: #444444;"
-                                      "color: #888888;"
-                                      "font-size: 9px;"
-                                      "font-weight: bold;"
-                                      "border-radius: 2px;");
+            m_divLabel->setStyleSheet(QString("background-color: %1;"
+                                              "color: %2;"
+                                              "font-size: 9px;"
+                                              "font-weight: bold;"
+                                              "border-radius: 2px;")
+                                          .arg(K4Styles::Colors::DisabledBackground, K4Styles::Colors::LightGradientTop));
         }
     });
 
@@ -1758,9 +1766,11 @@ void MainWindow::setupVfoSection(QWidget *parent) {
         m_tcpClient->sendCAT(QString("FA%1;FA;").arg(freqString));
     });
 
-    // Set Mini-Pan A colors to blue (matching main panadapter A passband)
-    m_vfoA->setMiniPanSpectrumColor(QColor(0, 128, 255));     // Blue spectrum
-    m_vfoA->setMiniPanPassbandColor(QColor(0, 128, 255, 64)); // Blue passband
+    // Set Mini-Pan A colors to cyan (matching VFO A theme)
+    m_vfoA->setMiniPanSpectrumColor(QColor(K4Styles::Colors::VfoACyan));
+    QColor vfoAPassband(K4Styles::Colors::VfoACyan);
+    vfoAPassband.setAlpha(64);
+    m_vfoA->setMiniPanPassbandColor(vfoAPassband);
 
     layout->addWidget(m_vfoA, 1, Qt::AlignTop);
 
@@ -1804,12 +1814,13 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     // B SET indicator (green rounded rect with black text, hidden by default)
     m_bSetLabel = new QLabel("B SET", centerWidget);
     m_bSetLabel->setAlignment(Qt::AlignCenter);
-    m_bSetLabel->setStyleSheet("background-color: #00FF00;"
-                               "color: black;"
-                               "font-size: 12px;"
-                               "font-weight: bold;"
-                               "border-radius: 4px;"
-                               "padding: 2px 8px;");
+    m_bSetLabel->setStyleSheet(QString("background-color: %1;"
+                                       "color: black;"
+                                       "font-size: 12px;"
+                                       "font-weight: bold;"
+                                       "border-radius: 4px;"
+                                       "padding: 2px 8px;")
+                                   .arg(K4Styles::Colors::AgcGreen));
     m_bSetLabel->setVisible(false);
     centerLayout->addWidget(m_bSetLabel, 0, Qt::AlignHCenter);
 
@@ -1893,19 +1904,19 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     // VOX indicator - orange when on, grey when off
     m_voxLabel = new QLabel("VOX", indicatorContainer);
     m_voxLabel->setAlignment(Qt::AlignCenter);
-    m_voxLabel->setStyleSheet("color: #999999; font-size: 11px; font-weight: bold;");
+    m_voxLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
     indicatorLayout->addWidget(m_voxLabel);
 
     // ATU indicator (orange when AUTO, grey when off)
     m_atuLabel = new QLabel("ATU", indicatorContainer);
     m_atuLabel->setAlignment(Qt::AlignCenter);
-    m_atuLabel->setStyleSheet("color: #999999; font-size: 11px; font-weight: bold;");
+    m_atuLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
     indicatorLayout->addWidget(m_atuLabel);
 
     // QSK indicator - white when on, grey when off
     m_qskLabel = new QLabel("QSK", indicatorContainer);
     m_qskLabel->setAlignment(Qt::AlignCenter);
-    m_qskLabel->setStyleSheet("color: #999999; font-size: 11px; font-weight: bold;");
+    m_qskLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
     indicatorLayout->addWidget(m_qskLabel);
 
     indicatorLayout->addStretch();
@@ -1985,7 +1996,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
         // Add sub-label if provided
         if (!subLabel.isEmpty()) {
             auto *sub = new QLabel(subLabel, container);
-            sub->setStyleSheet("color: #FFB000; font-size: 7px;");
+            sub->setStyleSheet(QString("color: %1; font-size: 7px;").arg(K4Styles::Colors::AccentAmber));
             sub->setAlignment(Qt::AlignCenter);
             layout->addWidget(sub);
         }
@@ -2065,16 +2076,16 @@ void MainWindow::setupVfoSection(QWidget *parent) {
 
     auto *leftLine = new QFrame(messageLabel);
     leftLine->setFrameShape(QFrame::HLine);
-    leftLine->setStyleSheet("background-color: #AAAAAA; max-height: 1px;");
+    leftLine->setStyleSheet(QString("background-color: %1; max-height: 1px;").arg(K4Styles::Colors::BorderSelected));
     leftLine->setFixedHeight(K4Styles::Dimensions::SeparatorHeight);
 
     auto *msgText = new QLabel("MESSAGE", messageLabel);
-    msgText->setStyleSheet("color: #AAAAAA; font-size: 7px;");
+    msgText->setStyleSheet(QString("color: %1; font-size: 7px;").arg(K4Styles::Colors::BorderSelected));
     msgText->setAlignment(Qt::AlignCenter);
 
     auto *rightLine = new QFrame(messageLabel);
     rightLine->setFrameShape(QFrame::HLine);
-    rightLine->setStyleSheet("background-color: #AAAAAA; max-height: 1px;");
+    rightLine->setStyleSheet(QString("background-color: %1; max-height: 1px;").arg(K4Styles::Colors::BorderSelected));
     rightLine->setFixedHeight(K4Styles::Dimensions::SeparatorHeight);
 
     messageLabelLayout->addWidget(leftLine, 1);
@@ -2108,9 +2119,11 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     // ===== VFO B (Right - Cyan) - Using VFOWidget =====
     m_vfoB = new VFOWidget(VFOWidget::VFO_B, parent);
 
-    // Set Mini-Pan B colors to green (matching main panadapter B passband)
-    m_vfoB->setMiniPanSpectrumColor(QColor(0, 200, 0));     // Green spectrum
-    m_vfoB->setMiniPanPassbandColor(QColor(0, 255, 0, 64)); // Green passband
+    // Set Mini-Pan B colors to green (matching VFO B theme)
+    m_vfoB->setMiniPanSpectrumColor(QColor(K4Styles::Colors::VfoBGreen));
+    QColor vfoBPassband(K4Styles::Colors::VfoBGreen);
+    vfoBPassband.setAlpha(64);
+    m_vfoB->setMiniPanPassbandColor(vfoBPassband);
 
     // Connect VFO B click to toggle mini-pan (send CAT to enable Mini-Pan streaming)
     // Only allow mini pan B if SUB RX is on or VFOs are on the same band
@@ -2197,8 +2210,10 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     m_panadapterA->setGridEnabled(true);
     // Primary VFO A uses default cyan passband
     // Secondary VFO B uses green passband
-    m_panadapterA->setSecondaryPassbandColor(QColor(0, 255, 0, 64)); // Green 25% alpha
-    m_panadapterA->setSecondaryMarkerColor(QColor(0, 255, 0, 255));  // Green 100%
+    QColor vfoBPassbandAlpha(K4Styles::Colors::VfoBGreen);
+    vfoBPassbandAlpha.setAlpha(64);
+    m_panadapterA->setSecondaryPassbandColor(vfoBPassbandAlpha);
+    m_panadapterA->setSecondaryMarkerColor(QColor(K4Styles::Colors::VfoBGreen));
     m_panadapterA->setSecondaryVisible(true);
     layout->addWidget(m_panadapterA);
 
@@ -2209,11 +2224,13 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     m_panadapterB->setSpectrumRatio(0.35f);
     m_panadapterB->setGridEnabled(true);
     // Primary VFO B uses green passband
-    m_panadapterB->setPassbandColor(QColor(0, 255, 0, 64));         // Green 25% alpha
-    m_panadapterB->setFrequencyMarkerColor(QColor(0, 255, 0, 255)); // Green 100%
+    m_panadapterB->setPassbandColor(vfoBPassbandAlpha);
+    m_panadapterB->setFrequencyMarkerColor(QColor(K4Styles::Colors::VfoBGreen));
     // Secondary VFO A uses cyan passband
-    m_panadapterB->setSecondaryPassbandColor(QColor(0, 191, 255, 64)); // Cyan 25% alpha
-    m_panadapterB->setSecondaryMarkerColor(QColor(0, 140, 200, 255));  // Darker cyan 100%
+    QColor vfoAPassbandAlpha(K4Styles::Colors::VfoACyan);
+    vfoAPassbandAlpha.setAlpha(64);
+    m_panadapterB->setSecondaryPassbandColor(vfoAPassbandAlpha);
+    m_panadapterB->setSecondaryMarkerColor(QColor(K4Styles::Colors::VfoACyan));
     m_panadapterB->setSecondaryVisible(true);
     layout->addWidget(m_panadapterB);
     m_panadapterB->hide(); // Start hidden (MainOnly mode)
@@ -2845,16 +2862,16 @@ void MainWindow::onVoxChanged(bool enabled) {
         m_voxLabel->setStyleSheet(
             QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
     } else {
-        m_voxLabel->setStyleSheet("color: #999999; font-size: 11px; font-weight: bold;");
+        m_voxLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
     }
 }
 
 void MainWindow::onQskEnabledChanged(bool enabled) {
     // QSK indicator: white when enabled, grey when disabled
     if (enabled) {
-        m_qskLabel->setStyleSheet("color: #FFFFFF; font-size: 11px; font-weight: bold;");
+        m_qskLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextWhite));
     } else {
-        m_qskLabel->setStyleSheet("color: #999999; font-size: 11px; font-weight: bold;");
+        m_qskLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
     }
 }
 
@@ -2869,7 +2886,7 @@ void MainWindow::onAtuModeChanged(int mode) {
         m_atuLabel->setStyleSheet(
             QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
     } else {
-        m_atuLabel->setStyleSheet("color: #999999; font-size: 11px; font-weight: bold;");
+        m_atuLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
     }
 }
 
