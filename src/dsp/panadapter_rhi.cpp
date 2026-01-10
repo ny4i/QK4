@@ -1557,15 +1557,25 @@ void PanadapterRhiWidget::setSpectrumStyle(SpectrumStyle style) {
 // Mouse events
 void PanadapterRhiWidget::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
+        m_isDragging = true;
         qint64 freq = xToFreq(event->pos().x(), width());
         emit frequencyClicked(freq);
+        event->accept();
     }
 }
 
 void PanadapterRhiWidget::mouseMoveEvent(QMouseEvent *event) {
-    if (event->buttons() & Qt::LeftButton) {
+    if (m_isDragging && (event->buttons() & Qt::LeftButton)) {
         qint64 freq = xToFreq(event->pos().x(), width());
         emit frequencyDragged(freq);
+        event->accept();
+    }
+}
+
+void PanadapterRhiWidget::mouseReleaseEvent(QMouseEvent *event) {
+    if (event->button() == Qt::LeftButton) {
+        m_isDragging = false;
+        event->accept();
     }
 }
 

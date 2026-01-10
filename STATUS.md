@@ -22,6 +22,7 @@ Current implementation state of K4Controller (January 2026).
 - **Mode display**: Full mode with data sub-modes (AFSK, FSK, PSK, DATA)
 - Processing indicators: AGC, PRE, ATT, NB, NR, NTCH
 - Mini-pan toggle (click meter area to show spectrum)
+- **Mini-pan B restriction**: Blocked when VFOs on different bands and SUB RX is off (auto-hides if conditions change)
 - VOX indicator (mode-aware: VXC/VXV/VXD)
 - **Clickable VFO squares**: Open mode popup targeting A or B
 - **Memory buttons**: M1-M4, REC, STORE, RCL
@@ -30,7 +31,9 @@ Current implementation state of K4Controller (January 2026).
 
 ### Panadapter
 - Spectrum styles: Blue gradient, BlueAmplitude (LUT-based)
-- Click-to-tune, scroll-wheel tuning
+- **Click-to-tune**: Single click tunes to frequency
+- **Drag-to-tune**: Click, hold, and drag passband to change frequency in real-time
+- **Scroll-wheel tuning**: Mouse wheel adjusts frequency using K4's native step
 - Peak hold with decay
 - Dynamic ref level and span from K4
 - Filter passband and frequency marker overlays
@@ -41,7 +44,7 @@ Current implementation state of K4Controller (January 2026).
 - **Bottom menu bar**: MENU, Fn, DISPLAY, BAND, MAIN RX, SUB RX, TX
 
 ### Popups & Dialogs
-- Band popup (14 bands in 2 rows)
+- **Band popup** (14 bands in 2 rows) - BSET-aware: targets VFO B when BSET enabled (BN$ commands)
 - Mode popup (2×4 grid with sub-mode toggle)
 - Menu overlay on panadapter
 - Feature menu bar (ATTN/NB/NR/NOTCH)

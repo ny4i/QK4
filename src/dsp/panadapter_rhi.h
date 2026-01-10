@@ -88,6 +88,7 @@ protected:
     // Input events
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
     void wheelEvent(QWheelEvent *event) override;
 
 private:
@@ -209,6 +210,9 @@ private:
     bool m_notchEnabled = false;
     int m_notchPitchHz = 0;
     bool m_cursorVisible = true;
+
+    // Mouse drag state
+    bool m_isDragging = false;
 
     // Secondary VFO (other receiver's passband)
     qint64 m_secondaryTunedFreq = 0;

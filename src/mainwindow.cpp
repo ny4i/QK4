@@ -250,6 +250,10 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_radioState, &RadioState::sMeterBChanged, this, &MainWindow::onSMeterBChanged);
     connect(m_radioState, &RadioState::filterBandwidthBChanged, this, &MainWindow::onBandwidthBChanged);
 
+    // Auto-hide mini pan B when VFOs move to different bands (and SUB RX is off)
+    connect(m_radioState, &RadioState::frequencyChanged, this, &MainWindow::checkAndHideMiniPanB);
+    connect(m_radioState, &RadioState::frequencyBChanged, this, &MainWindow::checkAndHideMiniPanB);
+
     // RadioState signals -> Status bar updates
     connect(m_radioState, &RadioState::rfPowerChanged, this, &MainWindow::onRfPowerChanged);
     connect(m_radioState, &RadioState::supplyVoltageChanged, this, &MainWindow::onSupplyVoltageChanged);
@@ -341,6 +345,9 @@ MainWindow::MainWindow(QWidget *parent)
             m_vfoB->frequencyLabel()->setStyleSheet("color: #666666; font-size: 32px; font-weight: bold; "
                                                     "font-family: 'JetBrains Mono', 'Courier New', monospace;");
             m_modeBLabel->setStyleSheet("color: #666666; font-size: 11px; font-weight: bold;");
+
+            // Auto-hide mini pan B if VFOs are on different bands (can't have mini pan B without SUB RX)
+            checkAndHideMiniPanB();
         }
     });
 
@@ -2062,7 +2069,14 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     m_vfoB->setMiniPanPassbandColor(QColor(0, 255, 0, 64)); // Green passband
 
     // Connect VFO B click to toggle mini-pan (send CAT to enable Mini-Pan streaming)
+    // Only allow mini pan B if SUB RX is on or VFOs are on the same band
     connect(m_vfoB, &VFOWidget::normalContentClicked, this, [this]() {
+        // Block mini pan B if VFOs are on different bands and SUB RX is off
+        // (K4 cannot provide separate Sub RX spectrum without SUB RX enabled)
+        if (areVfosOnDifferentBands() && !m_radioState->subReceiverEnabled()) {
+            qDebug() << "Mini-Pan B blocked: VFOs on different bands and SUB RX is off";
+            return;
+        }
         m_vfoB->showMiniPan();
         m_radioState->setMiniPanBEnabled(true); // Set state BEFORE sending CAT (K4 doesn't echo)
         m_tcpClient->sendCAT("#MP$1;");         // Enable Mini-Pan B (Sub RX) streaming
@@ -2317,6 +2331,17 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
         m_tcpClient->sendCAT("FA;");
     });
 
+    // Mouse control: drag to tune (continuous frequency change while dragging)
+    connect(m_panadapterA, &PanadapterRhiWidget::frequencyDragged, this, [this](qint64 freq) {
+        // Guard: only send if connected and frequency is valid
+        if (!m_tcpClient->isConnected() || freq <= 0)
+            return;
+        QString cmd = QString("FA%1;").arg(freq, 11, 10, QChar('0'));
+        m_tcpClient->sendCAT(cmd);
+        // Update local state immediately for responsive UI (K4 doesn't echo SET commands)
+        m_radioState->parseCATCommand(cmd);
+    });
+
     // Mouse control: scroll wheel to adjust frequency using K4's native step
     connect(m_panadapterA, &PanadapterRhiWidget::frequencyScrolled, this, [this](int steps) {
         // Guard: only send if connected
@@ -2397,6 +2422,17 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
         m_tcpClient->sendCAT("FB;");
     });
 
+    // Mouse control for VFO B: drag to tune (continuous frequency change while dragging)
+    connect(m_panadapterB, &PanadapterRhiWidget::frequencyDragged, this, [this](qint64 freq) {
+        // Guard: only send if connected and frequency is valid
+        if (!m_tcpClient->isConnected() || freq <= 0)
+            return;
+        QString cmd = QString("FB%1;").arg(freq, 11, 10, QChar('0'));
+        m_tcpClient->sendCAT(cmd);
+        // Update local state immediately for responsive UI (K4 doesn't echo SET commands)
+        m_radioState->parseCATCommand(cmd);
+    });
+
     // Mouse control for VFO B: scroll wheel to adjust frequency using K4's native step
     connect(m_panadapterB, &PanadapterRhiWidget::frequencyScrolled, this, [this](int steps) {
         // Guard: only send if connected
@@ -2441,6 +2477,56 @@ QString MainWindow::formatFrequency(quint64 freq) {
         formatted = formatted.mid(1);
     }
     return formatted;
+}
+
+int MainWindow::getBandFromFrequency(quint64 freq) {
+    // Convert frequency (Hz) to K4 band number
+    // Returns -1 for out-of-band frequencies
+    if (freq >= 1800000 && freq <= 2000000)
+        return 0; // 160m
+    if (freq >= 3500000 && freq <= 4000000)
+        return 1; // 80m
+    if (freq >= 5330500 && freq <= 5405500)
+        return 2; // 60m
+    if (freq >= 7000000 && freq <= 7300000)
+        return 3; // 40m
+    if (freq >= 10100000 && freq <= 10150000)
+        return 4; // 30m
+    if (freq >= 14000000 && freq <= 14350000)
+        return 5; // 20m
+    if (freq >= 18068000 && freq <= 18168000)
+        return 6; // 17m
+    if (freq >= 21000000 && freq <= 21450000)
+        return 7; // 15m
+    if (freq >= 24890000 && freq <= 24990000)
+        return 8; // 12m
+    if (freq >= 28000000 && freq <= 29700000)
+        return 9; // 10m
+    if (freq >= 50000000 && freq <= 54000000)
+        return 10; // 6m
+    if (freq >= 144000000)
+        return 16; // XVTR (transverter bands 16-25)
+    return -1;     // Out of band / GEN coverage
+}
+
+bool MainWindow::areVfosOnDifferentBands() {
+    int bandA = getBandFromFrequency(m_radioState->vfoA());
+    int bandB = getBandFromFrequency(m_radioState->vfoB());
+    // Consider them on different bands if either is out-of-band (-1) or they differ
+    return (bandA != bandB);
+}
+
+void MainWindow::checkAndHideMiniPanB() {
+    // Auto-hide mini pan B if SUB RX is off and VFOs are on different bands
+    if (!m_radioState->subReceiverEnabled() && areVfosOnDifferentBands()) {
+        if (m_radioState->miniPanBEnabled()) {
+            m_radioState->setMiniPanBEnabled(false);
+            m_tcpClient->sendCAT("#MP$0;"); // Disable Mini-Pan B streaming
+        }
+        if (m_vfoB->isMiniPanVisible()) {
+            m_vfoB->showNormal();
+        }
+    }
 }
 
 void MainWindow::showRadioManager() {
@@ -2533,8 +2619,17 @@ void MainWindow::onCatResponse(const QString &response) {
         else if (cmd.startsWith("ME")) {
             m_menuModel->parseME(cmd + ";");
         }
+        // Parse BN$ (Band Number) response for VFO B (Sub RX)
+        else if (cmd.startsWith("BN$")) {
+            // VFO B band number: BN$nn where nn is 00-10 or 16-25
+            bool ok;
+            int bandNum = cmd.mid(3, 2).toInt(&ok);
+            if (ok) {
+                updateBandSelectionB(bandNum);
+            }
+        }
         // Parse BN (Band Number) response for VFO A
-        else if (cmd.startsWith("BN") && !cmd.startsWith("BN$")) {
+        else if (cmd.startsWith("BN")) {
             // VFO A band number: BNnn where nn is 00-10 or 16-25
             bool ok;
             int bandNum = cmd.mid(2, 2).toInt(&ok);
@@ -3183,26 +3278,42 @@ void MainWindow::onBandSelected(const QString &bandName) {
     }
 
     if (m_tcpClient->isConnected()) {
-        if (newBandNum == m_currentBandNum) {
+        // Check if BSET is enabled - target VFO B (Sub RX) instead of VFO A
+        bool bSetEnabled = m_radioState->bSetEnabled();
+        int currentBand = bSetEnabled ? m_currentBandNumB : m_currentBandNum;
+        QString cmdPrefix = bSetEnabled ? "BN$" : "BN";
+
+        if (newBandNum == currentBand) {
             // Same band tapped - invoke band stack
-            qDebug() << "Same band - invoking band stack with BN^;";
-            m_tcpClient->sendCAT("BN^;");
+            QString bandStackCmd = bSetEnabled ? "BN$^;" : "BN^;";
+            qDebug() << "Same band - invoking band stack with" << bandStackCmd;
+            m_tcpClient->sendCAT(bandStackCmd);
         } else {
             // Different band selected - change band
-            QString cmd = QString("BN%1;").arg(newBandNum, 2, 10, QChar('0'));
+            QString cmd = QString("%1%2;").arg(cmdPrefix).arg(newBandNum, 2, 10, QChar('0'));
             qDebug() << "Changing band:" << cmd;
             m_tcpClient->sendCAT(cmd);
         }
         // Request current band to update UI
-        m_tcpClient->sendCAT("BN;");
+        QString queryCmd = bSetEnabled ? "BN$;" : "BN;";
+        m_tcpClient->sendCAT(queryCmd);
     }
 }
 
 void MainWindow::updateBandSelection(int bandNum) {
     m_currentBandNum = bandNum;
 
-    // Update the band popup to show the current band as selected
-    if (m_bandPopup) {
+    // Update the band popup to show the current band as selected (only when not in BSET mode)
+    if (m_bandPopup && !m_radioState->bSetEnabled()) {
+        m_bandPopup->setSelectedBandByNumber(bandNum);
+    }
+}
+
+void MainWindow::updateBandSelectionB(int bandNum) {
+    m_currentBandNumB = bandNum;
+
+    // Update the band popup to show the current band as selected (only when in BSET mode)
+    if (m_bandPopup && m_radioState->bSetEnabled()) {
         m_bandPopup->setSelectedBandByNumber(bandNum);
     }
 }

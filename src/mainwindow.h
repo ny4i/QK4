@@ -96,6 +96,7 @@ private slots:
     void onMenuValueChangeRequested(int menuId, const QString &action);
     void onBandSelected(const QString &bandName);
     void updateBandSelection(int bandNum);
+    void updateBandSelectionB(int bandNum);
     void toggleDisplayPopup();
     void toggleBandPopup();
     void toggleFnPopup();
@@ -145,6 +146,11 @@ private:
     void setupSpectrumPlaceholder(QWidget *parent);
     void updateConnectionState(TcpClient::ConnectionState state);
     QString formatFrequency(quint64 freq);
+
+    // Band and mini pan helpers
+    int getBandFromFrequency(quint64 freq);
+    bool areVfosOnDifferentBands();
+    void checkAndHideMiniPanB();
 
     TcpClient *m_tcpClient;
     RadioState *m_radioState;
@@ -260,7 +266,8 @@ private:
     ModePopupWidget *m_modePopup;
 
     RadioEntry m_currentRadio;
-    int m_currentBandNum = -1; // Current band number for VFO A (BN command)
+    int m_currentBandNum = -1;  // Current band number for VFO A (BN command)
+    int m_currentBandNumB = -1; // Current band number for VFO B (BN$ command)
 
     // KPOD device
     KpodDevice *m_kpodDevice;
