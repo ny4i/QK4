@@ -274,7 +274,7 @@ Supports B SET mode (commands use $ suffix for Sub RX).
 | File | `src/ui/buttonrowpopup.cpp/.h` |
 | Purpose | Single-row popup for Fn/MAIN RX/SUB RX/TX |
 
-7 placeholder buttons with triangle indicator pointing to trigger button.
+7 buttons for MAIN RX/SUB RX/TX menu functions.
 
 ---
 

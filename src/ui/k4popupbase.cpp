@@ -4,7 +4,6 @@
 #include <QHideEvent>
 #include <QKeyEvent>
 #include <QPainter>
-#include <QPainterPath>
 #include <QScreen>
 
 K4PopupBase::K4PopupBase(QWidget *parent) : QWidget(parent) {
@@ -16,13 +15,11 @@ K4PopupBase::K4PopupBase(QWidget *parent) : QWidget(parent) {
 QMargins K4PopupBase::contentMargins() const {
     int sm = K4Styles::Dimensions::ShadowMargin;
     int cm = K4Styles::Dimensions::PopupContentMargin;
-    int bsh = K4Styles::Dimensions::PopupBottomStripHeight;
-    int th = K4Styles::Dimensions::PopupTriangleHeight;
 
-    return QMargins(sm + cm,           // left
-                    sm + cm,           // top
-                    sm + cm,           // right
-                    sm + cm + bsh + th // bottom (includes strip and triangle space)
+    return QMargins(sm + cm, // left
+                    sm + cm, // top
+                    sm + cm, // right
+                    sm + cm  // bottom
     );
 }
 
@@ -35,21 +32,16 @@ void K4PopupBase::initPopup() {
 
 QRect K4PopupBase::contentRect() const {
     QSize cs = contentSize();
-    // Content height for drawing excludes the triangle (triangle is drawn below content)
-    int drawHeight = cs.height() - K4Styles::Dimensions::PopupTriangleHeight;
-    return QRect(K4Styles::Dimensions::ShadowMargin, K4Styles::Dimensions::ShadowMargin, cs.width(), drawHeight);
+    return QRect(K4Styles::Dimensions::ShadowMargin, K4Styles::Dimensions::ShadowMargin, cs.width(), cs.height());
 }
 
 void K4PopupBase::showAboveButton(QWidget *triggerButton) {
-    showAboveWidget(triggerButton, triggerButton);
+    showAboveWidget(triggerButton);
 }
 
-void K4PopupBase::showAboveWidget(QWidget *referenceWidget, QWidget *arrowTarget) {
+void K4PopupBase::showAboveWidget(QWidget *referenceWidget) {
     if (!referenceWidget)
         return;
-
-    if (!arrowTarget)
-        arrowTarget = referenceWidget;
 
     // Ensure geometry is realized before positioning
     adjustSize();
@@ -62,10 +54,8 @@ void K4PopupBase::showAboveWidget(QWidget *referenceWidget, QWidget *arrowTarget
     // Get global positions
     QPoint barGlobal = parentBar->mapToGlobal(QPoint(0, 0));
     QPoint refGlobal = referenceWidget->mapToGlobal(QPoint(0, 0));
-    QPoint arrowGlobal = arrowTarget->mapToGlobal(QPoint(0, 0));
 
     int barCenterX = barGlobal.x() + parentBar->width() / 2;
-    int arrowCenterX = arrowGlobal.x() + arrowTarget->width() / 2;
 
     // Content dimensions
     QSize cs = contentSize();
@@ -76,26 +66,16 @@ void K4PopupBase::showAboveWidget(QWidget *referenceWidget, QWidget *arrowTarget
     // Position popup so its bottom edge (including shadow margin) is at the top of the reference widget
     int popupY = refGlobal.y() - height();
 
-    // Calculate triangle offset to point at the arrow target
-    int contentCenterX = popupX + K4Styles::Dimensions::ShadowMargin + cs.width() / 2;
-    m_triangleXOffset = arrowCenterX - contentCenterX;
-
     // Ensure popup stays on screen
     QRect screenGeom = QApplication::primaryScreen()->availableGeometry();
 
     // Check left edge
     if (popupX < screenGeom.left() - K4Styles::Dimensions::ShadowMargin) {
         popupX = screenGeom.left() - K4Styles::Dimensions::ShadowMargin;
-        // Recalculate triangle offset with new popup position
-        contentCenterX = popupX + K4Styles::Dimensions::ShadowMargin + cs.width() / 2;
-        m_triangleXOffset = arrowCenterX - contentCenterX;
     }
     // Check right edge
     else if (popupX + width() > screenGeom.right() + K4Styles::Dimensions::ShadowMargin) {
         popupX = screenGeom.right() + K4Styles::Dimensions::ShadowMargin - width();
-        // Recalculate triangle offset with new popup position
-        contentCenterX = popupX + K4Styles::Dimensions::ShadowMargin + cs.width() / 2;
-        m_triangleXOffset = arrowCenterX - contentCenterX;
     }
 
     // Check top edge (if popup would go off top of screen)
@@ -143,27 +123,6 @@ void K4PopupBase::paintEvent(QPaintEvent *event) {
     painter.setBrush(QColor(K4Styles::Colors::PopupBackground));
     painter.setPen(Qt::NoPen);
     painter.drawRoundedRect(cr, 8, 8);
-
-    // Gray bottom strip (inside the content rect, at bottom)
-    int stripHeight = K4Styles::Dimensions::PopupBottomStripHeight;
-    QRect stripRect(cr.left(), cr.bottom() - stripHeight + 1, cr.width(), stripHeight);
-    painter.fillRect(stripRect, QColor(K4Styles::Colors::IndicatorStrip));
-
-    // Triangle pointing down from center of bottom strip
-    painter.setPen(Qt::NoPen);
-    painter.setBrush(QColor(K4Styles::Colors::IndicatorStrip));
-
-    int triangleWidth = K4Styles::Dimensions::PopupTriangleWidth;
-    int triangleHeight = K4Styles::Dimensions::PopupTriangleHeight;
-    int triangleX = cr.center().x() + m_triangleXOffset;
-    int triangleTop = cr.bottom() + 1;
-
-    QPainterPath triangle;
-    triangle.moveTo(triangleX - triangleWidth / 2, triangleTop);
-    triangle.lineTo(triangleX + triangleWidth / 2, triangleTop);
-    triangle.lineTo(triangleX, triangleTop + triangleHeight);
-    triangle.closeSubpath();
-    painter.drawPath(triangle);
 
     // Allow subclass to draw additional content
     paintContent(painter, cr);

@@ -104,11 +104,9 @@ FnPopupWidget::FnPopupWidget(QWidget *parent) : K4PopupBase(parent) {
 
 QSize FnPopupWidget::contentSize() const {
     int cm = K4Styles::Dimensions::PopupContentMargin;
-    int bsh = K4Styles::Dimensions::PopupBottomStripHeight;
-    int th = K4Styles::Dimensions::PopupTriangleHeight;
 
     int width = 7 * ButtonWidth + 6 * ButtonSpacing + 2 * cm;
-    int height = ButtonHeight + 2 * cm + bsh + th;
+    int height = ButtonHeight + 2 * cm;
     return QSize(width, height);
 }
 

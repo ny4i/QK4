@@ -85,12 +85,11 @@ connect(myAction, &QAction::triggered, this, &MainWindow::onMyAction);
 
 ## Adding a Popup Menu
 
-**All triangle-pointer popups MUST inherit from `K4PopupBase`.**
+**All popup menus MUST inherit from `K4PopupBase`.**
 
 K4PopupBase provides:
 - Window flags and frameless behavior
 - Drop shadow rendering (8-layer blur)
-- Bottom indicator strip and triangle pointer
 - Positioning above trigger buttons
 - `closed()` signal on hide
 - Escape key handling
@@ -184,11 +183,9 @@ void MyPopup::setupUi() {
 QSize MyPopup::contentSize() const {
     // Calculate content dimensions (excluding shadow margins)
     int cm = K4Styles::Dimensions::PopupContentMargin;
-    int bsh = K4Styles::Dimensions::PopupBottomStripHeight;
-    int th = K4Styles::Dimensions::PopupTriangleHeight;
 
     int width = 7 * ButtonWidth + 6 * ButtonSpacing + 2 * cm;
-    int height = ButtonHeight + 2 * cm + bsh + th;
+    int height = ButtonHeight + 2 * cm;
     return QSize(width, height);
 }
 ```
@@ -229,7 +226,7 @@ If you need custom drawing beyond child widgets, override `paintContent()`:
 
 ```cpp
 void MyPopup::paintContent(QPainter &painter, const QRect &contentRect) {
-    // K4PopupBase already drew: shadow, background, bottom strip, triangle
+    // K4PopupBase already drew: shadow, background
     // Add your custom drawing here
     painter.setPen(K4Styles::borderColor());
     painter.drawLine(contentRect.left() + 10, contentRect.center().y(),
@@ -258,4 +255,4 @@ void MyPopup::updateButtonStyles() {
 3. **Call `initPopup()`** - must be the last call in constructor
 4. **Use `contentMargins()`** - for layout margins (handles shadow + content padding)
 5. **Use `K4Styles::*`** - for all colors, gradients, and button styling
-6. **Never implement shadow/triangle code** - K4PopupBase handles this
+6. **Never implement shadow code** - K4PopupBase handles this

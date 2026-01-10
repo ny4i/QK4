@@ -19,9 +19,6 @@ const int TopRowHeight = 36;
 const int ButtonSpacing = 4;
 const int RowSpacing = 4;
 const int ContentMargin = 8; // Margin around content
-const int TriangleWidth = 24;
-const int TriangleHeight = 12;
-const int BottomStripHeight = 8;
 } // namespace
 
 // ============================================================================
@@ -442,17 +439,15 @@ DisplayPopupWidget::DisplayPopupWidget(QWidget *parent) : K4PopupBase(parent) {
 
 QSize DisplayPopupWidget::contentSize() const {
     int cm = ContentMargin;
-    int bsh = BottomStripHeight;
-    int th = TriangleHeight;
 
     int width = 7 * MenuButtonWidth + 6 * ButtonSpacing + 2 * cm;
-    int height = TopRowHeight + MenuButtonHeight + RowSpacing + 2 * cm + bsh + th;
+    int height = TopRowHeight + MenuButtonHeight + RowSpacing + 2 * cm;
     return QSize(width, height);
 }
 
 void DisplayPopupWidget::setupUi() {
     auto *mainLayout = new QVBoxLayout(this);
-    // Use base class content margins (includes shadow space + popup strip/triangle)
+    // Use base class content margins (includes shadow space)
     QMargins margins = contentMargins();
     // Adjust for DisplayPopupWidget's smaller ContentMargin (8) vs base default (12)
     int marginDiff = K4Styles::Dimensions::PopupContentMargin - ContentMargin;

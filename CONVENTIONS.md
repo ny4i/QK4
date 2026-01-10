@@ -181,8 +181,6 @@ K4Styles::drawDropShadow(painter, contentRect, cornerRadius)
 | `PopupContentMargin` | 12 | Padding inside popup |
 | `PopupButtonWidth` | 70 | Standard popup button |
 | `PopupButtonHeight` | 44 | Standard popup button |
-| `PopupTriangleHeight` | 12 | Triangle pointer height |
-| `PopupBottomStripHeight` | 8 | Gray indicator strip |
 | `BorderWidth` | 2 | Button border width |
 | `BorderRadius` | 6 | Standard corner radius |
 

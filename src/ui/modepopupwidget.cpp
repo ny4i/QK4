@@ -33,11 +33,9 @@ ModePopupWidget::ModePopupWidget(QWidget *parent) : K4PopupBase(parent) {
 
 QSize ModePopupWidget::contentSize() const {
     int cm = K4Styles::Dimensions::PopupContentMargin;
-    int bsh = K4Styles::Dimensions::PopupBottomStripHeight;
-    int th = K4Styles::Dimensions::PopupTriangleHeight;
 
     int width = 4 * ButtonWidth + 3 * ButtonSpacing + 2 * cm;
-    int height = 2 * ButtonHeight + RowSpacing + 2 * cm + bsh + th;
+    int height = 2 * ButtonHeight + RowSpacing + 2 * cm;
     return QSize(width, height);
 }
 

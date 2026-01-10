@@ -1489,9 +1489,7 @@ void MainWindow::setupUi() {
                 m_modePopup->setCurrentDataSubMode(m_radioState->dataSubMode());
             }
             m_modePopup->setBSetEnabled(bSet);
-            // Arrow points to MAIN RX or SUB RX based on B SET state
-            QWidget *arrowTarget = bSet ? m_bottomMenuBar->subRxButton() : m_bottomMenuBar->mainRxButton();
-            m_modePopup->showAboveWidget(m_bottomMenuBar, arrowTarget);
+            m_modePopup->showAboveWidget(m_bottomMenuBar);
         }
     });
 
@@ -3050,8 +3048,7 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
             m_modePopup->setCurrentMode(static_cast<int>(m_radioState->mode()));
             m_modePopup->setCurrentDataSubMode(m_radioState->dataSubMode());
             m_modePopup->setBSetEnabled(false); // Commands target VFO A
-            // Arrow points to MAIN RX button
-            m_modePopup->showAboveWidget(m_bottomMenuBar, m_bottomMenuBar->mainRxButton());
+            m_modePopup->showAboveWidget(m_bottomMenuBar);
         }
         return true;
     }
@@ -3066,8 +3063,7 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
             m_modePopup->setCurrentMode(static_cast<int>(m_radioState->modeB()));
             m_modePopup->setCurrentDataSubMode(m_radioState->dataSubModeB());
             m_modePopup->setBSetEnabled(true); // Commands target VFO B (MD$, DT$)
-            // Arrow points to SUB RX button
-            m_modePopup->showAboveWidget(m_bottomMenuBar, m_bottomMenuBar->subRxButton());
+            m_modePopup->showAboveWidget(m_bottomMenuBar);
         }
         return true;
     }

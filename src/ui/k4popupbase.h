@@ -4,13 +4,12 @@
 #include <QWidget>
 
 /**
- * @brief Base class for K4Controller popup widgets with triangle pointers.
+ * @brief Base class for K4Controller popup widgets.
  *
  * Provides centralized handling of:
  * - Window flags and translucent background setup
  * - Popup positioning above trigger buttons
  * - Drop shadow rendering
- * - Bottom indicator strip and triangle pointer drawing
  * - Hide/close behavior with closed() signal
  * - Escape key handling
  *
@@ -42,7 +41,7 @@ public:
      * @brief Position and show the popup above the trigger button.
      *
      * Centers the popup above the trigger button's parent widget (typically
-     * the menu bar), with the triangle pointer aimed at the trigger button.
+     * the menu bar).
      *
      * @param triggerButton The button that triggered the popup
      */
@@ -51,14 +50,9 @@ public:
     /**
      * @brief Position and show the popup above a reference widget.
      *
-     * Similar to showAboveButton, but allows specifying a separate widget
-     * for the triangle to point at (useful when the popup is triggered
-     * from one widget but should point to another).
-     *
      * @param referenceWidget Widget to position the popup above
-     * @param arrowTarget Widget the triangle should point to (defaults to referenceWidget)
      */
-    void showAboveWidget(QWidget *referenceWidget, QWidget *arrowTarget = nullptr);
+    void showAboveWidget(QWidget *referenceWidget);
 
     /**
      * @brief Hide the popup and emit closed() signal.
@@ -79,8 +73,6 @@ protected:
      * The content size should include:
      * - Button grid/row dimensions
      * - Content margins (typically PopupContentMargin on each side)
-     * - Bottom strip height (PopupBottomStripHeight)
-     * - Triangle height (PopupTriangleHeight) if using standard triangle
      *
      * @return Size of the content area
      */
@@ -115,19 +107,10 @@ protected:
     QRect contentRect() const;
 
     /**
-     * @brief Get the current triangle X offset from content center.
-     *
-     * Useful if subclass needs to know where the triangle is pointing.
-     *
-     * @return X offset in pixels (positive = right of center)
-     */
-    int triangleXOffset() const { return m_triangleXOffset; }
-
-    /**
      * @brief Override to perform custom painting after background/shadow.
      *
-     * Called by paintEvent() after drawing the shadow, background,
-     * bottom strip, and triangle. Default implementation does nothing.
+     * Called by paintEvent() after drawing the shadow and background.
+     * Default implementation does nothing.
      *
      * @param painter The painter to use
      * @param contentRect The content rectangle (inside shadow margins)
@@ -138,9 +121,6 @@ protected:
     void paintEvent(QPaintEvent *event) override;
     void hideEvent(QHideEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
-
-private:
-    int m_triangleXOffset = 0;
 };
 
 #endif // K4POPUPBASE_H

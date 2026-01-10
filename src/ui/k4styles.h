@@ -94,9 +94,6 @@ constexpr const char *TextGray = "#999999";
 constexpr const char *TextFaded = "#808080"; // Faded text (e.g., auto mode values)
 constexpr const char *InactiveGray = "#666666";
 
-// Indicator/Strip
-constexpr const char *IndicatorStrip = "#555555";
-
 // =============================================================================
 // Button Gradient Colors
 // =============================================================================
@@ -165,9 +162,6 @@ constexpr int PopupButtonWidth = 70;
 constexpr int PopupButtonHeight = 44;
 constexpr int PopupButtonSpacing = 8;
 constexpr int PopupContentMargin = 12;
-constexpr int PopupTriangleWidth = 24;
-constexpr int PopupTriangleHeight = 12;
-constexpr int PopupBottomStripHeight = 8;
 
 // =============================================================================
 // Font Sizes (in pixels)
