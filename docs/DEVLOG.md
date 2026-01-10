@@ -1916,8 +1916,8 @@ Implemented Mini-Pan display for VFO B (Sub RX), mirroring VFO A functionality.
 | Disable Mini-Pan | `#MP0;` | `#MP$0;` |
 
 **Color Scheme:**
-- VFO A Mini-Pan: Amber `K4Colors::VfoAAmber`
-- VFO B Mini-Pan: Cyan `K4Colors::VfoBCyan`
+- VFO A Mini-Pan: Cyan `K4Styles::Colors::VfoACyan`
+- VFO B Mini-Pan: Green `K4Styles::Colors::VfoBGreen`
 
 ---
 

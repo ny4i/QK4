@@ -15,6 +15,7 @@ Complete reference for all `K4Styles::Colors` and `K4Styles::Dimensions` constan
 | `Background` | `#1a1a1a` | Main app background |
 | `DarkBackground` | `#0d0d0d` | Darker areas, panel backgrounds |
 | `PopupBackground` | `#1e1e1e` | Popup menu fill |
+| `K4Styles::Colors::DisabledBackground` | `#444444` | Disabled indicator backgrounds (SUB/DIV off state) |
 
 ### App Accent Color
 
@@ -152,13 +153,15 @@ Complete reference for all `K4Styles::Colors` and `K4Styles::Dimensions` constan
 
 | Constant | Value | Usage |
 |----------|-------|-------|
-| `K4Styles::Dimensions::FontSizeTiny` | `7` | Sub-labels (BANK, AF REC, MESSAGE) (px) |
-| `K4Styles::Dimensions::FontSizeSmall` | `8` | TX function sub-labels (px) |
-| `K4Styles::Dimensions::FontSizeNormal` | `9` | Memory buttons (px) |
-| `K4Styles::Dimensions::FontSizeMedium` | `10` | Volume labels (px) |
-| `K4Styles::Dimensions::FontSizeLarge` | `11` | Feature labels, time/power display (px) |
-| `K4Styles::Dimensions::FontSizeButton` | `12` | Menu bar buttons (px) |
-| `K4Styles::Dimensions::FontSizePopup` | `14` | Popup buttons (px) |
+| `K4Styles::Dimensions::FontSizeMicro` | `6` | Meter scale numbers (pt) |
+| `K4Styles::Dimensions::FontSizeTiny` | `7` | Sub-labels (BANK, AF REC, MESSAGE) (pt) |
+| `K4Styles::Dimensions::FontSizeSmall` | `8` | TX function sub-labels (pt) |
+| `K4Styles::Dimensions::FontSizeNormal` | `9` | Memory buttons (pt) |
+| `K4Styles::Dimensions::FontSizeMedium` | `10` | Volume labels (pt) |
+| `K4Styles::Dimensions::FontSizeLarge` | `11` | Feature labels, time/power display (pt) |
+| `K4Styles::Dimensions::FontSizeButton` | `12` | Menu bar buttons (pt) |
+| `K4Styles::Dimensions::FontSizePopup` | `14` | Popup buttons (pt) |
+| `K4Styles::Dimensions::FontSizeTitle` | `16` | Large control buttons (+/-) (pt) |
 
 ---
 
@@ -255,6 +258,7 @@ Backgrounds:
   #1a1a1a ████ Background
   #0d0d0d ████ DarkBackground
   #1e1e1e ████ PopupBackground
+  #444444 ████ DisabledBackground
 
 Accent & VFO Colors:
   #FFB000 ████ AccentAmber (TX indicators, highlights)
