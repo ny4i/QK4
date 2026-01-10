@@ -256,7 +256,7 @@ Supports B SET mode (commands use $ suffix for Sub RX).
 
 | Property | Value |
 |----------|-------|
-| Type | `QWidget` subclass |
+| Type | `K4PopupBase` subclass |
 | File | `src/ui/displaypopupwidget.cpp/.h` |
 | Purpose | DISPLAY button popup with panadapter controls |
 
@@ -270,7 +270,7 @@ Supports B SET mode (commands use $ suffix for Sub RX).
 
 | Property | Value |
 |----------|-------|
-| Type | `QWidget` subclass |
+| Type | `K4PopupBase` subclass |
 | File | `src/ui/buttonrowpopup.cpp/.h` |
 | Purpose | Single-row popup for Fn/MAIN RX/SUB RX/TX |
 
