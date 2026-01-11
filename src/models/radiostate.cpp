@@ -832,17 +832,17 @@ void RadioState::parseCATCommand(const QString &command) {
             }
         }
     }
-    // RIT (RT) - RT0/RT1
-    else if (cmd.startsWith("RT") && cmd.length() >= 3) {
-        bool newRit = (cmd.mid(2, 1) == "1");
+    // RIT (RT) - RT0/RT1 (not RT$ which is a different command)
+    else if (cmd.startsWith("RT") && cmd.length() >= 3 && (cmd[2] == '0' || cmd[2] == '1')) {
+        bool newRit = (cmd[2] == '1');
         if (newRit != m_ritEnabled) {
             m_ritEnabled = newRit;
             emit ritXitChanged(m_ritEnabled, m_xitEnabled, m_ritXitOffset);
         }
     }
-    // XIT (XT) - XT0/XT1
-    else if (cmd.startsWith("XT") && cmd.length() >= 3) {
-        bool newXit = (cmd.mid(2, 1) == "1");
+    // XIT (XT) - XT0/XT1 (not XT$ which is a different command)
+    else if (cmd.startsWith("XT") && cmd.length() >= 3 && (cmd[2] == '0' || cmd[2] == '1')) {
+        bool newXit = (cmd[2] == '1');
         if (newXit != m_xitEnabled) {
             m_xitEnabled = newXit;
             emit ritXitChanged(m_ritEnabled, m_xitEnabled, m_ritXitOffset);

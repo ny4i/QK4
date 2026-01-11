@@ -43,7 +43,7 @@ void K4PopupBase::showAboveWidget(QWidget *referenceWidget) {
     if (!referenceWidget)
         return;
 
-    // Ensure geometry is realized before positioning
+    // Ensure our geometry is set before positioning
     adjustSize();
 
     // Get the reference widget's parent (typically button bar) for centering
@@ -57,14 +57,16 @@ void K4PopupBase::showAboveWidget(QWidget *referenceWidget) {
 
     int barCenterX = barGlobal.x() + parentBar->width() / 2;
 
-    // Content dimensions
+    // Content dimensions (use calculated size, not widget height() which may not be realized)
     QSize cs = contentSize();
+    int sm = K4Styles::Dimensions::ShadowMargin;
+    int totalHeight = cs.height() + 2 * sm;
 
     // Center content area above the parent bar (account for shadow margin offset)
-    int popupX = barCenterX - cs.width() / 2 - K4Styles::Dimensions::ShadowMargin;
+    int popupX = barCenterX - cs.width() / 2 - sm;
 
     // Position popup so its bottom edge (including shadow margin) is at the top of the reference widget
-    int popupY = refGlobal.y() - height();
+    int popupY = refGlobal.y() - totalHeight;
 
     // Ensure popup stays on screen
     QRect screenGeom = QApplication::primaryScreen()->availableGeometry();
@@ -83,11 +85,12 @@ void K4PopupBase::showAboveWidget(QWidget *referenceWidget) {
         popupY = screenGeom.top() - K4Styles::Dimensions::ShadowMargin;
     }
 
+    // Position the popup - move after show to override Qt's popup positioning
     move(popupX, popupY);
     show();
+    move(popupX, popupY);  // Move again after show in case Qt repositioned it
     raise();
     setFocus();
-    update();
 }
 
 void K4PopupBase::hidePopup() {
@@ -117,12 +120,13 @@ void K4PopupBase::paintEvent(QPaintEvent *event) {
     QRect cr = contentRect();
 
     // Draw drop shadow
-    K4Styles::drawDropShadow(painter, cr, 8);
+    K4Styles::drawDropShadow(painter, cr, K4Styles::Dimensions::BorderRadiusLarge);
 
     // Main popup background
     painter.setBrush(QColor(K4Styles::Colors::PopupBackground));
     painter.setPen(Qt::NoPen);
-    painter.drawRoundedRect(cr, 8, 8);
+    painter.drawRoundedRect(cr, K4Styles::Dimensions::BorderRadiusLarge,
+                            K4Styles::Dimensions::BorderRadiusLarge);
 
     // Allow subclass to draw additional content
     paintContent(painter, cr);

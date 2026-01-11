@@ -53,10 +53,11 @@ void FeatureMenuBar::setupUi() {
     m_toggleBtn->setCursor(Qt::PointingHandCursor);
     m_toggleBtn->setStyleSheet(K4Styles::menuBarButton());
 
-    // Extra button (only shown for NB LEVEL - "FILTER NONE")
+    // Extra button (only shown for NB LEVEL - "FILTER NONE/NARROW/WIDE")
+    // Uses ButtonHeightLarge (44px) to fit two lines of text
     m_extraBtn = new QPushButton("FILTER\nNONE", this);
-    m_extraBtn->setMinimumWidth(70);
-    m_extraBtn->setFixedHeight(K4Styles::Dimensions::ButtonHeightMedium);
+    m_extraBtn->setMinimumWidth(90);
+    m_extraBtn->setFixedHeight(K4Styles::Dimensions::ButtonHeightLarge);
     m_extraBtn->setCursor(Qt::PointingHandCursor);
     m_extraBtn->setStyleSheet(K4Styles::menuBarButton());
     m_extraBtn->hide(); // Hidden by default

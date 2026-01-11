@@ -272,20 +272,30 @@ MainWindow::MainWindow(QWidget *parent)
             paCurrent = fwdPower / (voltage * 0.34);
         }
 
-        // Update TX meters in VFO widgets (multifunction S/Po meters)
-        // Both VFOs receive TX data - display based on which is transmitting
-        m_vfoA->setTxMeters(alc, comp, fwdPower, swr);
-        m_vfoA->setTxMeterCurrent(paCurrent);
-        m_vfoB->setTxMeters(alc, comp, fwdPower, swr);
-        m_vfoB->setTxMeterCurrent(paCurrent);
+        // Update TX meters only on the active TX VFO
+        // SPLIT OFF: VFO A transmits, SPLIT ON: VFO B transmits
+        if (m_radioState->splitEnabled()) {
+            m_vfoB->setTxMeters(alc, comp, fwdPower, swr);
+            m_vfoB->setTxMeterCurrent(paCurrent);
+        } else {
+            m_vfoA->setTxMeters(alc, comp, fwdPower, swr);
+            m_vfoA->setTxMeterCurrent(paCurrent);
+        }
     });
 
     // TX state changes -> switch VFO meters between S-meter (RX) and Po (TX) mode
     // Also change TX indicator color to red when transmitting
     connect(m_radioState, &RadioState::transmitStateChanged, this, [this](bool transmitting) {
-        // Both VFOs switch mode together - the active TX meter will show power
-        m_vfoA->setTransmitting(transmitting);
-        m_vfoB->setTransmitting(transmitting);
+        // Only the active TX VFO switches to TX meter mode
+        // SPLIT OFF: VFO A transmits, SPLIT ON: VFO B transmits
+        // The non-TX VFO stays in S-meter mode (showing received signal)
+        if (m_radioState->splitEnabled()) {
+            m_vfoA->setTransmitting(false); // VFO A stays in RX mode
+            m_vfoB->setTransmitting(transmitting);
+        } else {
+            m_vfoA->setTransmitting(transmitting);
+            m_vfoB->setTransmitting(false); // VFO B stays in RX mode
+        }
 
         // TX indicator and triangles turn red when transmitting
         QString color = transmitting ? "#FF0000" : K4Styles::Colors::AccentAmber;
@@ -1831,10 +1841,12 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     centerLayout->addWidget(m_msgBankLabel);
 
     // RIT/XIT Box with border - constrained size
+    // Supports mouse wheel to adjust RIT/XIT offset
     m_ritXitBox = new QWidget(centerWidget);
     m_ritXitBox->setStyleSheet(QString("border: 1px solid %1;").arg(K4Styles::Colors::InactiveGray));
     m_ritXitBox->setMaximumWidth(80);
     m_ritXitBox->setMaximumHeight(40);
+    m_ritXitBox->installEventFilter(this);
     auto *ritXitLayout = new QVBoxLayout(m_ritXitBox);
     ritXitLayout->setContentsMargins(1, 2, 1, 2);
     ritXitLayout->setSpacing(1);
@@ -1845,10 +1857,14 @@ void MainWindow::setupVfoSection(QWidget *parent) {
 
     m_ritLabel = new QLabel("RIT", m_ritXitBox);
     m_ritLabel->setStyleSheet(QString("color: %1; font-size: 10px; border: none;").arg(K4Styles::Colors::InactiveGray));
+    m_ritLabel->setCursor(Qt::PointingHandCursor);
+    m_ritLabel->installEventFilter(this);
     ritXitLabelsRow->addWidget(m_ritLabel);
 
     m_xitLabel = new QLabel("XIT", m_ritXitBox);
     m_xitLabel->setStyleSheet(QString("color: %1; font-size: 10px; border: none;").arg(K4Styles::Colors::InactiveGray));
+    m_xitLabel->setCursor(Qt::PointingHandCursor);
+    m_xitLabel->installEventFilter(this);
     ritXitLabelsRow->addWidget(m_xitLabel);
 
     ritXitLabelsRow->setAlignment(Qt::AlignCenter);
@@ -1866,7 +1882,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     m_ritXitValueLabel->setAlignment(Qt::AlignCenter);
     m_ritXitValueLabel->setStyleSheet(
         QString("color: %1; font-size: 14px; font-weight: bold; border: none; padding: 0 11px;")
-            .arg(K4Styles::Colors::TextWhite));
+            .arg(K4Styles::Colors::InactiveGray)); // Grey until RIT/XIT is enabled
     ritXitLayout->addWidget(m_ritXitValueLabel);
 
     // Create filter/RIT/XIT row - filter indicators flanking the RIT/XIT box
@@ -2910,9 +2926,14 @@ void MainWindow::onRitXitChanged(bool ritEnabled, bool xitEnabled, int offset) {
     }
 
     // Update offset value (in kHz)
+    // Value is white if RIT or XIT is on, grey if both are off
     double offsetKHz = offset / 1000.0;
     QString sign = (offset >= 0) ? "+" : "";
     m_ritXitValueLabel->setText(QString("%1%2").arg(sign).arg(offsetKHz, 0, 'f', 2));
+
+    QString valueColor = (ritEnabled || xitEnabled) ? K4Styles::Colors::TextWhite : K4Styles::Colors::InactiveGray;
+    m_ritXitValueLabel->setStyleSheet(
+        QString("color: %1; font-size: 14px; font-weight: bold; border: none; padding: 0 11px;").arg(valueColor));
 }
 
 void MainWindow::onMessageBankChanged(int bank) {
@@ -3132,6 +3153,26 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
                 return true;
             }
         }
+    }
+
+    // RIT label click - toggle RIT on/off
+    if (watched == m_ritLabel && event->type() == QEvent::MouseButtonPress) {
+        m_tcpClient->sendCAT("RT/;");
+        return true;
+    }
+
+    // XIT label click - toggle XIT on/off
+    if (watched == m_xitLabel && event->type() == QEvent::MouseButtonPress) {
+        m_tcpClient->sendCAT("XT/;");
+        return true;
+    }
+
+    // Mouse wheel on RIT/XIT box - adjust offset using RU/RD commands
+    if (watched == m_ritXitBox && event->type() == QEvent::Wheel) {
+        auto *wheelEvent = static_cast<QWheelEvent *>(event);
+        QString cmd = (wheelEvent->angleDelta().y() > 0) ? "RU;" : "RD;";
+        m_tcpClient->sendCAT(cmd);
+        return true;
     }
 
     return QMainWindow::eventFilter(watched, event);

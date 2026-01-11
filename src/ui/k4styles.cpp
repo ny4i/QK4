@@ -110,14 +110,6 @@ QString menuBarButtonActive() {
             font-size: 12px;
             font-weight: bold;
         }
-        QPushButton:hover {
-            background: #F5F5F5;
-            border: 2px solid #999999;
-        }
-        QPushButton:pressed {
-            background: #EEEEEE;
-            border: 2px solid #888888;
-        }
     )";
 }
 

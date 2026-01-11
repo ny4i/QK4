@@ -157,6 +157,7 @@ constexpr int ButtonHeightMini = 24;   // Memory buttons (M1-M4, REC, etc.)
 constexpr int PopupButtonWidth = 70;
 constexpr int PopupButtonHeight = 44;
 constexpr int PopupButtonSpacing = 8;
+constexpr int MenuBarButtonWidth = 90; // Bottom menu bar buttons (fits "MAIN RX")
 constexpr int PopupContentMargin = 12;
 
 // =============================================================================

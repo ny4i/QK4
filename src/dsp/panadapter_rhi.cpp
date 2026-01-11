@@ -1309,7 +1309,8 @@ qint64 PanadapterRhiWidget::xToFreq(int x, int w) {
     if (w <= 0)
         return m_centerFreq;
     qint64 startFreq = m_centerFreq - m_spanHz / 2;
-    double normalized = static_cast<double>(x) / static_cast<double>(w);
+    // Clamp to [0, 1] to prevent runaway acceleration when dragging past edges
+    double normalized = qBound(0.0, static_cast<double>(x) / static_cast<double>(w), 1.0);
     return startFreq + static_cast<qint64>(normalized * m_spanHz);
 }
 

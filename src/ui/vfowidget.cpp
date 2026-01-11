@@ -48,16 +48,23 @@ void VFOWidget::setupUi() {
     m_frequencyEdit->installEventFilter(this);
     connect(m_frequencyEdit, &QLineEdit::returnPressed, this, &VFOWidget::onFrequencyEditFinished);
 
+    // VFO A: frequency on left, VFO B: frequency on right
+    // Frequency container width matches stacked widget (270px) for vertical alignment
+    auto *freqContainer = new QWidget(this);
+    freqContainer->setFixedWidth(270);
+    auto *freqContainerLayout = new QHBoxLayout(freqContainer);
+    freqContainerLayout->setContentsMargins(0, 0, 0, 0);
+    freqContainerLayout->setSpacing(0);
+    freqContainerLayout->addWidget(m_frequencyLabel);
+    freqContainerLayout->addWidget(m_frequencyEdit);
+    freqContainerLayout->addStretch();
+
     if (m_type == VFO_A) {
-        // VFO A: frequency left-aligned with S-meter
-        freqRow->addWidget(m_frequencyLabel);
-        freqRow->addWidget(m_frequencyEdit);
+        freqRow->addWidget(freqContainer);
         freqRow->addStretch();
     } else {
-        // VFO B: frequency right-aligned with S-meter
         freqRow->addStretch();
-        freqRow->addWidget(m_frequencyEdit);
-        freqRow->addWidget(m_frequencyLabel);
+        freqRow->addWidget(freqContainer);
     }
     mainLayout->addLayout(freqRow);
 
@@ -66,12 +73,12 @@ void VFOWidget::setupUi() {
     // Use Maximum horizontal policy so it doesn't expand beyond content width
     m_stackedWidget = new QStackedWidget(this);
     m_stackedWidget->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
-    m_stackedWidget->setMaximumWidth(210); // Fit APF indicator while keeping symmetry
+    m_stackedWidget->setMaximumWidth(270); // Fit all indicators with values (ATT-6, NTCH-A/M, APF-150)
 
     // Page 0: Normal content (multifunction meter + features)
     // Height must match MiniPanRhiWidget (110px) to prevent layout shift when toggling
     m_normalContent = new QWidget(m_stackedWidget);
-    m_normalContent->setFixedSize(210, 110); // Fit APF indicator while keeping symmetry
+    m_normalContent->setFixedSize(270, 110); // Fit all indicators with values (ATT-6, NTCH-A/M, APF-150)
     auto *normalLayout = new QVBoxLayout(m_normalContent);
     normalLayout->setContentsMargins(0, 0, 0, 0);
     normalLayout->setSpacing(2);
@@ -79,14 +86,14 @@ void VFOWidget::setupUi() {
     // Row 2: Multifunction Meter (S/Po, ALC, COMP, SWR, Id) - replaces old S-meter
     // Meter fills full width of normal content (both are 200px)
     m_txMeter = new TxMeterWidget(m_normalContent);
-    m_txMeter->setFixedWidth(200); // Match mini-pan width
+    m_txMeter->setFixedWidth(260); // Match expanded indicator row
     normalLayout->addWidget(m_txMeter);
 
     // Row 3: AGC, PRE, ATT, NB, NR labels (aligned with meter)
     auto *featuresContainer = new QWidget(m_normalContent);
     auto *featuresRow = new QHBoxLayout(featuresContainer);
     featuresRow->setContentsMargins(0, 0, 0, 0);
-    featuresRow->setSpacing(3); // Tighter spacing to fit APF indicator
+    featuresRow->setSpacing(4); // Comfortable spacing for all indicators
 
     m_agcLabel = new QLabel("AGC-S", featuresContainer);
     m_agcLabel->setStyleSheet("color: #999999; font-size: 11px;");
@@ -107,7 +114,7 @@ void VFOWidget::setupUi() {
     m_ntchLabel->setStyleSheet("color: #999999; font-size: 11px;");
 
     m_apfLabel = new QLabel("APF", featuresContainer);
-    m_apfLabel->setMinimumWidth(42); // Wide enough for "APF-150"
+    m_apfLabel->setMinimumWidth(48); // Wide enough for "APF-150"
     m_apfLabel->setStyleSheet("color: #999999; font-size: 11px;");
 
     // Add labels to layout
@@ -120,7 +127,6 @@ void VFOWidget::setupUi() {
     featuresRow->addWidget(m_apfLabel);
 
     // Features row is left-aligned within its container for both VFOs
-    // VFO B's entire container is pushed right by stackedRow layout
     normalLayout->addWidget(featuresContainer, 0, Qt::AlignLeft);
 
     m_stackedWidget->addWidget(m_normalContent); // Index 0
@@ -133,15 +139,14 @@ void VFOWidget::setupUi() {
     m_miniPan = nullptr; // Will be created on first showMiniPan() call
 
     // Wrap stacked widget in HBox for edge alignment
-    // VFO A: left-aligned (stretch on right)
-    // VFO B: right-aligned (stretch on left)
+    // VFO A: content on left, VFO B: content on right (mirrored layout)
     auto *stackedRow = new QHBoxLayout();
     stackedRow->setContentsMargins(0, 0, 0, 0);
     if (m_type == VFO_A) {
         stackedRow->addWidget(m_stackedWidget);
-        stackedRow->addStretch(); // Push to left edge
+        stackedRow->addStretch();
     } else {
-        stackedRow->addStretch(); // Push to right edge
+        stackedRow->addStretch();
         stackedRow->addWidget(m_stackedWidget);
     }
     mainLayout->addLayout(stackedRow);

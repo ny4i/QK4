@@ -60,8 +60,8 @@ void BottomMenuBar::setupUi() {
 
 QPushButton *BottomMenuBar::createMenuButton(const QString &text) {
     auto *btn = new QPushButton(text, this);
-    btn->setMinimumWidth(70);
-    btn->setFixedHeight(K4Styles::Dimensions::ButtonHeightMedium);
+    btn->setFixedSize(K4Styles::Dimensions::MenuBarButtonWidth,
+                      K4Styles::Dimensions::ButtonHeightMedium);
     btn->setCursor(Qt::PointingHandCursor);
     btn->setStyleSheet(K4Styles::menuBarButton());
     return btn;
