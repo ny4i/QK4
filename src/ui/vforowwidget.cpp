@@ -46,7 +46,9 @@ void VfoRowWidget::setupWidgets() {
     // TEST indicator - hidden by default
     m_testLabel = new QLabel("TEST", m_txContainer);
     m_testLabel->setAlignment(Qt::AlignCenter);
-    m_testLabel->setStyleSheet("color: #FF0000; font-size: 14px; font-weight: bold;");
+    m_testLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+        .arg(K4Styles::Colors::TxRed)
+        .arg(K4Styles::Dimensions::FontSizePopup));
     m_testLabel->setVisible(false);
     txVLayout->addWidget(m_testLabel);
 
@@ -109,21 +111,27 @@ void VfoRowWidget::setupWidgets() {
     m_subLabel = new QLabel("SUB", m_subDivContainer);
     m_subLabel->setAlignment(Qt::AlignCenter);
     m_subLabel->setFixedSize(36, 14);
-    m_subLabel->setStyleSheet("background-color: #444444;"
-                              "color: #888888;"
-                              "font-size: 9px;"
+    m_subLabel->setStyleSheet(QString("background-color: %1;"
+                              "color: %2;"
+                              "font-size: %3px;"
                               "font-weight: bold;"
-                              "border-radius: 2px;");
+                              "border-radius: 2px;")
+        .arg(K4Styles::Colors::DisabledBackground)
+        .arg(K4Styles::Colors::LightGradientTop)
+        .arg(K4Styles::Dimensions::FontSizeNormal));
     subDivStack->addWidget(m_subLabel);
 
     m_divLabel = new QLabel("DIV", m_subDivContainer);
     m_divLabel->setAlignment(Qt::AlignCenter);
     m_divLabel->setFixedSize(36, 14);
-    m_divLabel->setStyleSheet("background-color: #444444;"
-                              "color: #888888;"
-                              "font-size: 9px;"
+    m_divLabel->setStyleSheet(QString("background-color: %1;"
+                              "color: %2;"
+                              "font-size: %3px;"
                               "font-weight: bold;"
-                              "border-radius: 2px;");
+                              "border-radius: 2px;")
+        .arg(K4Styles::Colors::DisabledBackground)
+        .arg(K4Styles::Colors::LightGradientTop)
+        .arg(K4Styles::Dimensions::FontSizeNormal));
     subDivStack->addWidget(m_divLabel);
 
     m_subDivContainer->adjustSize();

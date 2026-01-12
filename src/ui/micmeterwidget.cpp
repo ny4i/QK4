@@ -1,11 +1,7 @@
 #include "micmeterwidget.h"
+#include "k4styles.h"
 #include <QPainter>
 #include <QLinearGradient>
-
-namespace {
-const QString Background = "#1a1a1a";
-const QString BorderColor = "#333333";
-} // namespace
 
 MicMeterWidget::MicMeterWidget(QWidget *parent) : QWidget(parent) {
     setMinimumHeight(20);
@@ -46,10 +42,10 @@ void MicMeterWidget::paintEvent(QPaintEvent *) {
     QRect r = rect().adjusted(1, 1, -1, -1);
 
     // Draw background
-    painter.fillRect(r, QColor(Background));
+    painter.fillRect(r, QColor(K4Styles::Colors::Background));
 
     // Draw border
-    painter.setPen(QPen(QColor(BorderColor), 1));
+    painter.setPen(QPen(QColor(K4Styles::Colors::TextDark), 1));
     painter.drawRect(r);
 
     // Calculate meter width based on level
@@ -61,24 +57,9 @@ void MicMeterWidget::paintEvent(QPaintEvent *) {
     if (meterWidth > 0) {
         QRect meterRect(r.left() + 1, r.top() + 1, meterWidth, r.height() - 2);
 
-        // Create gradient based on level
-        QLinearGradient gradient(meterRect.topLeft(), meterRect.topRight());
-
-        // Green zone (0-60%)
-        gradient.setColorAt(0.0, QColor("#00AA00"));
-        gradient.setColorAt(0.5, QColor("#00DD00"));
-
-        // Yellow zone (60-80%)
-        if (m_currentLevel > 0.6f) {
-            gradient.setColorAt(0.6, QColor("#CCCC00"));
-            gradient.setColorAt(0.75, QColor("#FFFF00"));
-        }
-
-        // Red zone (80-100%)
-        if (m_currentLevel > 0.8f) {
-            gradient.setColorAt(0.8, QColor("#FF6600"));
-            gradient.setColorAt(1.0, QColor("#FF0000"));
-        }
+        // Use standard meter gradient
+        QLinearGradient gradient = K4Styles::meterGradient(
+            meterRect.left(), 0, meterRect.right(), 0);
 
         painter.fillRect(meterRect, gradient);
     }
@@ -91,11 +72,11 @@ void MicMeterWidget::paintEvent(QPaintEvent *) {
         // Peak color based on level
         QColor peakColor;
         if (m_peakLevel > 0.8f) {
-            peakColor = QColor("#FF0000");
+            peakColor = QColor(K4Styles::Colors::MeterRed);
         } else if (m_peakLevel > 0.6f) {
-            peakColor = QColor("#FFFF00");
+            peakColor = QColor(K4Styles::Colors::MeterYellow);
         } else {
-            peakColor = QColor("#00FF00");
+            peakColor = QColor(K4Styles::Colors::MeterGreen);
         }
 
         painter.setPen(QPen(peakColor, 2));
@@ -103,7 +84,7 @@ void MicMeterWidget::paintEvent(QPaintEvent *) {
     }
 
     // Draw level markers (vertical lines at 25%, 50%, 75%)
-    painter.setPen(QPen(QColor("#444444"), 1));
+    painter.setPen(QPen(QColor(K4Styles::Colors::DisabledBackground), 1));
     for (float mark : {0.25f, 0.5f, 0.75f}) {
         int x = r.left() + static_cast<int>(r.width() * mark);
         painter.drawLine(x, r.top() + 2, x, r.bottom() - 2);

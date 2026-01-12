@@ -14,14 +14,6 @@ namespace {
 // Layout constants
 const int RowHeight = 44;
 // Columns use equal stretch factors (33.3% each) - no fixed widths
-
-// Colors - using K4Styles constants
-const QColor BackgroundColor(24, 24, 28);  // Matches K4Styles background tone
-const QColor HeaderColor(34, 34, 40);      // Slightly lighter for headers
-const QColor RowColor(25, 25, 30);         // Unselected row
-const QColor SelectedRowColor(80, 80, 85); // Grey highlight for selected row
-const QColor BorderColor(40, 40, 45);      // Row border
-const QColor AmberColor(K4Styles::Colors::AccentAmber);
 } // namespace
 
 // ============== MacroItemWidget ==============
@@ -49,8 +41,11 @@ MacroItemWidget::MacroItemWidget(const QString &functionId, const QString &displ
     m_labelEdit = new QLineEdit(this);
     m_labelEdit->setMaxLength(12);
     m_labelEdit->setAlignment(Qt::AlignCenter);
-    m_labelEdit->setStyleSheet("QLineEdit { background: #333; color: white; border: 1px solid #666; "
-                               "border-radius: 3px; padding: 2px 5px; font-size: 13px; }");
+    m_labelEdit->setStyleSheet(QString("QLineEdit { background: %1; color: %2; border: 1px solid %3; "
+                               "border-radius: 3px; padding: 2px 5px; font-size: 13px; }")
+                                   .arg(K4Styles::Colors::GradientMid1)
+                                   .arg(K4Styles::Colors::TextWhite)
+                                   .arg(K4Styles::Colors::InactiveGray));
     m_labelEdit->hide();
     connect(m_labelEdit, &QLineEdit::editingFinished, this, &MacroItemWidget::finishEditing);
     layout->addWidget(m_labelEdit, 1); // stretch factor 1
@@ -65,9 +60,12 @@ MacroItemWidget::MacroItemWidget(const QString &functionId, const QString &displ
 
     m_commandEdit = new QLineEdit(this);
     m_commandEdit->setMaxLength(64);
-    m_commandEdit->setStyleSheet("QLineEdit { background: #333; color: white; border: 1px solid #666; "
+    m_commandEdit->setStyleSheet(QString("QLineEdit { background: %1; color: %2; border: 1px solid %3; "
                                  "border-radius: 3px; padding: 2px 5px; font-size: 13px; font-family: 'JetBrains "
-                                 "Mono', 'Menlo', 'Consolas', monospace; }");
+                                 "Mono', 'Menlo', 'Consolas', monospace; }")
+                                     .arg(K4Styles::Colors::GradientMid1)
+                                     .arg(K4Styles::Colors::TextWhite)
+                                     .arg(K4Styles::Colors::InactiveGray));
     m_commandEdit->hide();
     connect(m_commandEdit, &QLineEdit::editingFinished, this, &MacroItemWidget::finishEditing);
     layout->addWidget(m_commandEdit, 1); // stretch factor 1
@@ -181,14 +179,14 @@ void MacroItemWidget::paintEvent(QPaintEvent *event) {
 
     if (m_selected) {
         // Selected: full row grey highlight
-        painter.fillRect(rect(), SelectedRowColor);
+        painter.fillRect(rect(), QColor(K4Styles::Colors::SelectionDark));
     } else {
         // Unselected: dark background
-        painter.fillRect(rect(), RowColor);
+        painter.fillRect(rect(), QColor(K4Styles::Colors::OverlayItemBg));
     }
 
     // Bottom border
-    painter.setPen(BorderColor);
+    painter.setPen(QColor(K4Styles::Colors::OverlayDivider));
     painter.drawLine(0, height() - 1, width(), height() - 1);
 }
 
@@ -222,7 +220,7 @@ void MacroDialog::setupUi() {
 
     // Content area (left side - macro list)
     m_contentWidget = new QWidget(this);
-    m_contentWidget->setStyleSheet("background-color: #18181C;");
+    m_contentWidget->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::OverlayContentBg));
 
     QVBoxLayout *contentLayout = new QVBoxLayout(m_contentWidget);
     contentLayout->setContentsMargins(0, 0, 0, 0);
@@ -230,30 +228,37 @@ void MacroDialog::setupUi() {
 
     // Header
     m_headerLabel = new QLabel("MACROS", m_contentWidget);
-    m_headerLabel->setStyleSheet("background-color: #222228; color: #666; font-size: 12px; "
-                                 "font-weight: bold; padding: 8px 15px;");
+    m_headerLabel->setStyleSheet(QString("background-color: %1; color: %2; font-size: %3px; "
+                                 "font-weight: bold; padding: 8px 15px;")
+                                     .arg(K4Styles::Colors::OverlayHeaderBg)
+                                     .arg(K4Styles::Colors::InactiveGray)
+                                     .arg(K4Styles::Dimensions::FontSizeButton));
     contentLayout->addWidget(m_headerLabel);
 
     // Column headers
     QWidget *columnHeader = new QWidget(m_contentWidget);
-    columnHeader->setStyleSheet("background-color: #1E1E24;");
+    columnHeader->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::OverlayColumnHeaderBg));
     columnHeader->setFixedHeight(K4Styles::Dimensions::ButtonHeightSmall);
 
     QHBoxLayout *headerLayout = new QHBoxLayout(columnHeader);
     headerLayout->setContentsMargins(15, 5, 15, 5);
     headerLayout->setSpacing(0); // No spacing - columns use stretch factors
 
+    QString columnHeaderStyle = QString("color: %1; font-size: %2px; font-weight: bold;")
+                                    .arg(K4Styles::Colors::TextGray)
+                                    .arg(K4Styles::Dimensions::FontSizeLarge);
+
     QLabel *funcHeader = new QLabel("Function", columnHeader);
-    funcHeader->setStyleSheet("color: #888; font-size: 11px; font-weight: bold;");
+    funcHeader->setStyleSheet(columnHeaderStyle);
     headerLayout->addWidget(funcHeader, 1); // stretch factor 1
 
     QLabel *labelHeader = new QLabel("Label", columnHeader);
     labelHeader->setAlignment(Qt::AlignCenter);
-    labelHeader->setStyleSheet("color: #888; font-size: 11px; font-weight: bold;");
+    labelHeader->setStyleSheet(columnHeaderStyle);
     headerLayout->addWidget(labelHeader, 1); // stretch factor 1
 
     QLabel *cmdHeader = new QLabel("CAT Command", columnHeader);
-    cmdHeader->setStyleSheet("color: #888; font-size: 11px; font-weight: bold;");
+    cmdHeader->setStyleSheet(columnHeaderStyle);
     headerLayout->addWidget(cmdHeader, 1); // stretch factor 1
 
     contentLayout->addWidget(columnHeader);
@@ -263,10 +268,12 @@ void MacroDialog::setupUi() {
     m_scrollArea->setWidgetResizable(true);
     m_scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     m_scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    m_scrollArea->setStyleSheet("QScrollArea { border: none; background: transparent; }"
-                                "QScrollBar:vertical { background: #18181C; width: 8px; }"
-                                "QScrollBar::handle:vertical { background: #444; border-radius: 4px; }"
-                                "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }");
+    m_scrollArea->setStyleSheet(QString("QScrollArea { border: none; background: transparent; }"
+                                "QScrollBar:vertical { background: %1; width: 8px; }"
+                                "QScrollBar::handle:vertical { background: %2; border-radius: 4px; }"
+                                "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }")
+                                    .arg(K4Styles::Colors::OverlayContentBg)
+                                    .arg(K4Styles::Colors::OverlayNavButton));
 
     m_listContainer = new QWidget();
     m_listContainer->setStyleSheet("background: transparent;");
@@ -287,15 +294,20 @@ void MacroDialog::setupUi() {
     // Navigation panel (right side)
     QWidget *navPanel = new QWidget(this);
     navPanel->setFixedWidth(130);
-    navPanel->setStyleSheet("background-color: #222228;");
+    navPanel->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::OverlayHeaderBg));
 
     QVBoxLayout *navOuterLayout = new QVBoxLayout(navPanel);
     navOuterLayout->setContentsMargins(8, 12, 8, 12);
     navOuterLayout->setSpacing(8);
 
-    QString buttonStyle = "QPushButton { background-color: #3A3A45; color: white; border: none; "
-                          "border-radius: 6px; font-size: 16px; font-weight: bold; }"
-                          "QPushButton:pressed { background-color: #505060; }";
+    QString buttonStyle = QString("QPushButton { background-color: %1; color: %2; border: none; "
+                          "border-radius: %3px; font-size: %4px; font-weight: bold; }"
+                          "QPushButton:pressed { background-color: %5; }")
+                              .arg(K4Styles::Colors::OverlayNavButton)
+                              .arg(K4Styles::Colors::TextWhite)
+                              .arg(K4Styles::Dimensions::BorderRadius)
+                              .arg(K4Styles::Dimensions::FontSizeTitle)
+                              .arg(K4Styles::Colors::OverlayNavButtonPressed);
 
     // Row 1: Up and Down buttons
     QHBoxLayout *row1 = new QHBoxLayout();
@@ -322,20 +334,34 @@ void MacroDialog::setupUi() {
 
     m_editBtn = new QPushButton("EDIT", navPanel);
     m_editBtn->setFixedSize(K4Styles::Dimensions::NavButtonWidth, K4Styles::Dimensions::PopupButtonHeight);
-    m_editBtn->setStyleSheet("QPushButton { background-color: #3A3A45; color: #888; border: none; "
-                             "border-radius: 6px; font-size: 10px; font-weight: bold; }"
-                             "QPushButton:pressed { background-color: #505060; }");
+    m_editBtn->setStyleSheet(QString("QPushButton { background-color: %1; color: %2; border: none; "
+                             "border-radius: %3px; font-size: %4px; font-weight: bold; }"
+                             "QPushButton:pressed { background-color: %5; }")
+                                 .arg(K4Styles::Colors::OverlayNavButton)
+                                 .arg(K4Styles::Colors::TextGray)
+                                 .arg(K4Styles::Dimensions::BorderRadius)
+                                 .arg(K4Styles::Dimensions::FontSizeMedium)
+                                 .arg(K4Styles::Colors::OverlayNavButtonPressed));
     connect(m_editBtn, &QPushButton::clicked, this, &MacroDialog::selectCurrent);
     row2->addWidget(m_editBtn);
 
     m_backBtn = new QPushButton("\xE2\x86\xA9", navPanel); // Back arrow
     m_backBtn->setFixedSize(K4Styles::Dimensions::NavButtonWidth, K4Styles::Dimensions::PopupButtonHeight);
-    m_backBtn->setStyleSheet("QPushButton { background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-                             "stop:0 #4a4a4a, stop:0.4 #3a3a3a, stop:0.6 #353535, stop:1 #2a2a2a);"
-                             "color: white; border: 1px solid #606060; border-radius: 6px; "
-                             "font-size: 16px; font-weight: bold; }"
+    m_backBtn->setStyleSheet(QString("QPushButton { background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+                             "stop:0 %1, stop:0.4 %2, stop:0.6 %3, stop:1 %4);"
+                             "color: %5; border: %6px solid %7; border-radius: %8px; "
+                             "font-size: %9px; font-weight: bold; }"
                              "QPushButton:pressed { background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-                             "stop:0 #2a2a2a, stop:0.4 #353535, stop:0.6 #3a3a3a, stop:1 #4a4a4a); }");
+                             "stop:0 %4, stop:0.4 %3, stop:0.6 %2, stop:1 %1); }")
+                                 .arg(K4Styles::Colors::GradientTop)        // %1
+                                 .arg(K4Styles::Colors::GradientMid1)       // %2
+                                 .arg(K4Styles::Colors::GradientMid2)       // %3
+                                 .arg(K4Styles::Colors::GradientBottom)     // %4
+                                 .arg(K4Styles::Colors::TextWhite)          // %5
+                                 .arg(K4Styles::Dimensions::BorderWidth)    // %6
+                                 .arg(K4Styles::Colors::BorderNormal)       // %7
+                                 .arg(K4Styles::Dimensions::BorderRadius)   // %8
+                                 .arg(K4Styles::Dimensions::FontSizeTitle));
     connect(m_backBtn, &QPushButton::clicked, this, &MacroDialog::closeDialog);
     row2->addWidget(m_backBtn);
 
@@ -485,7 +511,7 @@ void MacroDialog::hide() {
 void MacroDialog::paintEvent(QPaintEvent *event) {
     Q_UNUSED(event)
     QPainter painter(this);
-    painter.fillRect(rect(), BackgroundColor);
+    painter.fillRect(rect(), QColor(K4Styles::Colors::OverlayContentBg));
 }
 
 void MacroDialog::keyPressEvent(QKeyEvent *event) {

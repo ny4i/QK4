@@ -1955,57 +1955,74 @@ void MainWindow::setupVfoSection(QWidget *parent) {
         btn->setCursor(Qt::PointingHandCursor);
 
         if (isLighter) {
-            // Lighter grey for REC, STORE, RCL (2 shades lighter)
-            btn->setStyleSheet(R"(
+            // Lighter grey for REC, STORE, RCL
+            btn->setStyleSheet(QString(R"(
                 QPushButton {
                     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                        stop:0 #888888, stop:0.4 #777777,
-                        stop:0.6 #6a6a6a, stop:1 #606060);
-                    color: #FFFFFF;
-                    border: 1px solid #909090;
+                        stop:0 %1, stop:0.4 %2,
+                        stop:0.6 %3, stop:1 %4);
+                    color: %5;
+                    border: 1px solid %6;
                     border-radius: 3px;
-                    font-size: 9px;
+                    font-size: %7px;
                     font-weight: bold;
                 }
                 QPushButton:hover {
-                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                        stop:0 #989898, stop:0.4 #878787,
-                        stop:0.6 #7a7a7a, stop:1 #707070);
-                    border: 1px solid #a0a0a0;
+                    border: 1px solid %8;
                 }
                 QPushButton:pressed {
                     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                        stop:0 #606060, stop:0.4 #6a6a6a,
-                        stop:0.6 #777777, stop:1 #888888);
-                    border: 1px solid #b0b0b0;
+                        stop:0 %4, stop:0.4 %3,
+                        stop:0.6 %2, stop:1 %1);
                 }
-            )");
+            )")
+                .arg(K4Styles::Colors::LightGradientTop)
+                .arg(K4Styles::Colors::LightGradientMid1)
+                .arg(K4Styles::Colors::LightGradientMid2)
+                .arg(K4Styles::Colors::LightGradientBottom)
+                .arg(K4Styles::Colors::TextWhite)
+                .arg(K4Styles::Colors::BorderPressed)
+                .arg(K4Styles::Dimensions::FontSizeNormal)
+                .arg(K4Styles::Colors::BorderSelected));
         } else {
             // Standard dark grey for M1-M4, REC
-            btn->setStyleSheet(R"(
+            btn->setStyleSheet(QString(R"(
                 QPushButton {
                     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                        stop:0 #4a4a4a, stop:0.4 #3a3a3a,
-                        stop:0.6 #353535, stop:1 #2a2a2a);
-                    color: #FFFFFF;
-                    border: 1px solid #606060;
+                        stop:0 %1, stop:0.4 %2,
+                        stop:0.6 %3, stop:1 %4);
+                    color: %5;
+                    border: 1px solid %6;
                     border-radius: 3px;
-                    font-size: 9px;
+                    font-size: %7px;
                     font-weight: bold;
                 }
                 QPushButton:hover {
                     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                        stop:0 #5a5a5a, stop:0.4 #4a4a4a,
-                        stop:0.6 #454545, stop:1 #3a3a3a);
-                    border: 1px solid #808080;
+                        stop:0 %8, stop:0.4 %9,
+                        stop:0.6 %10, stop:1 %11);
+                    border: 1px solid %12;
                 }
                 QPushButton:pressed {
                     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                        stop:0 #2a2a2a, stop:0.4 #353535,
-                        stop:0.6 #3a3a3a, stop:1 #4a4a4a);
-                    border: 1px solid #909090;
+                        stop:0 %4, stop:0.4 %3,
+                        stop:0.6 %2, stop:1 %1);
+                    border: 1px solid %13;
                 }
-            )");
+            )")
+                .arg(K4Styles::Colors::GradientTop)
+                .arg(K4Styles::Colors::GradientMid1)
+                .arg(K4Styles::Colors::GradientMid2)
+                .arg(K4Styles::Colors::GradientBottom)
+                .arg(K4Styles::Colors::TextWhite)
+                .arg(K4Styles::Colors::BorderNormal)
+                .arg(K4Styles::Dimensions::FontSizeNormal)
+                .arg(K4Styles::Colors::HoverTop)
+                .arg(K4Styles::Colors::HoverMid1)
+                .arg(K4Styles::Colors::HoverMid2)
+                .arg(K4Styles::Colors::HoverBottom)
+                .arg(K4Styles::Colors::BorderHover)
+                .arg(K4Styles::Colors::BorderPressed));
         }
         layout->addWidget(btn, 0, Qt::AlignHCenter);
 
@@ -2043,30 +2060,43 @@ void MainWindow::setupVfoSection(QWidget *parent) {
         auto *btn = new QPushButton(label, centerWidget);
         btn->setFixedSize(K4Styles::Dimensions::ButtonHeightMedium, K4Styles::Dimensions::ButtonHeightMini);
         btn->setCursor(Qt::PointingHandCursor);
-        btn->setStyleSheet(R"(
+        btn->setStyleSheet(QString(R"(
             QPushButton {
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #4a4a4a, stop:0.4 #3a3a3a,
-                    stop:0.6 #353535, stop:1 #2a2a2a);
-                color: #FFFFFF;
-                border: 1px solid #606060;
+                    stop:0 %1, stop:0.4 %2,
+                    stop:0.6 %3, stop:1 %4);
+                color: %5;
+                border: 1px solid %6;
                 border-radius: 3px;
-                font-size: 9px;
+                font-size: %7px;
                 font-weight: bold;
             }
             QPushButton:hover {
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #5a5a5a, stop:0.4 #4a4a4a,
-                    stop:0.6 #454545, stop:1 #3a3a3a);
-                border: 1px solid #808080;
+                    stop:0 %8, stop:0.4 %9,
+                    stop:0.6 %10, stop:1 %11);
+                border: 1px solid %12;
             }
             QPushButton:pressed {
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #2a2a2a, stop:0.4 #353535,
-                    stop:0.6 #3a3a3a, stop:1 #4a4a4a);
-                border: 1px solid #909090;
+                    stop:0 %4, stop:0.4 %3,
+                    stop:0.6 %2, stop:1 %1);
+                border: 1px solid %13;
             }
-        )");
+        )")
+            .arg(K4Styles::Colors::GradientTop)
+            .arg(K4Styles::Colors::GradientMid1)
+            .arg(K4Styles::Colors::GradientMid2)
+            .arg(K4Styles::Colors::GradientBottom)
+            .arg(K4Styles::Colors::TextWhite)
+            .arg(K4Styles::Colors::BorderNormal)
+            .arg(K4Styles::Dimensions::FontSizeNormal)
+            .arg(K4Styles::Colors::HoverTop)
+            .arg(K4Styles::Colors::HoverMid1)
+            .arg(K4Styles::Colors::HoverMid2)
+            .arg(K4Styles::Colors::HoverBottom)
+            .arg(K4Styles::Colors::BorderHover)
+            .arg(K4Styles::Colors::BorderPressed));
         return btn;
     };
 
@@ -2252,10 +2282,14 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     m_panadapterB->hide(); // Start hidden (MainOnly mode)
 
     // Span control buttons - overlay on panadapter (lower right, above freq labels)
-    QString btnStyle = "QPushButton { background: rgba(0,0,0,0.6); color: white; "
-                       "border: 1px solid #666; border-radius: 4px; "
-                       "font-size: 14px; font-weight: bold; min-width: 28px; min-height: 24px; }"
-                       "QPushButton:hover { background: rgba(80,80,80,0.8); }";
+    // Note: rgba used intentionally for transparent overlay effect on spectrum
+    QString btnStyle = QString("QPushButton { background: rgba(0,0,0,0.6); color: %1; "
+                       "border: 1px solid %2; border-radius: 4px; "
+                       "font-size: %3px; font-weight: bold; min-width: 28px; min-height: 24px; }"
+                       "QPushButton:hover { background: rgba(80,80,80,0.8); }")
+        .arg(K4Styles::Colors::TextWhite)
+        .arg(K4Styles::Colors::InactiveGray)
+        .arg(K4Styles::Dimensions::FontSizePopup);
 
     // Main panadapter (A) buttons
     m_spanDownBtn = new QPushButton("-", m_panadapterA);
@@ -2284,10 +2318,13 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     m_centerBtnB->setFixedSize(K4Styles::Dimensions::ButtonHeightSmall, K4Styles::Dimensions::ButtonHeightMini);
 
     // VFO indicator badges - bottom-left corner of waterfall, tab shape with top-right rounded
-    QString vfoIndicatorStyle = "QLabel { background: #707070; color: black; "
-                                "font-size: 16px; font-weight: bold; "
-                                "border-top-left-radius: 0px; border-top-right-radius: 8px; "
-                                "border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; }";
+    QString vfoIndicatorStyle = QString("QLabel { background: %1; color: black; "
+                                "font-size: %2px; font-weight: bold; "
+                                "border-top-left-radius: 0px; border-top-right-radius: %3px; "
+                                "border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; }")
+        .arg(K4Styles::Colors::OverlayBackground)
+        .arg(K4Styles::Dimensions::FontSizeTitle)
+        .arg(K4Styles::Dimensions::BorderRadiusLarge);
 
     m_vfoIndicatorA = new QLabel("A", m_panadapterA);
     m_vfoIndicatorA->setStyleSheet(vfoIndicatorStyle);

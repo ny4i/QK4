@@ -95,27 +95,32 @@ void VFOWidget::setupUi() {
     featuresRow->setContentsMargins(0, 0, 0, 0);
     featuresRow->setSpacing(4); // Comfortable spacing for all indicators
 
+    // Feature indicator label style
+    const QString featureLabelStyle = QString("color: %1; font-size: %2px;")
+        .arg(K4Styles::Colors::TextGray)
+        .arg(K4Styles::Dimensions::FontSizeLarge);
+
     m_agcLabel = new QLabel("AGC-S", featuresContainer);
-    m_agcLabel->setStyleSheet("color: #999999; font-size: 11px;");
+    m_agcLabel->setStyleSheet(featureLabelStyle);
 
     m_preampLabel = new QLabel("PRE", featuresContainer);
-    m_preampLabel->setStyleSheet("color: #999999; font-size: 11px;");
+    m_preampLabel->setStyleSheet(featureLabelStyle);
 
     m_attLabel = new QLabel("ATT", featuresContainer);
-    m_attLabel->setStyleSheet("color: #999999; font-size: 11px;");
+    m_attLabel->setStyleSheet(featureLabelStyle);
 
     m_nbLabel = new QLabel("NB", featuresContainer);
-    m_nbLabel->setStyleSheet("color: #999999; font-size: 11px;");
+    m_nbLabel->setStyleSheet(featureLabelStyle);
 
     m_nrLabel = new QLabel("NR", featuresContainer);
-    m_nrLabel->setStyleSheet("color: #999999; font-size: 11px;");
+    m_nrLabel->setStyleSheet(featureLabelStyle);
 
     m_ntchLabel = new QLabel("NTCH", featuresContainer);
-    m_ntchLabel->setStyleSheet("color: #999999; font-size: 11px;");
+    m_ntchLabel->setStyleSheet(featureLabelStyle);
 
     m_apfLabel = new QLabel("APF", featuresContainer);
     m_apfLabel->setMinimumWidth(48); // Wide enough for "APF-150"
-    m_apfLabel->setStyleSheet("color: #999999; font-size: 11px;");
+    m_apfLabel->setStyleSheet(featureLabelStyle);
 
     // Add labels to layout
     featuresRow->addWidget(m_agcLabel);

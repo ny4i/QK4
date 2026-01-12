@@ -83,12 +83,42 @@ constexpr const char *TxRed = "#FF0000";
 constexpr const char *AgcGreen = "#00FF00";
 constexpr const char *RitCyan = "#00CED1";
 
+// Meter Gradient Colors (green → yellow → red progression)
+constexpr const char *MeterGreenDark = "#00CC00";
+constexpr const char *MeterGreen = "#00FF00";
+constexpr const char *MeterYellowGreen = "#CCFF00";
+constexpr const char *MeterYellow = "#FFFF00";
+constexpr const char *MeterOrange = "#FF6600";
+constexpr const char *MeterOrangeRed = "#FF3300";
+constexpr const char *MeterRed = "#FF0000";
+
+// Id Meter Colors (PA drain current - maroon theme)
+constexpr const char *MeterIdDark = "#8B0000";     // Dark red/maroon
+constexpr const char *MeterIdLight = "#CD5C5C";   // Lighter red highlight
+
 // Text Colors
 constexpr const char *TextWhite = "#FFFFFF";
 constexpr const char *TextDark = "#333333";
 constexpr const char *TextGray = "#999999";
 constexpr const char *TextFaded = "#808080"; // Faded text (e.g., auto mode values)
 constexpr const char *InactiveGray = "#666666";
+
+// Overlay/Indicator Colors
+constexpr const char *OverlayBackground = "#707070"; // VFO indicator badges
+
+// Overlay Panel Colors (Menu, Macros, and similar full-screen overlays)
+constexpr const char *OverlayContentBg = "#18181C";         // Main content area background
+constexpr const char *OverlayHeaderBg = "#222228";          // Header bar + nav panel background
+constexpr const char *OverlayColumnHeaderBg = "#1E1E24";    // Column header background
+constexpr const char *OverlayItemBg = "#19191E";            // Unselected item row background
+constexpr const char *OverlayNavButton = "#3A3A45";         // Nav button normal state
+constexpr const char *OverlayNavButtonPressed = "#505060";  // Nav button pressed state
+constexpr const char *OverlayDivider = "#28282D";           // Divider lines between items
+constexpr const char *OverlayDividerLight = "#3C3C41";      // Lighter divider (demarcation)
+
+// Selection Highlighting (K4-style dual panel for menu items)
+constexpr const char *SelectionLight = "#DCDCDC";           // Light panel (selected zone)
+constexpr const char *SelectionDark = "#505055";            // Dark panel (value zone)
 
 // =============================================================================
 // Button Gradient Colors
@@ -233,6 +263,20 @@ QColor borderColor();
  * @return QColor for selected button borders
  */
 QColor borderColorSelected();
+
+/**
+ * @brief Create a standard meter gradient (green → yellow → red).
+ *
+ * Used for S-meter, mic level, ALC, compression, and similar meters.
+ * Provides consistent visual language across all level indicators.
+ *
+ * @param x1 X coordinate of gradient start
+ * @param y1 Y coordinate of gradient start
+ * @param x2 X coordinate of gradient end
+ * @param y2 Y coordinate of gradient end
+ * @return QLinearGradient with standard meter color stops
+ */
+QLinearGradient meterGradient(qreal x1, qreal y1, qreal x2, qreal y2);
 
 } // namespace K4Styles
 

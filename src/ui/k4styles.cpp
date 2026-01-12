@@ -191,4 +191,16 @@ QColor borderColorSelected() {
     return QColor(Colors::BorderSelected);
 }
 
+QLinearGradient meterGradient(qreal x1, qreal y1, qreal x2, qreal y2) {
+    QLinearGradient gradient(x1, y1, x2, y2);
+    gradient.setColorAt(0.00, QColor(Colors::MeterGreenDark));
+    gradient.setColorAt(0.15, QColor(Colors::MeterGreen));
+    gradient.setColorAt(0.30, QColor(Colors::MeterYellowGreen));
+    gradient.setColorAt(0.45, QColor(Colors::MeterYellow));
+    gradient.setColorAt(0.60, QColor(Colors::MeterOrange));
+    gradient.setColorAt(0.80, QColor(Colors::MeterOrangeRed));
+    gradient.setColorAt(1.00, QColor(Colors::MeterRed));
+    return gradient;
+}
+
 } // namespace K4Styles

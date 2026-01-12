@@ -3,12 +3,6 @@
 #include <QPainter>
 #include <QLinearGradient>
 
-// Meter-specific colors (not in K4Styles)
-namespace {
-const QString MeterBarColor = "#8B0000";     // Dark red/maroon for Id meter
-const QString MeterBarHighlight = "#CD5C5C"; // Lighter red for Id gradient
-const QString ScaleGray = "#666666";
-} // namespace
 
 TxMeterWidget::TxMeterWidget(QWidget *parent) : QWidget(parent) {
     // 5 meters, each ~18px high with spacing
@@ -300,7 +294,7 @@ void TxMeterWidget::drawMeterRow(QPainter &painter, int y, int rowHeight, const 
     int barY = y + 2;
     QRect trackRect(barStartX, barY, barWidth, barHeight);
     painter.fillRect(trackRect, QColor(K4Styles::Colors::Background));
-    painter.setPen(QColor(ScaleGray));
+    painter.setPen(QColor(K4Styles::Colors::InactiveGray));
     painter.drawRect(trackRect);
 
     // Filled meter bar
@@ -309,20 +303,13 @@ void TxMeterWidget::drawMeterRow(QPainter &painter, int y, int rowHeight, const 
         QLinearGradient gradient(barStartX, 0, barStartX + barWidth, 0);
 
         if (type == MeterType::Gradient) {
-            // S-meter style gradient: green → yellow → orange → red
-            gradient.setColorAt(0.0, QColor("#00CC00"));  // Green
-            gradient.setColorAt(0.13, QColor("#00FF00")); // Bright green
-            gradient.setColorAt(0.25, QColor("#CCFF00")); // Yellow-green
-            gradient.setColorAt(0.40, QColor("#FFFF00")); // Yellow
-            gradient.setColorAt(0.55, QColor("#FF9900")); // Orange
-            gradient.setColorAt(0.70, QColor("#FF6600")); // Dark orange
-            gradient.setColorAt(0.85, QColor("#FF3300")); // Red-orange
-            gradient.setColorAt(1.0, QColor("#FF0000"));  // Red
+            // Standard meter gradient: green → yellow → orange → red
+            gradient = K4Styles::meterGradient(barStartX, 0, barStartX + barWidth, 0);
         } else {
-            // Red style for Id meter
-            gradient.setColorAt(0.0, QColor(MeterBarColor));
-            gradient.setColorAt(0.7, QColor(MeterBarColor));
-            gradient.setColorAt(1.0, QColor(MeterBarHighlight));
+            // Red style for Id meter (PA drain current)
+            gradient.setColorAt(0.0, QColor(K4Styles::Colors::MeterIdDark));
+            gradient.setColorAt(0.7, QColor(K4Styles::Colors::MeterIdDark));
+            gradient.setColorAt(1.0, QColor(K4Styles::Colors::MeterIdLight));
         }
         painter.fillRect(barStartX + 1, barY + 1, fillWidth - 2, barHeight - 2, gradient);
     }
@@ -352,7 +339,7 @@ void TxMeterWidget::drawMeterRow(QPainter &painter, int y, int rowHeight, const 
     }
 
     // Draw tick marks on the bar
-    painter.setPen(QColor(ScaleGray));
+    painter.setPen(QColor(K4Styles::Colors::InactiveGray));
     for (int i = 0; i < numLabels; i++) {
         int x = barStartX + (barWidth * i) / (numLabels - 1);
         painter.drawLine(x, barY, x, barY + 2);

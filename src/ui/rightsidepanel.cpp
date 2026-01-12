@@ -147,66 +147,89 @@ QWidget *RightSidePanel::createFunctionButton(const QString &mainText, const QSt
     btn->setCursor(Qt::PointingHandCursor);
 
     if (isLighter) {
-        // Lighter grey gradient for PF buttons (B SET, CLR, RIT, XIT) - 2 shades lighter
-        btn->setStyleSheet(R"(
+        // Lighter grey gradient for PF buttons (B SET, CLR, RIT, XIT)
+        btn->setStyleSheet(QString(R"(
             QPushButton {
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #888888, stop:0.4 #777777,
-                    stop:0.6 #6a6a6a, stop:1 #606060);
-                color: #FFFFFF;
-                border: 2px solid #909090;
-                border-radius: 6px;
-                font-size: 9px;
+                    stop:0 %1, stop:0.4 %2,
+                    stop:0.6 %3, stop:1 %4);
+                color: %5;
+                border: %6px solid %7;
+                border-radius: %8px;
+                font-size: %9px;
                 font-weight: bold;
                 padding: 2px 4px;
             }
             QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #989898, stop:0.4 #878787,
-                    stop:0.6 #7a7a7a, stop:1 #707070);
-                border: 2px solid #a0a0a0;
+                border: %6px solid %10;
             }
             QPushButton:pressed {
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #606060, stop:0.4 #6a6a6a,
-                    stop:0.6 #777777, stop:1 #888888);
-                border: 2px solid #b0b0b0;
+                    stop:0 %4, stop:0.4 %3,
+                    stop:0.6 %2, stop:1 %1);
             }
-        )");
+        )")
+            .arg(K4Styles::Colors::LightGradientTop)      // %1
+            .arg(K4Styles::Colors::LightGradientMid1)     // %2
+            .arg(K4Styles::Colors::LightGradientMid2)     // %3
+            .arg(K4Styles::Colors::LightGradientBottom)   // %4
+            .arg(K4Styles::Colors::TextWhite)             // %5
+            .arg(K4Styles::Dimensions::BorderWidth)       // %6
+            .arg(K4Styles::Colors::BorderPressed)         // %7
+            .arg(K4Styles::Dimensions::BorderRadius)      // %8
+            .arg(K4Styles::Dimensions::FontSizeNormal)    // %9
+            .arg(K4Styles::Colors::BorderSelected));      // %10
     } else {
         // Standard dark grey gradient
-        btn->setStyleSheet(R"(
+        btn->setStyleSheet(QString(R"(
             QPushButton {
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #4a4a4a, stop:0.4 #3a3a3a,
-                    stop:0.6 #353535, stop:1 #2a2a2a);
-                color: #FFFFFF;
-                border: 2px solid #606060;
-                border-radius: 6px;
-                font-size: 9px;
+                    stop:0 %1, stop:0.4 %2,
+                    stop:0.6 %3, stop:1 %4);
+                color: %5;
+                border: %6px solid %7;
+                border-radius: %8px;
+                font-size: %9px;
                 font-weight: bold;
                 padding: 2px 4px;
             }
             QPushButton:hover {
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #5a5a5a, stop:0.4 #4a4a4a,
-                    stop:0.6 #454545, stop:1 #3a3a3a);
-                border: 2px solid #808080;
+                    stop:0 %10, stop:0.4 %11,
+                    stop:0.6 %12, stop:1 %13);
+                border: %6px solid %14;
             }
             QPushButton:pressed {
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #2a2a2a, stop:0.4 #353535,
-                    stop:0.6 #3a3a3a, stop:1 #4a4a4a);
-                border: 2px solid #909090;
+                    stop:0 %4, stop:0.4 %3,
+                    stop:0.6 %2, stop:1 %1);
+                border: %6px solid %15;
             }
-        )");
+        )")
+            .arg(K4Styles::Colors::GradientTop)           // %1
+            .arg(K4Styles::Colors::GradientMid1)          // %2
+            .arg(K4Styles::Colors::GradientMid2)          // %3
+            .arg(K4Styles::Colors::GradientBottom)        // %4
+            .arg(K4Styles::Colors::TextWhite)             // %5
+            .arg(K4Styles::Dimensions::BorderWidth)       // %6
+            .arg(K4Styles::Colors::BorderNormal)          // %7
+            .arg(K4Styles::Dimensions::BorderRadius)      // %8
+            .arg(K4Styles::Dimensions::FontSizeNormal)    // %9
+            .arg(K4Styles::Colors::HoverTop)              // %10
+            .arg(K4Styles::Colors::HoverMid1)             // %11
+            .arg(K4Styles::Colors::HoverMid2)             // %12
+            .arg(K4Styles::Colors::HoverBottom)           // %13
+            .arg(K4Styles::Colors::BorderHover)           // %14
+            .arg(K4Styles::Colors::BorderPressed));       // %15
     }
     btnOut = btn;
     layout->addWidget(btn);
 
     // Sub-text label (orange) - add top margin to prevent overlap with button
     auto *subLabel = new QLabel(subText, container);
-    subLabel->setStyleSheet("color: #FFB000; font-size: 8px; margin-top: 4px;");
+    subLabel->setStyleSheet(QString("color: %1; font-size: %2px; margin-top: 4px;")
+        .arg(K4Styles::Colors::AccentAmber)
+        .arg(K4Styles::Dimensions::FontSizeSmall));
     subLabel->setAlignment(Qt::AlignCenter);
     subLabel->setFixedHeight(12);
     layout->addWidget(subLabel);
