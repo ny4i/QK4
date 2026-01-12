@@ -94,6 +94,46 @@ Complete reference for all `K4Styles::Colors` and `K4Styles::Dimensions` constan
 | `K4Styles::Colors::BorderSelected` | `#AAAAAA` | Selected/active button border |
 | `K4Styles::Colors::BorderLight` | `#909090` | Light button border |
 
+### Meter Gradient Colors (S/Po Meter)
+
+| Constant | Value | Usage |
+|----------|-------|-------|
+| `K4Styles::Colors::MeterGreenDark` | `#00CC00` | Low signal (green start) |
+| `K4Styles::Colors::MeterGreen` | `#00FF00` | Normal signal range |
+| `K4Styles::Colors::MeterYellowGreen` | `#CCFF00` | Transition to yellow |
+| `K4Styles::Colors::MeterYellow` | `#FFFF00` | Moderate signal |
+| `K4Styles::Colors::MeterOrange` | `#FF6600` | High signal |
+| `K4Styles::Colors::MeterOrangeRed` | `#FF3300` | Approaching max |
+| `K4Styles::Colors::MeterRed` | `#FF0000` | Peak/overload signal |
+
+### PA Drain Current Meter Colors
+
+| Constant | Value | Usage |
+|----------|-------|-------|
+| `K4Styles::Colors::MeterIdDark` | `#00AAFF` | Id meter low range |
+| `K4Styles::Colors::MeterIdLight` | `#66CCFF` | Id meter high range |
+
+### Overlay Panel Colors (Menu/Macro Dialogs)
+
+| Constant | Value | Usage |
+|----------|-------|-------|
+| `K4Styles::Colors::OverlayBackground` | `#1A1A1F` | Full-screen overlay background |
+| `K4Styles::Colors::OverlayContentBg` | `#18181C` | Content area background |
+| `K4Styles::Colors::OverlayHeaderBg` | `#222228` | Header row background |
+| `K4Styles::Colors::OverlayColumnHeaderBg` | `#1E1E24` | Column header background |
+| `K4Styles::Colors::OverlayItemBg` | `#19191E` | List item background |
+| `K4Styles::Colors::OverlayNavButton` | `#3A3A45` | Navigation button normal |
+| `K4Styles::Colors::OverlayNavButtonPressed` | `#505060` | Navigation button pressed |
+| `K4Styles::Colors::OverlayDivider` | `#28282D` | Section dividers |
+| `K4Styles::Colors::OverlayDividerLight` | `#3C3C41` | Lighter dividers |
+
+### Selection Colors (K4-style Dual-Panel)
+
+| Constant | Value | Usage |
+|----------|-------|-------|
+| `K4Styles::Colors::SelectionLight` | `#DCDCDC` | Selected item text/highlight (light) |
+| `K4Styles::Colors::SelectionDark` | `#505055` | Selected item background (dark) |
+
 ---
 
 ## Dimensions (K4Styles::Dimensions::*)
@@ -183,6 +223,7 @@ K4Styles::menuBarButtonSmall()     // Compact +/- button stylesheet
 // Gradients
 QLinearGradient K4Styles::buttonGradient(int top, int bottom, bool hovered = false);
 QLinearGradient K4Styles::selectedGradient(int top, int bottom);
+QLinearGradient K4Styles::meterGradient(float x1, float y1, float x2, float y2);
 
 // Colors
 QColor K4Styles::borderColor();         // Returns BorderNormal color
@@ -294,4 +335,32 @@ Borders:
   #808080 ████ BorderHover
   #909090 ████ BorderPressed/BorderLight
   #AAAAAA ████ BorderSelected
+
+Meter Gradient (green→yellow→red):
+  #00CC00 ████ MeterGreenDark
+  #00FF00 ████ MeterGreen
+  #CCFF00 ████ MeterYellowGreen
+  #FFFF00 ████ MeterYellow
+  #FF6600 ████ MeterOrange
+  #FF3300 ████ MeterOrangeRed
+  #FF0000 ████ MeterRed
+
+PA Drain Meter:
+  #00AAFF ████ MeterIdDark
+  #66CCFF ████ MeterIdLight
+
+Overlay Panels:
+  #1A1A1F ████ OverlayBackground
+  #18181C ████ OverlayContentBg
+  #222228 ████ OverlayHeaderBg
+  #1E1E24 ████ OverlayColumnHeaderBg
+  #19191E ████ OverlayItemBg
+  #3A3A45 ████ OverlayNavButton
+  #505060 ████ OverlayNavButtonPressed
+  #28282D ████ OverlayDivider
+  #3C3C41 ████ OverlayDividerLight
+
+Selection:
+  #DCDCDC ████ SelectionLight
+  #505055 ████ SelectionDark
 ```
