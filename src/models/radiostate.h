@@ -235,6 +235,14 @@ public:
     // Panadapter REF level (Main)
     int refLevel() const { return m_refLevel; }
 
+    // Setter for optimistic ref level updates (Main RX)
+    void setRefLevel(int level) {
+        if (level != m_refLevel) {
+            m_refLevel = level;
+            emit refLevelChanged(m_refLevel);
+        }
+    }
+
     // Panadapter scale (Main, from #SCL command, 25-150)
     // Higher values = more compressed display (signals appear weaker)
     // Lower values = more expanded display (signals appear stronger)
@@ -253,6 +261,14 @@ public:
 
     // Panadapter REF level (Sub)
     int refLevelB() const { return m_refLevelB; }
+
+    // Setter for optimistic ref level updates (Sub RX)
+    void setRefLevelB(int level) {
+        if (level != m_refLevelB) {
+            m_refLevelB = level;
+            emit refLevelBChanged(m_refLevelB);
+        }
+    }
 
     // Panadapter span (Sub, from #SPN$ command, in Hz)
     int spanHzB() const { return m_spanHzB; }

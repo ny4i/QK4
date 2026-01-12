@@ -773,6 +773,49 @@ MainWindow::MainWindow(QWidget *parent)
         }
     });
 
+    // Ref level control (LCD only for now, respects A/B selection)
+    // #REF for Main RX, #REF$ for Sub RX - absolute values from -200 to 60
+    connect(m_displayPopup, &DisplayPopupWidget::refLevelIncrementRequested, this, [this]() {
+        bool vfoA = m_displayPopup->isVfoAEnabled();
+        bool vfoB = m_displayPopup->isVfoBEnabled();
+        if (vfoA) {
+            int currentLevel = m_radioState->refLevel();
+            int newLevel = qMin(currentLevel + 1, 60); // Increment by 1 dB, max 60
+            if (newLevel != currentLevel) {
+                m_radioState->setRefLevel(newLevel);
+                m_tcpClient->sendCAT(QString("#REF%1;").arg(newLevel));
+            }
+        }
+        if (vfoB) {
+            int currentLevel = m_radioState->refLevelB();
+            int newLevel = qMin(currentLevel + 1, 60);
+            if (newLevel != currentLevel) {
+                m_radioState->setRefLevelB(newLevel);
+                m_tcpClient->sendCAT(QString("#REF$%1;").arg(newLevel));
+            }
+        }
+    });
+    connect(m_displayPopup, &DisplayPopupWidget::refLevelDecrementRequested, this, [this]() {
+        bool vfoA = m_displayPopup->isVfoAEnabled();
+        bool vfoB = m_displayPopup->isVfoBEnabled();
+        if (vfoA) {
+            int currentLevel = m_radioState->refLevel();
+            int newLevel = qMax(currentLevel - 1, -200); // Decrement by 1 dB, min -200
+            if (newLevel != currentLevel) {
+                m_radioState->setRefLevel(newLevel);
+                m_tcpClient->sendCAT(QString("#REF%1;").arg(newLevel));
+            }
+        }
+        if (vfoB) {
+            int currentLevel = m_radioState->refLevelB();
+            int newLevel = qMax(currentLevel - 1, -200);
+            if (newLevel != currentLevel) {
+                m_radioState->setRefLevelB(newLevel);
+                m_tcpClient->sendCAT(QString("#REF$%1;").arg(newLevel));
+            }
+        }
+    });
+
     // Protocol spectrum data -> Panadapter
     connect(m_tcpClient->protocol(), &Protocol::spectrumDataReady, this, &MainWindow::onSpectrumData);
     connect(m_tcpClient->protocol(), &Protocol::miniSpectrumDataReady, this, &MainWindow::onMiniSpectrumData);

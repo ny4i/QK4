@@ -604,18 +604,11 @@ QWidget *DisplayPopupWidget::createRefLevelControlPage() {
     m_refLevelControlGroup = new ControlGroupWidget("REF", page);
     m_refLevelControlGroup->setShowAutoButton(true);
     m_refLevelControlGroup->setValue("-108");
-    connect(m_refLevelControlGroup, &ControlGroupWidget::decrementClicked, this, [this]() {
-        bool useB = m_vfoBEnabled && !m_vfoAEnabled;
-        QString suffix = useB ? "$" : "";
-        emit catCommandRequested(QString("#REF%1-;").arg(suffix)); // Decrement ref level
-        emit refLevelDecrementRequested();
-    });
-    connect(m_refLevelControlGroup, &ControlGroupWidget::incrementClicked, this, [this]() {
-        bool useB = m_vfoBEnabled && !m_vfoAEnabled;
-        QString suffix = useB ? "$" : "";
-        emit catCommandRequested(QString("#REF%1+;").arg(suffix)); // Increment ref level
-        emit refLevelIncrementRequested();
-    });
+    // Ref level increment/decrement - MainWindow handles CAT commands with absolute values
+    connect(m_refLevelControlGroup, &ControlGroupWidget::decrementClicked, this,
+            &DisplayPopupWidget::refLevelDecrementRequested);
+    connect(m_refLevelControlGroup, &ControlGroupWidget::incrementClicked, this,
+            &DisplayPopupWidget::refLevelIncrementRequested);
     connect(m_refLevelControlGroup, &ControlGroupWidget::autoClicked, this, [this]() {
         // Auto-ref is GLOBAL - affects both VFOs, no suffix needed
         // K4 doesn't echo #AR commands, so use optimistic update
