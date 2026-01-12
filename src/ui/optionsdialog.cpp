@@ -76,12 +76,12 @@ void OptionsDialog::setupUi() {
     setStyleSheet(QString("QDialog { background-color: %1; }"
                           "QLabel { color: %2; }"
                           "QListWidget { background-color: %3; color: %2; border: 1px solid %4; "
-                          "             font-size: 13px; outline: none; }"
+                          "             font-size: %6px; outline: none; }"
                           "QListWidget::item { padding: 10px 15px; border-bottom: 1px solid %4; }"
                           "QListWidget::item:selected { background-color: %5; color: %3; }"
                           "QListWidget::item:hover { background-color: #2a2a2a; }")
                       .arg(K4Styles::Colors::Background, K4Styles::Colors::TextWhite, K4Styles::Colors::DarkBackground,
-                           BorderColor, K4Styles::Colors::AccentAmber));
+                           BorderColor, K4Styles::Colors::AccentAmber).arg(K4Styles::Dimensions::FontSizePopup));
 
     auto *mainLayout = new QHBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 0);
@@ -173,13 +173,13 @@ QWidget *OptionsDialog::createAboutPage() {
     // Radio ID
     auto *idLayout = new QHBoxLayout();
     auto *idTitleLabel = new QLabel("Radio ID:", leftWidget);
-    idTitleLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(K4Styles::Colors::TextGray));
+    idTitleLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextGray).arg(K4Styles::Dimensions::FontSizePopup));
     idTitleLabel->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
 
     QString radioId = m_radioState ? m_radioState->radioID() : "Not connected";
     auto *idValueLabel = new QLabel(radioId, leftWidget);
     idValueLabel->setStyleSheet(
-        QString("color: %1; font-size: 13px; font-weight: bold;").arg(K4Styles::Colors::TextWhite));
+        QString("color: %1; font-size: %2px; font-weight: bold;").arg(K4Styles::Colors::TextWhite).arg(K4Styles::Dimensions::FontSizePopup));
 
     idLayout->addWidget(idTitleLabel);
     idLayout->addWidget(idValueLabel);
@@ -189,13 +189,13 @@ QWidget *OptionsDialog::createAboutPage() {
     // Radio Model
     auto *modelLayout = new QHBoxLayout();
     auto *modelTitleLabel = new QLabel("Model:", leftWidget);
-    modelTitleLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(K4Styles::Colors::TextGray));
+    modelTitleLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextGray).arg(K4Styles::Dimensions::FontSizePopup));
     modelTitleLabel->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
 
     QString radioModel = m_radioState ? m_radioState->radioModel() : "Unknown";
     auto *modelValueLabel = new QLabel(radioModel, leftWidget);
     modelValueLabel->setStyleSheet(
-        QString("color: %1; font-size: 13px; font-weight: bold;").arg(K4Styles::Colors::TextWhite));
+        QString("color: %1; font-size: %2px; font-weight: bold;").arg(K4Styles::Colors::TextWhite).arg(K4Styles::Dimensions::FontSizePopup));
 
     modelLayout->addWidget(modelTitleLabel);
     modelLayout->addWidget(modelValueLabel);
@@ -218,7 +218,7 @@ QWidget *OptionsDialog::createAboutPage() {
 
     auto *optionsTitle = new QLabel("Installed Options", rightWidget);
     optionsTitle->setStyleSheet(
-        QString("color: %1; font-size: 13px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
+        QString("color: %1; font-size: %2px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber).arg(K4Styles::Dimensions::FontSizePopup));
     rightColumn->addWidget(optionsTitle);
 
     if (m_radioState && !m_radioState->optionModules().isEmpty()) {
@@ -312,7 +312,7 @@ QWidget *OptionsDialog::createKpodPage() {
     // Status indicator
     auto *statusLayout = new QHBoxLayout();
     auto *statusLabel = new QLabel("Status:", page);
-    statusLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(K4Styles::Colors::TextGray));
+    statusLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextGray).arg(K4Styles::Dimensions::FontSizePopup));
     statusLabel->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
 
     m_kpodStatusLabel = new QLabel("Not Detected", page);
@@ -412,7 +412,7 @@ void OptionsDialog::updateKpodStatus() {
     QString statusText = detected ? "Detected" : "Not Detected";
     QString statusColor = detected ? "#00FF00" : "#FF6666";
     m_kpodStatusLabel->setText(statusText);
-    m_kpodStatusLabel->setStyleSheet(QString("color: %1; font-size: 13px; font-weight: bold;").arg(statusColor));
+    m_kpodStatusLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;").arg(statusColor).arg(K4Styles::Dimensions::FontSizePopup));
 
     // Update device info labels
     auto setLabel = [&](QLabel *label, const QString &value) {
@@ -435,19 +435,19 @@ void OptionsDialog::updateKpodStatus() {
     m_kpodEnableCheckbox->setEnabled(detected);
     if (detected) {
         m_kpodEnableCheckbox->setStyleSheet(
-            QString("QCheckBox { color: %1; font-size: 13px; spacing: 8px; }"
+            QString("QCheckBox { color: %1; font-size: %5px; spacing: 8px; }"
                     "QCheckBox::indicator { width: 18px; height: 18px; }"
                     "QCheckBox::indicator:unchecked { border: 2px solid %2; background: %3; border-radius: 3px; }"
                     "QCheckBox::indicator:checked { border: 2px solid %4; background: %4; border-radius: 3px; }"
                     "QCheckBox::indicator:checked::after { content: ''; }")
                 .arg(K4Styles::Colors::TextWhite, K4Styles::Colors::TextGray, K4Styles::Colors::DarkBackground,
-                     K4Styles::Colors::AccentAmber));
+                     K4Styles::Colors::AccentAmber).arg(K4Styles::Dimensions::FontSizePopup));
     } else {
         m_kpodEnableCheckbox->setStyleSheet(
-            QString("QCheckBox { color: %1; font-size: 13px; spacing: 8px; }"
+            QString("QCheckBox { color: %1; font-size: %3px; spacing: 8px; }"
                     "QCheckBox::indicator { width: 18px; height: 18px; }"
                     "QCheckBox::indicator:unchecked { border: 2px solid %1; background: %2; border-radius: 3px; }")
-                .arg(K4Styles::Colors::TextGray, K4Styles::Colors::DarkBackground));
+                .arg(K4Styles::Colors::TextGray, K4Styles::Colors::DarkBackground).arg(K4Styles::Dimensions::FontSizePopup));
     }
 
     // Update help text
@@ -472,7 +472,7 @@ QWidget *OptionsDialog::createKpa1500Page() {
     // Status indicator
     auto *statusLayout = new QHBoxLayout();
     auto *statusTitleLabel = new QLabel("Status:", page);
-    statusTitleLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(K4Styles::Colors::TextGray));
+    statusTitleLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextGray).arg(K4Styles::Dimensions::FontSizePopup));
     statusTitleLabel->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
 
     m_kpa1500StatusLabel = new QLabel(page);
@@ -499,16 +499,16 @@ QWidget *OptionsDialog::createKpa1500Page() {
     // IP Address input
     auto *hostLayout = new QHBoxLayout();
     auto *hostLabel = new QLabel("IP Address:", page);
-    hostLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(K4Styles::Colors::TextGray));
+    hostLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextGray).arg(K4Styles::Dimensions::FontSizePopup));
     hostLabel->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
 
     m_kpa1500HostEdit = new QLineEdit(page);
     m_kpa1500HostEdit->setPlaceholderText("e.g., 192.168.1.100");
     m_kpa1500HostEdit->setStyleSheet(QString("QLineEdit { background-color: %1; color: %2; border: 1px solid %3; "
-                                             "           padding: 6px; font-size: 13px; border-radius: 3px; }"
+                                             "           padding: 6px; font-size: %5px; border-radius: 3px; }"
                                              "QLineEdit:focus { border-color: %4; }")
                                          .arg(K4Styles::Colors::DarkBackground, K4Styles::Colors::TextWhite,
-                                              BorderColor, K4Styles::Colors::AccentAmber));
+                                              BorderColor, K4Styles::Colors::AccentAmber).arg(K4Styles::Dimensions::FontSizePopup));
     m_kpa1500HostEdit->setText(RadioSettings::instance()->kpa1500Host());
 
     hostLayout->addWidget(hostLabel);
@@ -518,17 +518,17 @@ QWidget *OptionsDialog::createKpa1500Page() {
     // Port input
     auto *portLayout = new QHBoxLayout();
     auto *portLabel = new QLabel("Port:", page);
-    portLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(K4Styles::Colors::TextGray));
+    portLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextGray).arg(K4Styles::Dimensions::FontSizePopup));
     portLabel->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
 
     m_kpa1500PortEdit = new QLineEdit(page);
     m_kpa1500PortEdit->setPlaceholderText("1500");
     m_kpa1500PortEdit->setFixedWidth(100);
     m_kpa1500PortEdit->setStyleSheet(QString("QLineEdit { background-color: %1; color: %2; border: 1px solid %3; "
-                                             "           padding: 6px; font-size: 13px; border-radius: 3px; }"
+                                             "           padding: 6px; font-size: %5px; border-radius: 3px; }"
                                              "QLineEdit:focus { border-color: %4; }")
                                          .arg(K4Styles::Colors::DarkBackground, K4Styles::Colors::TextWhite,
-                                              BorderColor, K4Styles::Colors::AccentAmber));
+                                              BorderColor, K4Styles::Colors::AccentAmber).arg(K4Styles::Dimensions::FontSizePopup));
     m_kpa1500PortEdit->setText(QString::number(RadioSettings::instance()->kpa1500Port()));
 
     auto *portHint = new QLabel("(default: 1500)", page);
@@ -543,7 +543,7 @@ QWidget *OptionsDialog::createKpa1500Page() {
     // Polling interval input
     auto *pollLayout = new QHBoxLayout();
     auto *pollLabel = new QLabel("Poll Interval:", page);
-    pollLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(K4Styles::Colors::TextGray));
+    pollLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextGray).arg(K4Styles::Dimensions::FontSizePopup));
     pollLabel->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
 
     m_kpa1500PollIntervalEdit = new QLineEdit(page);
@@ -551,14 +551,14 @@ QWidget *OptionsDialog::createKpa1500Page() {
     m_kpa1500PollIntervalEdit->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
     m_kpa1500PollIntervalEdit->setStyleSheet(
         QString("QLineEdit { background-color: %1; color: %2; border: 1px solid %3; "
-                "           padding: 6px; font-size: 13px; border-radius: 3px; }"
+                "           padding: 6px; font-size: %5px; border-radius: 3px; }"
                 "QLineEdit:focus { border-color: %4; }")
             .arg(K4Styles::Colors::DarkBackground, K4Styles::Colors::TextWhite, BorderColor,
-                 K4Styles::Colors::AccentAmber));
+                 K4Styles::Colors::AccentAmber).arg(K4Styles::Dimensions::FontSizePopup));
     m_kpa1500PollIntervalEdit->setText(QString::number(RadioSettings::instance()->kpa1500PollInterval()));
 
     auto *pollUnitLabel = new QLabel("ms", page);
-    pollUnitLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(K4Styles::Colors::TextWhite));
+    pollUnitLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextWhite).arg(K4Styles::Dimensions::FontSizePopup));
 
     auto *pollHint = new QLabel("(100-5000, default: 800)", page);
     pollHint->setStyleSheet(QString("color: %1; font-size: 11px;").arg(K4Styles::Colors::TextGray));
@@ -581,12 +581,12 @@ QWidget *OptionsDialog::createKpa1500Page() {
     // Enable checkbox
     m_kpa1500EnableCheckbox = new QCheckBox("Enable KPA1500", page);
     m_kpa1500EnableCheckbox->setStyleSheet(
-        QString("QCheckBox { color: %1; font-size: 13px; spacing: 8px; }"
+        QString("QCheckBox { color: %1; font-size: %5px; spacing: 8px; }"
                 "QCheckBox::indicator { width: 18px; height: 18px; }"
                 "QCheckBox::indicator:unchecked { border: 2px solid %2; background: %3; border-radius: 3px; }"
                 "QCheckBox::indicator:checked { border: 2px solid %4; background: %4; border-radius: 3px; }")
             .arg(K4Styles::Colors::TextWhite, K4Styles::Colors::TextGray, K4Styles::Colors::DarkBackground,
-                 K4Styles::Colors::AccentAmber));
+                 K4Styles::Colors::AccentAmber).arg(K4Styles::Dimensions::FontSizePopup));
     m_kpa1500EnableCheckbox->setChecked(RadioSettings::instance()->kpa1500Enabled());
     layout->addWidget(m_kpa1500EnableCheckbox);
 
@@ -637,10 +637,10 @@ void OptionsDialog::updateKpa1500Status() {
 
     if (isConnected) {
         m_kpa1500StatusLabel->setText("Connected");
-        m_kpa1500StatusLabel->setStyleSheet(QString("color: #00FF00; font-size: 13px; font-weight: bold;"));
+        m_kpa1500StatusLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;").arg(K4Styles::Colors::AgcGreen).arg(K4Styles::Dimensions::FontSizePopup));
     } else {
         m_kpa1500StatusLabel->setText("Not Connected");
-        m_kpa1500StatusLabel->setStyleSheet(QString("color: #FF6666; font-size: 13px; font-weight: bold;"));
+        m_kpa1500StatusLabel->setStyleSheet(QString("color: #FF6666; font-size: %1px; font-weight: bold;").arg(K4Styles::Dimensions::FontSizePopup));
     }
 }
 
@@ -671,20 +671,20 @@ QWidget *OptionsDialog::createAudioInputPage() {
 
     // === Microphone Device Selection ===
     auto *deviceLabel = new QLabel("Microphone:", page);
-    deviceLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(K4Styles::Colors::TextGray));
+    deviceLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextGray).arg(K4Styles::Dimensions::FontSizePopup));
     layout->addWidget(deviceLabel);
 
     m_micDeviceCombo = new QComboBox(page);
     m_micDeviceCombo->setStyleSheet(
         QString("QComboBox { background-color: %1; color: %2; border: 1px solid %3; "
-                "           padding: 6px; font-size: 13px; border-radius: 3px; }"
+                "           padding: 6px; font-size: %5px; border-radius: 3px; }"
                 "QComboBox:focus { border-color: %4; }"
                 "QComboBox::drop-down { border: none; width: 20px; }"
                 "QComboBox::down-arrow { image: none; border-left: 5px solid transparent; "
                 "           border-right: 5px solid transparent; border-top: 5px solid %2; }"
                 "QComboBox QAbstractItemView { background-color: %1; color: %2; selection-background-color: %4; }")
             .arg(K4Styles::Colors::DarkBackground, K4Styles::Colors::TextWhite, BorderColor,
-                 K4Styles::Colors::AccentAmber));
+                 K4Styles::Colors::AccentAmber).arg(K4Styles::Dimensions::FontSizePopup));
     populateMicDevices();
     connect(m_micDeviceCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
             &OptionsDialog::onMicDeviceChanged);
@@ -695,7 +695,7 @@ QWidget *OptionsDialog::createAudioInputPage() {
     // === Microphone Gain ===
     auto *gainLayout = new QHBoxLayout();
     auto *gainLabel = new QLabel("Mic Gain:", page);
-    gainLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(K4Styles::Colors::TextGray));
+    gainLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextGray).arg(K4Styles::Dimensions::FontSizePopup));
     gainLabel->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
     gainLayout->addWidget(gainLabel);
 
@@ -711,7 +711,7 @@ QWidget *OptionsDialog::createAudioInputPage() {
     gainLayout->addWidget(m_micGainSlider, 1);
 
     m_micGainValueLabel = new QLabel(QString("%1%").arg(m_micGainSlider->value()), page);
-    m_micGainValueLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(K4Styles::Colors::TextWhite));
+    m_micGainValueLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextWhite).arg(K4Styles::Dimensions::FontSizePopup));
     m_micGainValueLabel->setFixedWidth(40);
     m_micGainValueLabel->setAlignment(Qt::AlignRight);
     gainLayout->addWidget(m_micGainValueLabel);
@@ -748,7 +748,7 @@ QWidget *OptionsDialog::createAudioInputPage() {
     // Mic Level Meter
     auto *meterLayout = new QHBoxLayout();
     auto *meterLabel = new QLabel("Level:", page);
-    meterLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(K4Styles::Colors::TextGray));
+    meterLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextGray).arg(K4Styles::Dimensions::FontSizePopup));
     meterLabel->setFixedWidth(50);
     meterLayout->addWidget(meterLabel);
 
@@ -763,11 +763,11 @@ QWidget *OptionsDialog::createAudioInputPage() {
     m_micTestBtn = new QPushButton("Test Microphone", page);
     m_micTestBtn->setCheckable(true);
     m_micTestBtn->setStyleSheet(QString("QPushButton { background-color: %1; color: %2; border: 1px solid %3; "
-                                        "             padding: 10px 20px; font-size: 13px; border-radius: 4px; }"
+                                        "             padding: 10px 20px; font-size: %5px; border-radius: 4px; }"
                                         "QPushButton:hover { background-color: #2a2a2a; }"
                                         "QPushButton:checked { background-color: %4; color: %1; border-color: %4; }")
                                     .arg(K4Styles::Colors::DarkBackground, K4Styles::Colors::TextWhite, BorderColor,
-                                         K4Styles::Colors::AccentAmber));
+                                         K4Styles::Colors::AccentAmber).arg(K4Styles::Dimensions::FontSizePopup));
     connect(m_micTestBtn, &QPushButton::toggled, this, &OptionsDialog::onMicTestToggled);
     layout->addWidget(m_micTestBtn);
 
@@ -870,20 +870,20 @@ QWidget *OptionsDialog::createAudioOutputPage() {
 
     // === Speaker Device Selection ===
     auto *deviceLabel = new QLabel("Speaker:", page);
-    deviceLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(K4Styles::Colors::TextGray));
+    deviceLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextGray).arg(K4Styles::Dimensions::FontSizePopup));
     layout->addWidget(deviceLabel);
 
     m_speakerDeviceCombo = new QComboBox(page);
     m_speakerDeviceCombo->setStyleSheet(
         QString("QComboBox { background-color: %1; color: %2; border: 1px solid %3; "
-                "           padding: 6px; font-size: 13px; border-radius: 3px; }"
+                "           padding: 6px; font-size: %5px; border-radius: 3px; }"
                 "QComboBox:focus { border-color: %4; }"
                 "QComboBox::drop-down { border: none; width: 20px; }"
                 "QComboBox::down-arrow { image: none; border-left: 5px solid transparent; "
                 "           border-right: 5px solid transparent; border-top: 5px solid %2; }"
                 "QComboBox QAbstractItemView { background-color: %1; color: %2; selection-background-color: %4; }")
             .arg(K4Styles::Colors::DarkBackground, K4Styles::Colors::TextWhite, BorderColor,
-                 K4Styles::Colors::AccentAmber));
+                 K4Styles::Colors::AccentAmber).arg(K4Styles::Dimensions::FontSizePopup));
     populateSpeakerDevices();
     connect(m_speakerDeviceCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
             &OptionsDialog::onSpeakerDeviceChanged);
@@ -962,7 +962,7 @@ QWidget *OptionsDialog::createNetworkPage() {
 
     // Placeholder message
     auto *placeholderLabel = new QLabel("Network and connection settings will be configured here.", page);
-    placeholderLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(K4Styles::Colors::TextGray));
+    placeholderLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextGray).arg(K4Styles::Dimensions::FontSizePopup));
     placeholderLabel->setWordWrap(true);
     layout->addWidget(placeholderLabel);
 
@@ -1002,11 +1002,11 @@ QWidget *OptionsDialog::createRigControlPage() {
     // Status indicator
     auto *statusLayout = new QHBoxLayout();
     auto *statusTitleLabel = new QLabel("Status:", page);
-    statusTitleLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(K4Styles::Colors::TextGray));
+    statusTitleLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextGray).arg(K4Styles::Dimensions::FontSizePopup));
     statusTitleLabel->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
 
     m_catServerStatusLabel = new QLabel("Not running", page);
-    m_catServerStatusLabel->setStyleSheet(QString("color: #FF6666; font-size: 13px; font-weight: bold;"));
+    m_catServerStatusLabel->setStyleSheet(QString("color: #FF6666; font-size: %1px; font-weight: bold;").arg(K4Styles::Dimensions::FontSizePopup));
 
     statusLayout->addWidget(statusTitleLabel);
     statusLayout->addWidget(m_catServerStatusLabel);
@@ -1016,11 +1016,11 @@ QWidget *OptionsDialog::createRigControlPage() {
     // Clients indicator
     auto *clientsLayout = new QHBoxLayout();
     auto *clientsTitleLabel = new QLabel("Clients:", page);
-    clientsTitleLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(K4Styles::Colors::TextGray));
+    clientsTitleLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextGray).arg(K4Styles::Dimensions::FontSizePopup));
     clientsTitleLabel->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
 
     m_catServerClientsLabel = new QLabel("0 connected", page);
-    m_catServerClientsLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(K4Styles::Colors::TextWhite));
+    m_catServerClientsLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextWhite).arg(K4Styles::Dimensions::FontSizePopup));
 
     clientsLayout->addWidget(clientsTitleLabel);
     clientsLayout->addWidget(m_catServerClientsLabel);
@@ -1043,17 +1043,17 @@ QWidget *OptionsDialog::createRigControlPage() {
     // Port input
     auto *portLayout = new QHBoxLayout();
     auto *portLabel = new QLabel("Port:", page);
-    portLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(K4Styles::Colors::TextGray));
+    portLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextGray).arg(K4Styles::Dimensions::FontSizePopup));
     portLabel->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
 
     m_catServerPortEdit = new QLineEdit(page);
     m_catServerPortEdit->setPlaceholderText("4532");
     m_catServerPortEdit->setFixedWidth(100);
     m_catServerPortEdit->setStyleSheet(QString("QLineEdit { background-color: %1; color: %2; border: 1px solid %3; "
-                                               "           padding: 6px; font-size: 13px; border-radius: 3px; }"
+                                               "           padding: 6px; font-size: %5px; border-radius: 3px; }"
                                                "QLineEdit:focus { border-color: %4; }")
                                            .arg(K4Styles::Colors::DarkBackground, K4Styles::Colors::TextWhite,
-                                                BorderColor, K4Styles::Colors::AccentAmber));
+                                                BorderColor, K4Styles::Colors::AccentAmber).arg(K4Styles::Dimensions::FontSizePopup));
     m_catServerPortEdit->setText(QString::number(RadioSettings::instance()->rigctldPort()));
 
     auto *portHint = new QLabel("(default: 4532)", page);
@@ -1075,12 +1075,12 @@ QWidget *OptionsDialog::createRigControlPage() {
     // Enable checkbox
     m_catServerEnableCheckbox = new QCheckBox("Enable CAT server", page);
     m_catServerEnableCheckbox->setStyleSheet(
-        QString("QCheckBox { color: %1; font-size: 13px; spacing: 8px; }"
+        QString("QCheckBox { color: %1; font-size: %5px; spacing: 8px; }"
                 "QCheckBox::indicator { width: 18px; height: 18px; }"
                 "QCheckBox::indicator:unchecked { border: 2px solid %2; background: %3; border-radius: 3px; }"
                 "QCheckBox::indicator:checked { border: 2px solid %4; background: %4; border-radius: 3px; }")
             .arg(K4Styles::Colors::TextWhite, K4Styles::Colors::TextGray, K4Styles::Colors::DarkBackground,
-                 K4Styles::Colors::AccentAmber));
+                 K4Styles::Colors::AccentAmber).arg(K4Styles::Dimensions::FontSizePopup));
     m_catServerEnableCheckbox->setChecked(RadioSettings::instance()->rigctldEnabled());
     layout->addWidget(m_catServerEnableCheckbox);
 
@@ -1125,10 +1125,10 @@ void OptionsDialog::updateCatServerStatus() {
 
     if (isListening) {
         m_catServerStatusLabel->setText(QString("Listening on port %1").arg(m_catServer->port()));
-        m_catServerStatusLabel->setStyleSheet(QString("color: #00FF00; font-size: 13px; font-weight: bold;"));
+        m_catServerStatusLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;").arg(K4Styles::Colors::AgcGreen).arg(K4Styles::Dimensions::FontSizePopup));
     } else {
         m_catServerStatusLabel->setText("Not running");
-        m_catServerStatusLabel->setStyleSheet(QString("color: #FF6666; font-size: 13px; font-weight: bold;"));
+        m_catServerStatusLabel->setStyleSheet(QString("color: #FF6666; font-size: %1px; font-weight: bold;").arg(K4Styles::Dimensions::FontSizePopup));
     }
 
     int clientCount = m_catServer ? m_catServer->clientCount() : 0;

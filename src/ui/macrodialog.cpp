@@ -29,23 +29,24 @@ MacroItemWidget::MacroItemWidget(const QString &functionId, const QString &displ
 
     // Column 1: Function ID (read-only) - 33.3% width
     m_functionLabel = new QLabel(displayName, this);
-    m_functionLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(K4Styles::Colors::TextGray));
+    m_functionLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextGray).arg(K4Styles::Dimensions::FontSizePopup));
     layout->addWidget(m_functionLabel, 1); // stretch factor 1
 
     // Column 2: Label (editable) - 33.3% width, centered
     m_labelDisplay = new QLabel("Unused", this);
     m_labelDisplay->setAlignment(Qt::AlignCenter);
-    m_labelDisplay->setStyleSheet(QString("color: %1; font-size: 13px;").arg(K4Styles::Colors::TextFaded));
+    m_labelDisplay->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextFaded).arg(K4Styles::Dimensions::FontSizePopup));
     layout->addWidget(m_labelDisplay, 1); // stretch factor 1
 
     m_labelEdit = new QLineEdit(this);
     m_labelEdit->setMaxLength(12);
     m_labelEdit->setAlignment(Qt::AlignCenter);
     m_labelEdit->setStyleSheet(QString("QLineEdit { background: %1; color: %2; border: 1px solid %3; "
-                               "border-radius: 3px; padding: 2px 5px; font-size: 13px; }")
+                               "border-radius: 3px; padding: 2px 5px; font-size: %4px; }")
                                    .arg(K4Styles::Colors::GradientMid1)
                                    .arg(K4Styles::Colors::TextWhite)
-                                   .arg(K4Styles::Colors::InactiveGray));
+                                   .arg(K4Styles::Colors::InactiveGray)
+                                   .arg(K4Styles::Dimensions::FontSizePopup));
     m_labelEdit->hide();
     connect(m_labelEdit, &QLineEdit::editingFinished, this, &MacroItemWidget::finishEditing);
     layout->addWidget(m_labelEdit, 1); // stretch factor 1
@@ -53,19 +54,20 @@ MacroItemWidget::MacroItemWidget(const QString &functionId, const QString &displ
     // Column 3: CAT Command (editable) - 33.3% width
     m_commandDisplay = new QLabel("", this);
     m_commandDisplay->setStyleSheet(
-        QString("color: %1; font-size: 13px; font-family: 'JetBrains Mono', 'Menlo', 'Consolas', monospace;")
-            .arg(K4Styles::Colors::TextFaded));
+        QString("color: %1; font-size: %2px; font-family: 'JetBrains Mono', 'Menlo', 'Consolas', monospace;")
+            .arg(K4Styles::Colors::TextFaded).arg(K4Styles::Dimensions::FontSizePopup));
     m_commandDisplay->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     layout->addWidget(m_commandDisplay, 1); // stretch factor 1
 
     m_commandEdit = new QLineEdit(this);
     m_commandEdit->setMaxLength(64);
     m_commandEdit->setStyleSheet(QString("QLineEdit { background: %1; color: %2; border: 1px solid %3; "
-                                 "border-radius: 3px; padding: 2px 5px; font-size: 13px; font-family: 'JetBrains "
+                                 "border-radius: 3px; padding: 2px 5px; font-size: %4px; font-family: 'JetBrains "
                                  "Mono', 'Menlo', 'Consolas', monospace; }")
                                      .arg(K4Styles::Colors::GradientMid1)
                                      .arg(K4Styles::Colors::TextWhite)
-                                     .arg(K4Styles::Colors::InactiveGray));
+                                     .arg(K4Styles::Colors::InactiveGray)
+                                     .arg(K4Styles::Dimensions::FontSizePopup));
     m_commandEdit->hide();
     connect(m_commandEdit, &QLineEdit::editingFinished, this, &MacroItemWidget::finishEditing);
     layout->addWidget(m_commandEdit, 1); // stretch factor 1
@@ -95,16 +97,16 @@ void MacroItemWidget::updateDisplay() {
     // Show label or status
     if (m_command.isEmpty()) {
         m_labelDisplay->setText("Unused");
-        m_labelDisplay->setStyleSheet(QString("color: %1; font-size: 13px; font-style: italic;")
-                                          .arg(K4Styles::Colors::InactiveGray));
+        m_labelDisplay->setStyleSheet(QString("color: %1; font-size: %2px; font-style: italic;")
+                                          .arg(K4Styles::Colors::InactiveGray).arg(K4Styles::Dimensions::FontSizePopup));
     } else if (m_label.isEmpty()) {
         m_labelDisplay->setText("Mapped");
-        m_labelDisplay->setStyleSheet(QString("color: %1; font-size: 13px;")
-                                          .arg(K4Styles::Colors::AccentAmber));
+        m_labelDisplay->setStyleSheet(QString("color: %1; font-size: %2px;")
+                                          .arg(K4Styles::Colors::AccentAmber).arg(K4Styles::Dimensions::FontSizePopup));
     } else {
         m_labelDisplay->setText(m_label);
-        m_labelDisplay->setStyleSheet(QString("color: %1; font-size: 13px; font-weight: bold;")
-                                          .arg(K4Styles::Colors::AccentAmber));
+        m_labelDisplay->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                          .arg(K4Styles::Colors::AccentAmber).arg(K4Styles::Dimensions::FontSizePopup));
     }
 
     // Show command
@@ -117,15 +119,15 @@ void MacroItemWidget::setSelected(bool selected) {
     // Update all label colors based on selection (inverted when selected)
     if (selected) {
         // White text on grey background
-        m_functionLabel->setStyleSheet(QString("color: %1; font-size: 13px; font-weight: bold;")
-                                           .arg(K4Styles::Colors::TextWhite));
-        m_labelDisplay->setStyleSheet(QString("color: %1; font-size: 13px;").arg(K4Styles::Colors::TextWhite));
+        m_functionLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                           .arg(K4Styles::Colors::TextWhite).arg(K4Styles::Dimensions::FontSizePopup));
+        m_labelDisplay->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextWhite).arg(K4Styles::Dimensions::FontSizePopup));
         m_commandDisplay->setStyleSheet(
-            QString("color: %1; font-size: 13px; font-family: 'JetBrains Mono', 'Menlo', 'Consolas', monospace;")
-                .arg(K4Styles::Colors::TextWhite));
+            QString("color: %1; font-size: %2px; font-family: 'JetBrains Mono', 'Menlo', 'Consolas', monospace;")
+                .arg(K4Styles::Colors::TextWhite).arg(K4Styles::Dimensions::FontSizePopup));
     } else {
         // Grey text on dark background
-        m_functionLabel->setStyleSheet(QString("color: %1; font-size: 13px;").arg(K4Styles::Colors::TextGray));
+        m_functionLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextGray).arg(K4Styles::Dimensions::FontSizePopup));
         updateDisplay(); // Reset label/command colors based on content
     }
 
