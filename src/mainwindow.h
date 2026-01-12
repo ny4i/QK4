@@ -94,6 +94,7 @@ private slots:
     void updateDateTime();
     void showMenuOverlay();
     void onMenuValueChangeRequested(int menuId, const QString &action);
+    void onMenuModelValueChanged(int menuId, int newValue);
     void onBandSelected(const QString &bandName);
     void updateBandSelection(int bandNum);
     void updateBandSelectionB(int bandNum);

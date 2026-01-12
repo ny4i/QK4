@@ -52,6 +52,7 @@ public:
     int span() const { return m_spanHz; }
     void setNotchFilter(bool enabled, int pitchHz);
     void setCursorVisible(bool visible);
+    void setAmplitudeUnits(bool useSUnits); // false=dBm, true=S-units
 
     // Secondary VFO (other receiver's passband)
     void setSecondaryVfo(qint64 freq, int bwHz, const QString &mode, int ifShift, int cwPitch);

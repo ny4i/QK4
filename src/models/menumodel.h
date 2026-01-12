@@ -46,6 +46,8 @@ public:
     // Access menu items
     MenuItem *getMenuItem(int menuId);
     const MenuItem *getMenuItem(int menuId) const;
+    MenuItem *getMenuItemByName(const QString &name);
+    const MenuItem *getMenuItemByName(const QString &name) const;
     QVector<MenuItem *> getAllItems();
     QVector<MenuItem *> getItemsByCategory(const QString &category);
     QStringList getCategories() const;

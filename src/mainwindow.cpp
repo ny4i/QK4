@@ -112,6 +112,24 @@ MainWindow::MainWindow(QWidget *parent)
         }
     });
 
+    // Connect menu model value changes for display settings
+    connect(m_menuModel, &MenuModel::menuValueChanged, this, &MainWindow::onMenuModelValueChanged);
+
+    // Also check initial values when menu items are first loaded from MEDF
+    connect(m_menuModel, &MenuModel::menuItemAdded, this, [this](int menuId) {
+        const MenuItem *item = m_menuModel->getMenuItem(menuId);
+        if (item && item->name == "Spectrum Amplitude Units") {
+            bool useSUnits = (item->currentValue == 1);
+            qDebug() << "Initial spectrum amplitude units:" << (useSUnits ? "S-UNITS" : "dBm");
+            if (m_panadapterA) {
+                m_panadapterA->setAmplitudeUnits(useSUnits);
+            }
+            if (m_panadapterB) {
+                m_panadapterB->setAmplitudeUnits(useSUnits);
+            }
+        }
+    });
+
     // Create band selection popup
     m_bandPopup = new BandPopupWidget(this);
     connect(m_bandPopup, &BandPopupWidget::bandSelected, this, &MainWindow::onBandSelected);
@@ -3290,6 +3308,23 @@ void MainWindow::onMenuValueChangeRequested(int menuId, const QString &action) {
     // When connected to radio, send the command
     if (m_tcpClient->isConnected()) {
         m_tcpClient->sendCAT(cmd);
+    }
+}
+
+void MainWindow::onMenuModelValueChanged(int menuId, int newValue) {
+    // Check if this is the "Spectrum Amplitude Units" menu item
+    const MenuItem *item = m_menuModel->getMenuItem(menuId);
+    if (item && item->name == "Spectrum Amplitude Units") {
+        // 0 = dBm, 1 = S-UNITS
+        bool useSUnits = (newValue == 1);
+        qDebug() << "Spectrum amplitude units changed:" << (useSUnits ? "S-UNITS" : "dBm");
+
+        if (m_panadapterA) {
+            m_panadapterA->setAmplitudeUnits(useSUnits);
+        }
+        if (m_panadapterB) {
+            m_panadapterB->setAmplitudeUnits(useSUnits);
+        }
     }
 }
 

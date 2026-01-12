@@ -34,6 +34,24 @@ const MenuItem *MenuModel::getMenuItem(int menuId) const {
     return nullptr;
 }
 
+MenuItem *MenuModel::getMenuItemByName(const QString &name) {
+    for (auto it = m_items.begin(); it != m_items.end(); ++it) {
+        if (it.value().name == name) {
+            return &it.value();
+        }
+    }
+    return nullptr;
+}
+
+const MenuItem *MenuModel::getMenuItemByName(const QString &name) const {
+    for (auto it = m_items.constBegin(); it != m_items.constEnd(); ++it) {
+        if (it.value().name == name) {
+            return &it.value();
+        }
+    }
+    return nullptr;
+}
+
 QVector<MenuItem *> MenuModel::getAllItems() {
     QVector<MenuItem *> result;
     for (auto it = m_items.begin(); it != m_items.end(); ++it) {

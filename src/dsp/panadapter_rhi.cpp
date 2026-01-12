@@ -7,7 +7,7 @@
 #include <QtMath>
 #include <cmath>
 
-// Transparent overlay widget for dBm scale labels
+// Transparent overlay widget for dBm/S-unit scale labels
 class DbmScaleOverlay : public QWidget {
 public:
     DbmScaleOverlay(QWidget *parent = nullptr) : QWidget(parent) {
@@ -19,6 +19,13 @@ public:
         m_minDb = minDb;
         m_maxDb = maxDb;
         update();
+    }
+
+    void setUseSUnits(bool useSUnits) {
+        if (m_useSUnits != useSUnits) {
+            m_useSUnits = useSUnits;
+            update();
+        }
     }
 
 protected:
@@ -51,7 +58,12 @@ protected:
             float dbValue = m_maxDb - (static_cast<float>(i) / 8.0f) * dbRange;
             int yPos = h * i / 8;
 
-            QString label = QString("%1 dBm").arg(static_cast<int>(dbValue));
+            QString label;
+            if (m_useSUnits) {
+                label = dbmToSUnits(dbValue);
+            } else {
+                label = QString("%1 dBm").arg(static_cast<int>(dbValue));
+            }
 
             // Vertically center on grid line
             int textY = yPos + textHeight / 3;
@@ -67,8 +79,32 @@ protected:
     }
 
 private:
+    // Convert dBm to S-unit string
+    // S9 = -73 dBm, each S-unit below is 6 dB
+    QString dbmToSUnits(float dbm) const {
+        const float s9Dbm = -73.0f;
+        const float dbPerSUnit = 6.0f;
+
+        if (dbm >= s9Dbm) {
+            // Above S9: show as S9+XX
+            int dbOver = static_cast<int>(std::round(dbm - s9Dbm));
+            if (dbOver == 0) {
+                return "S9";
+            }
+            return QString("S9+%1").arg(dbOver);
+        } else {
+            // Below S9: calculate S-unit (S1-S9)
+            float sUnits = 9.0f + (dbm - s9Dbm) / dbPerSUnit;
+            int sValue = static_cast<int>(std::round(sUnits));
+            if (sValue < 1) sValue = 1;
+            if (sValue > 9) sValue = 9;
+            return QString("S%1").arg(sValue);
+        }
+    }
+
     float m_minDb = -138.0f;
     float m_maxDb = -58.0f;
+    bool m_useSUnits = false;
 };
 
 PanadapterRhiWidget::PanadapterRhiWidget(QWidget *parent) : QRhiWidget(parent) {
@@ -1472,6 +1508,12 @@ void PanadapterRhiWidget::setCursorVisible(bool visible) {
     if (m_cursorVisible != visible) {
         m_cursorVisible = visible;
         update();
+    }
+}
+
+void PanadapterRhiWidget::setAmplitudeUnits(bool useSUnits) {
+    if (m_dbmScaleOverlay) {
+        m_dbmScaleOverlay->setUseSUnits(useSUnits);
     }
 }
 
