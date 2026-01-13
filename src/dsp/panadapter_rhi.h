@@ -46,8 +46,7 @@ public:
     void setGridEnabled(bool enabled);
     void setPeakHoldEnabled(bool enabled);
     void setRefLevel(int level);
-    void setScale(int scale);     // 25-150, affects display gain/range
-    void setSpectrumFps(int fps); // 1-30, recalculates smoothing alphas
+    void setScale(int scale); // 25-150, affects display gain/range
     void setSpan(int spanHz);
     void setWaterfallHeight(int percent); // 0-100: percentage of display for waterfall
     int span() const { return m_spanHz; }
@@ -106,7 +105,6 @@ private:
     // Data processing
     void decompressBins(const QByteArray &bins, QVector<float> &out);
     void updateWaterfallData();
-    void recalculateAlphas(); // Update attack/decay based on FPS
 
     // Coordinate helpers
     float normalizeDb(float db);
@@ -208,10 +206,7 @@ private:
     bool m_gridEnabled = true;
     bool m_peakHoldEnabled = true;
     int m_refLevel = -110;
-    int m_scale = 75;            // 10-150, default 75 (neutral)
-    int m_spectrumFps = 12;      // 1-30, default 12 FPS
-    float m_attackAlpha = 0.85f; // Fast attack (recalculated based on FPS)
-    float m_decayAlpha = 0.45f;  // Moderate decay (recalculated based on FPS)
+    int m_scale = 75; // 10-150, default 75 (neutral)
     int m_spanHz = 10000;
     bool m_notchEnabled = false;
     int m_notchPitchHz = 0;

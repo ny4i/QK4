@@ -598,13 +598,6 @@ MainWindow::MainWindow(QWidget *parent)
         m_panadapterB->setScale(scale);
     });
 
-    // RadioState FPS -> Panadapter (for frame-rate-aware smoothing alpha calculation)
-    // Note: #FPS is a GLOBAL setting - applies to both panadapters
-    connect(m_radioState, &RadioState::spectrumFpsChanged, this, [this](int fps) {
-        m_panadapterA->setSpectrumFps(fps);
-        m_panadapterB->setSpectrumFps(fps);
-    });
-
     // RadioState span -> Panadapter (for frequency labels and bin extraction)
     connect(m_radioState, &RadioState::spanChanged, this, [this](int spanHz) { m_panadapterA->setSpan(spanHz); });
     connect(m_radioState, &RadioState::spanBChanged, this, [this](int spanHz) { m_panadapterB->setSpan(spanHz); });
@@ -2917,7 +2910,6 @@ void MainWindow::onAuthenticated() {
     m_tcpClient->sendCAT("#DSM;");  // Display mode (LCD) - not in RDY
     m_tcpClient->sendCAT("#HDSM;"); // Display mode (EXT) - not in RDY
     m_tcpClient->sendCAT("#FRZ;");  // Freeze - not in RDY
-    m_tcpClient->sendCAT("#FPS;");  // Spectrum frame rate - for alpha calculation
     m_tcpClient->sendCAT("SIRC1;"); // Enable 1-second client stats updates
     // Note: ML commands (monitor levels) come in RDY; dump - no need to query
 }
