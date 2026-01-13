@@ -1239,14 +1239,12 @@ void PanadapterRhiWidget::updateSpectrum(const QByteArray &bins, qint64 centerFr
     decompressBins(binsToUse, m_rawSpectrum);
 
     // Apply exponential smoothing for gradual decay (attack fast, decay slow)
-    constexpr float attackAlpha = 0.85f; // Fast attack (new peaks appear quickly)
-    constexpr float decayAlpha = 0.45f;  // Moderate decay for crisp waterfall
-
+    // Alpha values are recalculated based on FPS to maintain consistent visual behavior
     if (m_currentSpectrum.size() != m_rawSpectrum.size()) {
         m_currentSpectrum = m_rawSpectrum;
     } else {
         for (int i = 0; i < m_rawSpectrum.size(); ++i) {
-            float alpha = (m_rawSpectrum[i] > m_currentSpectrum[i]) ? attackAlpha : decayAlpha;
+            float alpha = (m_rawSpectrum[i] > m_currentSpectrum[i]) ? m_attackAlpha : m_decayAlpha;
             m_currentSpectrum[i] = alpha * m_rawSpectrum[i] + (1.0f - alpha) * m_currentSpectrum[i];
         }
     }
@@ -1480,6 +1478,26 @@ void PanadapterRhiWidget::setScale(int scale) {
         updateDbRangeFromRefAndScale();
         update();
     }
+}
+
+void PanadapterRhiWidget::setSpectrumFps(int fps) {
+    if (fps != m_spectrumFps && fps >= 1 && fps <= 30) {
+        m_spectrumFps = fps;
+        recalculateAlphas();
+    }
+}
+
+void PanadapterRhiWidget::recalculateAlphas() {
+    // Reference values tuned for 12 FPS
+    constexpr float refFps = 12.0f;
+    constexpr float refAttack = 0.85f;
+    constexpr float refDecay = 0.45f;
+
+    // Scale alphas to maintain same visual time constant across frame rates
+    // Formula: newAlpha = 1 - (1 - refAlpha)^(refFps/actualFps)
+    float ratio = refFps / static_cast<float>(m_spectrumFps);
+    m_attackAlpha = 1.0f - std::pow(1.0f - refAttack, ratio);
+    m_decayAlpha = 1.0f - std::pow(1.0f - refDecay, ratio);
 }
 
 void PanadapterRhiWidget::updateDbRangeFromRefAndScale() {

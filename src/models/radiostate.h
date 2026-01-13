@@ -309,6 +309,9 @@ public:
     // Lower values = more expanded display (signals appear stronger)
     int scale() const { return m_scale; }
 
+    // Spectrum frame rate (from #FPS command, 1-30)
+    int spectrumFps() const { return m_spectrumFps; }
+
     // Panadapter span (Main, from #SPN command, in Hz)
     int spanHz() const { return m_spanHz; }
 
@@ -428,6 +431,7 @@ signals:
     void processingChangedB();                 // NB, NR, PA, RA, GT changes for Sub RX
     void refLevelChanged(int level);           // Panadapter reference level (#REF command)
     void scaleChanged(int scale);              // Panadapter scale (#SCL command, 10-150) - GLOBAL, applies to both
+    void spectrumFpsChanged(int fps);          // Spectrum FPS (#FPS command, 1-30) - GLOBAL
     void spanChanged(int spanHz);              // Panadapter span (#SPN command)
     void refLevelBChanged(int level);          // Sub RX panadapter reference level (#REF$ command)
     void spanBChanged(int spanHz);             // Sub RX panadapter span (#SPN$ command)
@@ -622,6 +626,9 @@ private:
 
     // Panadapter scale (GLOBAL, from #SCL command, applies to both panadapters)
     int m_scale = -1; // 10-150, init to -1 to ensure first emit
+
+    // Spectrum FPS (GLOBAL, from #FPS command)
+    int m_spectrumFps = 12; // Default 12 FPS
 
     // Panadapter span (Main, from #SPN command)
     int m_spanHz = 10000; // Default 10 kHz

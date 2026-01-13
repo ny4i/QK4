@@ -927,6 +927,17 @@ void RadioState::parseCATCommand(const QString &command) {
             emit scaleChanged(m_scale);
         }
     }
+    // Spectrum FPS (#FPS) - #FPS12 (1-30) - GLOBAL setting
+    // Controls spectrum/waterfall update rate from K4 server
+    else if (cmd.startsWith("#FPS") && cmd.length() > 4) {
+        QString fpsStr = cmd.mid(4); // Get "12" from "#FPS12"
+        bool ok;
+        int fps = fpsStr.toInt(&ok);
+        if (ok && fps >= 1 && fps <= 30 && fps != m_spectrumFps) {
+            m_spectrumFps = fps;
+            emit spectrumFpsChanged(m_spectrumFps);
+        }
+    }
     // Panadapter Span (#SPN) - #SPN10000 (Hz) - not #SPN$ which is Sub RX
     else if (cmd.startsWith("#SPN") && !cmd.startsWith("#SPN$") && cmd.length() > 4) {
         QString spanStr = cmd.mid(4); // Get "10000" from "#SPN10000"
