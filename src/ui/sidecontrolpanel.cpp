@@ -1,8 +1,11 @@
 #include "sidecontrolpanel.h"
 #include "dualcontrolbutton.h"
 #include "k4styles.h"
+#include "monoverlay.h"
+#include "baloverlay.h"
 #include "../settings/radiosettings.h"
 #include <QVBoxLayout>
+#include <QSizePolicy>
 #include <QHBoxLayout>
 #include <QGridLayout>
 #include <QSpacerItem>
@@ -15,6 +18,7 @@ SideControlPanel::SideControlPanel(QWidget *parent) : QWidget(parent) {
 
 void SideControlPanel::setupUi() {
     setFixedWidth(105); // Slightly wider for better text fit
+    // Note: No explicit size policy - let Qt handle vertical expansion like RightSidePanel
 
     auto *layout = new QVBoxLayout(this);
     layout->setContentsMargins(6, 8, 6, 8);
@@ -123,12 +127,102 @@ void SideControlPanel::setupUi() {
     m_subSqlBtn->setShowIndicator(false); // Second button starts inactive
     layout->addWidget(m_subSqlBtn);
 
+    // ===== MON/NORM/BAL Buttons =====
+    layout->addSpacing(10);
+
+    // Wrap in container widget for proper layout sizing
+    auto *swBtnContainer = new QWidget(this);
+    swBtnContainer->setFixedHeight(24);
+    auto *swBtnRow = new QHBoxLayout(swBtnContainer);
+    swBtnRow->setContentsMargins(0, 0, 0, 0);
+    swBtnRow->setSpacing(2);
+
+    // Button style - dark gradient matching TX function buttons
+    QString swBtnStyle = QString("QPushButton {"
+                                 "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+                                 "    stop:0 %1, stop:0.4 %2, stop:0.6 %3, stop:1 %4);"
+                                 "  border: 1px solid %5;"
+                                 "  border-radius: 4px;"
+                                 "  color: %6;"
+                                 "  font-size: 9px;"
+                                 "  font-weight: bold;"
+                                 "  padding: 4px 2px;"
+                                 "}"
+                                 "QPushButton:hover {"
+                                 "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+                                 "    stop:0 %7, stop:0.4 %8, stop:0.6 %9, stop:1 %10);"
+                                 "}"
+                                 "QPushButton:pressed {"
+                                 "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+                                 "    stop:0 %4, stop:1 %1);"
+                                 "}")
+                             .arg(K4Styles::Colors::GradientTop)
+                             .arg(K4Styles::Colors::GradientMid1)
+                             .arg(K4Styles::Colors::GradientMid2)
+                             .arg(K4Styles::Colors::GradientBottom)
+                             .arg(K4Styles::Colors::BorderNormal)
+                             .arg(K4Styles::Colors::TextWhite)
+                             .arg(K4Styles::Colors::HoverTop)
+                             .arg(K4Styles::Colors::HoverMid1)
+                             .arg(K4Styles::Colors::HoverMid2)
+                             .arg(K4Styles::Colors::HoverBottom);
+
+    m_monBtn = new QPushButton("MON", swBtnContainer);
+    m_monBtn->setStyleSheet(swBtnStyle);
+    m_monBtn->setFixedHeight(24);
+    swBtnRow->addWidget(m_monBtn);
+
+    m_normBtn = new QPushButton("NORM", swBtnContainer);
+    m_normBtn->setStyleSheet(swBtnStyle);
+    m_normBtn->setFixedHeight(24);
+    swBtnRow->addWidget(m_normBtn);
+
+    m_balBtn = new QPushButton("BAL", swBtnContainer);
+    m_balBtn->setStyleSheet(swBtnStyle);
+    m_balBtn->setFixedHeight(24);
+    swBtnRow->addWidget(m_balBtn);
+
+    layout->addWidget(swBtnContainer);
+
+    // Create overlay widgets (initially hidden)
+    m_monOverlay = new MonOverlay(this);
+    m_balOverlay = new BalOverlay(this);
+
+    // Connect MON button - toggles MON overlay
+    connect(m_monBtn, &QPushButton::clicked, this, [this]() {
+        emit swCommandRequested("SW128;");
+        if (m_monOverlay->isVisible()) {
+            m_monOverlay->hide();
+        } else {
+            m_balOverlay->hide(); // Close other overlay
+            m_monOverlay->showOverGroup(m_wpmBtn, m_pwrBtn);
+        }
+    });
+
+    // Connect NORM button - just sends command, no overlay
+    connect(m_normBtn, &QPushButton::clicked, this, [this]() { emit swCommandRequested("SW129;"); });
+
+    // Connect BAL button - toggles BAL overlay
+    connect(m_balBtn, &QPushButton::clicked, this, [this]() {
+        emit swCommandRequested("SW130;");
+        if (m_balOverlay->isVisible()) {
+            m_balOverlay->hide();
+        } else {
+            m_monOverlay->hide(); // Close other overlay
+            m_balOverlay->showOverGroup(m_mainRfBtn, m_subSqlBtn);
+        }
+    });
+
+    // Connect overlay signals
+    connect(m_monOverlay, &MonOverlay::levelChangeRequested, this, &SideControlPanel::monLevelChangeRequested);
+    connect(m_balOverlay, &BalOverlay::balanceChangeRequested, this, &SideControlPanel::balChangeRequested);
+
     // ===== Volume Slider =====
     layout->addSpacing(10);
 
     m_volumeLabel = new QLabel("MAIN", this);
-    m_volumeLabel->setStyleSheet(QString("color: %1; font-size: 10px; font-weight: bold;")
-                                     .arg(K4Styles::Colors::VfoACyan));
+    m_volumeLabel->setStyleSheet(
+        QString("color: %1; font-size: 10px; font-weight: bold;").arg(K4Styles::Colors::VfoACyan));
     m_volumeLabel->setAlignment(Qt::AlignCenter);
     layout->addWidget(m_volumeLabel);
 
@@ -163,8 +257,8 @@ void SideControlPanel::setupUi() {
     layout->addSpacing(6);
 
     m_subVolumeLabel = new QLabel("SUB", this);
-    m_subVolumeLabel->setStyleSheet(QString("color: %1; font-size: 10px; font-weight: bold;")
-                                        .arg(K4Styles::Colors::VfoBGreen));
+    m_subVolumeLabel->setStyleSheet(
+        QString("color: %1; font-size: 10px; font-weight: bold;").arg(K4Styles::Colors::VfoBGreen));
     m_subVolumeLabel->setAlignment(Qt::AlignCenter);
     layout->addWidget(m_subVolumeLabel);
 
@@ -200,8 +294,8 @@ void SideControlPanel::setupUi() {
 
     // ===== Status Area (mirrors header data) =====
     m_timeLabel = new QLabel("00:00:00 Z", this);
-    m_timeLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;")
-                                   .arg(K4Styles::Colors::TextWhite));
+    m_timeLabel->setStyleSheet(
+        QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextWhite));
     layout->addWidget(m_timeLabel);
 
     m_powerSwrLabel = new QLabel("0.0W  1.0:1", this);
@@ -603,21 +697,21 @@ QPushButton *SideControlPanel::createIconButton(const QString &text) {
             border: %6px solid %15;
         }
     )")
-        .arg(K4Styles::Colors::GradientTop)           // %1
-        .arg(K4Styles::Colors::GradientMid1)          // %2
-        .arg(K4Styles::Colors::GradientMid2)          // %3
-        .arg(K4Styles::Colors::GradientBottom)        // %4
-        .arg(K4Styles::Colors::TextWhite)             // %5
-        .arg(K4Styles::Dimensions::BorderWidth)       // %6
-        .arg(K4Styles::Colors::BorderNormal)          // %7
-        .arg(K4Styles::Dimensions::BorderRadius)      // %8
-        .arg(K4Styles::Dimensions::FontSizeButton)    // %9
-        .arg(K4Styles::Colors::HoverTop)              // %10
-        .arg(K4Styles::Colors::HoverMid1)             // %11
-        .arg(K4Styles::Colors::HoverMid2)             // %12
-        .arg(K4Styles::Colors::HoverBottom)           // %13
-        .arg(K4Styles::Colors::BorderHover)           // %14
-        .arg(K4Styles::Colors::BorderPressed));       // %15
+                           .arg(K4Styles::Colors::GradientTop)        // %1
+                           .arg(K4Styles::Colors::GradientMid1)       // %2
+                           .arg(K4Styles::Colors::GradientMid2)       // %3
+                           .arg(K4Styles::Colors::GradientBottom)     // %4
+                           .arg(K4Styles::Colors::TextWhite)          // %5
+                           .arg(K4Styles::Dimensions::BorderWidth)    // %6
+                           .arg(K4Styles::Colors::BorderNormal)       // %7
+                           .arg(K4Styles::Dimensions::BorderRadius)   // %8
+                           .arg(K4Styles::Dimensions::FontSizeButton) // %9
+                           .arg(K4Styles::Colors::HoverTop)           // %10
+                           .arg(K4Styles::Colors::HoverMid1)          // %11
+                           .arg(K4Styles::Colors::HoverMid2)          // %12
+                           .arg(K4Styles::Colors::HoverBottom)        // %13
+                           .arg(K4Styles::Colors::BorderHover)        // %14
+                           .arg(K4Styles::Colors::BorderPressed));    // %15
     return btn;
 }
 
@@ -655,23 +749,22 @@ QWidget *SideControlPanel::createTxFunctionButton(const QString &mainText, const
                 stop:0.6 %2, stop:1 %1);
         }
     )")
-        .arg(K4Styles::Colors::LightGradientTop)      // %1
-        .arg(K4Styles::Colors::LightGradientMid1)     // %2
-        .arg(K4Styles::Colors::LightGradientMid2)     // %3
-        .arg(K4Styles::Colors::LightGradientBottom)   // %4
-        .arg(K4Styles::Colors::TextWhite)             // %5
-        .arg(K4Styles::Dimensions::BorderWidth)       // %6
-        .arg(K4Styles::Colors::BorderPressed)         // %7
-        .arg(K4Styles::Dimensions::BorderRadius)      // %8
-        .arg(K4Styles::Dimensions::FontSizeNormal)    // %9
-        .arg(K4Styles::Colors::BorderSelected));
+                           .arg(K4Styles::Colors::LightGradientTop)    // %1
+                           .arg(K4Styles::Colors::LightGradientMid1)   // %2
+                           .arg(K4Styles::Colors::LightGradientMid2)   // %3
+                           .arg(K4Styles::Colors::LightGradientBottom) // %4
+                           .arg(K4Styles::Colors::TextWhite)           // %5
+                           .arg(K4Styles::Dimensions::BorderWidth)     // %6
+                           .arg(K4Styles::Colors::BorderPressed)       // %7
+                           .arg(K4Styles::Dimensions::BorderRadius)    // %8
+                           .arg(K4Styles::Dimensions::FontSizeNormal)  // %9
+                           .arg(K4Styles::Colors::BorderSelected));
     btnOut = btn;
     layout->addWidget(btn);
 
     // Sub-text label (orange) - add top margin to prevent overlap with button
     auto *subLabel = new QLabel(subText, container);
-    subLabel->setStyleSheet(QString("color: %1; font-size: 8px; margin-top: 4px;")
-                                .arg(K4Styles::Colors::AccentAmber));
+    subLabel->setStyleSheet(QString("color: %1; font-size: 8px; margin-top: 4px;").arg(K4Styles::Colors::AccentAmber));
     subLabel->setAlignment(Qt::AlignCenter);
     subLabel->setFixedHeight(12);
     layout->addWidget(subLabel);
@@ -685,6 +778,19 @@ int SideControlPanel::volume() const {
 
 int SideControlPanel::subVolume() const {
     return m_subVolumeSlider ? m_subVolumeSlider->value() : 100;
+}
+
+void SideControlPanel::updateMonitorLevel(int mode, int level) {
+    // Only update if this is the current mode
+    if (m_monOverlay && m_monOverlay->mode() == mode) {
+        m_monOverlay->setValue(level);
+    }
+}
+
+void SideControlPanel::updateMonitorMode(int mode) {
+    if (m_monOverlay) {
+        m_monOverlay->setMode(mode);
+    }
 }
 
 bool SideControlPanel::eventFilter(QObject *watched, QEvent *event) {

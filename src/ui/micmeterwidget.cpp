@@ -58,8 +58,7 @@ void MicMeterWidget::paintEvent(QPaintEvent *) {
         QRect meterRect(r.left() + 1, r.top() + 1, meterWidth, r.height() - 2);
 
         // Use standard meter gradient
-        QLinearGradient gradient = K4Styles::meterGradient(
-            meterRect.left(), 0, meterRect.right(), 0);
+        QLinearGradient gradient = K4Styles::meterGradient(meterRect.left(), 0, meterRect.right(), 0);
 
         painter.fillRect(meterRect, gradient);
     }

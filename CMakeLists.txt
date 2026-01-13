@@ -16,7 +16,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 # Core Qt components (GuiPrivate handled separately for cross-platform compatibility)
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network Multimedia ShaderTools Gui)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network Multimedia ShaderTools Gui SerialPort)
 
 # GuiPrivate is needed for QRhi access but may not have CMake config on all platforms
 if(APPLE)
@@ -72,6 +72,7 @@ set(SOURCES
     src/audio/audioengine.cpp
     src/audio/opusdecoder.cpp
     src/audio/opusencoder.cpp
+    src/audio/sidetonegenerator.cpp
     src/dsp/panadapter_rhi.cpp
     src/dsp/minipan_rhi.cpp
     src/settings/radiosettings.cpp
@@ -99,7 +100,11 @@ set(SOURCES
     src/ui/notificationwidget.cpp
     src/ui/k4styles.cpp
     src/ui/k4popupbase.cpp
+    src/ui/sidecontroloverlay.cpp
+    src/ui/monoverlay.cpp
+    src/ui/baloverlay.cpp
     src/hardware/kpoddevice.cpp
+    src/hardware/halikeydevice.cpp
 )
 
 set(HEADERS
@@ -111,6 +116,7 @@ set(HEADERS
     src/audio/audioengine.h
     src/audio/opusdecoder.h
     src/audio/opusencoder.h
+    src/audio/sidetonegenerator.h
     src/dsp/panadapter_rhi.h
     src/dsp/minipan_rhi.h
     src/settings/radiosettings.h
@@ -138,7 +144,11 @@ set(HEADERS
     src/ui/notificationwidget.h
     src/ui/k4styles.h
     src/ui/k4popupbase.h
+    src/ui/sidecontroloverlay.h
+    src/ui/monoverlay.h
+    src/ui/baloverlay.h
     src/hardware/kpoddevice.h
+    src/hardware/halikeydevice.h
 )
 
 # On macOS, create an app bundle
@@ -191,6 +201,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Network
     Qt6::Multimedia
     Qt6::Gui
+    Qt6::SerialPort
     ${OPUS_LIBRARIES}
     ${HIDAPI_LIBRARIES}
 )

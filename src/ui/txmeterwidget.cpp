@@ -3,7 +3,6 @@
 #include <QPainter>
 #include <QLinearGradient>
 
-
 TxMeterWidget::TxMeterWidget(QWidget *parent) : QWidget(parent) {
     // 5 meters, each ~18px high with spacing
     setFixedHeight(95);

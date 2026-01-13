@@ -348,26 +348,30 @@ MainWindow::MainWindow(QWidget *parent)
             m_vfoB->frequencyLabel()->setStyleSheet(QString("color: %1; font-size: 32px; font-weight: bold; "
                                                             "font-family: 'JetBrains Mono', 'Courier New', monospace;")
                                                         .arg(K4Styles::Colors::TextWhite));
-            m_modeBLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextWhite));
+            m_modeBLabel->setStyleSheet(
+                QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextWhite));
         } else {
-            m_subLabel->setStyleSheet(QString("background-color: %1;"
-                                              "color: %2;"
-                                              "font-size: 9px;"
-                                              "font-weight: bold;"
-                                              "border-radius: 2px;")
-                                          .arg(K4Styles::Colors::DisabledBackground, K4Styles::Colors::LightGradientTop));
+            m_subLabel->setStyleSheet(
+                QString("background-color: %1;"
+                        "color: %2;"
+                        "font-size: 9px;"
+                        "font-weight: bold;"
+                        "border-radius: 2px;")
+                    .arg(K4Styles::Colors::DisabledBackground, K4Styles::Colors::LightGradientTop));
             // DIV requires SUB - turn off DIV indicator when SUB is off
-            m_divLabel->setStyleSheet(QString("background-color: %1;"
-                                              "color: %2;"
-                                              "font-size: 9px;"
-                                              "font-weight: bold;"
-                                              "border-radius: 2px;")
-                                          .arg(K4Styles::Colors::DisabledBackground, K4Styles::Colors::LightGradientTop));
+            m_divLabel->setStyleSheet(
+                QString("background-color: %1;"
+                        "color: %2;"
+                        "font-size: 9px;"
+                        "font-weight: bold;"
+                        "border-radius: 2px;")
+                    .arg(K4Styles::Colors::DisabledBackground, K4Styles::Colors::LightGradientTop));
             // Dim VFO B frequency and mode to indicate SUB RX is off
             m_vfoB->frequencyLabel()->setStyleSheet(QString("color: %1; font-size: 32px; font-weight: bold; "
                                                             "font-family: 'JetBrains Mono', 'Courier New', monospace;")
                                                         .arg(K4Styles::Colors::InactiveGray));
-            m_modeBLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::InactiveGray));
+            m_modeBLabel->setStyleSheet(
+                QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::InactiveGray));
 
             // Auto-hide mini pan B if VFOs are on different bands (can't have mini pan B without SUB RX)
             checkAndHideMiniPanB();
@@ -387,12 +391,13 @@ MainWindow::MainWindow(QWidget *parent)
                                               "border-radius: 2px;")
                                           .arg(K4Styles::Colors::AgcGreen));
         } else {
-            m_divLabel->setStyleSheet(QString("background-color: %1;"
-                                              "color: %2;"
-                                              "font-size: 9px;"
-                                              "font-weight: bold;"
-                                              "border-radius: 2px;")
-                                          .arg(K4Styles::Colors::DisabledBackground, K4Styles::Colors::LightGradientTop));
+            m_divLabel->setStyleSheet(
+                QString("background-color: %1;"
+                        "color: %2;"
+                        "font-size: 9px;"
+                        "font-weight: bold;"
+                        "border-radius: 2px;")
+                    .arg(K4Styles::Colors::DisabledBackground, K4Styles::Colors::LightGradientTop));
         }
     });
 
@@ -908,17 +913,15 @@ MainWindow::MainWindow(QWidget *parent)
     }
 
     // Update sidetone frequency when CW pitch changes
-    connect(m_radioState, &RadioState::cwPitchChanged, this, [this](int pitchHz) {
-        m_sidetoneGenerator->setFrequency(pitchHz);
-    });
+    connect(m_radioState, &RadioState::cwPitchChanged, this,
+            [this](int pitchHz) { m_sidetoneGenerator->setFrequency(pitchHz); });
 
     // Set initial sidetone volume from RadioSettings (independent of K4's MON level)
     m_sidetoneGenerator->setVolume(RadioSettings::instance()->sidetoneVolume() / 100.0f);
 
     // Update sidetone volume when changed in Options
-    connect(RadioSettings::instance(), &RadioSettings::sidetoneVolumeChanged, this, [this](int value) {
-        m_sidetoneGenerator->setVolume(value / 100.0f);
-    });
+    connect(RadioSettings::instance(), &RadioSettings::sidetoneVolumeChanged, this,
+            [this](int value) { m_sidetoneGenerator->setVolume(value / 100.0f); });
 
     // Set initial keyer speed from radio state if available
     if (m_radioState->keyerSpeed() > 0) {
@@ -926,16 +929,15 @@ MainWindow::MainWindow(QWidget *parent)
     }
 
     // Update sidetone keyer speed when it changes
-    connect(m_radioState, &RadioState::keyerSpeedChanged, this, [this](int wpm) {
-        m_sidetoneGenerator->setKeyerSpeed(wpm);
-    });
+    connect(m_radioState, &RadioState::keyerSpeedChanged, this,
+            [this](int wpm) { m_sidetoneGenerator->setKeyerSpeed(wpm); });
 
     // Connect HaliKey paddle signals - relay paddle state to K4 in real-time
     // Also control local sidetone for immediate audio feedback
     connect(m_halikeyDevice, &HalikeyDevice::ditStateChanged, this, [this](bool pressed) {
         if (pressed) {
             m_tcpClient->sendCAT("KZ.;");
-            m_sidetoneGenerator->startDit();  // Start repeating dit while held
+            m_sidetoneGenerator->startDit(); // Start repeating dit while held
         } else {
             m_sidetoneGenerator->stopElement();
         }
@@ -943,19 +945,15 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_halikeyDevice, &HalikeyDevice::dahStateChanged, this, [this](bool pressed) {
         if (pressed) {
             m_tcpClient->sendCAT("KZ-;");
-            m_sidetoneGenerator->startDah();  // Start repeating dah while held
+            m_sidetoneGenerator->startDah(); // Start repeating dah while held
         } else {
             m_sidetoneGenerator->stopElement();
         }
     });
 
     // Send repeated KZ commands when sidetone repeat timer fires
-    connect(m_sidetoneGenerator, &SidetoneGenerator::ditRepeated, this, [this]() {
-        m_tcpClient->sendCAT("KZ.;");
-    });
-    connect(m_sidetoneGenerator, &SidetoneGenerator::dahRepeated, this, [this]() {
-        m_tcpClient->sendCAT("KZ-;");
-    });
+    connect(m_sidetoneGenerator, &SidetoneGenerator::ditRepeated, this, [this]() { m_tcpClient->sendCAT("KZ.;"); });
+    connect(m_sidetoneGenerator, &SidetoneGenerator::dahRepeated, this, [this]() { m_tcpClient->sendCAT("KZ-;"); });
 
     // Auto-connect HaliKey if enabled and port is saved
     if (RadioSettings::instance()->halikeyEnabled() && !RadioSettings::instance()->halikeyPortName().isEmpty()) {
@@ -1057,8 +1055,8 @@ void MainWindow::setupMenuBar() {
     QAction *optionsAction = new QAction("&Settings...", this);
     optionsAction->setMenuRole(QAction::PreferencesRole); // macOS: moves to app menu as Preferences
     connect(optionsAction, &QAction::triggered, this, [this]() {
-        OptionsDialog dialog(m_radioState, m_kpa1500Client, m_audioEngine, m_kpodDevice, m_catServer,
-                             m_halikeyDevice, this);
+        OptionsDialog dialog(m_radioState, m_kpa1500Client, m_audioEngine, m_kpodDevice, m_catServer, m_halikeyDevice,
+                             this);
         dialog.exec();
     });
     toolsMenu->addAction(optionsAction);
@@ -1541,7 +1539,8 @@ void MainWindow::setupUi() {
     });
     connect(m_sideControlPanel, &SideControlPanel::delayChanged, this, [this](int delta) {
         int currentDelay = m_radioState->delayForCurrentMode();
-        if (currentDelay < 0) currentDelay = 0; // Handle uninitialized
+        if (currentDelay < 0)
+            currentDelay = 0;                                // Handle uninitialized
         int newDelay = qBound(0, currentDelay + delta, 255); // 0-255 = 0.00 to 2.55 seconds
 
         // Optimistic update - update local state immediately
@@ -2116,19 +2115,22 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     // VOX indicator - orange when on, grey when off
     m_voxLabel = new QLabel("VOX", indicatorContainer);
     m_voxLabel->setAlignment(Qt::AlignCenter);
-    m_voxLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
+    m_voxLabel->setStyleSheet(
+        QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
     indicatorLayout->addWidget(m_voxLabel);
 
     // ATU indicator (orange when AUTO, grey when off)
     m_atuLabel = new QLabel("ATU", indicatorContainer);
     m_atuLabel->setAlignment(Qt::AlignCenter);
-    m_atuLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
+    m_atuLabel->setStyleSheet(
+        QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
     indicatorLayout->addWidget(m_atuLabel);
 
     // QSK indicator - white when on, grey when off
     m_qskLabel = new QLabel("QSK", indicatorContainer);
     m_qskLabel->setAlignment(Qt::AlignCenter);
-    m_qskLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
+    m_qskLabel->setStyleSheet(
+        QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
     indicatorLayout->addWidget(m_qskLabel);
 
     indicatorLayout->addStretch();
@@ -2172,14 +2174,14 @@ void MainWindow::setupVfoSection(QWidget *parent) {
                         stop:0.6 %2, stop:1 %1);
                 }
             )")
-                .arg(K4Styles::Colors::LightGradientTop)
-                .arg(K4Styles::Colors::LightGradientMid1)
-                .arg(K4Styles::Colors::LightGradientMid2)
-                .arg(K4Styles::Colors::LightGradientBottom)
-                .arg(K4Styles::Colors::TextWhite)
-                .arg(K4Styles::Colors::BorderPressed)
-                .arg(K4Styles::Dimensions::FontSizeNormal)
-                .arg(K4Styles::Colors::BorderSelected));
+                                   .arg(K4Styles::Colors::LightGradientTop)
+                                   .arg(K4Styles::Colors::LightGradientMid1)
+                                   .arg(K4Styles::Colors::LightGradientMid2)
+                                   .arg(K4Styles::Colors::LightGradientBottom)
+                                   .arg(K4Styles::Colors::TextWhite)
+                                   .arg(K4Styles::Colors::BorderPressed)
+                                   .arg(K4Styles::Dimensions::FontSizeNormal)
+                                   .arg(K4Styles::Colors::BorderSelected));
         } else {
             // Standard dark grey for M1-M4, REC
             btn->setStyleSheet(QString(R"(
@@ -2206,19 +2208,19 @@ void MainWindow::setupVfoSection(QWidget *parent) {
                     border: 1px solid %13;
                 }
             )")
-                .arg(K4Styles::Colors::GradientTop)
-                .arg(K4Styles::Colors::GradientMid1)
-                .arg(K4Styles::Colors::GradientMid2)
-                .arg(K4Styles::Colors::GradientBottom)
-                .arg(K4Styles::Colors::TextWhite)
-                .arg(K4Styles::Colors::BorderNormal)
-                .arg(K4Styles::Dimensions::FontSizeNormal)
-                .arg(K4Styles::Colors::HoverTop)
-                .arg(K4Styles::Colors::HoverMid1)
-                .arg(K4Styles::Colors::HoverMid2)
-                .arg(K4Styles::Colors::HoverBottom)
-                .arg(K4Styles::Colors::BorderHover)
-                .arg(K4Styles::Colors::BorderPressed));
+                                   .arg(K4Styles::Colors::GradientTop)
+                                   .arg(K4Styles::Colors::GradientMid1)
+                                   .arg(K4Styles::Colors::GradientMid2)
+                                   .arg(K4Styles::Colors::GradientBottom)
+                                   .arg(K4Styles::Colors::TextWhite)
+                                   .arg(K4Styles::Colors::BorderNormal)
+                                   .arg(K4Styles::Dimensions::FontSizeNormal)
+                                   .arg(K4Styles::Colors::HoverTop)
+                                   .arg(K4Styles::Colors::HoverMid1)
+                                   .arg(K4Styles::Colors::HoverMid2)
+                                   .arg(K4Styles::Colors::HoverBottom)
+                                   .arg(K4Styles::Colors::BorderHover)
+                                   .arg(K4Styles::Colors::BorderPressed));
         }
         layout->addWidget(btn, 0, Qt::AlignHCenter);
 
@@ -2280,19 +2282,19 @@ void MainWindow::setupVfoSection(QWidget *parent) {
                 border: 1px solid %13;
             }
         )")
-            .arg(K4Styles::Colors::GradientTop)
-            .arg(K4Styles::Colors::GradientMid1)
-            .arg(K4Styles::Colors::GradientMid2)
-            .arg(K4Styles::Colors::GradientBottom)
-            .arg(K4Styles::Colors::TextWhite)
-            .arg(K4Styles::Colors::BorderNormal)
-            .arg(K4Styles::Dimensions::FontSizeNormal)
-            .arg(K4Styles::Colors::HoverTop)
-            .arg(K4Styles::Colors::HoverMid1)
-            .arg(K4Styles::Colors::HoverMid2)
-            .arg(K4Styles::Colors::HoverBottom)
-            .arg(K4Styles::Colors::BorderHover)
-            .arg(K4Styles::Colors::BorderPressed));
+                               .arg(K4Styles::Colors::GradientTop)
+                               .arg(K4Styles::Colors::GradientMid1)
+                               .arg(K4Styles::Colors::GradientMid2)
+                               .arg(K4Styles::Colors::GradientBottom)
+                               .arg(K4Styles::Colors::TextWhite)
+                               .arg(K4Styles::Colors::BorderNormal)
+                               .arg(K4Styles::Dimensions::FontSizeNormal)
+                               .arg(K4Styles::Colors::HoverTop)
+                               .arg(K4Styles::Colors::HoverMid1)
+                               .arg(K4Styles::Colors::HoverMid2)
+                               .arg(K4Styles::Colors::HoverBottom)
+                               .arg(K4Styles::Colors::BorderHover)
+                               .arg(K4Styles::Colors::BorderPressed));
         return btn;
     };
 
@@ -2480,12 +2482,12 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     // Span control buttons - overlay on panadapter (lower right, above freq labels)
     // Note: rgba used intentionally for transparent overlay effect on spectrum
     QString btnStyle = QString("QPushButton { background: rgba(0,0,0,0.6); color: %1; "
-                       "border: 1px solid %2; border-radius: 4px; "
-                       "font-size: %3px; font-weight: bold; min-width: 28px; min-height: 24px; }"
-                       "QPushButton:hover { background: rgba(80,80,80,0.8); }")
-        .arg(K4Styles::Colors::TextWhite)
-        .arg(K4Styles::Colors::InactiveGray)
-        .arg(K4Styles::Dimensions::FontSizePopup);
+                               "border: 1px solid %2; border-radius: 4px; "
+                               "font-size: %3px; font-weight: bold; min-width: 28px; min-height: 24px; }"
+                               "QPushButton:hover { background: rgba(80,80,80,0.8); }")
+                           .arg(K4Styles::Colors::TextWhite)
+                           .arg(K4Styles::Colors::InactiveGray)
+                           .arg(K4Styles::Dimensions::FontSizePopup);
 
     // Main panadapter (A) buttons
     m_spanDownBtn = new QPushButton("-", m_panadapterA);
@@ -2515,12 +2517,12 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
 
     // VFO indicator badges - bottom-left corner of waterfall, tab shape with top-right rounded
     QString vfoIndicatorStyle = QString("QLabel { background: %1; color: black; "
-                                "font-size: %2px; font-weight: bold; "
-                                "border-top-left-radius: 0px; border-top-right-radius: %3px; "
-                                "border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; }")
-        .arg(K4Styles::Colors::OverlayBackground)
-        .arg(K4Styles::Dimensions::FontSizeTitle)
-        .arg(K4Styles::Dimensions::BorderRadiusLarge);
+                                        "font-size: %2px; font-weight: bold; "
+                                        "border-top-left-radius: 0px; border-top-right-radius: %3px; "
+                                        "border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; }")
+                                    .arg(K4Styles::Colors::OverlayBackground)
+                                    .arg(K4Styles::Dimensions::FontSizeTitle)
+                                    .arg(K4Styles::Dimensions::BorderRadiusLarge);
 
     m_vfoIndicatorA = new QLabel("A", m_panadapterA);
     m_vfoIndicatorA->setStyleSheet(vfoIndicatorStyle);
@@ -3112,16 +3114,19 @@ void MainWindow::onVoxChanged(bool enabled) {
         m_voxLabel->setStyleSheet(
             QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
     } else {
-        m_voxLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
+        m_voxLabel->setStyleSheet(
+            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
     }
 }
 
 void MainWindow::onQskEnabledChanged(bool enabled) {
     // QSK indicator: white when enabled, grey when disabled
     if (enabled) {
-        m_qskLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextWhite));
+        m_qskLabel->setStyleSheet(
+            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextWhite));
     } else {
-        m_qskLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
+        m_qskLabel->setStyleSheet(
+            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
     }
 }
 
@@ -3136,7 +3141,8 @@ void MainWindow::onAtuModeChanged(int mode) {
         m_atuLabel->setStyleSheet(
             QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
     } else {
-        m_atuLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
+        m_atuLabel->setStyleSheet(
+            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
     }
 }
 

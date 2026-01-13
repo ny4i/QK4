@@ -7,22 +7,28 @@
 
 // === ToneIODevice Implementation (kept for compatibility) ===
 
-ToneIODevice::ToneIODevice(QObject *parent)
-    : QIODevice(parent)
-{
-}
+ToneIODevice::ToneIODevice(QObject *parent) : QIODevice(parent) {}
 
-void ToneIODevice::setFrequency(int hz) { m_frequency = hz; }
-void ToneIODevice::setVolume(float volume) { m_volume = qBound(0.0f, volume, 1.0f); }
-void ToneIODevice::start() { m_playing = true; m_phase = 0.0; }
-void ToneIODevice::stop() { m_playing = false; }
-qint64 ToneIODevice::readData(char *, qint64) { return 0; }
+void ToneIODevice::setFrequency(int hz) {
+    m_frequency = hz;
+}
+void ToneIODevice::setVolume(float volume) {
+    m_volume = qBound(0.0f, volume, 1.0f);
+}
+void ToneIODevice::start() {
+    m_playing = true;
+    m_phase = 0.0;
+}
+void ToneIODevice::stop() {
+    m_playing = false;
+}
+qint64 ToneIODevice::readData(char *, qint64) {
+    return 0;
+}
 
 // === SidetoneGenerator Implementation ===
 
-SidetoneGenerator::SidetoneGenerator(QObject *parent)
-    : QObject(parent)
-{
+SidetoneGenerator::SidetoneGenerator(QObject *parent) : QObject(parent) {
     initAudio();
 
     // Create repeat timer for continuous keying while paddle is held
@@ -31,15 +37,13 @@ SidetoneGenerator::SidetoneGenerator(QObject *parent)
     connect(m_repeatTimer, &QTimer::timeout, this, &SidetoneGenerator::onRepeatTimer);
 }
 
-SidetoneGenerator::~SidetoneGenerator()
-{
+SidetoneGenerator::~SidetoneGenerator() {
     if (m_audioSink) {
         m_audioSink->stop();
     }
 }
 
-void SidetoneGenerator::initAudio()
-{
+void SidetoneGenerator::initAudio() {
     QAudioFormat format;
     format.setSampleRate(48000);
     format.setChannelCount(1);
@@ -54,7 +58,7 @@ void SidetoneGenerator::initAudio()
     }
 
     m_audioSink = new QAudioSink(device, format, this);
-    m_audioSink->setBufferSize(131072);  // 128KB - handles even 5 WPM dah (720ms = ~69KB)
+    m_audioSink->setBufferSize(131072); // 128KB - handles even 5 WPM dah (720ms = ~69KB)
 
     // Start audio sink immediately and keep it running
     m_pushDevice = m_audioSink->start();
@@ -67,84 +71,73 @@ void SidetoneGenerator::initAudio()
     m_toneDevice = new ToneIODevice(this);
 }
 
-void SidetoneGenerator::setFrequency(int hz)
-{
+void SidetoneGenerator::setFrequency(int hz) {
     m_frequency = hz;
 }
 
-void SidetoneGenerator::setVolume(float volume)
-{
+void SidetoneGenerator::setVolume(float volume) {
     m_volume = volume;
 }
 
-void SidetoneGenerator::setKeyerSpeed(int wpm)
-{
+void SidetoneGenerator::setKeyerSpeed(int wpm) {
     m_keyerWpm = qBound(5, wpm, 60);
     qDebug() << "SidetoneGenerator: Keyer speed set to" << m_keyerWpm << "WPM";
 }
 
-void SidetoneGenerator::startDit()
-{
+void SidetoneGenerator::startDit() {
     m_currentElement = ElementDit;
-    m_repeatTimer->stop();  // Stop any existing repeat timer
+    m_repeatTimer->stop(); // Stop any existing repeat timer
     playElement(ditDurationMs());
 
     // Start repeat timer: element + inter-element space
-    int repeatInterval = ditDurationMs() * 2;  // dit + space
+    int repeatInterval = ditDurationMs() * 2; // dit + space
     m_repeatTimer->start(repeatInterval);
 }
 
-void SidetoneGenerator::startDah()
-{
+void SidetoneGenerator::startDah() {
     m_currentElement = ElementDah;
-    m_repeatTimer->stop();  // Stop any existing repeat timer
+    m_repeatTimer->stop(); // Stop any existing repeat timer
     playElement(dahDurationMs());
 
     // Start repeat timer: element + inter-element space
-    int repeatInterval = dahDurationMs() + ditDurationMs();  // dah + space
+    int repeatInterval = dahDurationMs() + ditDurationMs(); // dah + space
     m_repeatTimer->start(repeatInterval);
 }
 
-void SidetoneGenerator::stopElement()
-{
+void SidetoneGenerator::stopElement() {
     m_currentElement = ElementNone;
     m_repeatTimer->stop();
     // Let current element finish playing naturally - don't reset audio
 }
 
-void SidetoneGenerator::onRepeatTimer()
-{
+void SidetoneGenerator::onRepeatTimer() {
     if (m_currentElement == ElementDit) {
         playElement(ditDurationMs());
-        emit ditRepeated();  // Signal for mainwindow to send KZ.; again
+        emit ditRepeated(); // Signal for mainwindow to send KZ.; again
     } else if (m_currentElement == ElementDah) {
         playElement(dahDurationMs());
-        emit dahRepeated();  // Signal for mainwindow to send KZ-; again
+        emit dahRepeated(); // Signal for mainwindow to send KZ-; again
     }
 }
 
-int SidetoneGenerator::ditDurationMs() const
-{
+int SidetoneGenerator::ditDurationMs() const {
     return 1200 / m_keyerWpm;
 }
 
-int SidetoneGenerator::dahDurationMs() const
-{
+int SidetoneGenerator::dahDurationMs() const {
     return ditDurationMs() * 3;
 }
 
-void SidetoneGenerator::resetAudio()
-{
+void SidetoneGenerator::resetAudio() {
     // Stop and restart audio sink to clear buffer
     if (m_audioSink) {
         m_audioSink->stop();
         m_pushDevice = m_audioSink->start();
     }
-    m_phase = 0.0;  // Reset phase for clean start
+    m_phase = 0.0; // Reset phase for clean start
 }
 
-void SidetoneGenerator::playElement(int durationMs)
-{
+void SidetoneGenerator::playElement(int durationMs) {
     if (!m_pushDevice) {
         // Try to restart audio sink if it stopped
         m_pushDevice = m_audioSink->start();
@@ -156,7 +149,7 @@ void SidetoneGenerator::playElement(int durationMs)
 
     const int sampleRate = 48000;
     int toneSamples = (sampleRate * durationMs) / 1000;
-    int spaceSamples = (sampleRate * ditDurationMs()) / 1000;  // Inter-element space = 1 dit
+    int spaceSamples = (sampleRate * ditDurationMs()) / 1000; // Inter-element space = 1 dit
     int totalSamples = toneSamples + spaceSamples;
 
     // Add short rise/fall time to avoid clicks (3ms each)
@@ -192,8 +185,14 @@ void SidetoneGenerator::playElement(int durationMs)
 }
 
 // Legacy methods
-void SidetoneGenerator::playDit() { startDit(); }
-void SidetoneGenerator::playDah() { startDah(); }
-void SidetoneGenerator::start() { }
-void SidetoneGenerator::stop() { stopElement(); }
-void SidetoneGenerator::pushSamples() { }
+void SidetoneGenerator::playDit() {
+    startDit();
+}
+void SidetoneGenerator::playDah() {
+    startDah();
+}
+void SidetoneGenerator::start() {}
+void SidetoneGenerator::stop() {
+    stopElement();
+}
+void SidetoneGenerator::pushSamples() {}

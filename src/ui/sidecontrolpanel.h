@@ -8,6 +8,8 @@
 
 class DualControlButton;
 class QGridLayout;
+class MonOverlay;
+class BalOverlay;
 
 /**
  * SideControlPanel - Left-side vertical control panel for K4Controller
@@ -65,6 +67,10 @@ public:
     int volume() const;
     int subVolume() const;
 
+    // Monitor level (MON overlay)
+    void updateMonitorLevel(int mode, int level);
+    void updateMonitorMode(int mode);
+
 signals:
     // Icon button signals
     void helpClicked();
@@ -103,6 +109,15 @@ signals:
     void subRfGainChanged(int delta);
     void volumeChanged(int value);    // 0-100 (Main RX / VFO A)
     void subVolumeChanged(int value); // 0-100 (Sub RX / VFO B)
+
+    // SW command signals (MON/NORM/BAL buttons)
+    void swCommandRequested(const QString &command);
+
+    // Monitor level change (ML command)
+    void monLevelChangeRequested(int mode, int level);
+
+    // Balance change (BAL overlay scroll)
+    void balChangeRequested(int delta);
 
 private slots:
     // Group 1: WPM/PWR - handle activation and scrolling
@@ -183,6 +198,15 @@ private:
     QLabel *m_volumeLabel;
     QSlider *m_subVolumeSlider;
     QLabel *m_subVolumeLabel;
+
+    // MON/NORM/BAL buttons (above volume sliders)
+    QPushButton *m_monBtn;
+    QPushButton *m_normBtn;
+    QPushButton *m_balBtn;
+
+    // Overlay widgets
+    MonOverlay *m_monOverlay;
+    BalOverlay *m_balOverlay;
 };
 
 #endif // SIDECONTROLPANEL_H

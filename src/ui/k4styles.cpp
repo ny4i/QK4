@@ -203,4 +203,17 @@ QLinearGradient meterGradient(qreal x1, qreal y1, qreal x2, qreal y2) {
     return gradient;
 }
 
+QString sliderHorizontal(const QString &grooveColor, const QString &handleColor) {
+    return QString("QSlider::groove:horizontal { background: %1; height: %2px; border-radius: %3px; }"
+                   "QSlider::handle:horizontal { background: %4; width: %5px; margin: %6px 0; border-radius: %7px; }"
+                   "QSlider::sub-page:horizontal { background: %4; border-radius: %3px; }")
+        .arg(grooveColor)
+        .arg(Dimensions::SliderGrooveHeight)
+        .arg(Dimensions::SliderBorderRadius)
+        .arg(handleColor)
+        .arg(Dimensions::SliderHandleWidth)
+        .arg(Dimensions::SliderHandleMargin)
+        .arg(Dimensions::SliderHandleRadius);
+}
+
 } // namespace K4Styles

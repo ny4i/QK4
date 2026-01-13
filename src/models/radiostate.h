@@ -200,6 +200,40 @@ public:
     // VFO Link (LN command)
     bool vfoLink() const { return m_vfoLink; }
 
+    // Monitor Level (ML command) - sidetone/speech monitor
+    // mode: 0=CW, 1=AF data, 2=voice
+    int monitorLevelCW() const { return m_monitorLevelCW; }
+    int monitorLevelData() const { return m_monitorLevelData; }
+    int monitorLevelVoice() const { return m_monitorLevelVoice; }
+    int monitorLevelForCurrentMode() const {
+        switch (m_mode) {
+        case CW:
+        case CW_R:
+            return m_monitorLevelCW;
+        case DATA:
+        case DATA_R:
+            return m_monitorLevelData;
+        default: // LSB, USB, AM, FM = Voice modes
+            return m_monitorLevelVoice;
+        }
+    }
+    // Returns the ML mode code (0/1/2) for the current operating mode
+    int monitorModeCode() const {
+        switch (m_mode) {
+        case CW:
+        case CW_R:
+            return 0;
+        case DATA:
+        case DATA_R:
+            return 1;
+        default: // LSB, USB, AM, FM = Voice modes
+            return 2;
+        }
+    }
+
+    // Optimistic setter for monitor level
+    void setMonitorLevel(int mode, int level);
+
     // Returns VOX state for current operating mode
     bool voxForCurrentMode() const {
         switch (m_mode) {
@@ -229,6 +263,33 @@ public:
             return m_qskDelayData;
         default: // LSB, USB, AM, FM = Voice modes
             return m_qskDelayVoice;
+        }
+    }
+
+    // Optimistic setters for QSK/VOX delay (in 10ms increments, 0-255)
+    void setDelayForCurrentMode(int delay) {
+        delay = qBound(0, delay, 255);
+        switch (m_mode) {
+        case CW:
+        case CW_R:
+            if (m_qskDelayCW != delay) {
+                m_qskDelayCW = delay;
+                emit qskDelayChanged(delay);
+            }
+            break;
+        case DATA:
+        case DATA_R:
+            if (m_qskDelayData != delay) {
+                m_qskDelayData = delay;
+                emit qskDelayChanged(delay);
+            }
+            break;
+        default: // LSB, USB, AM, FM = Voice modes
+            if (m_qskDelayVoice != delay) {
+                m_qskDelayVoice = delay;
+                emit qskDelayChanged(delay);
+            }
+            break;
         }
     }
 
@@ -412,10 +473,11 @@ signals:
     void errorNotificationReceived(int errorCode, const QString &message);
 
     // Audio effects and processing
-    void afxModeChanged(int mode);             // FX: 0=off, 1=delay, 2=pitch-map
-    void apfChanged(bool enabled, int width);  // AP: Main RX APF (0=30Hz, 1=50Hz, 2=150Hz)
-    void apfBChanged(bool enabled, int width); // AP$: Sub RX APF (0=30Hz, 1=50Hz, 2=150Hz)
-    void vfoLinkChanged(bool linked);          // LN: VFOs linked
+    void afxModeChanged(int mode);                 // FX: 0=off, 1=delay, 2=pitch-map
+    void apfChanged(bool enabled, int width);      // AP: Main RX APF (0=30Hz, 1=50Hz, 2=150Hz)
+    void apfBChanged(bool enabled, int width);     // AP$: Sub RX APF (0=30Hz, 1=50Hz, 2=150Hz)
+    void vfoLinkChanged(bool linked);              // LN: VFOs linked
+    void monitorLevelChanged(int mode, int level); // ML: Monitor level (0=CW, 1=Data, 2=Voice)
 
     void stateUpdated();
 
@@ -549,6 +611,11 @@ private:
 
     // VFO Link (LN command)
     bool m_vfoLink = false;
+
+    // Monitor Level (ML command) - sidetone/speech monitor (0-100)
+    int m_monitorLevelCW = -1;    // CW sidetone level
+    int m_monitorLevelData = -1;  // Data monitor level
+    int m_monitorLevelVoice = -1; // Voice monitor level
 
     // Panadapter REF level (Main)
     int m_refLevel = -110; // Default -110 dBm

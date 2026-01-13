@@ -96,8 +96,10 @@ private:
             // Below S9: calculate S-unit (S1-S9)
             float sUnits = 9.0f + (dbm - s9Dbm) / dbPerSUnit;
             int sValue = static_cast<int>(std::round(sUnits));
-            if (sValue < 1) sValue = 1;
-            if (sValue > 9) sValue = 9;
+            if (sValue < 1)
+                sValue = 1;
+            if (sValue > 9)
+                sValue = 9;
             return QString("S%1").arg(sValue);
         }
     }

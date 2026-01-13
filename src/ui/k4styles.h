@@ -56,6 +56,15 @@ QString menuBarButtonActive();
  */
 QString menuBarButtonSmall();
 
+/**
+ * @brief Standard horizontal slider stylesheet.
+ * Amber handle on dark groove, uses Dimensions::Slider* constants.
+ *
+ * @param grooveColor Background color for the groove
+ * @param handleColor Color for the handle and filled portion
+ */
+QString sliderHorizontal(const QString &grooveColor, const QString &handleColor);
+
 // =============================================================================
 // Common Style Constants
 // =============================================================================
@@ -93,8 +102,8 @@ constexpr const char *MeterOrangeRed = "#FF3300";
 constexpr const char *MeterRed = "#FF0000";
 
 // Id Meter Colors (PA drain current - maroon theme)
-constexpr const char *MeterIdDark = "#8B0000";     // Dark red/maroon
-constexpr const char *MeterIdLight = "#CD5C5C";   // Lighter red highlight
+constexpr const char *MeterIdDark = "#8B0000";  // Dark red/maroon
+constexpr const char *MeterIdLight = "#CD5C5C"; // Lighter red highlight
 
 // Text Colors
 constexpr const char *TextWhite = "#FFFFFF";
@@ -107,18 +116,18 @@ constexpr const char *InactiveGray = "#666666";
 constexpr const char *OverlayBackground = "#707070"; // VFO indicator badges
 
 // Overlay Panel Colors (Menu, Macros, and similar full-screen overlays)
-constexpr const char *OverlayContentBg = "#18181C";         // Main content area background
-constexpr const char *OverlayHeaderBg = "#222228";          // Header bar + nav panel background
-constexpr const char *OverlayColumnHeaderBg = "#1E1E24";    // Column header background
-constexpr const char *OverlayItemBg = "#19191E";            // Unselected item row background
-constexpr const char *OverlayNavButton = "#3A3A45";         // Nav button normal state
-constexpr const char *OverlayNavButtonPressed = "#505060";  // Nav button pressed state
-constexpr const char *OverlayDivider = "#28282D";           // Divider lines between items
-constexpr const char *OverlayDividerLight = "#3C3C41";      // Lighter divider (demarcation)
+constexpr const char *OverlayContentBg = "#18181C";        // Main content area background
+constexpr const char *OverlayHeaderBg = "#222228";         // Header bar + nav panel background
+constexpr const char *OverlayColumnHeaderBg = "#1E1E24";   // Column header background
+constexpr const char *OverlayItemBg = "#19191E";           // Unselected item row background
+constexpr const char *OverlayNavButton = "#3A3A45";        // Nav button normal state
+constexpr const char *OverlayNavButtonPressed = "#505060"; // Nav button pressed state
+constexpr const char *OverlayDivider = "#28282D";          // Divider lines between items
+constexpr const char *OverlayDividerLight = "#3C3C41";     // Lighter divider (demarcation)
 
 // Selection Highlighting (K4-style dual panel for menu items)
-constexpr const char *SelectionLight = "#DCDCDC";           // Light panel (selected zone)
-constexpr const char *SelectionDark = "#505055";            // Dark panel (value zone)
+constexpr const char *SelectionLight = "#DCDCDC"; // Light panel (selected zone)
+constexpr const char *SelectionDark = "#505055";  // Dark panel (value zone)
 
 // =============================================================================
 // Button Gradient Colors
@@ -193,15 +202,15 @@ constexpr int PopupContentMargin = 12;
 // =============================================================================
 // Common UI Heights
 // =============================================================================
-constexpr int SeparatorHeight = 1;  // Horizontal/vertical separator lines
-constexpr int MenuItemHeight = 40;  // Menu overlay items, frequency labels
+constexpr int SeparatorHeight = 1; // Horizontal/vertical separator lines
+constexpr int MenuItemHeight = 40; // Menu overlay items, frequency labels
 
 // =============================================================================
 // Common UI Widths
 // =============================================================================
-constexpr int FormLabelWidth = 80;  // Form field labels in dialogs
-constexpr int VfoSquareSize = 45;   // VFO A/B indicator squares and mode labels
-constexpr int NavButtonWidth = 54;  // Navigation buttons in overlays
+constexpr int FormLabelWidth = 80; // Form field labels in dialogs
+constexpr int VfoSquareSize = 45;  // VFO A/B indicator squares and mode labels
+constexpr int NavButtonWidth = 54; // Navigation buttons in overlays
 
 // =============================================================================
 // Font Sizes (in points) - use with QFont::setPointSize()
@@ -215,6 +224,16 @@ constexpr int FontSizeLarge = 11;  // Feature labels, primary labels
 constexpr int FontSizeButton = 12; // Button text, value displays
 constexpr int FontSizePopup = 14;  // Notifications, popup titles
 constexpr int FontSizeTitle = 16;  // Large control buttons (+/-)
+
+// =============================================================================
+// Slider Dimensions
+// =============================================================================
+constexpr int SliderGrooveHeight = 6;     // Horizontal slider groove height
+constexpr int SliderHandleWidth = 16;     // Slider handle width
+constexpr int SliderHandleMargin = -5;    // Vertical margin for handle positioning
+constexpr int SliderBorderRadius = 3;     // Groove border radius
+constexpr int SliderHandleRadius = 8;     // Handle border radius (half of width)
+constexpr int SliderValueLabelWidth = 40; // Width for percentage value labels
 } // namespace Dimensions
 
 // =============================================================================

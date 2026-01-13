@@ -110,6 +110,33 @@ void RadioState::parseCATCommand(const QString &command) {
             emit micGainChanged(m_micGain);
         }
     }
+    // Monitor Level (ML mode 0-2, level 0-100)
+    // Format: MLmnnn where m=mode (0=CW, 1=Data, 2=Voice), nnn=000-100
+    else if (cmd.startsWith("ML") && cmd.length() >= 5) {
+        bool ok;
+        int mode = cmd.mid(2, 1).toInt(&ok);
+        if (ok && mode >= 0 && mode <= 2) {
+            int level = cmd.mid(3).toInt(&ok);
+            if (ok && level >= 0 && level <= 100) {
+                int *target = nullptr;
+                switch (mode) {
+                case 0:
+                    target = &m_monitorLevelCW;
+                    break;
+                case 1:
+                    target = &m_monitorLevelData;
+                    break;
+                case 2:
+                    target = &m_monitorLevelVoice;
+                    break;
+                }
+                if (target && *target != level) {
+                    *target = level;
+                    emit monitorLevelChanged(mode, level);
+                }
+            }
+        }
+    }
     // Speech Compression (CP 0-30) - SSB modes only
     else if (cmd.startsWith("CP") && cmd.length() > 2) {
         bool ok;
@@ -1319,6 +1346,28 @@ void RadioState::setCompression(int level) {
     if (m_compression != level) {
         m_compression = level;
         emit compressionChanged(m_compression);
+    }
+}
+
+void RadioState::setMonitorLevel(int mode, int level) {
+    level = qBound(0, level, 100);
+    int *target = nullptr;
+    switch (mode) {
+    case 0:
+        target = &m_monitorLevelCW;
+        break;
+    case 1:
+        target = &m_monitorLevelData;
+        break;
+    case 2:
+        target = &m_monitorLevelVoice;
+        break;
+    default:
+        return;
+    }
+    if (*target != level) {
+        *target = level;
+        emit monitorLevelChanged(mode, level);
     }
 }
 

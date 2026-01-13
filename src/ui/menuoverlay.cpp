@@ -18,8 +18,8 @@ MenuItemWidget::MenuItemWidget(MenuItem *item, QWidget *parent) : QWidget(parent
 
     // Name label
     m_nameLabel = new QLabel(item->name, this);
-    m_nameLabel->setStyleSheet(QString("color: %1; font-size: 14px;")
-                                   .arg(K4Styles::Colors::TextGray)); // Initial unselected state
+    m_nameLabel->setStyleSheet(
+        QString("color: %1; font-size: 14px;").arg(K4Styles::Colors::TextGray)); // Initial unselected state
     layout->addWidget(m_nameLabel, 1);
 
     // Lock icon (for read-only items)
@@ -54,22 +54,22 @@ void MenuItemWidget::updateLabelColors() {
         if (m_editing) {
             // EDITING MODE: name on grey, value on off-white
             m_nameLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
-                .arg(K4Styles::Colors::SelectionLight)
-                .arg(K4Styles::Dimensions::FontSizePopup)); // Light text on grey
+                                           .arg(K4Styles::Colors::SelectionLight)
+                                           .arg(K4Styles::Dimensions::FontSizePopup)); // Light text on grey
             m_valueLabel->setStyleSheet(QString("color: %1; font-size: 14px; font-weight: bold;")
                                             .arg(K4Styles::Colors::TextDark)); // Dark text on off-white
         } else {
             // BROWSE MODE: name on off-white, value on grey
-            m_nameLabel->setStyleSheet(QString("color: %1; font-size: 14px;")
-                                           .arg(K4Styles::Colors::TextDark)); // Dark text on off-white
+            m_nameLabel->setStyleSheet(
+                QString("color: %1; font-size: 14px;").arg(K4Styles::Colors::TextDark)); // Dark text on off-white
             m_valueLabel->setStyleSheet(QString("color: %1; font-size: 14px; font-weight: bold;")
                                             .arg(K4Styles::Colors::TextWhite)); // White text on grey
         }
     } else {
         // Unselected: grey text on dark background
         m_nameLabel->setStyleSheet(QString("color: %1; font-size: 14px;").arg(K4Styles::Colors::TextGray));
-        m_valueLabel->setStyleSheet(QString("color: %1; font-size: 14px; font-weight: bold;")
-                                        .arg(K4Styles::Colors::TextFaded));
+        m_valueLabel->setStyleSheet(
+            QString("color: %1; font-size: 14px; font-weight: bold;").arg(K4Styles::Colors::TextFaded));
     }
 }
 
@@ -152,7 +152,7 @@ void MenuOverlayWidget::setupUi() {
     // Category header
     m_categoryLabel = new QLabel("MENU", m_contentWidget);
     m_categoryLabel->setStyleSheet(QString("background-color: %1; color: %2; font-size: %3px; "
-                                   "font-weight: bold; padding: 8px 15px;")
+                                           "font-weight: bold; padding: 8px 15px;")
                                        .arg(K4Styles::Colors::OverlayHeaderBg)
                                        .arg(K4Styles::Colors::InactiveGray)
                                        .arg(K4Styles::Dimensions::FontSizeButton));
@@ -164,9 +164,9 @@ void MenuOverlayWidget::setupUi() {
     m_scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     m_scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     m_scrollArea->setStyleSheet(QString("QScrollArea { border: none; background: transparent; }"
-                                "QScrollBar:vertical { background: %1; width: 8px; }"
-                                "QScrollBar::handle:vertical { background: %2; border-radius: 4px; }"
-                                "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }")
+                                        "QScrollBar:vertical { background: %1; width: 8px; }"
+                                        "QScrollBar::handle:vertical { background: %2; border-radius: 4px; }"
+                                        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }")
                                     .arg(K4Styles::Colors::OverlayContentBg)
                                     .arg(K4Styles::Colors::OverlayNavButton));
 
@@ -196,8 +196,8 @@ void MenuOverlayWidget::setupUi() {
     navOuterLayout->setSpacing(8);
 
     QString buttonStyle = QString("QPushButton { background-color: %1; color: %2; border: none; "
-                          "border-radius: %3px; font-size: %4px; font-weight: bold; }"
-                          "QPushButton:pressed { background-color: %5; }")
+                                  "border-radius: %3px; font-size: %4px; font-weight: bold; }"
+                                  "QPushButton:pressed { background-color: %5; }")
                               .arg(K4Styles::Colors::OverlayNavButton)
                               .arg(K4Styles::Colors::TextWhite)
                               .arg(K4Styles::Dimensions::BorderRadius)
@@ -230,8 +230,8 @@ void MenuOverlayWidget::setupUi() {
     m_normBtn = new QPushButton("NORM", navPanel);
     m_normBtn->setFixedSize(K4Styles::Dimensions::NavButtonWidth, K4Styles::Dimensions::PopupButtonHeight);
     m_normBtn->setStyleSheet(QString("QPushButton { background-color: %1; color: %2; border: none; "
-                             "border-radius: %3px; font-size: %4px; font-weight: bold; }"
-                             "QPushButton:pressed { background-color: %5; }")
+                                     "border-radius: %3px; font-size: %4px; font-weight: bold; }"
+                                     "QPushButton:pressed { background-color: %5; }")
                                  .arg(K4Styles::Colors::OverlayNavButton)
                                  .arg(K4Styles::Colors::TextGray)
                                  .arg(K4Styles::Dimensions::BorderRadius)
@@ -243,19 +243,19 @@ void MenuOverlayWidget::setupUi() {
     m_backBtn = new QPushButton("\xE2\x86\xA9", navPanel); // ↩
     m_backBtn->setFixedSize(K4Styles::Dimensions::NavButtonWidth, K4Styles::Dimensions::PopupButtonHeight);
     m_backBtn->setStyleSheet(QString("QPushButton { background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-                             "stop:0 %1, stop:0.4 %2, stop:0.6 %3, stop:1 %4);"
-                             "color: %5; border: %6px solid %7; border-radius: %8px; "
-                             "font-size: %9px; font-weight: bold; }"
-                             "QPushButton:pressed { background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-                             "stop:0 %4, stop:0.4 %3, stop:0.6 %2, stop:1 %1); }")
-                                 .arg(K4Styles::Colors::GradientTop)        // %1
-                                 .arg(K4Styles::Colors::GradientMid1)       // %2
-                                 .arg(K4Styles::Colors::GradientMid2)       // %3
-                                 .arg(K4Styles::Colors::GradientBottom)     // %4
-                                 .arg(K4Styles::Colors::TextWhite)          // %5
-                                 .arg(K4Styles::Dimensions::BorderWidth)    // %6
-                                 .arg(K4Styles::Colors::BorderNormal)       // %7
-                                 .arg(K4Styles::Dimensions::BorderRadius)   // %8
+                                     "stop:0 %1, stop:0.4 %2, stop:0.6 %3, stop:1 %4);"
+                                     "color: %5; border: %6px solid %7; border-radius: %8px; "
+                                     "font-size: %9px; font-weight: bold; }"
+                                     "QPushButton:pressed { background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+                                     "stop:0 %4, stop:0.4 %3, stop:0.6 %2, stop:1 %1); }")
+                                 .arg(K4Styles::Colors::GradientTop)      // %1
+                                 .arg(K4Styles::Colors::GradientMid1)     // %2
+                                 .arg(K4Styles::Colors::GradientMid2)     // %3
+                                 .arg(K4Styles::Colors::GradientBottom)   // %4
+                                 .arg(K4Styles::Colors::TextWhite)        // %5
+                                 .arg(K4Styles::Dimensions::BorderWidth)  // %6
+                                 .arg(K4Styles::Colors::BorderNormal)     // %7
+                                 .arg(K4Styles::Dimensions::BorderRadius) // %8
                                  .arg(K4Styles::Dimensions::FontSizeTitle));
     connect(m_backBtn, &QPushButton::clicked, this, &MenuOverlayWidget::closeOverlay);
     row3->addWidget(m_backBtn);

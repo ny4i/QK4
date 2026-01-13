@@ -169,16 +169,16 @@ QWidget *RightSidePanel::createFunctionButton(const QString &mainText, const QSt
                     stop:0.6 %2, stop:1 %1);
             }
         )")
-            .arg(K4Styles::Colors::LightGradientTop)      // %1
-            .arg(K4Styles::Colors::LightGradientMid1)     // %2
-            .arg(K4Styles::Colors::LightGradientMid2)     // %3
-            .arg(K4Styles::Colors::LightGradientBottom)   // %4
-            .arg(K4Styles::Colors::TextWhite)             // %5
-            .arg(K4Styles::Dimensions::BorderWidth)       // %6
-            .arg(K4Styles::Colors::BorderPressed)         // %7
-            .arg(K4Styles::Dimensions::BorderRadius)      // %8
-            .arg(K4Styles::Dimensions::FontSizeNormal)    // %9
-            .arg(K4Styles::Colors::BorderSelected));      // %10
+                               .arg(K4Styles::Colors::LightGradientTop)    // %1
+                               .arg(K4Styles::Colors::LightGradientMid1)   // %2
+                               .arg(K4Styles::Colors::LightGradientMid2)   // %3
+                               .arg(K4Styles::Colors::LightGradientBottom) // %4
+                               .arg(K4Styles::Colors::TextWhite)           // %5
+                               .arg(K4Styles::Dimensions::BorderWidth)     // %6
+                               .arg(K4Styles::Colors::BorderPressed)       // %7
+                               .arg(K4Styles::Dimensions::BorderRadius)    // %8
+                               .arg(K4Styles::Dimensions::FontSizeNormal)  // %9
+                               .arg(K4Styles::Colors::BorderSelected));    // %10
     } else {
         // Standard dark grey gradient
         btn->setStyleSheet(QString(R"(
@@ -206,21 +206,21 @@ QWidget *RightSidePanel::createFunctionButton(const QString &mainText, const QSt
                 border: %6px solid %15;
             }
         )")
-            .arg(K4Styles::Colors::GradientTop)           // %1
-            .arg(K4Styles::Colors::GradientMid1)          // %2
-            .arg(K4Styles::Colors::GradientMid2)          // %3
-            .arg(K4Styles::Colors::GradientBottom)        // %4
-            .arg(K4Styles::Colors::TextWhite)             // %5
-            .arg(K4Styles::Dimensions::BorderWidth)       // %6
-            .arg(K4Styles::Colors::BorderNormal)          // %7
-            .arg(K4Styles::Dimensions::BorderRadius)      // %8
-            .arg(K4Styles::Dimensions::FontSizeNormal)    // %9
-            .arg(K4Styles::Colors::HoverTop)              // %10
-            .arg(K4Styles::Colors::HoverMid1)             // %11
-            .arg(K4Styles::Colors::HoverMid2)             // %12
-            .arg(K4Styles::Colors::HoverBottom)           // %13
-            .arg(K4Styles::Colors::BorderHover)           // %14
-            .arg(K4Styles::Colors::BorderPressed));       // %15
+                               .arg(K4Styles::Colors::GradientTop)        // %1
+                               .arg(K4Styles::Colors::GradientMid1)       // %2
+                               .arg(K4Styles::Colors::GradientMid2)       // %3
+                               .arg(K4Styles::Colors::GradientBottom)     // %4
+                               .arg(K4Styles::Colors::TextWhite)          // %5
+                               .arg(K4Styles::Dimensions::BorderWidth)    // %6
+                               .arg(K4Styles::Colors::BorderNormal)       // %7
+                               .arg(K4Styles::Dimensions::BorderRadius)   // %8
+                               .arg(K4Styles::Dimensions::FontSizeNormal) // %9
+                               .arg(K4Styles::Colors::HoverTop)           // %10
+                               .arg(K4Styles::Colors::HoverMid1)          // %11
+                               .arg(K4Styles::Colors::HoverMid2)          // %12
+                               .arg(K4Styles::Colors::HoverBottom)        // %13
+                               .arg(K4Styles::Colors::BorderHover)        // %14
+                               .arg(K4Styles::Colors::BorderPressed));    // %15
     }
     btnOut = btn;
     layout->addWidget(btn);
@@ -228,8 +228,8 @@ QWidget *RightSidePanel::createFunctionButton(const QString &mainText, const QSt
     // Sub-text label (orange) - add top margin to prevent overlap with button
     auto *subLabel = new QLabel(subText, container);
     subLabel->setStyleSheet(QString("color: %1; font-size: %2px; margin-top: 4px;")
-        .arg(K4Styles::Colors::AccentAmber)
-        .arg(K4Styles::Dimensions::FontSizeSmall));
+                                .arg(K4Styles::Colors::AccentAmber)
+                                .arg(K4Styles::Dimensions::FontSizeSmall));
     subLabel->setAlignment(Qt::AlignCenter);
     subLabel->setFixedHeight(12);
     layout->addWidget(subLabel);

@@ -96,9 +96,8 @@ void VFOWidget::setupUi() {
     featuresRow->setSpacing(4); // Comfortable spacing for all indicators
 
     // Feature indicator label style
-    const QString featureLabelStyle = QString("color: %1; font-size: %2px;")
-        .arg(K4Styles::Colors::TextGray)
-        .arg(K4Styles::Dimensions::FontSizeLarge);
+    const QString featureLabelStyle =
+        QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextGray).arg(K4Styles::Dimensions::FontSizeLarge);
 
     m_agcLabel = new QLabel("AGC-S", featuresContainer);
     m_agcLabel->setStyleSheet(featureLabelStyle);
@@ -359,7 +358,8 @@ void VFOWidget::showMiniPan() {
             m_miniPan->setSpectrumColor(m_pendingSpectrumColor);
         } else {
             // Default color based on VFO type
-            m_miniPan->setSpectrumColor(QColor(m_type == VFO_A ? K4Styles::Colors::VfoACyan : K4Styles::Colors::VfoBGreen));
+            m_miniPan->setSpectrumColor(
+                QColor(m_type == VFO_A ? K4Styles::Colors::VfoACyan : K4Styles::Colors::VfoBGreen));
         }
         if (m_pendingPassbandColor.isValid()) {
             m_miniPan->setPassbandColor(m_pendingPassbandColor);

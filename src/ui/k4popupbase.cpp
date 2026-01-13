@@ -88,7 +88,7 @@ void K4PopupBase::showAboveWidget(QWidget *referenceWidget) {
     // Position the popup - move after show to override Qt's popup positioning
     move(popupX, popupY);
     show();
-    move(popupX, popupY);  // Move again after show in case Qt repositioned it
+    move(popupX, popupY); // Move again after show in case Qt repositioned it
     raise();
     setFocus();
 }
@@ -125,8 +125,7 @@ void K4PopupBase::paintEvent(QPaintEvent *event) {
     // Main popup background
     painter.setBrush(QColor(K4Styles::Colors::PopupBackground));
     painter.setPen(Qt::NoPen);
-    painter.drawRoundedRect(cr, K4Styles::Dimensions::BorderRadiusLarge,
-                            K4Styles::Dimensions::BorderRadiusLarge);
+    painter.drawRoundedRect(cr, K4Styles::Dimensions::BorderRadiusLarge, K4Styles::Dimensions::BorderRadiusLarge);
 
     // Allow subclass to draw additional content
     paintContent(painter, cr);

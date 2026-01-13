@@ -29,20 +29,24 @@ MacroItemWidget::MacroItemWidget(const QString &functionId, const QString &displ
 
     // Column 1: Function ID (read-only) - 33.3% width
     m_functionLabel = new QLabel(displayName, this);
-    m_functionLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextGray).arg(K4Styles::Dimensions::FontSizePopup));
+    m_functionLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
+                                       .arg(K4Styles::Colors::TextGray)
+                                       .arg(K4Styles::Dimensions::FontSizePopup));
     layout->addWidget(m_functionLabel, 1); // stretch factor 1
 
     // Column 2: Label (editable) - 33.3% width, centered
     m_labelDisplay = new QLabel("Unused", this);
     m_labelDisplay->setAlignment(Qt::AlignCenter);
-    m_labelDisplay->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextFaded).arg(K4Styles::Dimensions::FontSizePopup));
+    m_labelDisplay->setStyleSheet(QString("color: %1; font-size: %2px;")
+                                      .arg(K4Styles::Colors::TextFaded)
+                                      .arg(K4Styles::Dimensions::FontSizePopup));
     layout->addWidget(m_labelDisplay, 1); // stretch factor 1
 
     m_labelEdit = new QLineEdit(this);
     m_labelEdit->setMaxLength(12);
     m_labelEdit->setAlignment(Qt::AlignCenter);
     m_labelEdit->setStyleSheet(QString("QLineEdit { background: %1; color: %2; border: 1px solid %3; "
-                               "border-radius: 3px; padding: 2px 5px; font-size: %4px; }")
+                                       "border-radius: 3px; padding: 2px 5px; font-size: %4px; }")
                                    .arg(K4Styles::Colors::GradientMid1)
                                    .arg(K4Styles::Colors::TextWhite)
                                    .arg(K4Styles::Colors::InactiveGray)
@@ -55,19 +59,21 @@ MacroItemWidget::MacroItemWidget(const QString &functionId, const QString &displ
     m_commandDisplay = new QLabel("", this);
     m_commandDisplay->setStyleSheet(
         QString("color: %1; font-size: %2px; font-family: 'JetBrains Mono', 'Menlo', 'Consolas', monospace;")
-            .arg(K4Styles::Colors::TextFaded).arg(K4Styles::Dimensions::FontSizePopup));
+            .arg(K4Styles::Colors::TextFaded)
+            .arg(K4Styles::Dimensions::FontSizePopup));
     m_commandDisplay->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     layout->addWidget(m_commandDisplay, 1); // stretch factor 1
 
     m_commandEdit = new QLineEdit(this);
     m_commandEdit->setMaxLength(64);
-    m_commandEdit->setStyleSheet(QString("QLineEdit { background: %1; color: %2; border: 1px solid %3; "
-                                 "border-radius: 3px; padding: 2px 5px; font-size: %4px; font-family: 'JetBrains "
-                                 "Mono', 'Menlo', 'Consolas', monospace; }")
-                                     .arg(K4Styles::Colors::GradientMid1)
-                                     .arg(K4Styles::Colors::TextWhite)
-                                     .arg(K4Styles::Colors::InactiveGray)
-                                     .arg(K4Styles::Dimensions::FontSizePopup));
+    m_commandEdit->setStyleSheet(
+        QString("QLineEdit { background: %1; color: %2; border: 1px solid %3; "
+                "border-radius: 3px; padding: 2px 5px; font-size: %4px; font-family: 'JetBrains "
+                "Mono', 'Menlo', 'Consolas', monospace; }")
+            .arg(K4Styles::Colors::GradientMid1)
+            .arg(K4Styles::Colors::TextWhite)
+            .arg(K4Styles::Colors::InactiveGray)
+            .arg(K4Styles::Dimensions::FontSizePopup));
     m_commandEdit->hide();
     connect(m_commandEdit, &QLineEdit::editingFinished, this, &MacroItemWidget::finishEditing);
     layout->addWidget(m_commandEdit, 1); // stretch factor 1
@@ -98,15 +104,18 @@ void MacroItemWidget::updateDisplay() {
     if (m_command.isEmpty()) {
         m_labelDisplay->setText("Unused");
         m_labelDisplay->setStyleSheet(QString("color: %1; font-size: %2px; font-style: italic;")
-                                          .arg(K4Styles::Colors::InactiveGray).arg(K4Styles::Dimensions::FontSizePopup));
+                                          .arg(K4Styles::Colors::InactiveGray)
+                                          .arg(K4Styles::Dimensions::FontSizePopup));
     } else if (m_label.isEmpty()) {
         m_labelDisplay->setText("Mapped");
         m_labelDisplay->setStyleSheet(QString("color: %1; font-size: %2px;")
-                                          .arg(K4Styles::Colors::AccentAmber).arg(K4Styles::Dimensions::FontSizePopup));
+                                          .arg(K4Styles::Colors::AccentAmber)
+                                          .arg(K4Styles::Dimensions::FontSizePopup));
     } else {
         m_labelDisplay->setText(m_label);
         m_labelDisplay->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
-                                          .arg(K4Styles::Colors::AccentAmber).arg(K4Styles::Dimensions::FontSizePopup));
+                                          .arg(K4Styles::Colors::AccentAmber)
+                                          .arg(K4Styles::Dimensions::FontSizePopup));
     }
 
     // Show command
@@ -120,14 +129,20 @@ void MacroItemWidget::setSelected(bool selected) {
     if (selected) {
         // White text on grey background
         m_functionLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
-                                           .arg(K4Styles::Colors::TextWhite).arg(K4Styles::Dimensions::FontSizePopup));
-        m_labelDisplay->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextWhite).arg(K4Styles::Dimensions::FontSizePopup));
+                                           .arg(K4Styles::Colors::TextWhite)
+                                           .arg(K4Styles::Dimensions::FontSizePopup));
+        m_labelDisplay->setStyleSheet(QString("color: %1; font-size: %2px;")
+                                          .arg(K4Styles::Colors::TextWhite)
+                                          .arg(K4Styles::Dimensions::FontSizePopup));
         m_commandDisplay->setStyleSheet(
             QString("color: %1; font-size: %2px; font-family: 'JetBrains Mono', 'Menlo', 'Consolas', monospace;")
-                .arg(K4Styles::Colors::TextWhite).arg(K4Styles::Dimensions::FontSizePopup));
+                .arg(K4Styles::Colors::TextWhite)
+                .arg(K4Styles::Dimensions::FontSizePopup));
     } else {
         // Grey text on dark background
-        m_functionLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextGray).arg(K4Styles::Dimensions::FontSizePopup));
+        m_functionLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
+                                           .arg(K4Styles::Colors::TextGray)
+                                           .arg(K4Styles::Dimensions::FontSizePopup));
         updateDisplay(); // Reset label/command colors based on content
     }
 
@@ -231,7 +246,7 @@ void MacroDialog::setupUi() {
     // Header
     m_headerLabel = new QLabel("MACROS", m_contentWidget);
     m_headerLabel->setStyleSheet(QString("background-color: %1; color: %2; font-size: %3px; "
-                                 "font-weight: bold; padding: 8px 15px;")
+                                         "font-weight: bold; padding: 8px 15px;")
                                      .arg(K4Styles::Colors::OverlayHeaderBg)
                                      .arg(K4Styles::Colors::InactiveGray)
                                      .arg(K4Styles::Dimensions::FontSizeButton));
@@ -271,9 +286,9 @@ void MacroDialog::setupUi() {
     m_scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     m_scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     m_scrollArea->setStyleSheet(QString("QScrollArea { border: none; background: transparent; }"
-                                "QScrollBar:vertical { background: %1; width: 8px; }"
-                                "QScrollBar::handle:vertical { background: %2; border-radius: 4px; }"
-                                "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }")
+                                        "QScrollBar:vertical { background: %1; width: 8px; }"
+                                        "QScrollBar::handle:vertical { background: %2; border-radius: 4px; }"
+                                        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }")
                                     .arg(K4Styles::Colors::OverlayContentBg)
                                     .arg(K4Styles::Colors::OverlayNavButton));
 
@@ -303,8 +318,8 @@ void MacroDialog::setupUi() {
     navOuterLayout->setSpacing(8);
 
     QString buttonStyle = QString("QPushButton { background-color: %1; color: %2; border: none; "
-                          "border-radius: %3px; font-size: %4px; font-weight: bold; }"
-                          "QPushButton:pressed { background-color: %5; }")
+                                  "border-radius: %3px; font-size: %4px; font-weight: bold; }"
+                                  "QPushButton:pressed { background-color: %5; }")
                               .arg(K4Styles::Colors::OverlayNavButton)
                               .arg(K4Styles::Colors::TextWhite)
                               .arg(K4Styles::Dimensions::BorderRadius)
@@ -337,8 +352,8 @@ void MacroDialog::setupUi() {
     m_editBtn = new QPushButton("EDIT", navPanel);
     m_editBtn->setFixedSize(K4Styles::Dimensions::NavButtonWidth, K4Styles::Dimensions::PopupButtonHeight);
     m_editBtn->setStyleSheet(QString("QPushButton { background-color: %1; color: %2; border: none; "
-                             "border-radius: %3px; font-size: %4px; font-weight: bold; }"
-                             "QPushButton:pressed { background-color: %5; }")
+                                     "border-radius: %3px; font-size: %4px; font-weight: bold; }"
+                                     "QPushButton:pressed { background-color: %5; }")
                                  .arg(K4Styles::Colors::OverlayNavButton)
                                  .arg(K4Styles::Colors::TextGray)
                                  .arg(K4Styles::Dimensions::BorderRadius)
@@ -350,19 +365,19 @@ void MacroDialog::setupUi() {
     m_backBtn = new QPushButton("\xE2\x86\xA9", navPanel); // Back arrow
     m_backBtn->setFixedSize(K4Styles::Dimensions::NavButtonWidth, K4Styles::Dimensions::PopupButtonHeight);
     m_backBtn->setStyleSheet(QString("QPushButton { background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-                             "stop:0 %1, stop:0.4 %2, stop:0.6 %3, stop:1 %4);"
-                             "color: %5; border: %6px solid %7; border-radius: %8px; "
-                             "font-size: %9px; font-weight: bold; }"
-                             "QPushButton:pressed { background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-                             "stop:0 %4, stop:0.4 %3, stop:0.6 %2, stop:1 %1); }")
-                                 .arg(K4Styles::Colors::GradientTop)        // %1
-                                 .arg(K4Styles::Colors::GradientMid1)       // %2
-                                 .arg(K4Styles::Colors::GradientMid2)       // %3
-                                 .arg(K4Styles::Colors::GradientBottom)     // %4
-                                 .arg(K4Styles::Colors::TextWhite)          // %5
-                                 .arg(K4Styles::Dimensions::BorderWidth)    // %6
-                                 .arg(K4Styles::Colors::BorderNormal)       // %7
-                                 .arg(K4Styles::Dimensions::BorderRadius)   // %8
+                                     "stop:0 %1, stop:0.4 %2, stop:0.6 %3, stop:1 %4);"
+                                     "color: %5; border: %6px solid %7; border-radius: %8px; "
+                                     "font-size: %9px; font-weight: bold; }"
+                                     "QPushButton:pressed { background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+                                     "stop:0 %4, stop:0.4 %3, stop:0.6 %2, stop:1 %1); }")
+                                 .arg(K4Styles::Colors::GradientTop)      // %1
+                                 .arg(K4Styles::Colors::GradientMid1)     // %2
+                                 .arg(K4Styles::Colors::GradientMid2)     // %3
+                                 .arg(K4Styles::Colors::GradientBottom)   // %4
+                                 .arg(K4Styles::Colors::TextWhite)        // %5
+                                 .arg(K4Styles::Dimensions::BorderWidth)  // %6
+                                 .arg(K4Styles::Colors::BorderNormal)     // %7
+                                 .arg(K4Styles::Dimensions::BorderRadius) // %8
                                  .arg(K4Styles::Dimensions::FontSizeTitle));
     connect(m_backBtn, &QPushButton::clicked, this, &MacroDialog::closeDialog);
     row2->addWidget(m_backBtn);

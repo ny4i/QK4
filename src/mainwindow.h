@@ -32,11 +32,13 @@ class FilterIndicatorWidget;
 class FeatureMenuBar;
 class ModePopupWidget;
 class KpodDevice;
+class HalikeyDevice;
 class TxMeterWidget;
 class KPA1500Client;
 class CatServer;
 class NotificationWidget;
 class VfoRowWidget;
+class SidetoneGenerator;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -272,6 +274,14 @@ private:
 
     // KPOD device
     KpodDevice *m_kpodDevice;
+
+    // HaliKey CW paddle device
+    HalikeyDevice *m_halikeyDevice;
+    QTimer *m_ditRepeatTimer;
+    QTimer *m_dahRepeatTimer;
+
+    // Local sidetone generator for CW keying
+    SidetoneGenerator *m_sidetoneGenerator;
 
     // KPA1500 amplifier client
     KPA1500Client *m_kpa1500Client;

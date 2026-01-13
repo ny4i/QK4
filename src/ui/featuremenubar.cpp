@@ -37,23 +37,23 @@ void FeatureMenuBar::setupUi() {
     m_titleLabel->setFixedSize(140, 36);
     m_titleLabel->setAlignment(Qt::AlignCenter);
     m_titleLabel->setStyleSheet(QString("QLabel {"
-                                "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-                                "    stop:0 %1, stop:0.4 %2, stop:0.6 %3, stop:1 %4);"
-                                "  color: %5;"
-                                "  border: %6px solid %7;"
-                                "  border-radius: %8px;"
-                                "  font-size: %9px;"
-                                "  font-weight: bold;"
-                                "}")
-        .arg(K4Styles::Colors::GradientTop)
-        .arg(K4Styles::Colors::GradientMid1)
-        .arg(K4Styles::Colors::GradientMid2)
-        .arg(K4Styles::Colors::GradientBottom)
-        .arg(K4Styles::Colors::TextWhite)
-        .arg(K4Styles::Dimensions::BorderWidth)
-        .arg(K4Styles::Colors::BorderNormal)
-        .arg(K4Styles::Dimensions::BorderRadius)
-        .arg(K4Styles::Dimensions::FontSizePopup));
+                                        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+                                        "    stop:0 %1, stop:0.4 %2, stop:0.6 %3, stop:1 %4);"
+                                        "  color: %5;"
+                                        "  border: %6px solid %7;"
+                                        "  border-radius: %8px;"
+                                        "  font-size: %9px;"
+                                        "  font-weight: bold;"
+                                        "}")
+                                    .arg(K4Styles::Colors::GradientTop)
+                                    .arg(K4Styles::Colors::GradientMid1)
+                                    .arg(K4Styles::Colors::GradientMid2)
+                                    .arg(K4Styles::Colors::GradientBottom)
+                                    .arg(K4Styles::Colors::TextWhite)
+                                    .arg(K4Styles::Dimensions::BorderWidth)
+                                    .arg(K4Styles::Colors::BorderNormal)
+                                    .arg(K4Styles::Dimensions::BorderRadius)
+                                    .arg(K4Styles::Dimensions::FontSizePopup));
 
     // OFF/ON toggle button
     m_toggleBtn = new QPushButton("OFF", this);
@@ -74,8 +74,8 @@ void FeatureMenuBar::setupUi() {
     // Value label (center, bold)
     m_valueLabel = new QLabel("0", this);
     m_valueLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
-        .arg(K4Styles::Colors::TextWhite)
-        .arg(K4Styles::Dimensions::FontSizePopup));
+                                    .arg(K4Styles::Colors::TextWhite)
+                                    .arg(K4Styles::Dimensions::FontSizePopup));
     m_valueLabel->setAlignment(Qt::AlignCenter);
     m_valueLabel->setMinimumWidth(80);
 

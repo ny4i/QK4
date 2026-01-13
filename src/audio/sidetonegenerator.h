@@ -44,7 +44,7 @@ public:
     // Start repeating element while paddle is held
     void startDit();
     void startDah();
-    void stopElement();  // Call when paddle is released
+    void stopElement(); // Call when paddle is released
 
     // Legacy single-shot methods
     void playDit();
