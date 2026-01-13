@@ -3,6 +3,7 @@
 #include "micmeterwidget.h"
 #include "../models/radiostate.h"
 #include "../hardware/kpoddevice.h"
+#include "../hardware/halikeydevice.h"
 #include "../settings/radiosettings.h"
 #include "../network/kpa1500client.h"
 #include "../network/catserver.h"
@@ -25,12 +26,16 @@ const QString BorderColor = "#333333";
 } // namespace
 
 OptionsDialog::OptionsDialog(RadioState *radioState, KPA1500Client *kpa1500Client, AudioEngine *audioEngine,
-                             KpodDevice *kpodDevice, CatServer *catServer, QWidget *parent)
+                             KpodDevice *kpodDevice, CatServer *catServer, HalikeyDevice *halikeyDevice,
+                             QWidget *parent)
     : QDialog(parent), m_radioState(radioState), m_kpa1500Client(kpa1500Client), m_audioEngine(audioEngine),
-      m_kpodDevice(kpodDevice), m_catServer(catServer), m_kpa1500StatusLabel(nullptr), m_micDeviceCombo(nullptr),
+      m_kpodDevice(kpodDevice), m_catServer(catServer), m_halikeyDevice(halikeyDevice),
+      m_kpa1500StatusLabel(nullptr), m_micDeviceCombo(nullptr),
       m_micGainSlider(nullptr), m_micGainValueLabel(nullptr), m_micTestBtn(nullptr), m_micMeter(nullptr),
       m_speakerDeviceCombo(nullptr), m_catServerEnableCheckbox(nullptr), m_catServerPortEdit(nullptr),
-      m_catServerStatusLabel(nullptr), m_catServerClientsLabel(nullptr) {
+      m_catServerStatusLabel(nullptr), m_catServerClientsLabel(nullptr), m_cwKeyerPortCombo(nullptr),
+      m_cwKeyerRefreshBtn(nullptr), m_cwKeyerConnectBtn(nullptr), m_cwKeyerStatusLabel(nullptr),
+      m_cwKeyerEnableCheckbox(nullptr), m_cwKeyerDitIndicator(nullptr), m_cwKeyerDahIndicator(nullptr) {
     setupUi();
 
     // Connect to KPA1500 client signals for status updates
@@ -57,6 +62,14 @@ OptionsDialog::OptionsDialog(RadioState *radioState, KPA1500Client *kpa1500Clien
         connect(m_catServer, &CatServer::stopped, this, &OptionsDialog::updateCatServerStatus);
         connect(m_catServer, &CatServer::clientConnected, this, &OptionsDialog::updateCatServerStatus);
         connect(m_catServer, &CatServer::clientDisconnected, this, &OptionsDialog::updateCatServerStatus);
+    }
+
+    // Connect to HalikeyDevice signals for status updates
+    if (m_halikeyDevice) {
+        connect(m_halikeyDevice, &HalikeyDevice::connected, this, &OptionsDialog::updateCwKeyerStatus);
+        connect(m_halikeyDevice, &HalikeyDevice::disconnected, this, &OptionsDialog::updateCwKeyerStatus);
+        connect(m_halikeyDevice, &HalikeyDevice::ditStateChanged, this, &OptionsDialog::updateCwKeyerStatus);
+        connect(m_halikeyDevice, &HalikeyDevice::dahStateChanged, this, &OptionsDialog::updateCwKeyerStatus);
     }
 }
 
@@ -95,6 +108,7 @@ void OptionsDialog::setupUi() {
     m_tabList->addItem("Audio Output");
     m_tabList->addItem("Rig Control");
     m_tabList->addItem("Network");
+    m_tabList->addItem("CW Keyer");
     m_tabList->addItem("K-Pod");
     m_tabList->addItem("KPA1500");
     m_tabList->setCurrentRow(0);
@@ -106,6 +120,7 @@ void OptionsDialog::setupUi() {
     m_pageStack->addWidget(createAudioOutputPage());
     m_pageStack->addWidget(createRigControlPage());
     m_pageStack->addWidget(createNetworkPage());
+    m_pageStack->addWidget(createCwKeyerPage());
     m_pageStack->addWidget(createKpodPage());
     m_pageStack->addWidget(createKpa1500Page());
 
@@ -1133,4 +1148,326 @@ void OptionsDialog::updateCatServerStatus() {
 
     int clientCount = m_catServer ? m_catServer->clientCount() : 0;
     m_catServerClientsLabel->setText(QString("%1 connected").arg(clientCount));
+}
+
+QWidget *OptionsDialog::createCwKeyerPage() {
+    auto *page = new QWidget(this);
+    page->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::Background));
+
+    auto *layout = new QVBoxLayout(page);
+    layout->setContentsMargins(20, 20, 20, 20);
+    layout->setSpacing(15);
+
+    // Title
+    auto *titleLabel = new QLabel("CW Keyer", page);
+    titleLabel->setStyleSheet(
+        QString("color: %1; font-size: 16px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
+    layout->addWidget(titleLabel);
+
+    // Description
+    auto *descLabel = new QLabel("Connect a HaliKey paddle interface to send CW via the K4's keyer. "
+                                 "The HaliKey uses serial port flow control signals to detect paddle inputs.",
+                                 page);
+    descLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::TextGray));
+    descLabel->setWordWrap(true);
+    layout->addWidget(descLabel);
+
+    // Separator line
+    auto *line = new QFrame(page);
+    line->setFrameShape(QFrame::HLine);
+    line->setStyleSheet(QString("background-color: %1;").arg(BorderColor));
+    line->setFixedHeight(K4Styles::Dimensions::SeparatorHeight);
+    layout->addWidget(line);
+
+    // Status indicator
+    auto *statusLayout = new QHBoxLayout();
+    auto *statusTitleLabel = new QLabel("Status:", page);
+    statusTitleLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextGray).arg(K4Styles::Dimensions::FontSizePopup));
+    statusTitleLabel->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
+
+    m_cwKeyerStatusLabel = new QLabel("Not Connected", page);
+    m_cwKeyerStatusLabel->setStyleSheet(QString("color: #FF6666; font-size: %1px; font-weight: bold;").arg(K4Styles::Dimensions::FontSizePopup));
+
+    statusLayout->addWidget(statusTitleLabel);
+    statusLayout->addWidget(m_cwKeyerStatusLabel);
+    statusLayout->addStretch();
+    layout->addLayout(statusLayout);
+
+    // Separator line
+    auto *line2 = new QFrame(page);
+    line2->setFrameShape(QFrame::HLine);
+    line2->setStyleSheet(QString("background-color: %1;").arg(BorderColor));
+    line2->setFixedHeight(K4Styles::Dimensions::SeparatorHeight);
+    layout->addWidget(line2);
+
+    // Connection Settings section
+    auto *sectionLabel = new QLabel("Connection Settings", page);
+    sectionLabel->setStyleSheet(
+        QString("color: %1; font-size: 14px; font-weight: bold;").arg(K4Styles::Colors::TextWhite));
+    layout->addWidget(sectionLabel);
+
+    // Port selection
+    auto *portLayout = new QHBoxLayout();
+    auto *portLabel = new QLabel("Serial Port:", page);
+    portLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextGray).arg(K4Styles::Dimensions::FontSizePopup));
+    portLabel->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
+
+    m_cwKeyerPortCombo = new QComboBox(page);
+    m_cwKeyerPortCombo->setStyleSheet(
+        QString("QComboBox { background-color: %1; color: %2; border: 1px solid %3; "
+                "           padding: 6px; font-size: %5px; border-radius: 3px; }"
+                "QComboBox:focus { border-color: %4; }"
+                "QComboBox::drop-down { border: none; width: 20px; }"
+                "QComboBox::down-arrow { image: none; border-left: 5px solid transparent; "
+                "           border-right: 5px solid transparent; border-top: 5px solid %2; }"
+                "QComboBox QAbstractItemView { background-color: %1; color: %2; selection-background-color: %4; }")
+            .arg(K4Styles::Colors::DarkBackground, K4Styles::Colors::TextWhite, BorderColor,
+                 K4Styles::Colors::AccentAmber).arg(K4Styles::Dimensions::FontSizePopup));
+    populateCwKeyerPorts();
+
+    m_cwKeyerRefreshBtn = new QPushButton("Refresh", page);
+    m_cwKeyerRefreshBtn->setStyleSheet(
+        QString("QPushButton { background-color: %1; color: %2; border: 1px solid %3; "
+                "             padding: 6px 12px; font-size: %4px; border-radius: 3px; }"
+                "QPushButton:hover { background-color: #2a2a2a; }")
+            .arg(K4Styles::Colors::DarkBackground, K4Styles::Colors::TextWhite, BorderColor)
+            .arg(K4Styles::Dimensions::FontSizePopup));
+    connect(m_cwKeyerRefreshBtn, &QPushButton::clicked, this, &OptionsDialog::onCwKeyerRefreshClicked);
+
+    portLayout->addWidget(portLabel);
+    portLayout->addWidget(m_cwKeyerPortCombo, 1);
+    portLayout->addWidget(m_cwKeyerRefreshBtn);
+    layout->addLayout(portLayout);
+
+    // Connect/Disconnect button
+    m_cwKeyerConnectBtn = new QPushButton("Connect", page);
+    m_cwKeyerConnectBtn->setStyleSheet(
+        QString("QPushButton { background-color: %1; color: %2; border: 1px solid %3; "
+                "             padding: 10px 20px; font-size: %4px; border-radius: 4px; }"
+                "QPushButton:hover { background-color: #2a2a2a; }")
+            .arg(K4Styles::Colors::DarkBackground, K4Styles::Colors::TextWhite, BorderColor)
+            .arg(K4Styles::Dimensions::FontSizePopup));
+    connect(m_cwKeyerConnectBtn, &QPushButton::clicked, this, &OptionsDialog::onCwKeyerConnectClicked);
+    layout->addWidget(m_cwKeyerConnectBtn);
+
+    // Separator line
+    auto *line3 = new QFrame(page);
+    line3->setFrameShape(QFrame::HLine);
+    line3->setStyleSheet(QString("background-color: %1;").arg(BorderColor));
+    line3->setFixedHeight(K4Styles::Dimensions::SeparatorHeight);
+    layout->addWidget(line3);
+
+    // Paddle Test section
+    auto *testSectionLabel = new QLabel("Paddle Test", page);
+    testSectionLabel->setStyleSheet(
+        QString("color: %1; font-size: 14px; font-weight: bold;").arg(K4Styles::Colors::TextWhite));
+    layout->addWidget(testSectionLabel);
+
+    auto *testHelpLabel = new QLabel("Press the paddle contacts to test. Indicators light up when contacts close.", page);
+    testHelpLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::TextGray));
+    testHelpLabel->setWordWrap(true);
+    layout->addWidget(testHelpLabel);
+
+    // Paddle indicators
+    auto *indicatorLayout = new QHBoxLayout();
+    indicatorLayout->setSpacing(30);
+
+    // Dit indicator
+    auto *ditLayout = new QVBoxLayout();
+    m_cwKeyerDitIndicator = new QLabel(page);
+    m_cwKeyerDitIndicator->setFixedSize(40, 40);
+    m_cwKeyerDitIndicator->setStyleSheet(
+        QString("background-color: %1; border: 2px solid %2; border-radius: 20px;")
+            .arg(K4Styles::Colors::DarkBackground, BorderColor));
+    auto *ditLabel = new QLabel("DIT", page);
+    ditLabel->setStyleSheet(QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
+    ditLabel->setAlignment(Qt::AlignCenter);
+    ditLayout->addWidget(m_cwKeyerDitIndicator, 0, Qt::AlignCenter);
+    ditLayout->addWidget(ditLabel);
+
+    // Dah indicator
+    auto *dahLayout = new QVBoxLayout();
+    m_cwKeyerDahIndicator = new QLabel(page);
+    m_cwKeyerDahIndicator->setFixedSize(40, 40);
+    m_cwKeyerDahIndicator->setStyleSheet(
+        QString("background-color: %1; border: 2px solid %2; border-radius: 20px;")
+            .arg(K4Styles::Colors::DarkBackground, BorderColor));
+    auto *dahLabel = new QLabel("DAH", page);
+    dahLabel->setStyleSheet(QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
+    dahLabel->setAlignment(Qt::AlignCenter);
+    dahLayout->addWidget(m_cwKeyerDahIndicator, 0, Qt::AlignCenter);
+    dahLayout->addWidget(dahLabel);
+
+    indicatorLayout->addStretch();
+    indicatorLayout->addLayout(ditLayout);
+    indicatorLayout->addLayout(dahLayout);
+    indicatorLayout->addStretch();
+    layout->addLayout(indicatorLayout);
+
+    // Separator line
+    auto *line4 = new QFrame(page);
+    line4->setFrameShape(QFrame::HLine);
+    line4->setStyleSheet(QString("background-color: %1;").arg(BorderColor));
+    line4->setFixedHeight(K4Styles::Dimensions::SeparatorHeight);
+    layout->addWidget(line4);
+
+    // Enable checkbox
+    m_cwKeyerEnableCheckbox = new QCheckBox("Enable CW Keyer on startup", page);
+    m_cwKeyerEnableCheckbox->setStyleSheet(
+        QString("QCheckBox { color: %1; font-size: %5px; spacing: 8px; }"
+                "QCheckBox::indicator { width: 18px; height: 18px; }"
+                "QCheckBox::indicator:unchecked { border: 2px solid %2; background: %3; border-radius: 3px; }"
+                "QCheckBox::indicator:checked { border: 2px solid %4; background: %4; border-radius: 3px; }")
+            .arg(K4Styles::Colors::TextWhite, K4Styles::Colors::TextGray, K4Styles::Colors::DarkBackground,
+                 K4Styles::Colors::AccentAmber).arg(K4Styles::Dimensions::FontSizePopup));
+    m_cwKeyerEnableCheckbox->setChecked(RadioSettings::instance()->halikeyEnabled());
+    connect(m_cwKeyerEnableCheckbox, &QCheckBox::toggled, this,
+            [](bool checked) { RadioSettings::instance()->setHalikeyEnabled(checked); });
+    layout->addWidget(m_cwKeyerEnableCheckbox);
+
+    // Help text
+    auto *helpLabel = new QLabel("When enabled, the CW Keyer will automatically connect on application startup.", page);
+    helpLabel->setStyleSheet(
+        QString("color: %1; font-size: 11px; font-style: italic;").arg(K4Styles::Colors::TextGray));
+    helpLabel->setWordWrap(true);
+    layout->addWidget(helpLabel);
+
+    // Separator line
+    auto *line5 = new QFrame(page);
+    line5->setFrameShape(QFrame::HLine);
+    line5->setStyleSheet(QString("background-color: %1;").arg(BorderColor));
+    line5->setFixedHeight(K4Styles::Dimensions::SeparatorHeight);
+    layout->addWidget(line5);
+
+    // Sidetone Settings section
+    auto *sidetoneLabel = new QLabel("Sidetone Settings", page);
+    sidetoneLabel->setStyleSheet(
+        QString("color: %1; font-size: 14px; font-weight: bold;").arg(K4Styles::Colors::TextWhite));
+    layout->addWidget(sidetoneLabel);
+
+    // Sidetone volume slider
+    auto *volumeLayout = new QHBoxLayout();
+    auto *volumeLabel = new QLabel("Volume:", page);
+    volumeLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextGray).arg(K4Styles::Dimensions::FontSizePopup));
+    volumeLabel->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
+
+    m_sidetoneVolumeSlider = new QSlider(Qt::Horizontal, page);
+    m_sidetoneVolumeSlider->setRange(0, 100);
+    m_sidetoneVolumeSlider->setValue(RadioSettings::instance()->sidetoneVolume());
+    m_sidetoneVolumeSlider->setStyleSheet(
+        QString("QSlider::groove:horizontal { background: %1; height: 6px; border-radius: 3px; }"
+                "QSlider::handle:horizontal { background: %2; width: 16px; margin: -5px 0; border-radius: 8px; }"
+                "QSlider::sub-page:horizontal { background: %2; border-radius: 3px; }")
+            .arg(K4Styles::Colors::DarkBackground, K4Styles::Colors::AccentAmber));
+
+    m_sidetoneVolumeValueLabel = new QLabel(QString("%1%").arg(RadioSettings::instance()->sidetoneVolume()), page);
+    m_sidetoneVolumeValueLabel->setStyleSheet(QString("color: %1; font-size: %2px;").arg(K4Styles::Colors::TextWhite).arg(K4Styles::Dimensions::FontSizePopup));
+    m_sidetoneVolumeValueLabel->setFixedWidth(40);
+
+    connect(m_sidetoneVolumeSlider, &QSlider::valueChanged, this, [this](int value) {
+        m_sidetoneVolumeValueLabel->setText(QString("%1%").arg(value));
+        RadioSettings::instance()->setSidetoneVolume(value);
+    });
+
+    volumeLayout->addWidget(volumeLabel);
+    volumeLayout->addWidget(m_sidetoneVolumeSlider, 1);
+    volumeLayout->addWidget(m_sidetoneVolumeValueLabel);
+    layout->addLayout(volumeLayout);
+
+    // Sidetone help text
+    auto *sidetoneHelpLabel = new QLabel("Local sidetone volume for CW keying feedback. Frequency is linked to K4's CW pitch setting.", page);
+    sidetoneHelpLabel->setStyleSheet(
+        QString("color: %1; font-size: 11px; font-style: italic;").arg(K4Styles::Colors::TextGray));
+    sidetoneHelpLabel->setWordWrap(true);
+    layout->addWidget(sidetoneHelpLabel);
+
+    layout->addStretch();
+
+    // Initialize status
+    updateCwKeyerStatus();
+
+    return page;
+}
+
+void OptionsDialog::populateCwKeyerPorts() {
+    if (!m_cwKeyerPortCombo)
+        return;
+
+    m_cwKeyerPortCombo->clear();
+
+    QStringList ports = HalikeyDevice::availablePorts();
+    QString savedPort = RadioSettings::instance()->halikeyPortName();
+    int selectedIndex = -1;
+
+    for (int i = 0; i < ports.size(); i++) {
+        m_cwKeyerPortCombo->addItem(ports[i]);
+
+        // Find the saved port
+        if (ports[i] == savedPort) {
+            selectedIndex = i;
+        }
+    }
+
+    if (selectedIndex >= 0) {
+        m_cwKeyerPortCombo->setCurrentIndex(selectedIndex);
+    }
+
+    // Save selection when changed
+    connect(m_cwKeyerPortCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int index) {
+        if (index >= 0) {
+            RadioSettings::instance()->setHalikeyPortName(m_cwKeyerPortCombo->currentText());
+        }
+    });
+}
+
+void OptionsDialog::onCwKeyerRefreshClicked() {
+    populateCwKeyerPorts();
+}
+
+void OptionsDialog::onCwKeyerConnectClicked() {
+    if (!m_halikeyDevice)
+        return;
+
+    if (m_halikeyDevice->isConnected()) {
+        // Disconnect
+        m_halikeyDevice->closePort();
+    } else {
+        // Connect
+        QString portName = m_cwKeyerPortCombo->currentText();
+        if (!portName.isEmpty()) {
+            RadioSettings::instance()->setHalikeyPortName(portName);
+            m_halikeyDevice->openPort(portName);
+        }
+    }
+}
+
+void OptionsDialog::updateCwKeyerStatus() {
+    if (!m_cwKeyerStatusLabel || !m_cwKeyerConnectBtn)
+        return;
+
+    bool isConnected = m_halikeyDevice && m_halikeyDevice->isConnected();
+
+    if (isConnected) {
+        m_cwKeyerStatusLabel->setText(QString("Connected to %1").arg(m_halikeyDevice->portName()));
+        m_cwKeyerStatusLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;").arg(K4Styles::Colors::AgcGreen).arg(K4Styles::Dimensions::FontSizePopup));
+        m_cwKeyerConnectBtn->setText("Disconnect");
+    } else {
+        m_cwKeyerStatusLabel->setText("Not Connected");
+        m_cwKeyerStatusLabel->setStyleSheet(QString("color: #FF6666; font-size: %1px; font-weight: bold;").arg(K4Styles::Dimensions::FontSizePopup));
+        m_cwKeyerConnectBtn->setText("Connect");
+    }
+
+    // Update paddle indicators
+    if (m_cwKeyerDitIndicator && m_cwKeyerDahIndicator) {
+        bool ditPressed = m_halikeyDevice && m_halikeyDevice->ditPressed();
+        bool dahPressed = m_halikeyDevice && m_halikeyDevice->dahPressed();
+
+        m_cwKeyerDitIndicator->setStyleSheet(
+            QString("background-color: %1; border: 2px solid %2; border-radius: 20px;")
+                .arg(ditPressed ? K4Styles::Colors::VfoACyan : K4Styles::Colors::DarkBackground, BorderColor));
+
+        m_cwKeyerDahIndicator->setStyleSheet(
+            QString("background-color: %1; border: 2px solid %2; border-radius: 20px;")
+                .arg(dahPressed ? K4Styles::Colors::VfoBGreen : K4Styles::Colors::DarkBackground, BorderColor));
+    }
 }

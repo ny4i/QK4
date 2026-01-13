@@ -239,6 +239,43 @@ void RadioSettings::clearMacro(const QString &functionId) {
     }
 }
 
+QString RadioSettings::halikeyPortName() const {
+    return m_halikeyPortName;
+}
+
+void RadioSettings::setHalikeyPortName(const QString &portName) {
+    if (m_halikeyPortName != portName) {
+        m_halikeyPortName = portName;
+        save();
+        emit halikeyPortNameChanged(portName);
+    }
+}
+
+bool RadioSettings::halikeyEnabled() const {
+    return m_halikeyEnabled;
+}
+
+void RadioSettings::setHalikeyEnabled(bool enabled) {
+    if (m_halikeyEnabled != enabled) {
+        m_halikeyEnabled = enabled;
+        save();
+        emit halikeyEnabledChanged(enabled);
+    }
+}
+
+int RadioSettings::sidetoneVolume() const {
+    return m_sidetoneVolume;
+}
+
+void RadioSettings::setSidetoneVolume(int value) {
+    value = qBound(0, value, 100);
+    if (m_sidetoneVolume != value) {
+        m_sidetoneVolume = value;
+        save();
+        emit sidetoneVolumeChanged(value);
+    }
+}
+
 void RadioSettings::load() {
     int count = m_settings.beginReadArray("radios");
     m_radios.clear();
@@ -267,6 +304,11 @@ void RadioSettings::load() {
     // Rigctld settings
     m_rigctldEnabled = m_settings.value("rigctld/enabled", false).toBool();
     m_rigctldPort = m_settings.value("rigctld/port", 4532).toUInt();
+
+    // HaliKey settings
+    m_halikeyPortName = m_settings.value("halikey/portName", "").toString();
+    m_halikeyEnabled = m_settings.value("halikey/enabled", false).toBool();
+    m_sidetoneVolume = m_settings.value("halikey/sidetoneVolume", 30).toInt();
 
     // Macro settings
     int macroCount = m_settings.beginReadArray("macros");
@@ -309,6 +351,11 @@ void RadioSettings::save() {
     // Rigctld settings
     m_settings.setValue("rigctld/enabled", m_rigctldEnabled);
     m_settings.setValue("rigctld/port", m_rigctldPort);
+
+    // HaliKey settings
+    m_settings.setValue("halikey/portName", m_halikeyPortName);
+    m_settings.setValue("halikey/enabled", m_halikeyEnabled);
+    m_settings.setValue("halikey/sidetoneVolume", m_sidetoneVolume);
 
     // Macro settings
     m_settings.beginWriteArray("macros");

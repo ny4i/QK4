@@ -23,7 +23,9 @@
 #include "audio/audioengine.h"
 #include "audio/opusdecoder.h"
 #include "audio/opusencoder.h"
+#include "audio/sidetonegenerator.h"
 #include "hardware/kpoddevice.h"
+#include "hardware/halikeydevice.h"
 #include "network/kpa1500client.h"
 #include "network/catserver.h"
 #include <QVBoxLayout>
@@ -866,6 +868,100 @@ MainWindow::MainWindow(QWidget *parent)
         m_kpodDevice->startPolling();
     }
 
+    // HaliKey CW paddle device
+    m_halikeyDevice = new HalikeyDevice(this);
+
+    // Repeat timers for continuous paddle input - K4 keyer handles timing
+    // Repeat timers for held paddles - DISABLED for now
+    // The K4's keyer handles element timing based on WPM setting.
+    // We send a single element on paddle press; K4 generates the element.
+    // TODO: Implement proper iambic repeat based on WPM timing if needed.
+    m_ditRepeatTimer = new QTimer(this);
+    m_ditRepeatTimer->setInterval(500); // Much slower - only for sustained holding
+    connect(m_ditRepeatTimer, &QTimer::timeout, this, [this]() {
+        if (m_halikeyDevice && m_halikeyDevice->ditPressed()) {
+            qDebug() << "Dit repeat timer fired - sending another dit";
+            m_tcpClient->sendCAT("KZ.;");
+        } else {
+            m_ditRepeatTimer->stop();
+        }
+    });
+
+    m_dahRepeatTimer = new QTimer(this);
+    m_dahRepeatTimer->setInterval(500); // Much slower
+    connect(m_dahRepeatTimer, &QTimer::timeout, this, [this]() {
+        if (m_halikeyDevice && m_halikeyDevice->dahPressed()) {
+            qDebug() << "Dah repeat timer fired - sending another dah";
+            m_tcpClient->sendCAT("KZ-;");
+        } else {
+            m_dahRepeatTimer->stop();
+        }
+    });
+
+    // Local sidetone generator for CW keying (low-latency local audio feedback)
+    // MUST be created BEFORE HaliKey signal connections that use it
+    m_sidetoneGenerator = new SidetoneGenerator(this);
+
+    // Set initial sidetone frequency from radio state if available
+    if (m_radioState->cwPitch() > 0) {
+        m_sidetoneGenerator->setFrequency(m_radioState->cwPitch());
+    }
+
+    // Update sidetone frequency when CW pitch changes
+    connect(m_radioState, &RadioState::cwPitchChanged, this, [this](int pitchHz) {
+        m_sidetoneGenerator->setFrequency(pitchHz);
+    });
+
+    // Set initial sidetone volume from RadioSettings (independent of K4's MON level)
+    m_sidetoneGenerator->setVolume(RadioSettings::instance()->sidetoneVolume() / 100.0f);
+
+    // Update sidetone volume when changed in Options
+    connect(RadioSettings::instance(), &RadioSettings::sidetoneVolumeChanged, this, [this](int value) {
+        m_sidetoneGenerator->setVolume(value / 100.0f);
+    });
+
+    // Set initial keyer speed from radio state if available
+    if (m_radioState->keyerSpeed() > 0) {
+        m_sidetoneGenerator->setKeyerSpeed(m_radioState->keyerSpeed());
+    }
+
+    // Update sidetone keyer speed when it changes
+    connect(m_radioState, &RadioState::keyerSpeedChanged, this, [this](int wpm) {
+        m_sidetoneGenerator->setKeyerSpeed(wpm);
+    });
+
+    // Connect HaliKey paddle signals - relay paddle state to K4 in real-time
+    // Also control local sidetone for immediate audio feedback
+    connect(m_halikeyDevice, &HalikeyDevice::ditStateChanged, this, [this](bool pressed) {
+        if (pressed) {
+            m_tcpClient->sendCAT("KZ.;");
+            m_sidetoneGenerator->startDit();  // Start repeating dit while held
+        } else {
+            m_sidetoneGenerator->stopElement();
+        }
+    });
+    connect(m_halikeyDevice, &HalikeyDevice::dahStateChanged, this, [this](bool pressed) {
+        if (pressed) {
+            m_tcpClient->sendCAT("KZ-;");
+            m_sidetoneGenerator->startDah();  // Start repeating dah while held
+        } else {
+            m_sidetoneGenerator->stopElement();
+        }
+    });
+
+    // Send repeated KZ commands when sidetone repeat timer fires
+    connect(m_sidetoneGenerator, &SidetoneGenerator::ditRepeated, this, [this]() {
+        m_tcpClient->sendCAT("KZ.;");
+    });
+    connect(m_sidetoneGenerator, &SidetoneGenerator::dahRepeated, this, [this]() {
+        m_tcpClient->sendCAT("KZ-;");
+    });
+
+    // Auto-connect HaliKey if enabled and port is saved
+    if (RadioSettings::instance()->halikeyEnabled() && !RadioSettings::instance()->halikeyPortName().isEmpty()) {
+        m_halikeyDevice->openPort(RadioSettings::instance()->halikeyPortName());
+    }
+
     // KPA1500 amplifier client
     m_kpa1500Client = new KPA1500Client(this);
 
@@ -961,7 +1057,8 @@ void MainWindow::setupMenuBar() {
     QAction *optionsAction = new QAction("&Settings...", this);
     optionsAction->setMenuRole(QAction::PreferencesRole); // macOS: moves to app menu as Preferences
     connect(optionsAction, &QAction::triggered, this, [this]() {
-        OptionsDialog dialog(m_radioState, m_kpa1500Client, m_audioEngine, m_kpodDevice, m_catServer, this);
+        OptionsDialog dialog(m_radioState, m_kpa1500Client, m_audioEngine, m_kpodDevice, m_catServer,
+                             m_halikeyDevice, this);
         dialog.exec();
     });
     toolsMenu->addAction(optionsAction);
@@ -989,8 +1086,8 @@ void MainWindow::setupMenuBar() {
 
 void MainWindow::setupUi() {
     setWindowTitle("K4Controller");
-    setMinimumSize(1340, 800);
-    resize(1340, 800); // Default to minimum size on launch
+    setMinimumSize(1340, 840);
+    resize(1340, 840); // Default to minimum size on launch
 
     // NOTE: Do NOT set WA_NativeWindow here!
     // Qt 6.10.1 bug on macOS Tahoe: WA_NativeWindow forces native window creation
@@ -1444,9 +1541,23 @@ void MainWindow::setupUi() {
     });
     connect(m_sideControlPanel, &SideControlPanel::delayChanged, this, [this](int delta) {
         int currentDelay = m_radioState->delayForCurrentMode();
-        int newDelay = qBound(0, currentDelay + delta, 250);
-        m_tcpClient->sendCAT(QString("SD%1;").arg(newDelay, 4, 10, QChar('0')));
-        // Note: Delay is mode-specific, handled by RadioState parsing
+        if (currentDelay < 0) currentDelay = 0; // Handle uninitialized
+        int newDelay = qBound(0, currentDelay + delta, 255); // 0-255 = 0.00 to 2.55 seconds
+
+        // Optimistic update - update local state immediately
+        m_radioState->setDelayForCurrentMode(newDelay);
+
+        // SD command format: SDxyzzz where x=QSK flag, y=mode (C/V/D), zzz=delay in 10ms
+        // Determine mode character based on current operating mode
+        QChar modeChar = 'V'; // Default to Voice
+        RadioState::Mode mode = m_radioState->mode();
+        if (mode == RadioState::CW || mode == RadioState::CW_R) {
+            modeChar = 'C';
+        } else if (mode == RadioState::DATA || mode == RadioState::DATA_R) {
+            modeChar = 'D';
+        }
+        // x=0 means use specified delay (not full QSK)
+        m_tcpClient->sendCAT(QString("SD0%1%2;").arg(modeChar).arg(newDelay, 3, 10, QChar('0')));
     });
     // Group 2: BW/HI and SHFT/LO
     // BW command uses 10Hz units (divide by 10)
@@ -1539,6 +1650,30 @@ void MainWindow::setupUi() {
     // remAntClicked - not yet implemented (TBD)
     connect(m_sideControlPanel, &SideControlPanel::rxAntClicked, this, [this]() { m_tcpClient->sendCAT("SW70;"); });
     connect(m_sideControlPanel, &SideControlPanel::subAntClicked, this, [this]() { m_tcpClient->sendCAT("SW157;"); });
+
+    // Connect MON/NORM/BAL SW commands
+    connect(m_sideControlPanel, &SideControlPanel::swCommandRequested, m_tcpClient, &TcpClient::sendCAT);
+
+    // Connect monitor level change (ML command)
+    connect(m_sideControlPanel, &SideControlPanel::monLevelChangeRequested, this, [this](int mode, int level) {
+        QString cmd = QString("ML%1%2;").arg(mode).arg(level, 3, 10, QChar('0'));
+        m_tcpClient->sendCAT(cmd);
+        // Optimistic update
+        m_radioState->setMonitorLevel(mode, level);
+    });
+
+    // Update MON overlay when RadioState changes
+    connect(m_radioState, &RadioState::monitorLevelChanged, m_sideControlPanel, &SideControlPanel::updateMonitorLevel);
+    connect(m_radioState, &RadioState::modeChanged, this, [this](RadioState::Mode mode) {
+        // Update MON overlay mode based on current operating mode
+        int monMode = 2; // Default to voice
+        if (mode == RadioState::CW || mode == RadioState::CW_R) {
+            monMode = 0;
+        } else if (mode == RadioState::DATA || mode == RadioState::DATA_R) {
+            monMode = 1;
+        }
+        m_sideControlPanel->updateMonitorMode(monMode);
+    });
 
     // Connect right side panel button signals to CAT commands
     // Primary (left-click) signals
@@ -2774,6 +2909,7 @@ void MainWindow::onAuthenticated() {
     m_tcpClient->sendCAT("#HDSM;"); // Display mode (EXT) - not in RDY
     m_tcpClient->sendCAT("#FRZ;");  // Freeze - not in RDY
     m_tcpClient->sendCAT("SIRC1;"); // Enable 1-second client stats updates
+    // Note: ML commands (monitor levels) come in RDY; dump - no need to query
 }
 
 void MainWindow::onAuthenticationFailed() {

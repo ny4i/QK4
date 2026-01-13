@@ -89,6 +89,14 @@ public:
     void setMacro(const QString &functionId, const QString &label, const QString &command);
     void clearMacro(const QString &functionId);
 
+    // HaliKey CW Keyer settings
+    QString halikeyPortName() const;
+    void setHalikeyPortName(const QString &portName);
+    bool halikeyEnabled() const;
+    void setHalikeyEnabled(bool enabled);
+    int sidetoneVolume() const;
+    void setSidetoneVolume(int value); // 0-100, default 30
+
 signals:
     void radiosChanged();
     void kpodEnabledChanged(bool enabled);
@@ -101,6 +109,9 @@ signals:
     void rigctldEnabledChanged(bool enabled);
     void rigctldPortChanged(quint16 port);
     void macrosChanged();
+    void halikeyEnabledChanged(bool enabled);
+    void halikeyPortNameChanged(const QString &portName);
+    void sidetoneVolumeChanged(int value);
 
 private:
     explicit RadioSettings(QObject *parent = nullptr);
@@ -120,6 +131,11 @@ private:
     // Rigctld settings
     bool m_rigctldEnabled = false;
     quint16 m_rigctldPort = 4532;
+
+    // HaliKey settings
+    QString m_halikeyPortName;
+    bool m_halikeyEnabled = false;
+    int m_sidetoneVolume = 30; // Default 30%
 
     // Macro settings
     QMap<QString, MacroEntry> m_macros;
