@@ -98,6 +98,7 @@ set(SOURCES
     src/ui/fnpopupwidget.cpp
     src/ui/rxeqpopupwidget.cpp
     src/ui/antennacfgpopup.cpp
+    src/ui/lineoutpopup.cpp
     src/ui/macrodialog.cpp
     src/ui/notificationwidget.cpp
     src/ui/k4styles.cpp
@@ -144,6 +145,7 @@ set(HEADERS
     src/ui/fnpopupwidget.h
     src/ui/rxeqpopupwidget.h
     src/ui/antennacfgpopup.h
+    src/ui/lineoutpopup.h
     src/ui/macrodialog.h
     src/ui/notificationwidget.h
     src/ui/k4styles.h

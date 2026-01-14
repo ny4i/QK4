@@ -412,6 +412,16 @@ public:
     void setSubRxAntConfig(bool displayAll, const QVector<bool> &mask);
     void setTxAntConfig(bool displayAll, const QVector<bool> &mask);
 
+    // Line Out levels (LO command)
+    int lineOutLeft() const { return m_lineOutLeft; }
+    int lineOutRight() const { return m_lineOutRight; }
+    bool lineOutRightEqualsLeft() const { return m_lineOutRightEqualsLeft; }
+
+    // Optimistic setters for Line Out
+    void setLineOutLeft(int level);
+    void setLineOutRight(int level);
+    void setLineOutRightEqualsLeft(bool enabled);
+
     // Optimistic setters for data sub-mode (radio doesn't echo DT SET commands)
     void setDataSubMode(int subMode);
     void setDataSubModeB(int subMode);
@@ -518,6 +528,9 @@ signals:
     void mainRxAntCfgChanged();  // ACM command received/changed
     void subRxAntCfgChanged();   // ACS command received/changed
     void txAntCfgChanged();      // ACT command received/changed
+
+    // Line Out
+    void lineOutChanged();       // LO command - left/right level or mode changed
 
     void stateUpdated();
 
@@ -727,6 +740,11 @@ private:
     // ACT - TX: z=displayAll, a-c = TX ANT1, TX ANT2, TX ANT3
     bool m_txDisplayAll = true;
     bool m_txAntMask[3] = {false, false, false};
+
+    // Line Out levels (LO command)
+    int m_lineOutLeft = -1;      // 0-40, init to -1 to ensure first emit
+    int m_lineOutRight = -1;     // 0-40
+    bool m_lineOutRightEqualsLeft = false;
 };
 
 #endif // RADIOSTATE_H

@@ -19,6 +19,7 @@
 #include "ui/filterindicatorwidget.h"
 #include "ui/k4styles.h"
 #include "ui/antennacfgpopup.h"
+#include "ui/lineoutpopup.h"
 #include "models/menumodel.h"
 #include "dsp/panadapter_rhi.h"
 #include "dsp/minipan_rhi.h"
@@ -375,6 +376,47 @@ MainWindow::MainWindow(QWidget *parent)
             cmd += (i < mask.size() && mask[i]) ? '1' : '0';
         }
         m_tcpClient->sendCAT(cmd);
+    });
+
+    // Create Line Out popup (shared by MAIN RX and SUB RX)
+    m_lineOutPopup = new LineOutPopupWidget(this);
+    connect(m_lineOutPopup, &LineOutPopupWidget::leftLevelChanged, this, [this](int level) {
+        if (!m_tcpClient || !m_tcpClient->isConnected())
+            return;
+        // Send full LO command with current state
+        QString cmd = QString("LO%1%2%3;")
+                          .arg(level, 3, 10, QChar('0'))
+                          .arg(m_radioState->lineOutRight(), 3, 10, QChar('0'))
+                          .arg(m_radioState->lineOutRightEqualsLeft() ? 1 : 0);
+        m_tcpClient->sendCAT(cmd);
+    });
+    connect(m_lineOutPopup, &LineOutPopupWidget::rightLevelChanged, this, [this](int level) {
+        if (!m_tcpClient || !m_tcpClient->isConnected())
+            return;
+        QString cmd = QString("LO%1%2%3;")
+                          .arg(m_radioState->lineOutLeft(), 3, 10, QChar('0'))
+                          .arg(level, 3, 10, QChar('0'))
+                          .arg(m_radioState->lineOutRightEqualsLeft() ? 1 : 0);
+        m_tcpClient->sendCAT(cmd);
+    });
+    connect(m_lineOutPopup, &LineOutPopupWidget::rightEqualsLeftChanged, this, [this](bool enabled) {
+        if (!m_tcpClient || !m_tcpClient->isConnected())
+            return;
+        int left = m_radioState->lineOutLeft();
+        int right = enabled ? left : m_radioState->lineOutRight();
+        QString cmd = QString("LO%1%2%3;")
+                          .arg(left, 3, 10, QChar('0'))
+                          .arg(right, 3, 10, QChar('0'))
+                          .arg(enabled ? 1 : 0);
+        m_tcpClient->sendCAT(cmd);
+    });
+    // Connect RadioState to update popup when K4 sends LO response
+    connect(m_radioState, &RadioState::lineOutChanged, this, [this]() {
+        if (m_lineOutPopup) {
+            m_lineOutPopup->setLeftLevel(m_radioState->lineOutLeft());
+            m_lineOutPopup->setRightLevel(m_radioState->lineOutRight());
+            m_lineOutPopup->setRightEqualsLeft(m_radioState->lineOutRightEqualsLeft());
+        }
     });
 
     // Create notification popup for K4 error/status messages (ERxx:)
@@ -4184,7 +4226,10 @@ void MainWindow::onMainRxButtonClicked(int index) {
             m_rxEqPopup->showAboveWidget(m_mainRxPopup);
         }
         break;
-    case 2: // LINE OUT - not implemented
+    case 2: // LINE OUT - show Line Out popup
+        if (m_lineOutPopup && m_mainRxPopup) {
+            m_lineOutPopup->showAboveWidget(m_mainRxPopup);
+        }
         break;
     case 3: // AFX - cycle OFF → DELAY → PITCH → OFF
     {
@@ -4257,7 +4302,10 @@ void MainWindow::onSubRxButtonClicked(int index) {
             m_rxEqPopup->showAboveWidget(m_subRxPopup);
         }
         break;
-    case 2: // LINE OUT - not implemented
+    case 2: // LINE OUT - show Line Out popup
+        if (m_lineOutPopup && m_subRxPopup) {
+            m_lineOutPopup->showAboveWidget(m_subRxPopup);
+        }
         break;
     case 3: // AFX - cycle (same command, affects audio)
     {

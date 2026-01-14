@@ -573,6 +573,32 @@ void RadioState::parseCATCommand(const QString &command) {
             }
         }
     }
+    // LO - Line Out levels
+    // Format: LOlllrrrm where lll=left(000-040), rrr=right(000-040), m=mode(0/1)
+    else if (cmd.startsWith("LO") && cmd.length() >= 9) {
+        bool okL, okR;
+        int left = cmd.mid(2, 3).toInt(&okL);
+        int right = cmd.mid(5, 3).toInt(&okR);
+        int mode = cmd.mid(8, 1).toInt();
+
+        if (okL && okR && left >= 0 && left <= 40 && right >= 0 && right <= 40) {
+            bool changed = false;
+            if (left != m_lineOutLeft) {
+                m_lineOutLeft = left;
+                changed = true;
+            }
+            if (right != m_lineOutRight) {
+                m_lineOutRight = right;
+                changed = true;
+            }
+            if ((mode == 1) != m_lineOutRightEqualsLeft) {
+                m_lineOutRightEqualsLeft = (mode == 1);
+                changed = true;
+            }
+            if (changed)
+                emit lineOutChanged();
+        }
+    }
     // Filter Position Sub RX (FP$) - must check before FP
     else if (cmd.startsWith("FP$") && cmd.length() > 3) {
         bool ok;
@@ -1661,5 +1687,28 @@ void RadioState::setTxAntConfig(bool displayAll, const QVector<bool> &mask) {
     }
     if (changed) {
         emit txAntCfgChanged();
+    }
+}
+
+void RadioState::setLineOutLeft(int level) {
+    level = qBound(0, level, 40);
+    if (level != m_lineOutLeft) {
+        m_lineOutLeft = level;
+        emit lineOutChanged();
+    }
+}
+
+void RadioState::setLineOutRight(int level) {
+    level = qBound(0, level, 40);
+    if (level != m_lineOutRight) {
+        m_lineOutRight = level;
+        emit lineOutChanged();
+    }
+}
+
+void RadioState::setLineOutRightEqualsLeft(bool enabled) {
+    if (enabled != m_lineOutRightEqualsLeft) {
+        m_lineOutRightEqualsLeft = enabled;
+        emit lineOutChanged();
     }
 }
