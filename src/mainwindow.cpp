@@ -3301,17 +3301,56 @@ void MainWindow::onMicrophoneFrame(const QByteArray &s16leData) {
         return;
     }
 
-    // Note: Currently only Opus modes (EM2, EM3) are supported for TX
-    // RAW modes (EM0, EM1) would require sending raw PCM instead of Opus-encoded data
+    QByteArray audioData;
 
-    // Encode the audio frame using Opus
-    QByteArray opusData = m_opusEncoder->encode(s16leData);
-    if (opusData.isEmpty()) {
+    switch (m_currentRadio.encodeMode) {
+    case 0: // EM0 - RAW 32-bit float stereo
+    {
+        // Convert mono S16LE to stereo float32 (K4 expects stereo: L=Main, R=Sub)
+        const qint16 *samples = reinterpret_cast<const qint16 *>(s16leData.constData());
+        int sampleCount = s16leData.size() / sizeof(qint16);
+
+        audioData.resize(sampleCount * 2 * sizeof(float)); // Stereo output
+        float *output = reinterpret_cast<float *>(audioData.data());
+
+        for (int i = 0; i < sampleCount; i++) {
+            float normalized = static_cast<float>(samples[i]) / 32768.0f;
+            output[i * 2] = normalized;     // Left channel
+            output[i * 2 + 1] = normalized; // Right channel (duplicate)
+        }
+        break;
+    }
+
+    case 1: // EM1 - RAW 16-bit S16LE stereo
+    {
+        // Convert mono S16LE to stereo S16LE (K4 expects stereo: L=Main, R=Sub)
+        const qint16 *samples = reinterpret_cast<const qint16 *>(s16leData.constData());
+        int sampleCount = s16leData.size() / sizeof(qint16);
+
+        audioData.resize(sampleCount * 2 * sizeof(qint16)); // Stereo output
+        qint16 *output = reinterpret_cast<qint16 *>(audioData.data());
+
+        for (int i = 0; i < sampleCount; i++) {
+            output[i * 2] = samples[i];     // Left channel
+            output[i * 2 + 1] = samples[i]; // Right channel (duplicate)
+        }
+        break;
+    }
+
+    case 2: // EM2 - Opus Int
+    case 3: // EM3 - Opus Float
+    default:
+        // Use Opus encoding (encoder handles mono-to-stereo internally)
+        audioData = m_opusEncoder->encode(s16leData);
+        break;
+    }
+
+    if (audioData.isEmpty()) {
         return;
     }
 
     // Build and send the audio packet with the selected encode mode
-    QByteArray packet = Protocol::buildAudioPacket(opusData, m_txSequence++, m_currentRadio.encodeMode);
+    QByteArray packet = Protocol::buildAudioPacket(audioData, m_txSequence++, m_currentRadio.encodeMode);
     m_tcpClient->sendRaw(packet);
 }
 

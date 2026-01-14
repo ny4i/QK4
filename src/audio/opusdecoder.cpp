@@ -29,10 +29,12 @@ QByteArray OpusDecoder::decodeK4Packet(const QByteArray &packet) {
     // Byte 0: TYPE = 1 (Audio)
     // Byte 1: VER = Version number
     // Byte 2: SEQ = Sequence number
-    // Byte 3: Encode Mode (0=RAW32, 1=RAW16, 2=Opus Int, 3=Opus Float)
+    // Byte 3: Encode Mode (0=S32LE, 1=S16LE, 2=Opus Int, 3=Opus Float)
     // Bytes 4-5: Frame size (little-endian UInt16) - samples per channel
     // Byte 6: Sample rate code (0 = 12000 Hz)
     // Byte 7+: Audio data (format depends on encode mode)
+    //
+    // Note: EM0 is documented as "RAW 32-bit float" but K4 actually sends S32LE integers
 
     if (packet.size() < 8) {
         return QByteArray();
@@ -61,22 +63,30 @@ QByteArray OpusDecoder::decodeK4Packet(const QByteArray &packet) {
     QByteArray monoPcm;
 
     switch (encodeMode) {
-    case 0x00: // EM0 - RAW 32-bit float stereo PCM
+    case 0x00: // EM0 - RAW 32-bit signed integer stereo PCM (S32LE)
     {
-        // Data is interleaved float32 stereo [L0, R0, L1, R1, ...]
-        const float *stereoFloats = reinterpret_cast<const float *>(audioData.constData());
-        int totalFloats = audioData.size() / sizeof(float);
-        monoSampleCount = totalFloats / 2;
+        // Data is interleaved S32LE stereo [L0, R0, L1, R1, ...]
+        // Note: Despite documentation saying "float", K4 sends 32-bit signed integers
+        const qint32 *stereoSamples = reinterpret_cast<const qint32 *>(audioData.constData());
+        int totalSamples = audioData.size() / sizeof(qint32);
+        monoSampleCount = totalSamples / 2;
 
         monoPcm.resize(monoSampleCount * sizeof(float));
         float *monoFloats = reinterpret_cast<float *>(monoPcm.data());
 
-        for (int i = 0; i < monoSampleCount; i++) {
-            float mainSample = stereoFloats[i * 2];    // Left channel (Main RX / VFO A)
-            float subSample = stereoFloats[i * 2 + 1]; // Right channel (Sub RX / VFO B)
+        // Normalize full 32-bit signed range to ±1.0
+        constexpr float NORMALIZE_32BIT = 1.0f / 2147483648.0f;
 
-            float mainWithVolume = mainSample * m_mainVolume * K4_GAIN_BOOST;
-            float subWithVolume = subSample * m_subVolume * K4_GAIN_BOOST;
+        for (int i = 0; i < monoSampleCount; i++) {
+            qint32 mainSample = stereoSamples[i * 2];    // Left channel (Main RX / VFO A)
+            qint32 subSample = stereoSamples[i * 2 + 1]; // Right channel (Sub RX / VFO B)
+
+            float mainNormalized = static_cast<float>(mainSample) * NORMALIZE_32BIT;
+            float subNormalized = static_cast<float>(subSample) * NORMALIZE_32BIT;
+
+            // Apply volume and gain boost (32-bit samples are quiet like Opus)
+            float mainWithVolume = mainNormalized * m_mainVolume * K4_GAIN_BOOST;
+            float subWithVolume = subNormalized * m_subVolume * K4_GAIN_BOOST;
 
             monoFloats[i] = qBound(-1.0f, mainWithVolume + subWithVolume, 1.0f);
         }
@@ -86,6 +96,7 @@ QByteArray OpusDecoder::decodeK4Packet(const QByteArray &packet) {
     case 0x01: // EM1 - RAW 16-bit S16LE stereo PCM
     {
         // Data is interleaved S16LE stereo [L0, R0, L1, R1, ...]
+        // RAW audio is already at full scale, no gain boost needed
         const qint16 *stereoSamples = reinterpret_cast<const qint16 *>(audioData.constData());
         int totalSamples = audioData.size() / sizeof(qint16);
         monoSampleCount = totalSamples / 2;
@@ -100,8 +111,8 @@ QByteArray OpusDecoder::decodeK4Packet(const QByteArray &packet) {
             float mainNormalized = static_cast<float>(mainSample) / 32768.0f;
             float subNormalized = static_cast<float>(subSample) / 32768.0f;
 
-            float mainWithVolume = mainNormalized * m_mainVolume * K4_GAIN_BOOST;
-            float subWithVolume = subNormalized * m_subVolume * K4_GAIN_BOOST;
+            float mainWithVolume = mainNormalized * m_mainVolume;
+            float subWithVolume = subNormalized * m_subVolume;
 
             monoFloats[i] = qBound(-1.0f, mainWithVolume + subWithVolume, 1.0f);
         }
