@@ -18,8 +18,11 @@ public:
     // packet should be the full audio payload including header
     QByteArray decodeK4Packet(const QByteArray &packet);
 
-    // Raw decode for testing
+    // Raw decode for testing (returns S16LE stereo PCM)
     QByteArray decode(const QByteArray &opusData);
+
+    // Decode to float (returns float32 stereo PCM)
+    QByteArray decodeFloat(const QByteArray &opusData);
 
     // Volume control for channel mixing (0.0 to 1.0)
     void setMainVolume(float volume);

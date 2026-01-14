@@ -139,6 +139,41 @@ void RadioManagerDialog::setupUi() {
                                      .arg(K4Styles::Colors::TextGray));
     formLayout->addWidget(m_tlsCheckbox, 5, 0, 1, 2);
 
+    // Row 6: Encode Mode dropdown
+    auto *encodeModeLabel = new QLabel("Audio Mode", this);
+    encodeModeLabel->setStyleSheet(labelStyle);
+    m_encodeModeCombo = new QComboBox(this);
+    m_encodeModeCombo->setStyleSheet(QString("QComboBox { "
+                                             "  background-color: #3c3c3c; "
+                                             "  color: %1; "
+                                             "  border: 1px solid #555555; "
+                                             "  border-radius: 4px; "
+                                             "  padding: 6px; "
+                                             "} "
+                                             "QComboBox::drop-down { "
+                                             "  border: none; "
+                                             "  width: 20px; "
+                                             "} "
+                                             "QComboBox::down-arrow { "
+                                             "  image: none; "
+                                             "  border-left: 5px solid transparent; "
+                                             "  border-right: 5px solid transparent; "
+                                             "  border-top: 5px solid %1; "
+                                             "} "
+                                             "QComboBox QAbstractItemView { "
+                                             "  background-color: #3c3c3c; "
+                                             "  color: %1; "
+                                             "  selection-background-color: #0078d4; "
+                                             "}")
+                                         .arg(K4Styles::Colors::TextWhite));
+    m_encodeModeCombo->addItem("EM3 - Opus Float", 3); // Default
+    m_encodeModeCombo->addItem("EM2 - Opus Int", 2);
+    m_encodeModeCombo->addItem("EM1 - RAW 16-bit", 1);
+    m_encodeModeCombo->addItem("EM0 - RAW 32-bit", 0);
+    m_encodeModeCombo->setCurrentIndex(0); // EM3 default
+    formLayout->addWidget(encodeModeLabel, 6, 0);
+    formLayout->addWidget(m_encodeModeCombo, 6, 1);
+
     // Initially hide ID field (shown when TLS is checked)
     m_identityLabel->setVisible(false);
     m_identityEdit->setVisible(false);
@@ -282,6 +317,7 @@ void RadioManagerDialog::onConnectClicked() {
         QString portText = m_portEdit->text().trimmed();
         entry.useTls = m_tlsCheckbox->isChecked();
         entry.identity = m_identityEdit->text();
+        entry.encodeMode = m_encodeModeCombo->currentData().toInt();
 
         // Set port based on TLS mode if not specified
         if (portText.isEmpty()) {
@@ -328,6 +364,7 @@ void RadioManagerDialog::onSaveClicked() {
     entry.password = password;
     entry.useTls = useTls;
     entry.identity = identity;
+    entry.encodeMode = m_encodeModeCombo->currentData().toInt();
 
     // Set port based on TLS mode if not specified
     if (portText.isEmpty()) {
@@ -402,6 +439,7 @@ void RadioManagerDialog::clearFields() {
     m_identityEdit->clear();
     m_identityLabel->setVisible(false);
     m_identityEdit->setVisible(false);
+    m_encodeModeCombo->setCurrentIndex(0); // Reset to EM3 (default)
 }
 
 void RadioManagerDialog::populateFieldsFromSelection() {
@@ -415,6 +453,11 @@ void RadioManagerDialog::populateFieldsFromSelection() {
         m_identityEdit->setText(radio.identity);
         m_identityLabel->setVisible(radio.useTls);
         m_identityEdit->setVisible(radio.useTls);
+        // Set encode mode combo to match saved value
+        int encodeModeIndex = m_encodeModeCombo->findData(radio.encodeMode);
+        if (encodeModeIndex >= 0) {
+            m_encodeModeCombo->setCurrentIndex(encodeModeIndex);
+        }
     }
 }
 

@@ -28,6 +28,7 @@ struct RadioEntry {
     quint16 port;
     bool useTls = false; // Use TLS/PSK encryption (port 9204)
     QString identity;    // TLS-PSK identity (optional, empty = default)
+    int encodeMode = 3;  // Audio encode mode: 0=RAW32, 1=RAW16, 2=Opus Int, 3=Opus Float (default)
 
     bool operator==(const RadioEntry &other) const {
         return name == other.name && host == other.host && port == other.port;

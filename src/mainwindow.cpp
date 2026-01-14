@@ -2864,8 +2864,9 @@ void MainWindow::connectToRadio(const RadioEntry &radio) {
     m_currentRadio = radio;
     m_titleLabel->setText("Elecraft K4 - " + radio.name);
 
-    qDebug() << "Connecting to" << radio.host << ":" << radio.port << (radio.useTls ? "(TLS/PSK)" : "(unencrypted)");
-    m_tcpClient->connectToHost(radio.host, radio.port, radio.password, radio.useTls, radio.identity);
+    qDebug() << "Connecting to" << radio.host << ":" << radio.port << (radio.useTls ? "(TLS/PSK)" : "(unencrypted)")
+             << "encodeMode:" << radio.encodeMode;
+    m_tcpClient->connectToHost(radio.host, radio.port, radio.password, radio.useTls, radio.identity, radio.encodeMode);
 }
 
 void MainWindow::onConnectClicked() {
@@ -3300,14 +3301,17 @@ void MainWindow::onMicrophoneFrame(const QByteArray &s16leData) {
         return;
     }
 
+    // Note: Currently only Opus modes (EM2, EM3) are supported for TX
+    // RAW modes (EM0, EM1) would require sending raw PCM instead of Opus-encoded data
+
     // Encode the audio frame using Opus
     QByteArray opusData = m_opusEncoder->encode(s16leData);
     if (opusData.isEmpty()) {
         return;
     }
 
-    // Build and send the audio packet
-    QByteArray packet = Protocol::buildAudioPacket(opusData, m_txSequence++);
+    // Build and send the audio packet with the selected encode mode
+    QByteArray packet = Protocol::buildAudioPacket(opusData, m_txSequence++, m_currentRadio.encodeMode);
     m_tcpClient->sendRaw(packet);
 }
 

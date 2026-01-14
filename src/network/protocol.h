@@ -48,7 +48,8 @@ public:
 
     // Build TX audio packet (Opus encoded data with K4 audio header)
     // sequence: 0-255, wrapping counter for packet ordering
-    static QByteArray buildAudioPacket(const QByteArray &opusData, quint8 sequence);
+    // encodeMode: 0=RAW32, 1=RAW16, 2=Opus Int, 3=Opus Float (default)
+    static QByteArray buildAudioPacket(const QByteArray &audioData, quint8 sequence, quint8 encodeMode = 0x03);
 
 signals:
     void audioDataReady(const QByteArray &opusData);

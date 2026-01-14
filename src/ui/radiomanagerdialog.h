@@ -2,6 +2,7 @@
 #define RADIOMANAGERDIALOG_H
 
 #include <QCheckBox>
+#include <QComboBox>
 #include <QDialog>
 #include <QLabel>
 #include <QListWidget>
@@ -51,6 +52,7 @@ private:
     QCheckBox *m_tlsCheckbox;
     QLineEdit *m_identityEdit;
     QLabel *m_identityLabel;
+    QComboBox *m_encodeModeCombo;
 
     QPushButton *m_connectButton;
     QPushButton *m_newButton;
