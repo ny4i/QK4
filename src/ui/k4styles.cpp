@@ -216,4 +216,101 @@ QString sliderHorizontal(const QString &grooveColor, const QString &handleColor)
         .arg(Dimensions::SliderHandleRadius);
 }
 
+QString checkboxButton(int size) {
+    // Checkbox shows ✓ when checked, empty when unchecked
+    // Uses dark gradient unchecked, same dark gradient + white checkmark when checked
+    return QString(R"(
+        QPushButton {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #4a4a4a,
+                stop:0.4 #3a3a3a,
+                stop:0.6 #353535,
+                stop:1 #2a2a2a);
+            color: transparent;
+            border: 1px solid #606060;
+            border-radius: 3px;
+            min-width: %1px;
+            max-width: %1px;
+            min-height: %1px;
+            max-height: %1px;
+            font-size: %2px;
+            font-weight: bold;
+        }
+        QPushButton:hover {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #5a5a5a,
+                stop:0.4 #4a4a4a,
+                stop:0.6 #454545,
+                stop:1 #3a3a3a);
+            border: 1px solid #808080;
+        }
+        QPushButton:checked {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #4a4a4a,
+                stop:0.4 #3a3a3a,
+                stop:0.6 #353535,
+                stop:1 #2a2a2a);
+            color: #FFFFFF;
+            border: 1px solid #808080;
+        }
+        QPushButton:checked:hover {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #5a5a5a,
+                stop:0.4 #4a4a4a,
+                stop:0.6 #454545,
+                stop:1 #3a3a3a);
+        }
+        QPushButton:disabled {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #3a3a3a,
+                stop:0.4 #2a2a2a,
+                stop:0.6 #252525,
+                stop:1 #1a1a1a);
+            border: 1px solid #404040;
+            color: transparent;
+        }
+        QPushButton:disabled:checked {
+            color: #666666;
+        }
+    )")
+        .arg(size)
+        .arg(size - 4); // Font size slightly smaller than box
+}
+
+QString radioButton() {
+    return R"(
+        QPushButton {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #4a4a4a,
+                stop:0.4 #3a3a3a,
+                stop:0.6 #353535,
+                stop:1 #2a2a2a);
+            color: #FFFFFF;
+            border: 2px solid #606060;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 11px;
+            font-weight: bold;
+            text-align: left;
+        }
+        QPushButton:hover {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #5a5a5a,
+                stop:0.4 #4a4a4a,
+                stop:0.6 #454545,
+                stop:1 #3a3a3a);
+            border: 2px solid #808080;
+        }
+        QPushButton:checked {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #E0E0E0,
+                stop:0.4 #D0D0D0,
+                stop:0.6 #C8C8C8,
+                stop:1 #B8B8B8);
+            color: #333333;
+            border: 2px solid #AAAAAA;
+        }
+    )";
+}
+
 } // namespace K4Styles

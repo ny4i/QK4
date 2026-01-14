@@ -391,6 +391,27 @@ public:
     void setRxEqBand(int index, int dB);
     void setRxEqBands(const QVector<int> &bands);
 
+    // Antenna Configuration Masks (ACM/ACS/ACT commands)
+    // ACM - Main RX antenna access mask
+    bool mainRxDisplayAll() const { return m_mainRxDisplayAll; }
+    bool mainRxAntEnabled(int index) const { return (index >= 0 && index < 7) ? m_mainRxAntMask[index] : false; }
+    QVector<bool> mainRxAntMask() const { return QVector<bool>(m_mainRxAntMask, m_mainRxAntMask + 7); }
+
+    // ACS - Sub RX antenna access mask
+    bool subRxDisplayAll() const { return m_subRxDisplayAll; }
+    bool subRxAntEnabled(int index) const { return (index >= 0 && index < 7) ? m_subRxAntMask[index] : false; }
+    QVector<bool> subRxAntMask() const { return QVector<bool>(m_subRxAntMask, m_subRxAntMask + 7); }
+
+    // ACT - TX antenna access mask
+    bool txDisplayAll() const { return m_txDisplayAll; }
+    bool txAntEnabled(int index) const { return (index >= 0 && index < 3) ? m_txAntMask[index] : false; }
+    QVector<bool> txAntMask() const { return QVector<bool>(m_txAntMask, m_txAntMask + 3); }
+
+    // Optimistic setters for antenna config (radio doesn't echo)
+    void setMainRxAntConfig(bool displayAll, const QVector<bool> &mask);
+    void setSubRxAntConfig(bool displayAll, const QVector<bool> &mask);
+    void setTxAntConfig(bool displayAll, const QVector<bool> &mask);
+
     // Optimistic setters for data sub-mode (radio doesn't echo DT SET commands)
     void setDataSubMode(int subMode);
     void setDataSubModeB(int subMode);
@@ -492,6 +513,11 @@ signals:
     // RX Graphic Equalizer
     void rxEqChanged();                      // Any EQ band value changed
     void rxEqBandChanged(int index, int dB); // Specific band changed
+
+    // Antenna Configuration Masks
+    void mainRxAntCfgChanged();  // ACM command received/changed
+    void subRxAntCfgChanged();   // ACS command received/changed
+    void txAntCfgChanged();      // ACT command received/changed
 
     void stateUpdated();
 
@@ -688,6 +714,19 @@ private:
     // RX Graphic Equalizer (8 bands: 100, 200, 400, 800, 1200, 1600, 2400, 3200 Hz)
     // Range: -16 to +16 dB, init to 0 (flat)
     int m_rxEqBands[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+
+    // Antenna Configuration Masks (ACM/ACS/ACT commands)
+    // ACM - Main RX: z=displayAll, a-g = ANT1, ANT2, ANT3, RX1, RX2, =TX ANT, =OPP TX ANT
+    bool m_mainRxDisplayAll = true;
+    bool m_mainRxAntMask[7] = {false, false, false, false, false, false, false};
+
+    // ACS - Sub RX: same format as ACM
+    bool m_subRxDisplayAll = true;
+    bool m_subRxAntMask[7] = {false, false, false, false, false, false, false};
+
+    // ACT - TX: z=displayAll, a-c = TX ANT1, TX ANT2, TX ANT3
+    bool m_txDisplayAll = true;
+    bool m_txAntMask[3] = {false, false, false};
 };
 
 #endif // RADIOSTATE_H

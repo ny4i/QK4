@@ -18,6 +18,7 @@
 #include "ui/vforowwidget.h"
 #include "ui/filterindicatorwidget.h"
 #include "ui/k4styles.h"
+#include "ui/antennacfgpopup.h"
 #include "models/menumodel.h"
 #include "dsp/panadapter_rhi.h"
 #include "dsp/minipan_rhi.h"
@@ -220,10 +221,31 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_subRxPopup, &ButtonRowPopup::buttonRightClicked, this, &MainWindow::onSubRxButtonRightClicked);
 
     m_txPopup = new ButtonRowPopup(this);
-    m_txPopup->setButtonLabels({"1", "2", "3", "4", "5", "6", "7"});
+    m_txPopup->setButtonLabel(0, "ANT", "CFG", false);     // TX Antenna config
+    m_txPopup->setButtonLabel(1, "TX", "EQ", false);       // TX Equalizer (future)
+    m_txPopup->setButtonLabel(2, "3", "");                 // Placeholder
+    m_txPopup->setButtonLabel(3, "4", "");                 // Placeholder
+    m_txPopup->setButtonLabel(4, "5", "");                 // Placeholder
+    m_txPopup->setButtonLabel(5, "6", "");                 // Placeholder
+    m_txPopup->setButtonLabel(6, "7", "");                 // Placeholder
     connect(m_txPopup, &ButtonRowPopup::closed, this, [this]() {
         if (m_bottomMenuBar) {
             m_bottomMenuBar->setTxActive(false);
+        }
+    });
+    connect(m_txPopup, &ButtonRowPopup::buttonClicked, this, [this](int index) {
+        if (!m_tcpClient || !m_tcpClient->isConnected())
+            return;
+        switch (index) {
+        case 0: // ANT CFG - show TX antenna config popup
+            if (m_txAntCfgPopup && m_txPopup) {
+                m_txAntCfgPopup->showAboveWidget(m_txPopup);
+            }
+            break;
+        case 1: // TX EQ - future TX equalizer
+            break;
+        default:
+            break;
         }
     });
 
@@ -318,6 +340,43 @@ MainWindow::MainWindow(QWidget *parent)
         m_rxEqPopup->updatePresetName(i, preset.name);
     }
 
+    // Create antenna configuration popups (MAIN RX, SUB RX, TX)
+    m_mainRxAntCfgPopup = new AntennaCfgPopupWidget(AntennaCfgVariant::MainRx, this);
+    connect(m_mainRxAntCfgPopup, &AntennaCfgPopupWidget::configChanged, this, [this](bool displayAll, QVector<bool> mask) {
+        if (!m_tcpClient || !m_tcpClient->isConnected())
+            return;
+        // Build ACM command: ACMzabcdefg where z=displayAll, a-g=antenna enables
+        QString cmd = QString("ACM%1").arg(displayAll ? '1' : '0');
+        for (int i = 0; i < 7; i++) {
+            cmd += (i < mask.size() && mask[i]) ? '1' : '0';
+        }
+        m_tcpClient->sendCAT(cmd);
+    });
+
+    m_subRxAntCfgPopup = new AntennaCfgPopupWidget(AntennaCfgVariant::SubRx, this);
+    connect(m_subRxAntCfgPopup, &AntennaCfgPopupWidget::configChanged, this, [this](bool displayAll, QVector<bool> mask) {
+        if (!m_tcpClient || !m_tcpClient->isConnected())
+            return;
+        // Build ACS command: ACSzabcdefg where z=displayAll, a-g=antenna enables
+        QString cmd = QString("ACS%1").arg(displayAll ? '1' : '0');
+        for (int i = 0; i < 7; i++) {
+            cmd += (i < mask.size() && mask[i]) ? '1' : '0';
+        }
+        m_tcpClient->sendCAT(cmd);
+    });
+
+    m_txAntCfgPopup = new AntennaCfgPopupWidget(AntennaCfgVariant::Tx, this);
+    connect(m_txAntCfgPopup, &AntennaCfgPopupWidget::configChanged, this, [this](bool displayAll, QVector<bool> mask) {
+        if (!m_tcpClient || !m_tcpClient->isConnected())
+            return;
+        // Build ACT command: ACTzabc where z=displayAll, a-c=antenna enables
+        QString cmd = QString("ACT%1").arg(displayAll ? '1' : '0');
+        for (int i = 0; i < 3; i++) {
+            cmd += (i < mask.size() && mask[i]) ? '1' : '0';
+        }
+        m_tcpClient->sendCAT(cmd);
+    });
+
     // Create notification popup for K4 error/status messages (ERxx:)
     m_notificationWidget = new NotificationWidget(this);
 
@@ -345,6 +404,26 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_radioState, &RadioState::rxEqChanged, this, [this]() {
         if (m_rxEqPopup) {
             m_rxEqPopup->setAllBands(m_radioState->rxEqBands());
+        }
+    });
+
+    // Antenna configuration signals - update popups when state changes
+    connect(m_radioState, &RadioState::mainRxAntCfgChanged, this, [this]() {
+        if (m_mainRxAntCfgPopup) {
+            m_mainRxAntCfgPopup->setDisplayAll(m_radioState->mainRxDisplayAll());
+            m_mainRxAntCfgPopup->setAntennaMask(m_radioState->mainRxAntMask());
+        }
+    });
+    connect(m_radioState, &RadioState::subRxAntCfgChanged, this, [this]() {
+        if (m_subRxAntCfgPopup) {
+            m_subRxAntCfgPopup->setDisplayAll(m_radioState->subRxDisplayAll());
+            m_subRxAntCfgPopup->setAntennaMask(m_radioState->subRxAntMask());
+        }
+    });
+    connect(m_radioState, &RadioState::txAntCfgChanged, this, [this]() {
+        if (m_txAntCfgPopup) {
+            m_txAntCfgPopup->setDisplayAll(m_radioState->txDisplayAll());
+            m_txAntCfgPopup->setAntennaMask(m_radioState->txAntMask());
         }
     });
 
@@ -3165,42 +3244,96 @@ void MainWindow::onSplitChanged(bool enabled) {
 }
 
 void MainWindow::onAntennaChanged(int txAnt, int rxAntMain, int rxAntSub) {
-    // Format RX antenna display based on AR command value
-    // AR values 0-3 are special modes, not antenna indices:
-    // 0 = Disconnected, 1 = EXT XVTR, 2 = RX uses TX ant, 3 = INT XVTR
-    // 4 = RX1, 5 = RX2, 6-7 = ATU antennas
-    auto formatRxAntenna = [this, txAnt](int arValue) -> QString {
+    // Format Main RX antenna display based on AR command value
+    // K4 AR command values (from official K4 protocol documentation):
+    // 0 = Disconnected (all RX RF sources disconnected)
+    // 1 = EXT. XVTR IN / RX ANT IN2 (external transverter jack)
+    // 2 = RX USES TX ANT (follows TX antenna selection) - show resolved value
+    // 3 = INT. XVTR IN (internal transverter)
+    // 4 = RX ANT IN1 (receive antenna jack)
+    // 5 = ATU RX ANT1 (TX antenna 1 via ATU)
+    // 6 = ATU RX ANT2 (TX antenna 2 via ATU)
+    // 7 = ATU RX ANT3 (TX antenna 3 via ATU)
+    auto formatMainRxAntenna = [this, txAnt](int arValue) -> QString {
         switch (arValue) {
         case 0: // Disconnected
             return "OFF";
-        case 1: // EXT. XVTR IN
-            return "EXT";
-        case 2: // RX USES TX ANT - show TX antenna
+        case 1: // EXT. XVTR IN / RX ANT IN2
+            return QString("RX2:%1").arg(m_radioState->antennaName(5));
+        case 2: // RX USES TX ANT - show resolved value like K4 front panel
             return QString("%1:%2").arg(txAnt).arg(m_radioState->antennaName(txAnt));
         case 3: // INT. XVTR IN
-            return "INT";
+            return "INT XVTR";
         case 4: // RX ANT IN1
             return QString("RX1:%1").arg(m_radioState->antennaName(4));
-        case 5: // RX ANT IN2 / ATU RX ANT1
+        case 5: // ATU RX ANT1
+            return QString("1:%1").arg(m_radioState->antennaName(1));
+        case 6: // ATU RX ANT2
+            return QString("2:%1").arg(m_radioState->antennaName(2));
+        case 7: // ATU RX ANT3
+            return QString("3:%1").arg(m_radioState->antennaName(3));
+        default:
+            return QString("AR%1").arg(arValue);
+        }
+    };
+
+    // Format Sub RX antenna display based on AR$ command value
+    // K4 AR$ command values (from official K4 protocol documentation):
+    // 0 = Disconnected (all RX RF sources disconnected)
+    // 1 = EXT. XVTR IN / RX ANT IN2 (external transverter jack)
+    // 2 = RX USES TX ANT (follows TX antenna selection) - show resolved value
+    // 3 = INT. XVTR IN (internal transverter)
+    // 4 = RX ANT IN1 (receive antenna jack)
+    // 5 = ATU RX ANT1 (TX antenna 1 via ATU)
+    // 6 = ATU RX ANT2 (TX antenna 2 via ATU)
+    // 7 = ATU RX ANT3 (TX antenna 3 via ATU)
+    auto formatSubRxAntenna = [this, txAnt](int arValue) -> QString {
+        switch (arValue) {
+        case 0: // Disconnected
+            return "OFF";
+        case 1: // EXT. XVTR IN / RX ANT IN2
             return QString("RX2:%1").arg(m_radioState->antennaName(5));
-        default: // ATU antennas (6-7)
-            return QString("ATU%1").arg(arValue - 4);
+        case 2: // RX USES TX ANT - show resolved value like K4 front panel
+            return QString("%1:%2").arg(txAnt).arg(m_radioState->antennaName(txAnt));
+        case 3: // INT. XVTR IN
+            return "INT XVTR";
+        case 4: // RX ANT IN1
+            return QString("RX1:%1").arg(m_radioState->antennaName(4));
+        case 5: // ATU RX ANT1
+            return QString("1:%1").arg(m_radioState->antennaName(1));
+        case 6: // ATU RX ANT2
+            return QString("2:%1").arg(m_radioState->antennaName(2));
+        case 7: // ATU RX ANT3
+            return QString("3:%1").arg(m_radioState->antennaName(3));
+        default:
+            return QString("AR$%1").arg(arValue);
         }
     };
 
     // TX antenna (AN command) - always 1-3, format as "N:name"
     m_txAntennaLabel->setText(QString("%1:%2").arg(txAnt).arg(m_radioState->antennaName(txAnt)));
 
-    // RX antennas (AR/AR$ commands) - use special mode handling
-    m_rxAntALabel->setText(formatRxAntenna(rxAntMain));
-    m_rxAntBLabel->setText(formatRxAntenna(rxAntSub));
+    // RX antennas - Main (AR) and Sub (AR$) have different value mappings
+    m_rxAntALabel->setText(formatMainRxAntenna(rxAntMain));
+    m_rxAntBLabel->setText(formatSubRxAntenna(rxAntSub));
 }
 
 void MainWindow::onAntennaNameChanged(int index, const QString &name) {
-    Q_UNUSED(index)
-    Q_UNUSED(name)
     // Refresh antenna displays when a name changes
     onAntennaChanged(m_radioState->txAntenna(), m_radioState->rxAntennaMain(), m_radioState->rxAntennaSub());
+
+    // Update antenna config popups with custom names (ANT1-3 only)
+    // Note: index is 1-based from ACN command (ACN1, ACN2, ACN3)
+    // Popup labels are 0-based (0=ANT1, 1=ANT2, 2=ANT3)
+    if (index >= 1 && index <= 3) {
+        int popupIndex = index - 1; // Convert to 0-based
+        if (m_mainRxAntCfgPopup)
+            m_mainRxAntCfgPopup->setAntennaName(popupIndex, name);
+        if (m_subRxAntCfgPopup)
+            m_subRxAntCfgPopup->setAntennaName(popupIndex, name);
+        if (m_txAntCfgPopup)
+            m_txAntCfgPopup->setAntennaName(popupIndex, name);
+    }
 }
 
 void MainWindow::onVoxChanged(bool enabled) {
@@ -4040,7 +4173,10 @@ void MainWindow::onMainRxButtonClicked(int index) {
         return;
 
     switch (index) {
-    case 0: // ANT CFG - not implemented
+    case 0: // ANT CFG - show Main RX antenna config popup
+        if (m_mainRxAntCfgPopup && m_mainRxPopup) {
+            m_mainRxAntCfgPopup->showAboveWidget(m_mainRxPopup);
+        }
         break;
     case 1: // RX EQ - show graphic equalizer popup
         if (m_rxEqPopup && m_mainRxPopup) {
@@ -4111,8 +4247,12 @@ void MainWindow::onSubRxButtonClicked(int index) {
         return;
 
     switch (index) {
-    case 0: // ANT CFG - not implemented
-    case 1: // RX EQ - not implemented
+    case 0: // ANT CFG - show Sub RX antenna config popup
+        if (m_subRxAntCfgPopup && m_subRxPopup) {
+            m_subRxAntCfgPopup->showAboveWidget(m_subRxPopup);
+        }
+        break;
+    case 1: // RX EQ - not implemented yet (shares same EQ as Main RX)
     case 2: // LINE OUT - not implemented
         break;
     case 3: // AFX - cycle (same command, affects audio)

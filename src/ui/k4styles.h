@@ -65,6 +65,22 @@ QString menuBarButtonSmall();
  */
 QString sliderHorizontal(const QString &grooveColor, const QString &handleColor);
 
+/**
+ * @brief Checkbox-style toggle button stylesheet.
+ * Square button with gradient background, shows checkmark when checked.
+ * Use with QPushButton::setCheckable(true).
+ *
+ * @param size Size of the checkbox (default 32x32)
+ */
+QString checkboxButton(int size = 32);
+
+/**
+ * @brief Radio button style for mode selection (DISPLAY ALL / USE SUBSET).
+ * Circular indicator with gradient background.
+ * Use with QPushButton::setCheckable(true).
+ */
+QString radioButton();
+
 // =============================================================================
 // Common Style Constants
 // =============================================================================

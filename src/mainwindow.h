@@ -28,6 +28,7 @@ class ButtonRowPopup;
 class DisplayPopupWidget;
 class FnPopupWidget;
 class RxEqPopupWidget;
+class AntennaCfgPopupWidget;
 class MacroDialog;
 class FilterIndicatorWidget;
 class FeatureMenuBar;
@@ -267,6 +268,9 @@ private:
     ButtonRowPopup *m_subRxPopup;
     ButtonRowPopup *m_txPopup;
     RxEqPopupWidget *m_rxEqPopup;
+    AntennaCfgPopupWidget *m_mainRxAntCfgPopup;
+    AntennaCfgPopupWidget *m_subRxAntCfgPopup;
+    AntennaCfgPopupWidget *m_txAntCfgPopup;
     FeatureMenuBar *m_featureMenuBar;
     ModePopupWidget *m_modePopup;
 

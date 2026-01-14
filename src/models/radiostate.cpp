@@ -703,19 +703,21 @@ void RadioState::parseCATCommand(const QString &command) {
         }
     }
     // RX Antenna Main (AR)
+    // AR values: 0=OFF, 1=EXT XVTR, 2=INT XVTR, 3=RX1, 4=RX2, 5=ANT1, 6=ANT2, 7=ANT3
     else if (cmd.startsWith("AR") && !cmd.startsWith("AR$") && cmd.length() > 2) {
         bool ok;
         int ar = cmd.mid(2).toInt(&ok);
-        if (ok && ar >= 1 && ar <= 6 && ar != m_receiveAntenna) {
+        if (ok && ar >= 0 && ar <= 7 && ar != m_receiveAntenna) {
             m_receiveAntenna = ar;
             emit antennaChanged(m_selectedAntenna, m_receiveAntenna, m_receiveAntennaSub);
         }
     }
     // RX Antenna Sub (AR$)
+    // AR$ values: 0=RX2, 1=RX1, 2=ANT1, 3=ANT2, 4=ANT3, 5==TX, 6==OPP TX
     else if (cmd.startsWith("AR$") && cmd.length() > 3) {
         bool ok;
         int ar = cmd.mid(3).toInt(&ok);
-        if (ok && ar >= 1 && ar <= 6 && ar != m_receiveAntennaSub) {
+        if (ok && ar >= 0 && ar <= 7 && ar != m_receiveAntennaSub) {
             m_receiveAntennaSub = ar;
             emit antennaChanged(m_selectedAntenna, m_receiveAntenna, m_receiveAntennaSub);
         }
@@ -857,6 +859,66 @@ void RadioState::parseCATCommand(const QString &command) {
                 m_antennaNames[antNum] = name;
                 emit antennaNameChanged(antNum, name);
             }
+        }
+    }
+    // Main RX Antenna Config (ACM) - ACMzabcdefg where z=displayAll, a-g=antenna enables
+    else if (cmd.startsWith("ACM") && cmd.length() >= 11) {
+        QString data = cmd.mid(3); // Skip "ACM"
+        bool changed = false;
+        bool newDisplayAll = (data[0] == '1');
+        if (newDisplayAll != m_mainRxDisplayAll) {
+            m_mainRxDisplayAll = newDisplayAll;
+            changed = true;
+        }
+        for (int i = 0; i < 7 && i + 1 < data.length(); i++) {
+            bool enabled = (data[i + 1] == '1');
+            if (enabled != m_mainRxAntMask[i]) {
+                m_mainRxAntMask[i] = enabled;
+                changed = true;
+            }
+        }
+        if (changed) {
+            emit mainRxAntCfgChanged();
+        }
+    }
+    // Sub RX Antenna Config (ACS) - ACSzabcdefg where z=displayAll, a-g=antenna enables
+    else if (cmd.startsWith("ACS") && cmd.length() >= 11) {
+        QString data = cmd.mid(3); // Skip "ACS"
+        bool changed = false;
+        bool newDisplayAll = (data[0] == '1');
+        if (newDisplayAll != m_subRxDisplayAll) {
+            m_subRxDisplayAll = newDisplayAll;
+            changed = true;
+        }
+        for (int i = 0; i < 7 && i + 1 < data.length(); i++) {
+            bool enabled = (data[i + 1] == '1');
+            if (enabled != m_subRxAntMask[i]) {
+                m_subRxAntMask[i] = enabled;
+                changed = true;
+            }
+        }
+        if (changed) {
+            emit subRxAntCfgChanged();
+        }
+    }
+    // TX Antenna Config (ACT) - ACTzabc where z=displayAll, a-c=antenna enables
+    else if (cmd.startsWith("ACT") && cmd.length() >= 7) {
+        QString data = cmd.mid(3); // Skip "ACT"
+        bool changed = false;
+        bool newDisplayAll = (data[0] == '1');
+        if (newDisplayAll != m_txDisplayAll) {
+            m_txDisplayAll = newDisplayAll;
+            changed = true;
+        }
+        for (int i = 0; i < 3 && i + 1 < data.length(); i++) {
+            bool enabled = (data[i + 1] == '1');
+            if (enabled != m_txAntMask[i]) {
+                m_txAntMask[i] = enabled;
+                changed = true;
+            }
+        }
+        if (changed) {
+            emit txAntCfgChanged();
         }
     }
     // RIT (RT) - RT0/RT1 (not RT$ which is a different command)
@@ -1548,5 +1610,56 @@ void RadioState::setRxEqBands(const QVector<int> &bands) {
     }
     if (changed) {
         emit rxEqChanged();
+    }
+}
+
+void RadioState::setMainRxAntConfig(bool displayAll, const QVector<bool> &mask) {
+    bool changed = false;
+    if (displayAll != m_mainRxDisplayAll) {
+        m_mainRxDisplayAll = displayAll;
+        changed = true;
+    }
+    for (int i = 0; i < qMin(mask.size(), 7); i++) {
+        if (mask[i] != m_mainRxAntMask[i]) {
+            m_mainRxAntMask[i] = mask[i];
+            changed = true;
+        }
+    }
+    if (changed) {
+        emit mainRxAntCfgChanged();
+    }
+}
+
+void RadioState::setSubRxAntConfig(bool displayAll, const QVector<bool> &mask) {
+    bool changed = false;
+    if (displayAll != m_subRxDisplayAll) {
+        m_subRxDisplayAll = displayAll;
+        changed = true;
+    }
+    for (int i = 0; i < qMin(mask.size(), 7); i++) {
+        if (mask[i] != m_subRxAntMask[i]) {
+            m_subRxAntMask[i] = mask[i];
+            changed = true;
+        }
+    }
+    if (changed) {
+        emit subRxAntCfgChanged();
+    }
+}
+
+void RadioState::setTxAntConfig(bool displayAll, const QVector<bool> &mask) {
+    bool changed = false;
+    if (displayAll != m_txDisplayAll) {
+        m_txDisplayAll = displayAll;
+        changed = true;
+    }
+    for (int i = 0; i < qMin(mask.size(), 3); i++) {
+        if (mask[i] != m_txAntMask[i]) {
+            m_txAntMask[i] = mask[i];
+            changed = true;
+        }
+    }
+    if (changed) {
+        emit txAntCfgChanged();
     }
 }
