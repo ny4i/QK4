@@ -4252,7 +4252,11 @@ void MainWindow::onSubRxButtonClicked(int index) {
             m_subRxAntCfgPopup->showAboveWidget(m_subRxPopup);
         }
         break;
-    case 1: // RX EQ - not implemented yet (shares same EQ as Main RX)
+    case 1: // RX EQ - show graphic equalizer popup (shares same EQ as Main RX)
+        if (m_rxEqPopup && m_subRxPopup) {
+            m_rxEqPopup->showAboveWidget(m_subRxPopup);
+        }
+        break;
     case 2: // LINE OUT - not implemented
         break;
     case 3: // AFX - cycle (same command, affects audio)
