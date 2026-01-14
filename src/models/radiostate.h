@@ -381,6 +381,16 @@ public:
     int dataSubMode() const { return m_dataSubMode; }
     int dataSubModeB() const { return m_dataSubModeB; }
 
+    // RX Graphic Equalizer (RE command) - 8 bands, -16 to +16 dB
+    // Bands: 100, 200, 400, 800, 1200, 1600, 2400, 3200 Hz
+    // Note: Main RX and Sub RX share the same EQ settings
+    int rxEqBand(int index) const { return (index >= 0 && index < 8) ? m_rxEqBands[index] : 0; }
+    QVector<int> rxEqBands() const { return QVector<int>(m_rxEqBands, m_rxEqBands + 8); }
+
+    // Optimistic setter for RX EQ bands (radio doesn't echo)
+    void setRxEqBand(int index, int dB);
+    void setRxEqBands(const QVector<int> &bands);
+
     // Optimistic setters for data sub-mode (radio doesn't echo DT SET commands)
     void setDataSubMode(int subMode);
     void setDataSubModeB(int subMode);
@@ -478,6 +488,10 @@ signals:
     void apfBChanged(bool enabled, int width);     // AP$: Sub RX APF (0=30Hz, 1=50Hz, 2=150Hz)
     void vfoLinkChanged(bool linked);              // LN: VFOs linked
     void monitorLevelChanged(int mode, int level); // ML: Monitor level (0=CW, 1=Data, 2=Voice)
+
+    // RX Graphic Equalizer
+    void rxEqChanged();                      // Any EQ band value changed
+    void rxEqBandChanged(int index, int dB); // Specific band changed
 
     void stateUpdated();
 
@@ -670,6 +684,10 @@ private:
     // Timestamps for optimistic update cooldown (ignore echoes briefly after sending)
     qint64 m_dataSubModeOptimisticTime = 0;
     qint64 m_dataSubModeBOptimisticTime = 0;
+
+    // RX Graphic Equalizer (8 bands: 100, 200, 400, 800, 1200, 1600, 2400, 3200 Hz)
+    // Range: -16 to +16 dB, init to 0 (flat)
+    int m_rxEqBands[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 };
 
 #endif // RADIOSTATE_H

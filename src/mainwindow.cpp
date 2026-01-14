@@ -10,6 +10,7 @@
 #include "ui/displaypopupwidget.h"
 #include "ui/buttonrowpopup.h"
 #include "ui/fnpopupwidget.h"
+#include "ui/rxeqpopupwidget.h"
 #include "ui/macrodialog.h"
 #include "ui/optionsdialog.h"
 #include "ui/txmeterwidget.h"
@@ -28,7 +29,9 @@
 #include "hardware/halikeydevice.h"
 #include "network/kpa1500client.h"
 #include "network/catserver.h"
+#include "settings/radiosettings.h"
 #include <QVBoxLayout>
+#include <QInputDialog>
 #include <QHBoxLayout>
 #include <QGridLayout>
 #include <QGroupBox>
@@ -224,6 +227,97 @@ MainWindow::MainWindow(QWidget *parent)
         }
     });
 
+    // Create RX EQ popup (Main RX - cyan theme)
+    m_rxEqPopup = new RxEqPopupWidget("RX GRAPHIC EQUALIZER", K4Styles::Colors::VfoACyan, this);
+    connect(m_rxEqPopup, &RxEqPopupWidget::closed, this, [this]() {
+        // Close the MAIN RX button row popup when EQ popup closes
+    });
+
+    // Debounce timer for RX EQ - sends command 100ms after last slider change
+    m_rxEqDebounceTimer = new QTimer(this);
+    m_rxEqDebounceTimer->setSingleShot(true);
+    m_rxEqDebounceTimer->setInterval(100);
+    connect(m_rxEqDebounceTimer, &QTimer::timeout, this, [this]() {
+        // Build RE command with all 8 bands: RE+00+00+00+00+00+00+00+00;
+        QString cmd = "RE";
+        for (int i = 0; i < 8; i++) {
+            int value = m_radioState->rxEqBand(i);
+            cmd += QString("%1%2").arg(value >= 0 ? '+' : '-').arg(qAbs(value), 2, 10, QChar('0'));
+        }
+        m_tcpClient->sendCAT(cmd);
+    });
+
+    connect(m_rxEqPopup, &RxEqPopupWidget::bandValueChanged, this, [this](int bandIndex, int dB) {
+        // Update optimistic state immediately (UI stays responsive)
+        m_radioState->setRxEqBand(bandIndex, dB);
+        // Restart debounce timer - will send after 100ms of no changes
+        m_rxEqDebounceTimer->start();
+    });
+    connect(m_rxEqPopup, &RxEqPopupWidget::flatRequested, this, [this]() {
+        // Reset all bands to 0 and send CAT command
+        QVector<int> flat(8, 0);
+        m_radioState->setRxEqBands(flat);
+        m_tcpClient->sendCAT("RE+00+00+00+00+00+00+00+00");
+    });
+
+    // Preset load: get preset from RadioSettings, apply to sliders, send CAT
+    connect(m_rxEqPopup, &RxEqPopupWidget::presetLoadRequested, this, [this](int index) {
+        EqPreset preset = RadioSettings::instance()->rxEqPreset(index);
+        if (!preset.isEmpty() && preset.bands.size() == 8) {
+            m_rxEqPopup->setAllBands(preset.bands);
+            m_radioState->setRxEqBands(preset.bands);
+
+            // Send CAT command
+            QString cmd = "RE";
+            for (int i = 0; i < 8; i++) {
+                int value = preset.bands[i];
+                cmd += QString("%1%2").arg(value >= 0 ? '+' : '-').arg(qAbs(value), 2, 10, QChar('0'));
+            }
+            m_tcpClient->sendCAT(cmd);
+        }
+    });
+
+    // Preset save: show name dialog, save current EQ to preset
+    connect(m_rxEqPopup, &RxEqPopupWidget::presetSaveRequested, this, [this](int index) {
+        EqPreset existing = RadioSettings::instance()->rxEqPreset(index);
+        QString defaultName = existing.name.isEmpty() ? QString("Preset %1").arg(index + 1) : existing.name;
+
+        // Store current EQ bands before dialog (popup may close)
+        QVector<int> currentBands = m_radioState->rxEqBands();
+
+        bool ok;
+        QString name = QInputDialog::getText(this, "Save Preset", "Preset name:", QLineEdit::Normal, defaultName, &ok);
+
+        // Re-show the EQ popup after dialog closes
+        if (m_bottomMenuBar) {
+            m_rxEqPopup->showAboveButton(m_bottomMenuBar->mainRxButton());
+        }
+
+        if (ok) {
+            // Use default name if user cleared it
+            if (name.isEmpty()) {
+                name = QString("Preset %1").arg(index + 1);
+            }
+            EqPreset preset;
+            preset.name = name;
+            preset.bands = currentBands;
+            RadioSettings::instance()->setRxEqPreset(index, preset);
+            m_rxEqPopup->updatePresetName(index, name);
+        }
+    });
+
+    // Preset clear: remove preset from RadioSettings
+    connect(m_rxEqPopup, &RxEqPopupWidget::presetClearRequested, this, [this](int index) {
+        RadioSettings::instance()->clearRxEqPreset(index);
+        m_rxEqPopup->updatePresetName(index, "");
+    });
+
+    // Load preset names on popup creation
+    for (int i = 0; i < 4; i++) {
+        EqPreset preset = RadioSettings::instance()->rxEqPreset(i);
+        m_rxEqPopup->updatePresetName(i, preset.name);
+    }
+
     // Create notification popup for K4 error/status messages (ERxx:)
     m_notificationWidget = new NotificationWidget(this);
 
@@ -247,6 +341,12 @@ MainWindow::MainWindow(QWidget *parent)
             [this](int) { m_modeALabel->setText(m_radioState->modeStringFull()); });
     connect(m_radioState, &RadioState::sMeterChanged, this, &MainWindow::onSMeterChanged);
     connect(m_radioState, &RadioState::filterBandwidthChanged, this, &MainWindow::onBandwidthChanged);
+    // RX EQ state -> popup (Main and Sub RX share the same EQ)
+    connect(m_radioState, &RadioState::rxEqChanged, this, [this]() {
+        if (m_rxEqPopup) {
+            m_rxEqPopup->setAllBands(m_radioState->rxEqBands());
+        }
+    });
 
     // RadioState signals -> UI updates (VFO B)
     connect(m_radioState, &RadioState::frequencyBChanged, this, &MainWindow::onFrequencyBChanged);
@@ -3941,7 +4041,13 @@ void MainWindow::onMainRxButtonClicked(int index) {
 
     switch (index) {
     case 0: // ANT CFG - not implemented
-    case 1: // RX EQ - not implemented
+        break;
+    case 1: // RX EQ - show graphic equalizer popup
+        if (m_rxEqPopup && m_mainRxPopup) {
+            // Show EQ popup above the MAIN RX popup (keep both visible)
+            m_rxEqPopup->showAboveWidget(m_mainRxPopup);
+        }
+        break;
     case 2: // LINE OUT - not implemented
         break;
     case 3: // AFX - cycle OFF → DELAY → PITCH → OFF

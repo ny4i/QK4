@@ -96,6 +96,7 @@ set(SOURCES
     src/ui/modepopupwidget.cpp
     src/ui/txmeterwidget.cpp
     src/ui/fnpopupwidget.cpp
+    src/ui/rxeqpopupwidget.cpp
     src/ui/macrodialog.cpp
     src/ui/notificationwidget.cpp
     src/ui/k4styles.cpp
@@ -140,6 +141,7 @@ set(HEADERS
     src/ui/modepopupwidget.h
     src/ui/txmeterwidget.h
     src/ui/fnpopupwidget.h
+    src/ui/rxeqpopupwidget.h
     src/ui/macrodialog.h
     src/ui/notificationwidget.h
     src/ui/k4styles.h

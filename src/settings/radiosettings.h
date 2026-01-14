@@ -21,6 +21,15 @@ struct MacroEntry {
     }
 };
 
+// RX EQ preset entry (8-band graphic equalizer)
+struct EqPreset {
+    QString name;       // User-defined name ("SSB", "CW", etc.)
+    QVector<int> bands; // 8 values, -16 to +16 dB
+
+    bool isEmpty() const { return bands.isEmpty() || name.isEmpty(); }
+    QString displayName() const { return isEmpty() ? "---" : name; }
+};
+
 struct RadioEntry {
     QString name;
     QString host;
@@ -98,6 +107,11 @@ public:
     int sidetoneVolume() const;
     void setSidetoneVolume(int value); // 0-100, default 30
 
+    // RX EQ Presets (4 slots)
+    EqPreset rxEqPreset(int index) const;                  // Get preset 0-3
+    void setRxEqPreset(int index, const EqPreset &preset); // Set preset 0-3
+    void clearRxEqPreset(int index);                       // Clear preset 0-3
+
 signals:
     void radiosChanged();
     void kpodEnabledChanged(bool enabled);
@@ -113,6 +127,7 @@ signals:
     void halikeyEnabledChanged(bool enabled);
     void halikeyPortNameChanged(const QString &portName);
     void sidetoneVolumeChanged(int value);
+    void rxEqPresetsChanged();
 
 private:
     explicit RadioSettings(QObject *parent = nullptr);
@@ -140,6 +155,9 @@ private:
 
     // Macro settings
     QMap<QString, MacroEntry> m_macros;
+
+    // RX EQ Presets (4 slots)
+    EqPreset m_rxEqPresets[4];
 
     QSettings m_settings;
 };

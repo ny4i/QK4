@@ -27,6 +27,7 @@ class BandPopupWidget;
 class ButtonRowPopup;
 class DisplayPopupWidget;
 class FnPopupWidget;
+class RxEqPopupWidget;
 class MacroDialog;
 class FilterIndicatorWidget;
 class FeatureMenuBar;
@@ -265,6 +266,7 @@ private:
     ButtonRowPopup *m_mainRxPopup;
     ButtonRowPopup *m_subRxPopup;
     ButtonRowPopup *m_txPopup;
+    RxEqPopupWidget *m_rxEqPopup;
     FeatureMenuBar *m_featureMenuBar;
     ModePopupWidget *m_modePopup;
 
@@ -291,6 +293,9 @@ private:
 
     // Notification popup for K4 error/status messages (ERxx:)
     NotificationWidget *m_notificationWidget;
+
+    // Debounce timer for RX EQ slider changes
+    QTimer *m_rxEqDebounceTimer;
 };
 
 #endif // MAINWINDOW_H

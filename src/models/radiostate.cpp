@@ -1154,6 +1154,45 @@ void RadioState::parseCATCommand(const QString &command) {
     else if (cmd.startsWith("SIRC") && cmd.length() > 4) {
         // Currently parsed but not displayed - stats available for future UI integration
     }
+    // RX Graphic Equalizer (RE) - RE+00+00+00+00+00+00+00+00
+    // 8 bands, each is +XX or -XX (signed, -16 to +16 dB)
+    // Bands: 100, 200, 400, 800, 1200, 1600, 2400, 3200 Hz
+    // Note: Main RX and Sub RX share the same EQ settings
+    else if (cmd.startsWith("RE") && cmd.length() >= 26) {
+        // Format: RE+00+00+00+00+00+00+00+00 (2 + 8*3 = 26 chars minimum)
+        QString data = cmd.mid(2); // Skip "RE"
+        bool changed = false;
+        int newBands[8];
+        bool parseOk = true;
+
+        // Parse each 3-character band value (+XX or -XX)
+        for (int i = 0; i < 8 && parseOk; i++) {
+            if (data.length() >= (i + 1) * 3) {
+                QString bandStr = data.mid(i * 3, 3); // +00, -05, +16, etc.
+                bool ok;
+                int value = bandStr.toInt(&ok);
+                if (ok && value >= -16 && value <= 16) {
+                    newBands[i] = value;
+                } else {
+                    parseOk = false;
+                }
+            } else {
+                parseOk = false;
+            }
+        }
+
+        if (parseOk) {
+            for (int i = 0; i < 8; i++) {
+                if (m_rxEqBands[i] != newBands[i]) {
+                    m_rxEqBands[i] = newBands[i];
+                    changed = true;
+                }
+            }
+            if (changed) {
+                emit rxEqChanged();
+            }
+        }
+    }
 
     emit stateUpdated();
 }
@@ -1484,5 +1523,30 @@ void RadioState::setAveraging(int value) {
     if (m_averaging != value) {
         m_averaging = value;
         emit averagingChanged(value);
+    }
+}
+
+void RadioState::setRxEqBand(int index, int dB) {
+    if (index < 0 || index >= 8)
+        return;
+    dB = qBound(-16, dB, 16);
+    if (m_rxEqBands[index] != dB) {
+        m_rxEqBands[index] = dB;
+        emit rxEqBandChanged(index, dB);
+        emit rxEqChanged();
+    }
+}
+
+void RadioState::setRxEqBands(const QVector<int> &bands) {
+    bool changed = false;
+    for (int i = 0; i < qMin(bands.size(), 8); i++) {
+        int dB = qBound(-16, bands[i], 16);
+        if (m_rxEqBands[i] != dB) {
+            m_rxEqBands[i] = dB;
+            changed = true;
+        }
+    }
+    if (changed) {
+        emit rxEqChanged();
     }
 }
