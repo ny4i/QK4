@@ -30,7 +30,6 @@ bool CatServer::start(quint16 port) {
     }
 
     m_port = port;
-    qDebug() << "CatServer: Listening on port" << port;
     emit started(port);
     return true;
 }
@@ -45,7 +44,6 @@ void CatServer::stop() {
     if (m_server->isListening()) {
         m_server->close();
         m_port = 0;
-        qDebug() << "CatServer: Stopped";
         emit stopped();
     }
 }

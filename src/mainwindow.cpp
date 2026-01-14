@@ -856,14 +856,10 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Connect KPOD hotplug signals - auto-start polling when device arrives
     connect(m_kpodDevice, &KpodDevice::deviceConnected, this, [this]() {
-        qDebug() << "KPOD: Device arrived via hotplug";
         if (RadioSettings::instance()->kpodEnabled() && !m_kpodDevice->isPolling()) {
-            qDebug() << "KPOD: Auto-starting polling (enabled in settings)";
             m_kpodDevice->startPolling();
         }
     });
-    connect(m_kpodDevice, &KpodDevice::deviceDisconnected, this,
-            [this]() { qDebug() << "KPOD: Device removed via hotplug"; });
 
     // Connect to settings for KPOD enable/disable
     connect(RadioSettings::instance(), &RadioSettings::kpodEnabledChanged, this, &MainWindow::onKpodEnabledChanged);

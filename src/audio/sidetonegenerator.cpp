@@ -50,7 +50,6 @@ void SidetoneGenerator::initAudio() {
     format.setSampleFormat(QAudioFormat::Int16);
 
     QAudioDevice device = QMediaDevices::defaultAudioOutput();
-    qDebug() << "SidetoneGenerator: Using audio device:" << device.description();
 
     if (!device.isFormatSupported(format)) {
         qWarning() << "SidetoneGenerator: Default format not supported, trying nearest";
@@ -62,9 +61,7 @@ void SidetoneGenerator::initAudio() {
 
     // Start audio sink immediately and keep it running
     m_pushDevice = m_audioSink->start();
-    if (m_pushDevice) {
-        qDebug() << "SidetoneGenerator: Audio sink started, ready for playback";
-    } else {
+    if (!m_pushDevice) {
         qWarning() << "SidetoneGenerator: Failed to start audio sink:" << m_audioSink->error();
     }
 
@@ -81,7 +78,6 @@ void SidetoneGenerator::setVolume(float volume) {
 
 void SidetoneGenerator::setKeyerSpeed(int wpm) {
     m_keyerWpm = qBound(5, wpm, 60);
-    qDebug() << "SidetoneGenerator: Keyer speed set to" << m_keyerWpm << "WPM";
 }
 
 void SidetoneGenerator::startDit() {

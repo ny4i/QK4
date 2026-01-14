@@ -13,6 +13,21 @@
 #endif
 #include "mainwindow.h"
 
+// Filter out known benign Qt warnings on macOS
+// QSocketNotifier::Exception is not supported by kqueue (macOS's event system)
+// This warning comes from Qt's internal socket code and doesn't affect functionality
+static QtMessageHandler originalHandler = nullptr;
+void messageFilter(QtMsgType type, const QMessageLogContext &context, const QString &msg) {
+#ifdef Q_OS_MACOS
+    if (msg.contains("QSocketNotifier::Exception is not supported")) {
+        return; // Suppress this known benign warning
+    }
+#endif
+    if (originalHandler) {
+        originalHandler(type, context, msg);
+    }
+}
+
 // Load embedded fonts and set application defaults
 void setupFonts() {
     // Load Inter font family (screen-optimized sans-serif)
@@ -26,17 +41,12 @@ void setupFonts() {
     int monoMedium = QFontDatabase::addApplicationFont(":/fonts/JetBrainsMono-Medium.ttf");
     int monoBold = QFontDatabase::addApplicationFont(":/fonts/JetBrainsMono-Bold.ttf");
 
-    // Verify fonts loaded
+    // Verify fonts loaded (only warn on failure)
     if (interRegular < 0 || interMedium < 0) {
         qWarning() << "Failed to load Inter font - using system default";
-    } else {
-        qDebug() << "Loaded Inter font family";
     }
-
     if (monoRegular < 0) {
         qWarning() << "Failed to load JetBrains Mono - using system monospace";
-    } else {
-        qDebug() << "Loaded JetBrains Mono font family";
     }
 
     // Set Inter Medium as the default application font (crisper than Regular)
@@ -45,11 +55,12 @@ void setupFonts() {
     defaultFont.setHintingPreference(QFont::PreferFullHinting);
     defaultFont.setStyleStrategy(QFont::PreferAntialias);
     QApplication::setFont(defaultFont);
-
-    qDebug() << "Default font set to:" << defaultFont.family() << defaultFont.pointSize() << "pt";
 }
 
 int main(int argc, char *argv[]) {
+    // Install message filter to suppress known benign Qt warnings
+    originalHandler = qInstallMessageHandler(messageFilter);
+
 #ifdef Q_OS_MACOS
     // Enable OpenSSL for TLS/PSK support
     // Qt's OpenSSL backend dynamically loads libssl/libcrypto at runtime
@@ -80,16 +91,12 @@ int main(int argc, char *argv[]) {
             if (!currentPath.contains(opensslPath)) {
                 QString newPath = currentPath.isEmpty() ? opensslPath : QString("%1:%2").arg(opensslPath, currentPath);
                 qputenv("DYLD_LIBRARY_PATH", newPath.toLocal8Bit());
-                qDebug() << "Added OpenSSL to library path for TLS/PSK support:" << opensslPath;
             }
             foundOpenSSL = true;
             break;
         }
     }
-
-    if (!foundOpenSSL) {
-        qDebug() << "OpenSSL not found - TLS/PSK will not be available";
-    }
+    Q_UNUSED(foundOpenSSL);
 #endif
 
     // Enable HiDPI scaling for crisp rendering on Retina/4K displays
@@ -103,45 +110,6 @@ int main(int argc, char *argv[]) {
 
     // Load embedded fonts (Inter + JetBrains Mono)
     setupFonts();
-
-    // Debug: System info
-    qDebug() << "=== K4Controller Startup ===";
-    qDebug() << "Platform:" << QSysInfo::prettyProductName();
-    qDebug() << "Kernel:" << QSysInfo::kernelType() << QSysInfo::kernelVersion();
-    qDebug() << "CPU:" << QSysInfo::currentCpuArchitecture();
-    qDebug() << "Qt version:" << QT_VERSION_STR;
-
-    // Debug: Test QRhi Metal support
-#ifdef Q_OS_MACOS
-    qDebug() << "=== Testing QRhi Metal Backend ===";
-
-    // Try to create a Metal QRhi to see if it works
-    QRhiMetalInitParams metalParams;
-    QRhi::Flags flags;
-    std::unique_ptr<QRhi> testRhi(QRhi::create(QRhi::Metal, &metalParams, flags));
-    if (testRhi) {
-        qDebug() << "✓ QRhi Metal backend created successfully!";
-        qDebug() << "  Backend:" << testRhi->backendName();
-        qDebug() << "  Device:" << testRhi->driverInfo().deviceName;
-    } else {
-        qWarning() << "✗ QRhi Metal backend FAILED to create!";
-        qWarning() << "  This may indicate a Metal framework or driver issue.";
-    }
-    testRhi.reset(); // Clean up test instance
-
-    // Check platform RHI capability
-    auto *pi = QGuiApplicationPrivate::platformIntegration();
-    if (pi) {
-        bool rhiCapable = pi->hasCapability(QPlatformIntegration::RhiBasedRendering);
-        qDebug() << "RhiBasedRendering capability:" << rhiCapable;
-        if (!rhiCapable) {
-            qWarning() << "!!! Platform does NOT support RhiBasedRendering !!!";
-            qWarning() << "    QRhiWidget will fail to get QRhi from window backing store.";
-        }
-    } else {
-        qWarning() << "Could not get platform integration!";
-    }
-#endif
 
     MainWindow window;
     window.show();

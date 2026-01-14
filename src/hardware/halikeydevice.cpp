@@ -44,7 +44,6 @@ bool HalikeyDevice::openPort(const QString &portName) {
     // Start polling flow control signals
     m_pollTimer->start();
 
-    qDebug() << "HalikeyDevice: Connected to" << portName;
     emit connected();
     return true;
 }
@@ -53,9 +52,7 @@ void HalikeyDevice::closePort() {
     m_pollTimer->stop();
 
     if (m_serialPort->isOpen()) {
-        QString portName = m_serialPort->portName();
         m_serialPort->close();
-        qDebug() << "HalikeyDevice: Disconnected from" << portName;
         emit disconnected();
     }
 

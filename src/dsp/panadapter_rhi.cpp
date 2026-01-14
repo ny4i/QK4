@@ -113,16 +113,9 @@ PanadapterRhiWidget::PanadapterRhiWidget(QWidget *parent) : QRhiWidget(parent) {
     setMinimumHeight(200);
     setMouseTracking(true);
 
-    // Debug: Check what APIs are available
-    qDebug() << "=== PanadapterRhiWidget Constructor ===";
-    qDebug() << "Platform:" << QSysInfo::prettyProductName();
-    qDebug() << "Qt version:" << QT_VERSION_STR;
-
     // Force Metal API on macOS
 #ifdef Q_OS_MACOS
-    qDebug() << "Requesting Metal API...";
     setApi(QRhiWidget::Api::Metal);
-    qDebug() << "API after setApi:" << static_cast<int>(api());
 #endif
 
     // Initialize color LUTs
@@ -291,30 +284,18 @@ void PanadapterRhiWidget::initSpectrumLUT() {
 }
 
 void PanadapterRhiWidget::initialize(QRhiCommandBuffer *cb) {
-    qDebug() << "=== PanadapterRhiWidget::initialize() ===";
-    qDebug() << "Already initialized:" << m_rhiInitialized;
-    qDebug() << "Widget visible:" << isVisible();
-    qDebug() << "Widget size:" << size();
-    qDebug() << "API requested:" << static_cast<int>(api());
-
     if (m_rhiInitialized)
         return;
 
     m_rhi = rhi();
-    qDebug() << "rhi() returned:" << m_rhi;
     if (!m_rhi) {
-        qWarning() << "!!! QRhi is NULL - Metal backend failed to initialize !!!";
-        qWarning() << "Check if Metal framework is available and GPU supports Metal";
+        qWarning() << "QRhi is NULL - GPU backend failed to initialize";
         return;
     }
-    qDebug() << "QRhi backend name:" << m_rhi->backendName();
-    qDebug() << "QRhi driver info:" << m_rhi->driverInfo().deviceName;
 
     // Use fixed texture sizes - GPU bilinear filtering handles scaling to display size
     m_textureWidth = BASE_TEXTURE_WIDTH;
     m_waterfallHistory = BASE_WATERFALL_HISTORY;
-    qDebug() << "Texture width:" << m_textureWidth;
-    qDebug() << "Waterfall history:" << m_waterfallHistory;
 
     // Allocate waterfall data buffer
     m_waterfallData.resize(m_textureWidth * m_waterfallHistory);

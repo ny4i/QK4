@@ -48,14 +48,12 @@ bool KpodDevice::startPolling() {
 
     m_pollTimer->start();
     emit deviceConnected();
-    qDebug() << "KPOD: Polling started at" << POLL_INTERVAL_MS << "ms interval";
     return true;
 }
 
 void KpodDevice::stopPolling() {
     if (m_pollTimer->isActive()) {
         m_pollTimer->stop();
-        qDebug() << "KPOD: Polling stopped";
     }
     closeDevice();
 }
@@ -88,7 +86,6 @@ bool KpodDevice::openDevice() {
     // Set non-blocking mode for responsive polling
     hid_set_nonblocking(m_hidDevice, 1);
 
-    qDebug() << "KPOD: Device opened successfully";
     return true;
 }
 
@@ -98,7 +95,6 @@ void KpodDevice::closeDevice() {
         m_hidDevice = nullptr;
         hid_exit();
         emit deviceDisconnected();
-        qDebug() << "KPOD: Device closed";
     }
 }
 
@@ -300,8 +296,6 @@ void KpodDevice::setupHotplugMonitoring() {
     m_presenceTimer->setInterval(PRESENCE_CHECK_INTERVAL_MS);
     connect(m_presenceTimer, &QTimer::timeout, this, &KpodDevice::checkDevicePresence);
     m_presenceTimer->start();
-
-    qDebug() << "KPOD: Hotplug monitoring started (periodic check every" << PRESENCE_CHECK_INTERVAL_MS << "ms)";
 }
 
 void KpodDevice::teardownHotplugMonitoring() {
@@ -309,7 +303,6 @@ void KpodDevice::teardownHotplugMonitoring() {
         m_presenceTimer->stop();
         delete m_presenceTimer;
         m_presenceTimer = nullptr;
-        qDebug() << "KPOD: Hotplug monitoring stopped";
     }
 }
 
@@ -336,8 +329,6 @@ void KpodDevice::checkDevicePresence() {
 }
 
 void KpodDevice::onDeviceArrived() {
-    qDebug() << "KPOD: Device connected (hotplug)";
-
     // Refresh device info
     m_deviceInfo = detectDevice();
 
@@ -346,12 +337,9 @@ void KpodDevice::onDeviceArrived() {
 }
 
 void KpodDevice::onDeviceRemoved() {
-    qDebug() << "KPOD: Device disconnected (hotplug)";
-
     // Stop polling if active
     if (m_pollTimer->isActive()) {
         m_pollTimer->stop();
-        qDebug() << "KPOD: Polling stopped due to device removal";
     }
 
     // Close device handle if open
