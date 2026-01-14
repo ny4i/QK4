@@ -311,7 +311,6 @@ void PanadapterRhiWidget::initialize(QRhiCommandBuffer *cb) {
     };
 
     m_spectrumBlueVert = loadShader(":/shaders/src/dsp/shaders/spectrum_blue.vert.qsb");
-    m_spectrumBlueFrag = loadShader(":/shaders/src/dsp/shaders/spectrum_blue.frag.qsb");
     m_spectrumBlueAmpFrag = loadShader(":/shaders/src/dsp/shaders/spectrum_blue_amp.frag.qsb");
     m_waterfallVert = loadShader(":/shaders/src/dsp/shaders/waterfall.vert.qsb");
     m_waterfallFrag = loadShader(":/shaders/src/dsp/shaders/waterfall.frag.qsb");
@@ -394,10 +393,10 @@ void PanadapterRhiWidget::initialize(QRhiCommandBuffer *cb) {
     m_fullscreenQuadVbo->create();
     rub->uploadStaticBuffer(m_fullscreenQuadVbo.get(), fullscreenQuad);
 
-    // Blue spectrum style uniform buffer: 80 bytes (std140 layout)
+    // Spectrum amplitude style uniform buffer: 80 bytes (std140 layout)
     // fillBaseColor(16) + fillPeakColor(16) + glowColor(16) + params(16) + viewport(16)
-    m_spectrumBlueUniformBuffer.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, 80));
-    m_spectrumBlueUniformBuffer->create();
+    m_spectrumBlueAmpUniformBuffer.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, 80));
+    m_spectrumBlueAmpUniformBuffer->create();
 
     // Separate buffers for passband to avoid GPU buffer conflicts
     m_passbandVbo.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::VertexBuffer, 256 * sizeof(float)));
@@ -442,50 +441,17 @@ void PanadapterRhiWidget::createPipelines() {
     if (m_pipelinesCreated)
         return;
 
-    if (!m_spectrumBlueVert.isValid() || !m_spectrumBlueFrag.isValid())
+    if (!m_spectrumBlueVert.isValid() || !m_spectrumBlueAmpFrag.isValid())
         return;
 
     m_rpDesc = renderTarget()->renderPassDescriptor();
 
-    // Spectrum blue pipeline (blue gradient with cyan glow) - Blue style
-    {
-        m_spectrumBlueSrb.reset(m_rhi->newShaderResourceBindings());
-        m_spectrumBlueSrb->setBindings(
-            {QRhiShaderResourceBinding::uniformBuffer(0, QRhiShaderResourceBinding::FragmentStage,
-                                                      m_spectrumBlueUniformBuffer.get()),
-             QRhiShaderResourceBinding::sampledTexture(1, QRhiShaderResourceBinding::FragmentStage,
-                                                       m_spectrumDataTexture.get(), m_sampler.get())});
-        m_spectrumBlueSrb->create();
-
-        m_spectrumBluePipeline.reset(m_rhi->newGraphicsPipeline());
-        m_spectrumBluePipeline->setShaderStages(
-            {{QRhiShaderStage::Vertex, m_spectrumBlueVert}, {QRhiShaderStage::Fragment, m_spectrumBlueFrag}});
-
-        QRhiVertexInputLayout inputLayout;
-        inputLayout.setBindings({{4 * sizeof(float)}});                         // position(2) + texcoord(2)
-        inputLayout.setAttributes({{0, 0, QRhiVertexInputAttribute::Float2, 0}, // position
-                                   {0, 1, QRhiVertexInputAttribute::Float2, 2 * sizeof(float)}}); // texcoord
-        m_spectrumBluePipeline->setVertexInputLayout(inputLayout);
-        m_spectrumBluePipeline->setTopology(QRhiGraphicsPipeline::Triangles);
-        m_spectrumBluePipeline->setShaderResourceBindings(m_spectrumBlueSrb.get());
-        m_spectrumBluePipeline->setRenderPassDescriptor(m_rpDesc);
-
-        QRhiGraphicsPipeline::TargetBlend blend;
-        blend.enable = true;
-        blend.srcColor = QRhiGraphicsPipeline::SrcAlpha;
-        blend.dstColor = QRhiGraphicsPipeline::OneMinusSrcAlpha;
-        m_spectrumBluePipeline->setTargetBlends({blend});
-
-        m_spectrumBluePipeline->create();
-    }
-
-    // Spectrum blue amplitude pipeline (amplitude-based brightness) - BlueAmplitude style
-    // Shares uniform buffer with Blue style, uses different fragment shader
+    // Spectrum amplitude pipeline (LUT-based colors with amplitude brightness)
     {
         m_spectrumBlueAmpSrb.reset(m_rhi->newShaderResourceBindings());
         m_spectrumBlueAmpSrb->setBindings(
             {QRhiShaderResourceBinding::uniformBuffer(0, QRhiShaderResourceBinding::FragmentStage,
-                                                      m_spectrumBlueUniformBuffer.get()),
+                                                      m_spectrumBlueAmpUniformBuffer.get()),
              QRhiShaderResourceBinding::sampledTexture(1, QRhiShaderResourceBinding::FragmentStage,
                                                        m_spectrumDataTexture.get(), m_sampler.get()),
              QRhiShaderResourceBinding::sampledTexture(2, QRhiShaderResourceBinding::FragmentStage,
@@ -714,7 +680,7 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
             {w, h},                      // viewportSize
             {0.0f, 0.0f}                 // padding2
         };
-        rub->updateDynamicBuffer(m_spectrumBlueUniformBuffer.get(), 0, sizeof(specBlueUniforms), &specBlueUniforms);
+        rub->updateDynamicBuffer(m_spectrumBlueAmpUniformBuffer.get(), 0, sizeof(specBlueUniforms), &specBlueUniforms);
     }
 
     cb->resourceUpdate(rub);
@@ -777,18 +743,10 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
     }
 
     // Draw spectrum fill ON TOP of grid (shader-based fullscreen quad)
-    if (!m_currentSpectrum.isEmpty()) {
+    if (!m_currentSpectrum.isEmpty() && m_spectrumBlueAmpPipeline) {
         cb->setViewport({0, waterfallHeight, w, spectrumHeight});
-
-        if (m_spectrumStyle == SpectrumStyle::BlueAmplitude && m_spectrumBlueAmpPipeline) {
-            // BlueAmplitude style: LUT-based colors with amplitude brightness
-            cb->setGraphicsPipeline(m_spectrumBlueAmpPipeline.get());
-            cb->setShaderResources(m_spectrumBlueAmpSrb.get());
-        } else if (m_spectrumBluePipeline) {
-            // Blue style: gradient with cyan glow (Y-position based)
-            cb->setGraphicsPipeline(m_spectrumBluePipeline.get());
-            cb->setShaderResources(m_spectrumBlueSrb.get());
-        }
+        cb->setGraphicsPipeline(m_spectrumBlueAmpPipeline.get());
+        cb->setShaderResources(m_spectrumBlueAmpSrb.get());
 
         const QRhiCommandBuffer::VertexInput quadVbufBinding(m_fullscreenQuadVbo.get(), 0);
         cb->setVertexInput(0, 1, &quadVbufBinding);
@@ -1572,13 +1530,6 @@ void PanadapterRhiWidget::setBackgroundGradient(const QColor &center, const QCol
     m_bgCenterColor = center;
     m_bgEdgeColor = edge;
     update();
-}
-
-void PanadapterRhiWidget::setSpectrumStyle(SpectrumStyle style) {
-    if (m_spectrumStyle != style) {
-        m_spectrumStyle = style;
-        update();
-    }
 }
 
 // Mouse events

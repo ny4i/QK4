@@ -30,6 +30,7 @@ class FnPopupWidget;
 class RxEqPopupWidget;
 class AntennaCfgPopupWidget;
 class LineOutPopupWidget;
+class TextDecodeWindow;
 class MacroDialog;
 class FilterIndicatorWidget;
 class FeatureMenuBar;
@@ -270,6 +271,8 @@ private:
     ButtonRowPopup *m_txPopup;
     RxEqPopupWidget *m_rxEqPopup;
     LineOutPopupWidget *m_lineOutPopup;
+    TextDecodeWindow *m_textDecodeWindowMain;
+    TextDecodeWindow *m_textDecodeWindowSub;
     AntennaCfgPopupWidget *m_mainRxAntCfgPopup;
     AntennaCfgPopupWidget *m_subRxAntCfgPopup;
     AntennaCfgPopupWidget *m_txAntCfgPopup;

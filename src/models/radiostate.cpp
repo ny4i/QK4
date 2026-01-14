@@ -599,6 +599,77 @@ void RadioState::parseCATCommand(const QString &command) {
                 emit lineOutChanged();
         }
     }
+    // Text Decode Sub RX (TD$) - must check before TD
+    else if (cmd.startsWith("TD$") && cmd.length() >= 6) {
+        int mode = cmd.mid(3, 1).toInt();
+        int threshold = cmd.mid(4, 1).toInt();
+        int lines = cmd.mid(5, 1).toInt();
+
+        bool changed = false;
+        if (mode != m_textDecodeModeB) {
+            m_textDecodeModeB = mode;
+            changed = true;
+        }
+        if (threshold != m_textDecodeThresholdB) {
+            m_textDecodeThresholdB = threshold;
+            changed = true;
+        }
+        if (lines != m_textDecodeLinesB && lines >= 1 && lines <= 9) {
+            m_textDecodeLinesB = lines;
+            changed = true;
+        }
+        if (changed)
+            emit textDecodeBChanged();
+    }
+    // Text Decode Main RX (TD)
+    else if (cmd.startsWith("TD") && cmd.length() >= 5) {
+        int mode = cmd.mid(2, 1).toInt();
+        int threshold = cmd.mid(3, 1).toInt();
+        int lines = cmd.mid(4, 1).toInt();
+        qDebug() << "TD received: mode=" << mode << "threshold=" << threshold << "lines=" << lines;
+
+        bool changed = false;
+        if (mode != m_textDecodeMode) {
+            m_textDecodeMode = mode;
+            changed = true;
+        }
+        if (threshold != m_textDecodeThreshold) {
+            m_textDecodeThreshold = threshold;
+            changed = true;
+        }
+        if (lines != m_textDecodeLines && lines >= 1 && lines <= 9) {
+            m_textDecodeLines = lines;
+            changed = true;
+        }
+        if (changed)
+            emit textDecodeChanged();
+    }
+    // Text Buffer Sub RX (TB$) - must check before TB
+    // Format: TB$trrC; where t=tx queue (1 digit), rr=rx count (2 digits), C=character(s)
+    else if (cmd.startsWith("TB$") && cmd.length() >= 6) {
+        // Extract character(s) after header (TB$ + t + rr = 6 chars)
+        QString text = cmd.mid(6);
+        if (text.endsWith(';'))
+            text.chop(1);
+        if (!text.isEmpty()) {
+            qDebug() << "TB$ received (Sub), char:" << text;
+            emit textBufferReceived(text, true); // Sub RX
+        }
+    }
+    // Text Buffer Main RX (TB) - decoded text from K4
+    // Format: TBtrrC; where t=tx queue (1 digit), rr=rx count (2 digits), C=character(s)
+    // Example: TB002E ; means t=0, rr=02, char="E "
+    else if (cmd.startsWith("TB") && cmd.length() >= 5) {
+        // Extract character(s) after header (TB + t + rr = 5 chars)
+        QString text = cmd.mid(5);
+        // Remove trailing semicolon if present
+        if (text.endsWith(';'))
+            text.chop(1);
+        if (!text.isEmpty()) {
+            qDebug() << "TB received (Main), char:" << text;
+            emit textBufferReceived(text, false); // Main RX
+        }
+    }
     // Filter Position Sub RX (FP$) - must check before FP
     else if (cmd.startsWith("FP$") && cmd.length() > 3) {
         bool ok;
@@ -1710,5 +1781,55 @@ void RadioState::setLineOutRightEqualsLeft(bool enabled) {
     if (enabled != m_lineOutRightEqualsLeft) {
         m_lineOutRightEqualsLeft = enabled;
         emit lineOutChanged();
+    }
+}
+
+// Text Decode optimistic setters - Main RX
+void RadioState::setTextDecodeMode(int mode) {
+    mode = qBound(0, mode, 4);
+    if (mode != m_textDecodeMode) {
+        m_textDecodeMode = mode;
+        emit textDecodeChanged();
+    }
+}
+
+void RadioState::setTextDecodeThreshold(int threshold) {
+    threshold = qBound(0, threshold, 9);
+    if (threshold != m_textDecodeThreshold) {
+        m_textDecodeThreshold = threshold;
+        emit textDecodeChanged();
+    }
+}
+
+void RadioState::setTextDecodeLines(int lines) {
+    lines = qBound(1, lines, 10);
+    if (lines != m_textDecodeLines) {
+        m_textDecodeLines = lines;
+        emit textDecodeChanged();
+    }
+}
+
+// Text Decode optimistic setters - Sub RX
+void RadioState::setTextDecodeModeB(int mode) {
+    mode = qBound(0, mode, 4);
+    if (mode != m_textDecodeModeB) {
+        m_textDecodeModeB = mode;
+        emit textDecodeBChanged();
+    }
+}
+
+void RadioState::setTextDecodeThresholdB(int threshold) {
+    threshold = qBound(0, threshold, 9);
+    if (threshold != m_textDecodeThresholdB) {
+        m_textDecodeThresholdB = threshold;
+        emit textDecodeBChanged();
+    }
+}
+
+void RadioState::setTextDecodeLinesB(int lines) {
+    lines = qBound(1, lines, 10);
+    if (lines != m_textDecodeLinesB) {
+        m_textDecodeLinesB = lines;
+        emit textDecodeBChanged();
     }
 }

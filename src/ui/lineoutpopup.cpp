@@ -85,7 +85,8 @@ void LineOutPopupWidget::setupUi() {
 
     // RIGHT=LEFT toggle button
     m_rightEqualsLeftBtn = new QPushButton("RIGHT\n=LEFT", this);
-    m_rightEqualsLeftBtn->setFixedSize(K4Styles::Dimensions::PopupButtonWidth, K4Styles::Dimensions::ButtonHeightMedium);
+    m_rightEqualsLeftBtn->setFixedSize(K4Styles::Dimensions::PopupButtonWidth,
+                                       K4Styles::Dimensions::ButtonHeightMedium);
     m_rightEqualsLeftBtn->setCheckable(true);
     m_rightEqualsLeftBtn->setChecked(false);
     m_rightEqualsLeftBtn->setCursor(Qt::PointingHandCursor);
@@ -149,8 +150,7 @@ void LineOutPopupWidget::setupUi() {
 
 void LineOutPopupWidget::updateButtonStyles() {
     // LEFT button - selected style when checked
-    m_leftBtn->setStyleSheet(m_leftBtn->isChecked() ? K4Styles::popupButtonSelected()
-                                                    : K4Styles::popupButtonNormal());
+    m_leftBtn->setStyleSheet(m_leftBtn->isChecked() ? K4Styles::popupButtonSelected() : K4Styles::popupButtonNormal());
 
     // RIGHT button - selected style when checked, disabled appearance when RIGHT=LEFT
     if (m_rightEqualsLeft) {
@@ -167,10 +167,10 @@ void LineOutPopupWidget::updateButtonStyles() {
                                                           : K4Styles::popupButtonNormal());
 
     // Right value label - dimmed when RIGHT=LEFT mode
-    m_rightValueLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
-                                         .arg(m_rightEqualsLeft ? K4Styles::Colors::TextGray
-                                                                : K4Styles::Colors::TextWhite)
-                                         .arg(K4Styles::Dimensions::FontSizePopup));
+    m_rightValueLabel->setStyleSheet(
+        QString("color: %1; font-size: %2px; font-weight: bold;")
+            .arg(m_rightEqualsLeft ? K4Styles::Colors::TextGray : K4Styles::Colors::TextWhite)
+            .arg(K4Styles::Dimensions::FontSizePopup));
 }
 
 void LineOutPopupWidget::updateValueLabels() {

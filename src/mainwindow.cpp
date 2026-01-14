@@ -20,6 +20,7 @@
 #include "ui/k4styles.h"
 #include "ui/antennacfgpopup.h"
 #include "ui/lineoutpopup.h"
+#include "ui/textdecodewindow.h"
 #include "models/menumodel.h"
 #include "dsp/panadapter_rhi.h"
 #include "dsp/minipan_rhi.h"
@@ -222,13 +223,13 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_subRxPopup, &ButtonRowPopup::buttonRightClicked, this, &MainWindow::onSubRxButtonRightClicked);
 
     m_txPopup = new ButtonRowPopup(this);
-    m_txPopup->setButtonLabel(0, "ANT", "CFG", false);     // TX Antenna config
-    m_txPopup->setButtonLabel(1, "TX", "EQ", false);       // TX Equalizer (future)
-    m_txPopup->setButtonLabel(2, "3", "");                 // Placeholder
-    m_txPopup->setButtonLabel(3, "4", "");                 // Placeholder
-    m_txPopup->setButtonLabel(4, "5", "");                 // Placeholder
-    m_txPopup->setButtonLabel(5, "6", "");                 // Placeholder
-    m_txPopup->setButtonLabel(6, "7", "");                 // Placeholder
+    m_txPopup->setButtonLabel(0, "ANT", "CFG", false); // TX Antenna config
+    m_txPopup->setButtonLabel(1, "TX", "EQ", false);   // TX Equalizer (future)
+    m_txPopup->setButtonLabel(2, "3", "");             // Placeholder
+    m_txPopup->setButtonLabel(3, "4", "");             // Placeholder
+    m_txPopup->setButtonLabel(4, "5", "");             // Placeholder
+    m_txPopup->setButtonLabel(5, "6", "");             // Placeholder
+    m_txPopup->setButtonLabel(6, "7", "");             // Placeholder
     connect(m_txPopup, &ButtonRowPopup::closed, this, [this]() {
         if (m_bottomMenuBar) {
             m_bottomMenuBar->setTxActive(false);
@@ -343,28 +344,30 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Create antenna configuration popups (MAIN RX, SUB RX, TX)
     m_mainRxAntCfgPopup = new AntennaCfgPopupWidget(AntennaCfgVariant::MainRx, this);
-    connect(m_mainRxAntCfgPopup, &AntennaCfgPopupWidget::configChanged, this, [this](bool displayAll, QVector<bool> mask) {
-        if (!m_tcpClient || !m_tcpClient->isConnected())
-            return;
-        // Build ACM command: ACMzabcdefg where z=displayAll, a-g=antenna enables
-        QString cmd = QString("ACM%1").arg(displayAll ? '1' : '0');
-        for (int i = 0; i < 7; i++) {
-            cmd += (i < mask.size() && mask[i]) ? '1' : '0';
-        }
-        m_tcpClient->sendCAT(cmd);
-    });
+    connect(m_mainRxAntCfgPopup, &AntennaCfgPopupWidget::configChanged, this,
+            [this](bool displayAll, QVector<bool> mask) {
+                if (!m_tcpClient || !m_tcpClient->isConnected())
+                    return;
+                // Build ACM command: ACMzabcdefg where z=displayAll, a-g=antenna enables
+                QString cmd = QString("ACM%1").arg(displayAll ? '1' : '0');
+                for (int i = 0; i < 7; i++) {
+                    cmd += (i < mask.size() && mask[i]) ? '1' : '0';
+                }
+                m_tcpClient->sendCAT(cmd);
+            });
 
     m_subRxAntCfgPopup = new AntennaCfgPopupWidget(AntennaCfgVariant::SubRx, this);
-    connect(m_subRxAntCfgPopup, &AntennaCfgPopupWidget::configChanged, this, [this](bool displayAll, QVector<bool> mask) {
-        if (!m_tcpClient || !m_tcpClient->isConnected())
-            return;
-        // Build ACS command: ACSzabcdefg where z=displayAll, a-g=antenna enables
-        QString cmd = QString("ACS%1").arg(displayAll ? '1' : '0');
-        for (int i = 0; i < 7; i++) {
-            cmd += (i < mask.size() && mask[i]) ? '1' : '0';
-        }
-        m_tcpClient->sendCAT(cmd);
-    });
+    connect(m_subRxAntCfgPopup, &AntennaCfgPopupWidget::configChanged, this,
+            [this](bool displayAll, QVector<bool> mask) {
+                if (!m_tcpClient || !m_tcpClient->isConnected())
+                    return;
+                // Build ACS command: ACSzabcdefg where z=displayAll, a-g=antenna enables
+                QString cmd = QString("ACS%1").arg(displayAll ? '1' : '0');
+                for (int i = 0; i < 7; i++) {
+                    cmd += (i < mask.size() && mask[i]) ? '1' : '0';
+                }
+                m_tcpClient->sendCAT(cmd);
+            });
 
     m_txAntCfgPopup = new AntennaCfgPopupWidget(AntennaCfgVariant::Tx, this);
     connect(m_txAntCfgPopup, &AntennaCfgPopupWidget::configChanged, this, [this](bool displayAll, QVector<bool> mask) {
@@ -404,10 +407,8 @@ MainWindow::MainWindow(QWidget *parent)
             return;
         int left = m_radioState->lineOutLeft();
         int right = enabled ? left : m_radioState->lineOutRight();
-        QString cmd = QString("LO%1%2%3;")
-                          .arg(left, 3, 10, QChar('0'))
-                          .arg(right, 3, 10, QChar('0'))
-                          .arg(enabled ? 1 : 0);
+        QString cmd =
+            QString("LO%1%2%3;").arg(left, 3, 10, QChar('0')).arg(right, 3, 10, QChar('0')).arg(enabled ? 1 : 0);
         m_tcpClient->sendCAT(cmd);
     });
     // Connect RadioState to update popup when K4 sends LO response
@@ -416,6 +417,114 @@ MainWindow::MainWindow(QWidget *parent)
             m_lineOutPopup->setLeftLevel(m_radioState->lineOutLeft());
             m_lineOutPopup->setRightLevel(m_radioState->lineOutRight());
             m_lineOutPopup->setRightEqualsLeft(m_radioState->lineOutRightEqualsLeft());
+        }
+    });
+
+    // Create floating text decode windows (separate for MAIN RX and SUB RX)
+    // Controls integrated in title bar - no separate popup needed
+    m_textDecodeWindowMain = new TextDecodeWindow(TextDecodeWindow::MainRx, this);
+    m_textDecodeWindowSub = new TextDecodeWindow(TextDecodeWindow::SubRx, this);
+
+    // Helper lambda to send TD command
+    auto sendTextDecodeCmd = [this](TextDecodeWindow *window, bool isMainRx) {
+        if (!m_tcpClient || !m_tcpClient->isConnected())
+            return;
+        int mode = window->isDecodeEnabled() ? (2 + window->wpmRange()) : 0;
+        int threshold = window->autoThreshold() ? 0 : window->threshold();
+        QString cmdPrefix = isMainRx ? "TD" : "TD$";
+        QString cmd = QString("%1%2%3%4;").arg(cmdPrefix).arg(mode).arg(threshold).arg(window->maxLines());
+        qDebug() << "Sending TD command:" << cmd;
+        m_tcpClient->sendCAT(cmd);
+    };
+
+    // Wire MAIN RX window signals
+    connect(m_textDecodeWindowMain, &TextDecodeWindow::enabledChanged, this,
+            [this, sendTextDecodeCmd](bool) { sendTextDecodeCmd(m_textDecodeWindowMain, true); });
+    connect(m_textDecodeWindowMain, &TextDecodeWindow::wpmRangeChanged, this, [this, sendTextDecodeCmd](int) {
+        if (m_textDecodeWindowMain->isDecodeEnabled()) {
+            sendTextDecodeCmd(m_textDecodeWindowMain, true);
+        }
+    });
+    connect(m_textDecodeWindowMain, &TextDecodeWindow::thresholdModeChanged, this, [this, sendTextDecodeCmd](bool) {
+        if (m_textDecodeWindowMain->isDecodeEnabled()) {
+            sendTextDecodeCmd(m_textDecodeWindowMain, true);
+        }
+    });
+    connect(m_textDecodeWindowMain, &TextDecodeWindow::thresholdChanged, this, [this, sendTextDecodeCmd](int) {
+        if (m_textDecodeWindowMain->isDecodeEnabled()) {
+            sendTextDecodeCmd(m_textDecodeWindowMain, true);
+        }
+    });
+    connect(m_textDecodeWindowMain, &TextDecodeWindow::closeRequested, this, [this, sendTextDecodeCmd]() {
+        // Disable decode and hide window
+        m_textDecodeWindowMain->setDecodeEnabled(false);
+        sendTextDecodeCmd(m_textDecodeWindowMain, true);
+        m_textDecodeWindowMain->clearText();
+        m_textDecodeWindowMain->hide();
+    });
+
+    // Wire SUB RX window signals
+    connect(m_textDecodeWindowSub, &TextDecodeWindow::enabledChanged, this,
+            [this, sendTextDecodeCmd](bool) { sendTextDecodeCmd(m_textDecodeWindowSub, false); });
+    connect(m_textDecodeWindowSub, &TextDecodeWindow::wpmRangeChanged, this, [this, sendTextDecodeCmd](int) {
+        if (m_textDecodeWindowSub->isDecodeEnabled()) {
+            sendTextDecodeCmd(m_textDecodeWindowSub, false);
+        }
+    });
+    connect(m_textDecodeWindowSub, &TextDecodeWindow::thresholdModeChanged, this, [this, sendTextDecodeCmd](bool) {
+        if (m_textDecodeWindowSub->isDecodeEnabled()) {
+            sendTextDecodeCmd(m_textDecodeWindowSub, false);
+        }
+    });
+    connect(m_textDecodeWindowSub, &TextDecodeWindow::thresholdChanged, this, [this, sendTextDecodeCmd](int) {
+        if (m_textDecodeWindowSub->isDecodeEnabled()) {
+            sendTextDecodeCmd(m_textDecodeWindowSub, false);
+        }
+    });
+    connect(m_textDecodeWindowSub, &TextDecodeWindow::closeRequested, this, [this, sendTextDecodeCmd]() {
+        // Disable decode and hide window
+        m_textDecodeWindowSub->setDecodeEnabled(false);
+        sendTextDecodeCmd(m_textDecodeWindowSub, false);
+        m_textDecodeWindowSub->clearText();
+        m_textDecodeWindowSub->hide();
+    });
+
+    // Connect RadioState text decode signals to sync window state
+    connect(m_radioState, &RadioState::textDecodeChanged, this, [this]() {
+        int mode = m_radioState->textDecodeMode();
+        bool enabled = (mode > 0);
+        m_textDecodeWindowMain->setDecodeEnabled(enabled);
+        if (mode >= 2 && mode <= 4) {
+            m_textDecodeWindowMain->setWpmRange(mode - 2);
+        }
+        int threshold = m_radioState->textDecodeThreshold();
+        m_textDecodeWindowMain->setAutoThreshold(threshold == 0);
+        if (threshold > 0) {
+            m_textDecodeWindowMain->setThreshold(threshold);
+        }
+        m_textDecodeWindowMain->setMaxLines(m_radioState->textDecodeLines());
+    });
+    connect(m_radioState, &RadioState::textDecodeBChanged, this, [this]() {
+        int mode = m_radioState->textDecodeModeB();
+        bool enabled = (mode > 0);
+        m_textDecodeWindowSub->setDecodeEnabled(enabled);
+        if (mode >= 2 && mode <= 4) {
+            m_textDecodeWindowSub->setWpmRange(mode - 2);
+        }
+        int threshold = m_radioState->textDecodeThresholdB();
+        m_textDecodeWindowSub->setAutoThreshold(threshold == 0);
+        if (threshold > 0) {
+            m_textDecodeWindowSub->setThreshold(threshold);
+        }
+        m_textDecodeWindowSub->setMaxLines(m_radioState->textDecodeLinesB());
+    });
+
+    // Connect decoded text buffer to windows
+    connect(m_radioState, &RadioState::textBufferReceived, this, [this](const QString &text, bool isSubRx) {
+        if (isSubRx) {
+            m_textDecodeWindowSub->appendText(text);
+        } else {
+            m_textDecodeWindowMain->appendText(text);
         }
     });
 
@@ -2072,26 +2181,6 @@ void MainWindow::setupUi() {
     connect(m_bottomMenuBar, &BottomMenuBar::subRxClicked, this, &MainWindow::toggleSubRxPopup);
     connect(m_bottomMenuBar, &BottomMenuBar::txClicked, this, &MainWindow::toggleTxPopup);
 
-    // Style button to toggle between spectrum display styles
-    connect(m_bottomMenuBar, &BottomMenuBar::styleClicked, this, [this]() {
-        SpectrumStyle currentStyle = m_panadapterA->spectrumStyle();
-        SpectrumStyle newStyle;
-        QString styleName;
-
-        // Toggle: BlueAmplitude <-> Blue
-        if (currentStyle == SpectrumStyle::BlueAmplitude) {
-            newStyle = SpectrumStyle::Blue;
-            styleName = "Blue (Y-position)";
-        } else {
-            newStyle = SpectrumStyle::BlueAmplitude;
-            styleName = "Blue Amplitude (LUT)";
-        }
-
-        m_panadapterA->setSpectrumStyle(newStyle);
-        m_panadapterB->setSpectrumStyle(newStyle);
-        qDebug() << "Spectrum style changed to:" << styleName;
-    });
-
     // PTT button connections
     connect(m_bottomMenuBar, &BottomMenuBar::pttPressed, this, &MainWindow::onPttPressed);
     connect(m_bottomMenuBar, &BottomMenuBar::pttReleased, this, &MainWindow::onPttReleased);
@@ -3140,6 +3229,7 @@ void MainWindow::onAuthenticationFailed() {
 }
 
 void MainWindow::onCatResponse(const QString &response) {
+
     // Parse CAT commands (may contain multiple commands separated by ;)
     QStringList commands = response.split(';', Qt::SkipEmptyParts);
     for (const QString &cmd : commands) {
@@ -3722,9 +3812,16 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
     }
 
     // Mouse wheel on RIT/XIT box - adjust offset using RU/RD commands
+    // B SET aware: use $ suffix when targeting Sub RX
     if (watched == m_ritXitBox && event->type() == QEvent::Wheel) {
         auto *wheelEvent = static_cast<QWheelEvent *>(event);
-        QString cmd = (wheelEvent->angleDelta().y() > 0) ? "RU;" : "RD;";
+        bool bSet = m_radioState->bSetEnabled();
+        QString cmd;
+        if (wheelEvent->angleDelta().y() > 0) {
+            cmd = bSet ? "RU$;" : "RU;";
+        } else {
+            cmd = bSet ? "RD$;" : "RD;";
+        }
         m_tcpClient->sendCAT(cmd);
         return true;
     }
@@ -4248,7 +4345,26 @@ void MainWindow::onMainRxButtonClicked(int index) {
     case 5: // APF - toggle on/off (Main RX)
         m_tcpClient->sendCAT("AP/;");
         break;
-    case 6: // TEXT DECODE - not implemented
+    case 6: // TEXT DECODE - open window directly for Main RX
+        if (m_textDecodeWindowMain) {
+            // Set operating mode based on current radio mode
+            RadioState::Mode radioMode = m_radioState->mode();
+            if (radioMode == RadioState::CW || radioMode == RadioState::CW_R) {
+                m_textDecodeWindowMain->setOperatingMode(TextDecodeWindow::ModeCW);
+            } else if (radioMode == RadioState::DATA || radioMode == RadioState::DATA_R) {
+                m_textDecodeWindowMain->setOperatingMode(TextDecodeWindow::ModeData);
+            } else if (radioMode == RadioState::LSB || radioMode == RadioState::USB) {
+                m_textDecodeWindowMain->setOperatingMode(TextDecodeWindow::ModeSSB);
+            } else {
+                m_textDecodeWindowMain->setOperatingMode(TextDecodeWindow::ModeOther);
+            }
+            // Show window and enable decode
+            m_textDecodeWindowMain->show();
+            if (!m_textDecodeWindowMain->isDecodeEnabled()) {
+                m_textDecodeWindowMain->setDecodeEnabled(true);
+                emit m_textDecodeWindowMain->enabledChanged(true);
+            }
+        }
         break;
     }
 }
@@ -4323,7 +4439,26 @@ void MainWindow::onSubRxButtonClicked(int index) {
     case 5: // APF - toggle on/off (Sub RX)
         m_tcpClient->sendCAT("AP$/;");
         break;
-    case 6: // TEXT DECODE - not implemented
+    case 6: // TEXT DECODE - open window directly for Sub RX
+        if (m_textDecodeWindowSub) {
+            // Set operating mode based on Sub RX mode
+            RadioState::Mode radioMode = m_radioState->modeB();
+            if (radioMode == RadioState::CW || radioMode == RadioState::CW_R) {
+                m_textDecodeWindowSub->setOperatingMode(TextDecodeWindow::ModeCW);
+            } else if (radioMode == RadioState::DATA || radioMode == RadioState::DATA_R) {
+                m_textDecodeWindowSub->setOperatingMode(TextDecodeWindow::ModeData);
+            } else if (radioMode == RadioState::LSB || radioMode == RadioState::USB) {
+                m_textDecodeWindowSub->setOperatingMode(TextDecodeWindow::ModeSSB);
+            } else {
+                m_textDecodeWindowSub->setOperatingMode(TextDecodeWindow::ModeOther);
+            }
+            // Show window and enable decode
+            m_textDecodeWindowSub->show();
+            if (!m_textDecodeWindowSub->isDecodeEnabled()) {
+                m_textDecodeWindowSub->setDecodeEnabled(true);
+                emit m_textDecodeWindowSub->enabledChanged(true);
+            }
+        }
         break;
     }
 }

@@ -8,12 +8,6 @@
 #include <QVector>
 #include <memory>
 
-// Spectrum display style presets
-enum class SpectrumStyle {
-    Blue,         // Blue gradient with cyan glow (Y-position based)
-    BlueAmplitude // LUT-based colors with amplitude brightness (royal blue → white) - DEFAULT
-};
-
 // Forward declaration for dBm scale overlay
 class DbmScaleOverlay;
 
@@ -70,10 +64,6 @@ public:
     void setFrequencyMarkerColor(const QColor &color);
     void setNotchColor(const QColor &color);
     void setBackgroundGradient(const QColor &center, const QColor &edge);
-
-    // Spectrum style presets
-    void setSpectrumStyle(SpectrumStyle style);
-    SpectrumStyle spectrumStyle() const { return m_spectrumStyle; }
 
 signals:
     void frequencyClicked(qint64 freq);
@@ -133,14 +123,11 @@ private:
     std::unique_ptr<QRhiGraphicsPipeline> m_overlayLinePipeline;
     std::unique_ptr<QRhiGraphicsPipeline> m_overlayTrianglePipeline;
     std::unique_ptr<QRhiBuffer> m_fullscreenQuadVbo; // Shared fullscreen quad for fragment-shader styles
-    // Blue spectrum style resources
-    std::unique_ptr<QRhiGraphicsPipeline> m_spectrumBluePipeline;
-    std::unique_ptr<QRhiShaderResourceBindings> m_spectrumBlueSrb;
-    std::unique_ptr<QRhiBuffer> m_spectrumBlueUniformBuffer;
-    // Blue amplitude style resources (shares uniform buffer with Blue, uses spectrum color LUT)
+    // Spectrum amplitude style resources (LUT-based colors)
     std::unique_ptr<QRhiGraphicsPipeline> m_spectrumBlueAmpPipeline;
     std::unique_ptr<QRhiShaderResourceBindings> m_spectrumBlueAmpSrb;
-    std::unique_ptr<QRhiTexture> m_spectrumColorLutTexture; // 256-entry color LUT for BlueAmplitude
+    std::unique_ptr<QRhiBuffer> m_spectrumBlueAmpUniformBuffer;
+    std::unique_ptr<QRhiTexture> m_spectrumColorLutTexture; // 256-entry color LUT
     std::unique_ptr<QRhiShaderResourceBindings> m_waterfallSrb;
     std::unique_ptr<QRhiShaderResourceBindings> m_overlaySrb;
     std::unique_ptr<QRhiShaderResourceBindings> m_passbandSrb;
@@ -161,7 +148,6 @@ private:
 
     // Shader stages (loaded from .qsb files)
     QShader m_spectrumBlueVert;
-    QShader m_spectrumBlueFrag;
     QShader m_spectrumBlueAmpFrag;
     QShader m_waterfallVert;
     QShader m_waterfallFrag;
@@ -201,7 +187,6 @@ private:
     float m_minDb = -138.0f;
     float m_maxDb = -58.0f;
     float m_spectrumRatio = 0.30f;
-    SpectrumStyle m_spectrumStyle = SpectrumStyle::BlueAmplitude; // Default to BlueAmplitude
     float m_smoothedBaseline = 0.0f;
     bool m_gridEnabled = true;
     bool m_peakHoldEnabled = true;

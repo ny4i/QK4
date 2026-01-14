@@ -422,6 +422,24 @@ public:
     void setLineOutRight(int level);
     void setLineOutRightEqualsLeft(bool enabled);
 
+    // Text Decode (TD$ command) - Main RX
+    int textDecodeMode() const { return m_textDecodeMode; }           // 0=off, 2-4=CW WPM ranges, 1=DATA/SSB on
+    int textDecodeThreshold() const { return m_textDecodeThreshold; } // 0=AUTO, 1-9 (CW only)
+    int textDecodeLines() const { return m_textDecodeLines; }         // 1-10 lines
+
+    // Text Decode (TD$$ command) - Sub RX
+    int textDecodeModeB() const { return m_textDecodeModeB; }
+    int textDecodeThresholdB() const { return m_textDecodeThresholdB; }
+    int textDecodeLinesB() const { return m_textDecodeLinesB; }
+
+    // Optimistic setters for Text Decode
+    void setTextDecodeMode(int mode);
+    void setTextDecodeThreshold(int threshold);
+    void setTextDecodeLines(int lines);
+    void setTextDecodeModeB(int mode);
+    void setTextDecodeThresholdB(int threshold);
+    void setTextDecodeLinesB(int lines);
+
     // Optimistic setters for data sub-mode (radio doesn't echo DT SET commands)
     void setDataSubMode(int subMode);
     void setDataSubModeB(int subMode);
@@ -525,12 +543,17 @@ signals:
     void rxEqBandChanged(int index, int dB); // Specific band changed
 
     // Antenna Configuration Masks
-    void mainRxAntCfgChanged();  // ACM command received/changed
-    void subRxAntCfgChanged();   // ACS command received/changed
-    void txAntCfgChanged();      // ACT command received/changed
+    void mainRxAntCfgChanged(); // ACM command received/changed
+    void subRxAntCfgChanged();  // ACS command received/changed
+    void txAntCfgChanged();     // ACT command received/changed
 
     // Line Out
-    void lineOutChanged();       // LO command - left/right level or mode changed
+    void lineOutChanged(); // LO command - left/right level or mode changed
+
+    // Text Decode
+    void textDecodeChanged();                                   // TD$ command - Main RX settings changed
+    void textDecodeBChanged();                                  // TD$$ command - Sub RX settings changed
+    void textBufferReceived(const QString &text, bool isSubRx); // TB$ decoded text
 
     void stateUpdated();
 
@@ -742,9 +765,19 @@ private:
     bool m_txAntMask[3] = {false, false, false};
 
     // Line Out levels (LO command)
-    int m_lineOutLeft = -1;      // 0-40, init to -1 to ensure first emit
-    int m_lineOutRight = -1;     // 0-40
+    int m_lineOutLeft = -1;  // 0-40, init to -1 to ensure first emit
+    int m_lineOutRight = -1; // 0-40
     bool m_lineOutRightEqualsLeft = false;
+
+    // Text Decode (TD$ command) - Main RX
+    int m_textDecodeMode = -1;      // 0=off, 2=8-45WPM, 3=8-60WPM, 4=8-90WPM, 1=DATA/SSB on
+    int m_textDecodeThreshold = -1; // 0=AUTO, 1-9 (CW only)
+    int m_textDecodeLines = -1;     // 1-10 lines
+
+    // Text Decode (TD$$ command) - Sub RX
+    int m_textDecodeModeB = -1;
+    int m_textDecodeThresholdB = -1;
+    int m_textDecodeLinesB = -1;
 };
 
 #endif // RADIOSTATE_H

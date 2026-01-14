@@ -99,6 +99,7 @@ set(SOURCES
     src/ui/rxeqpopupwidget.cpp
     src/ui/antennacfgpopup.cpp
     src/ui/lineoutpopup.cpp
+    src/ui/textdecodewindow.cpp
     src/ui/macrodialog.cpp
     src/ui/notificationwidget.cpp
     src/ui/k4styles.cpp
@@ -146,6 +147,7 @@ set(HEADERS
     src/ui/rxeqpopupwidget.h
     src/ui/antennacfgpopup.h
     src/ui/lineoutpopup.h
+    src/ui/textdecodewindow.h
     src/ui/macrodialog.h
     src/ui/notificationwidget.h
     src/ui/k4styles.h
@@ -234,7 +236,6 @@ qt6_add_shaders(${PROJECT_NAME} "panadapter_shaders"
         src/dsp/shaders/spectrum.vert
         src/dsp/shaders/spectrum.frag
         src/dsp/shaders/spectrum_blue.vert
-        src/dsp/shaders/spectrum_blue.frag
         src/dsp/shaders/spectrum_blue_amp.frag
         src/dsp/shaders/waterfall.vert
         src/dsp/shaders/waterfall.frag

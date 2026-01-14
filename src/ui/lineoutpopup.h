@@ -11,8 +11,8 @@ class LineOutPopupWidget : public QWidget {
 public:
     explicit LineOutPopupWidget(QWidget *parent = nullptr);
 
-    void setLeftLevel(int level);    // 0-40
-    void setRightLevel(int level);   // 0-40
+    void setLeftLevel(int level);  // 0-40
+    void setRightLevel(int level); // 0-40
     void setRightEqualsLeft(bool enabled);
     void showAboveWidget(QWidget *widget);
     void hidePopup();
@@ -41,7 +41,7 @@ private:
     int m_leftLevel = 10;
     int m_rightLevel = 10;
     bool m_rightEqualsLeft = false;
-    bool m_leftSelected = true;  // Which channel wheel adjusts
+    bool m_leftSelected = true; // Which channel wheel adjusts
 
     QLabel *m_titleLabel;
     QPushButton *m_leftBtn;

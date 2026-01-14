@@ -50,9 +50,9 @@ void AntennaCfgPopupWidget::setupUi() {
     m_displayAllBtn->setCheckable(true);
     m_displayAllBtn->setChecked(true);
     m_displayAllBtn->setFixedHeight(24);
-    m_displayAllBtn->setStyleSheet(K4Styles::radioButton() +
-                                   QString("QPushButton { font-size: %1px; padding: 4px 8px; }")
-                                       .arg(K4Styles::Dimensions::FontSizeSmall));
+    m_displayAllBtn->setStyleSheet(
+        K4Styles::radioButton() +
+        QString("QPushButton { font-size: %1px; padding: 4px 8px; }").arg(K4Styles::Dimensions::FontSizeSmall));
     connect(m_displayAllBtn, &QPushButton::clicked, this, &AntennaCfgPopupWidget::onDisplayAllClicked);
     modeLayout->addWidget(m_displayAllBtn);
 
@@ -77,9 +77,9 @@ void AntennaCfgPopupWidget::setupUi() {
     m_useSubsetBtn->setCheckable(true);
     m_useSubsetBtn->setChecked(false);
     m_useSubsetBtn->setFixedHeight(24);
-    m_useSubsetBtn->setStyleSheet(K4Styles::radioButton() +
-                                  QString("QPushButton { font-size: %1px; padding: 4px 8px; }")
-                                      .arg(K4Styles::Dimensions::FontSizeSmall));
+    m_useSubsetBtn->setStyleSheet(
+        K4Styles::radioButton() +
+        QString("QPushButton { font-size: %1px; padding: 4px 8px; }").arg(K4Styles::Dimensions::FontSizeSmall));
     connect(m_useSubsetBtn, &QPushButton::clicked, this, &AntennaCfgPopupWidget::onUseSubsetClicked);
     subsetLayout->addWidget(m_useSubsetBtn);
 
