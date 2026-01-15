@@ -3,7 +3,7 @@
 namespace K4Styles {
 
 QString popupButtonNormal() {
-    return R"(
+    return QString(R"(
         QPushButton {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                 stop:0 #4a4a4a,
@@ -13,8 +13,8 @@ QString popupButtonNormal() {
             color: #FFFFFF;
             border: 2px solid #606060;
             border-radius: 6px;
-            font-size: 14px;
-            font-weight: bold;
+            font-size: %1px;
+            font-weight: 600;
         }
         QPushButton:hover {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
@@ -31,11 +31,12 @@ QString popupButtonNormal() {
                 stop:0.6 #3a3a3a,
                 stop:1 #4a4a4a);
         }
-    )";
+    )")
+        .arg(Dimensions::PopupButtonSize);
 }
 
 QString popupButtonSelected() {
-    return R"(
+    return QString(R"(
         QPushButton {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                 stop:0 #E0E0E0,
@@ -45,8 +46,8 @@ QString popupButtonSelected() {
             color: #333333;
             border: 2px solid #AAAAAA;
             border-radius: 6px;
-            font-size: 14px;
-            font-weight: bold;
+            font-size: %1px;
+            font-weight: 600;
         }
         QPushButton:hover {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
@@ -62,11 +63,12 @@ QString popupButtonSelected() {
                 stop:0.6 #D0D0D0,
                 stop:1 #E0E0E0);
         }
-    )";
+    )")
+        .arg(Dimensions::PopupButtonSize);
 }
 
 QString menuBarButton() {
-    return R"(
+    return QString(R"(
         QPushButton {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                 stop:0 #4a4a4a,
@@ -77,8 +79,8 @@ QString menuBarButton() {
             border: 2px solid #606060;
             border-radius: 6px;
             padding: 6px 12px;
-            font-size: 12px;
-            font-weight: bold;
+            font-size: %1px;
+            font-weight: 600;
         }
         QPushButton:hover {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
@@ -96,25 +98,27 @@ QString menuBarButton() {
                 stop:1 #4a4a4a);
             border: 2px solid #909090;
         }
-    )";
+    )")
+        .arg(Dimensions::PopupButtonSize);
 }
 
 QString menuBarButtonActive() {
-    return R"(
+    return QString(R"(
         QPushButton {
             background: #FFFFFF;
             color: #666666;
             border: 2px solid #AAAAAA;
             border-radius: 6px;
             padding: 6px 12px;
-            font-size: 12px;
-            font-weight: bold;
+            font-size: %1px;
+            font-weight: 600;
         }
-    )";
+    )")
+        .arg(Dimensions::PopupButtonSize);
 }
 
 QString menuBarButtonSmall() {
-    return R"(
+    return QString(R"(
         QPushButton {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                 stop:0 #4a4a4a,
@@ -124,8 +128,8 @@ QString menuBarButtonSmall() {
             color: #FFFFFF;
             border: 2px solid #606060;
             border-radius: 6px;
-            font-size: 14px;
-            font-weight: bold;
+            font-size: %1px;
+            font-weight: 600;
         }
         QPushButton:hover {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
@@ -143,7 +147,24 @@ QString menuBarButtonSmall() {
                 stop:1 #4a4a4a);
             border: 2px solid #909090;
         }
-    )";
+    )")
+        .arg(Dimensions::PopupValueSize);
+}
+
+QString menuBarButtonPttPressed() {
+    return QString(R"(
+        QPushButton {
+            background: %1;
+            color: #FFFFFF;
+            border: 2px solid %1;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: %2px;
+            font-weight: 600;
+        }
+    )")
+        .arg(Colors::TxRed)
+        .arg(Dimensions::PopupButtonSize);
 }
 
 void drawDropShadow(QPainter &painter, const QRect &contentRect, int cornerRadius) {

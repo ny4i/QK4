@@ -158,7 +158,8 @@ QWidget *OptionsDialog::createAboutPage() {
     page->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::Background));
 
     auto *layout = new QVBoxLayout(page);
-    layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
+    layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin,
+                               K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
     layout->setSpacing(15);
 
     // Title
@@ -327,7 +328,8 @@ QWidget *OptionsDialog::createKpodPage() {
     page->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::Background));
 
     auto *layout = new QVBoxLayout(page);
-    layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
+    layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin,
+                               K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
     layout->setSpacing(15);
 
     // Status indicator
@@ -459,21 +461,19 @@ void OptionsDialog::updateKpodStatus() {
     // Update checkbox enabled state and styling
     m_kpodEnableCheckbox->setEnabled(detected);
     if (detected) {
-        m_kpodEnableCheckbox->setStyleSheet(
-            QString("QCheckBox { color: %1; font-size: %2px; spacing: %3px; }"
-                    "QCheckBox::indicator { width: %4px; height: %4px; }")
-                .arg(K4Styles::Colors::TextWhite)
-                .arg(K4Styles::Dimensions::FontSizePopup)
-                .arg(K4Styles::Dimensions::BorderRadiusLarge)
-                .arg(K4Styles::Dimensions::CheckboxSize));
+        m_kpodEnableCheckbox->setStyleSheet(QString("QCheckBox { color: %1; font-size: %2px; spacing: %3px; }"
+                                                    "QCheckBox::indicator { width: %4px; height: %4px; }")
+                                                .arg(K4Styles::Colors::TextWhite)
+                                                .arg(K4Styles::Dimensions::FontSizePopup)
+                                                .arg(K4Styles::Dimensions::BorderRadiusLarge)
+                                                .arg(K4Styles::Dimensions::CheckboxSize));
     } else {
-        m_kpodEnableCheckbox->setStyleSheet(
-            QString("QCheckBox { color: %1; font-size: %2px; spacing: %3px; }"
-                    "QCheckBox::indicator { width: %4px; height: %4px; }")
-                .arg(K4Styles::Colors::TextGray)
-                .arg(K4Styles::Dimensions::FontSizePopup)
-                .arg(K4Styles::Dimensions::BorderRadiusLarge)
-                .arg(K4Styles::Dimensions::CheckboxSize));
+        m_kpodEnableCheckbox->setStyleSheet(QString("QCheckBox { color: %1; font-size: %2px; spacing: %3px; }"
+                                                    "QCheckBox::indicator { width: %4px; height: %4px; }")
+                                                .arg(K4Styles::Colors::TextGray)
+                                                .arg(K4Styles::Dimensions::FontSizePopup)
+                                                .arg(K4Styles::Dimensions::BorderRadiusLarge)
+                                                .arg(K4Styles::Dimensions::CheckboxSize));
     }
 
     // Update help text
@@ -486,7 +486,8 @@ QWidget *OptionsDialog::createKpa1500Page() {
     page->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::Background));
 
     auto *layout = new QVBoxLayout(page);
-    layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
+    layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin,
+                               K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
     layout->setSpacing(15);
 
     // Title
@@ -625,13 +626,12 @@ QWidget *OptionsDialog::createKpa1500Page() {
 
     // Enable checkbox
     m_kpa1500EnableCheckbox = new QCheckBox("Enable KPA1500", page);
-    m_kpa1500EnableCheckbox->setStyleSheet(
-        QString("QCheckBox { color: %1; font-size: %2px; spacing: %3px; }"
-                "QCheckBox::indicator { width: %4px; height: %4px; }")
-            .arg(K4Styles::Colors::TextWhite)
-            .arg(K4Styles::Dimensions::FontSizePopup)
-            .arg(K4Styles::Dimensions::BorderRadiusLarge)
-            .arg(K4Styles::Dimensions::CheckboxSize));
+    m_kpa1500EnableCheckbox->setStyleSheet(QString("QCheckBox { color: %1; font-size: %2px; spacing: %3px; }"
+                                                   "QCheckBox::indicator { width: %4px; height: %4px; }")
+                                               .arg(K4Styles::Colors::TextWhite)
+                                               .arg(K4Styles::Dimensions::FontSizePopup)
+                                               .arg(K4Styles::Dimensions::BorderRadiusLarge)
+                                               .arg(K4Styles::Dimensions::CheckboxSize));
     m_kpa1500EnableCheckbox->setChecked(RadioSettings::instance()->kpa1500Enabled());
     layout->addWidget(m_kpa1500EnableCheckbox);
 
@@ -687,10 +687,9 @@ void OptionsDialog::updateKpa1500Status() {
                                                 .arg(K4Styles::Dimensions::FontSizePopup));
     } else {
         m_kpa1500StatusLabel->setText("Not Connected");
-        m_kpa1500StatusLabel->setStyleSheet(
-            QString("color: %1; font-size: %2px; font-weight: bold;")
-                .arg(K4Styles::Colors::ErrorRed)
-                .arg(K4Styles::Dimensions::FontSizePopup));
+        m_kpa1500StatusLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                                .arg(K4Styles::Colors::ErrorRed)
+                                                .arg(K4Styles::Dimensions::FontSizePopup));
     }
 }
 
@@ -703,7 +702,8 @@ QWidget *OptionsDialog::createAudioInputPage() {
     page->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::Background));
 
     auto *layout = new QVBoxLayout(page);
-    layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
+    layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin,
+                               K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
     layout->setSpacing(15);
 
     // Title
@@ -825,8 +825,8 @@ QWidget *OptionsDialog::createAudioInputPage() {
                                         "             padding: 10px 20px; font-size: %5px; border-radius: 4px; }"
                                         "QPushButton:hover { background-color: %6; }"
                                         "QPushButton:checked { background-color: %4; color: %1; border-color: %4; }")
-                                    .arg(K4Styles::Colors::DarkBackground, K4Styles::Colors::TextWhite, K4Styles::Colors::DialogBorder,
-                                         K4Styles::Colors::AccentAmber)
+                                    .arg(K4Styles::Colors::DarkBackground, K4Styles::Colors::TextWhite,
+                                         K4Styles::Colors::DialogBorder, K4Styles::Colors::AccentAmber)
                                     .arg(K4Styles::Dimensions::FontSizePopup)
                                     .arg(K4Styles::Colors::GradientBottom));
     connect(m_micTestBtn, &QPushButton::toggled, this, &OptionsDialog::onMicTestToggled);
@@ -913,7 +913,8 @@ QWidget *OptionsDialog::createAudioOutputPage() {
     page->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::Background));
 
     auto *layout = new QVBoxLayout(page);
-    layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
+    layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin,
+                               K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
     layout->setSpacing(15);
 
     // Title
@@ -1010,7 +1011,8 @@ QWidget *OptionsDialog::createNetworkPage() {
     page->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::Background));
 
     auto *layout = new QVBoxLayout(page);
-    layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
+    layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin,
+                               K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
     layout->setSpacing(15);
 
     // Title
@@ -1043,7 +1045,8 @@ QWidget *OptionsDialog::createRigControlPage() {
     page->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::Background));
 
     auto *layout = new QVBoxLayout(page);
-    layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
+    layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin,
+                               K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
     layout->setSpacing(15);
 
     // Title
@@ -1076,10 +1079,9 @@ QWidget *OptionsDialog::createRigControlPage() {
     statusTitleLabel->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
 
     m_catServerStatusLabel = new QLabel("Not running", page);
-    m_catServerStatusLabel->setStyleSheet(
-        QString("color: %1; font-size: %2px; font-weight: bold;")
-            .arg(K4Styles::Colors::ErrorRed)
-            .arg(K4Styles::Dimensions::FontSizePopup));
+    m_catServerStatusLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                              .arg(K4Styles::Colors::ErrorRed)
+                                              .arg(K4Styles::Dimensions::FontSizePopup));
 
     statusLayout->addWidget(statusTitleLabel);
     statusLayout->addWidget(m_catServerStatusLabel);
@@ -1156,13 +1158,12 @@ QWidget *OptionsDialog::createRigControlPage() {
 
     // Enable checkbox
     m_catServerEnableCheckbox = new QCheckBox("Enable CAT server", page);
-    m_catServerEnableCheckbox->setStyleSheet(
-        QString("QCheckBox { color: %1; font-size: %2px; spacing: %3px; }"
-                "QCheckBox::indicator { width: %4px; height: %4px; }")
-            .arg(K4Styles::Colors::TextWhite)
-            .arg(K4Styles::Dimensions::FontSizePopup)
-            .arg(K4Styles::Dimensions::BorderRadiusLarge)
-            .arg(K4Styles::Dimensions::CheckboxSize));
+    m_catServerEnableCheckbox->setStyleSheet(QString("QCheckBox { color: %1; font-size: %2px; spacing: %3px; }"
+                                                     "QCheckBox::indicator { width: %4px; height: %4px; }")
+                                                 .arg(K4Styles::Colors::TextWhite)
+                                                 .arg(K4Styles::Dimensions::FontSizePopup)
+                                                 .arg(K4Styles::Dimensions::BorderRadiusLarge)
+                                                 .arg(K4Styles::Dimensions::CheckboxSize));
     m_catServerEnableCheckbox->setChecked(RadioSettings::instance()->rigctldEnabled());
     layout->addWidget(m_catServerEnableCheckbox);
 
@@ -1212,10 +1213,9 @@ void OptionsDialog::updateCatServerStatus() {
                                                   .arg(K4Styles::Dimensions::FontSizePopup));
     } else {
         m_catServerStatusLabel->setText("Not running");
-        m_catServerStatusLabel->setStyleSheet(
-            QString("color: %1; font-size: %2px; font-weight: bold;")
-                .arg(K4Styles::Colors::ErrorRed)
-                .arg(K4Styles::Dimensions::FontSizePopup));
+        m_catServerStatusLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                                  .arg(K4Styles::Colors::ErrorRed)
+                                                  .arg(K4Styles::Dimensions::FontSizePopup));
     }
 
     int clientCount = m_catServer ? m_catServer->clientCount() : 0;
@@ -1227,7 +1227,8 @@ QWidget *OptionsDialog::createCwKeyerPage() {
     page->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::Background));
 
     auto *layout = new QVBoxLayout(page);
-    layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
+    layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin,
+                               K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
     layout->setSpacing(15);
 
     // Title
@@ -1260,10 +1261,9 @@ QWidget *OptionsDialog::createCwKeyerPage() {
     statusTitleLabel->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
 
     m_cwKeyerStatusLabel = new QLabel("Not Connected", page);
-    m_cwKeyerStatusLabel->setStyleSheet(
-        QString("color: %1; font-size: %2px; font-weight: bold;")
-            .arg(K4Styles::Colors::ErrorRed)
-            .arg(K4Styles::Dimensions::FontSizePopup));
+    m_cwKeyerStatusLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                            .arg(K4Styles::Colors::ErrorRed)
+                                            .arg(K4Styles::Dimensions::FontSizePopup));
 
     statusLayout->addWidget(statusTitleLabel);
     statusLayout->addWidget(m_cwKeyerStatusLabel);
@@ -1402,13 +1402,12 @@ QWidget *OptionsDialog::createCwKeyerPage() {
 
     // Enable checkbox
     m_cwKeyerEnableCheckbox = new QCheckBox("Enable CW Keyer on startup", page);
-    m_cwKeyerEnableCheckbox->setStyleSheet(
-        QString("QCheckBox { color: %1; font-size: %2px; spacing: %3px; }"
-                "QCheckBox::indicator { width: %4px; height: %4px; }")
-            .arg(K4Styles::Colors::TextWhite)
-            .arg(K4Styles::Dimensions::FontSizePopup)
-            .arg(K4Styles::Dimensions::BorderRadiusLarge)
-            .arg(K4Styles::Dimensions::CheckboxSize));
+    m_cwKeyerEnableCheckbox->setStyleSheet(QString("QCheckBox { color: %1; font-size: %2px; spacing: %3px; }"
+                                                   "QCheckBox::indicator { width: %4px; height: %4px; }")
+                                               .arg(K4Styles::Colors::TextWhite)
+                                               .arg(K4Styles::Dimensions::FontSizePopup)
+                                               .arg(K4Styles::Dimensions::BorderRadiusLarge)
+                                               .arg(K4Styles::Dimensions::CheckboxSize));
     m_cwKeyerEnableCheckbox->setChecked(RadioSettings::instance()->halikeyEnabled());
     connect(m_cwKeyerEnableCheckbox, &QCheckBox::toggled, this,
             [](bool checked) { RadioSettings::instance()->setHalikeyEnabled(checked); });
@@ -1548,10 +1547,9 @@ void OptionsDialog::updateCwKeyerStatus() {
         m_cwKeyerConnectBtn->setText("Disconnect");
     } else {
         m_cwKeyerStatusLabel->setText("Not Connected");
-        m_cwKeyerStatusLabel->setStyleSheet(
-            QString("color: %1; font-size: %2px; font-weight: bold;")
-                .arg(K4Styles::Colors::ErrorRed)
-                .arg(K4Styles::Dimensions::FontSizePopup));
+        m_cwKeyerStatusLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                                .arg(K4Styles::Colors::ErrorRed)
+                                                .arg(K4Styles::Dimensions::FontSizePopup));
         m_cwKeyerConnectBtn->setText("Connect");
     }
 
@@ -1562,13 +1560,15 @@ void OptionsDialog::updateCwKeyerStatus() {
 
         m_cwKeyerDitIndicator->setStyleSheet(
             QString("background-color: %1; border: %3px solid %2; border-radius: %4px;")
-                .arg(ditPressed ? K4Styles::Colors::VfoACyan : K4Styles::Colors::DarkBackground, K4Styles::Colors::DialogBorder)
+                .arg(ditPressed ? K4Styles::Colors::VfoACyan : K4Styles::Colors::DarkBackground,
+                     K4Styles::Colors::DialogBorder)
                 .arg(K4Styles::Dimensions::BorderWidth)
                 .arg(K4Styles::Dimensions::IndicatorSize / 2));
 
         m_cwKeyerDahIndicator->setStyleSheet(
             QString("background-color: %1; border: %3px solid %2; border-radius: %4px;")
-                .arg(dahPressed ? K4Styles::Colors::VfoBGreen : K4Styles::Colors::DarkBackground, K4Styles::Colors::DialogBorder)
+                .arg(dahPressed ? K4Styles::Colors::VfoBGreen : K4Styles::Colors::DarkBackground,
+                     K4Styles::Colors::DialogBorder)
                 .arg(K4Styles::Dimensions::BorderWidth)
                 .arg(K4Styles::Dimensions::IndicatorSize / 2));
     }

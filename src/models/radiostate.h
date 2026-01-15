@@ -441,6 +441,43 @@ public:
     void setLineInJack(int level);
     void setLineInSource(int source);
 
+    // Mic Input (MI command) - 0=front, 1=rear, 2=line in, 3=front+line in, 4=rear+line in
+    int micInput() const { return m_micInput; }
+
+    // Mic Setup (MS command) - preamp, bias, buttons configuration
+    int micFrontPreamp() const { return m_micFrontPreamp; }   // 0=0dB, 1=10dB, 2=20dB
+    int micFrontBias() const { return m_micFrontBias; }       // 0=OFF, 1=ON
+    int micFrontButtons() const { return m_micFrontButtons; } // 0=disabled, 1=UP/DN enabled
+    int micRearPreamp() const { return m_micRearPreamp; }     // 0=0dB, 1=14dB
+    int micRearBias() const { return m_micRearBias; }         // 0=OFF, 1=ON
+
+    // VOX Gain (VG command) - per mode (0=voice, 1=data)
+    int voxGainVoice() const { return m_voxGainVoice; } // 0-60
+    int voxGainData() const { return m_voxGainData; }   // 0-60
+    int voxGainForCurrentMode() const { return (m_mode == DATA || m_mode == DATA_R) ? m_voxGainData : m_voxGainVoice; }
+
+    // Anti-VOX (VI command) - voice modes only
+    int antiVox() const { return m_antiVox; } // 0-60
+
+    // ESSB and SSB TX Bandwidth (ES command)
+    bool essbEnabled() const { return m_essbEnabled; } // 0=SSB, 1=ESSB
+    int ssbTxBw() const { return m_ssbTxBw; }          // 30-45 (3.0-4.5 kHz in 100Hz units)
+
+    // Optimistic setters for VOX Gain/Anti-VOX/ESSB
+    void setVoxGainVoice(int gain);
+    void setVoxGainData(int gain);
+    void setAntiVox(int level);
+    void setEssbEnabled(bool enabled);
+    void setSsbTxBw(int bw);
+
+    // Optimistic setters for Mic Input/Setup
+    void setMicInput(int input);
+    void setMicFrontPreamp(int preamp);
+    void setMicFrontBias(int bias);
+    void setMicFrontButtons(int buttons);
+    void setMicRearPreamp(int preamp);
+    void setMicRearBias(int bias);
+
     // Text Decode (TD$ command) - Main RX
     int textDecodeMode() const { return m_textDecodeMode; }           // 0=off, 2-4=CW WPM ranges, 1=DATA/SSB on
     int textDecodeThreshold() const { return m_textDecodeThreshold; } // 0=AUTO, 1-9 (CW only)
@@ -575,6 +612,15 @@ signals:
 
     // Line In
     void lineInChanged(); // LI command - sound card/line in jack level or source changed
+
+    // Mic Input/Setup
+    void micInputChanged(int input); // MI command - mic input source changed
+    void micSetupChanged();          // MS command - mic config changed
+
+    // VOX Gain/Anti-VOX/ESSB
+    void voxGainChanged(int mode, int gain); // VG: mode 0=voice, 1=data
+    void antiVoxChanged(int level);          // VI: anti-vox level
+    void essbChanged(bool enabled, int bw);  // ES: ESSB state and bandwidth
 
     // Text Decode
     void textDecodeChanged();                                   // TD$ command - Main RX settings changed
@@ -803,6 +849,27 @@ private:
     int m_lineInSoundCard = -1; // 0-250, init to -1 to ensure first emit
     int m_lineInJack = -1;      // 0-250
     int m_lineInSource = -1;    // 0=SoundCard, 1=LineInJack
+
+    // Mic Input (MI command)
+    int m_micInput = -1; // 0=front, 1=rear, 2=line in, 3=front+line, 4=rear+line
+
+    // Mic Setup (MS command)
+    int m_micFrontPreamp = -1;  // 0=0dB, 1=10dB, 2=20dB
+    int m_micFrontBias = -1;    // 0=OFF, 1=ON
+    int m_micFrontButtons = -1; // 0=disabled, 1=UP/DN enabled
+    int m_micRearPreamp = -1;   // 0=0dB, 1=14dB
+    int m_micRearBias = -1;     // 0=OFF, 1=ON
+
+    // VOX Gain (VG command)
+    int m_voxGainVoice = -1; // 0-60
+    int m_voxGainData = -1;  // 0-60
+
+    // Anti-VOX (VI command)
+    int m_antiVox = -1; // 0-60
+
+    // ESSB (ES command)
+    bool m_essbEnabled = false; // 0=SSB, 1=ESSB
+    int m_ssbTxBw = -1;         // 30-45 (3.0-4.5 kHz in 100Hz units)
 
     // Text Decode (TD$ command) - Main RX
     int m_textDecodeMode = -1;      // 0=off, 2=8-45WPM, 3=8-60WPM, 4=8-90WPM, 1=DATA/SSB on

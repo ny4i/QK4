@@ -21,6 +21,10 @@
 #include "ui/antennacfgpopup.h"
 #include "ui/lineoutpopup.h"
 #include "ui/lineinpopup.h"
+#include "ui/micinputpopup.h"
+#include "ui/micconfigpopup.h"
+#include "ui/voxpopup.h"
+#include "ui/ssbbwpopup.h"
 #include "ui/textdecodewindow.h"
 #include "models/menumodel.h"
 #include "dsp/panadapter_rhi.h"
@@ -224,13 +228,13 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_subRxPopup, &ButtonRowPopup::buttonRightClicked, this, &MainWindow::onSubRxButtonRightClicked);
 
     m_txPopup = new ButtonRowPopup(this);
-    m_txPopup->setButtonLabel(0, "ANT", "CFG", false); // TX Antenna config
-    m_txPopup->setButtonLabel(1, "TX", "EQ", false);   // TX Equalizer (future)
-    m_txPopup->setButtonLabel(2, "LINE", "IN", false);  // LINE IN control
-    m_txPopup->setButtonLabel(3, "4", "");             // Placeholder
-    m_txPopup->setButtonLabel(4, "5", "");             // Placeholder
-    m_txPopup->setButtonLabel(5, "6", "");             // Placeholder
-    m_txPopup->setButtonLabel(6, "7", "");             // Placeholder
+    m_txPopup->setButtonLabel(0, "ANT", "CFG", false);        // TX Antenna config
+    m_txPopup->setButtonLabel(1, "TX", "EQ", false);          // TX Equalizer (future)
+    m_txPopup->setButtonLabel(2, "LINE", "IN", false);        // LINE IN control
+    m_txPopup->setButtonLabel(3, "MIC INP", "MIC CFG", true); // Mic input/config
+    m_txPopup->setButtonLabel(4, "VOX GN", "ANTIVOX", true);  // VOX Gain / Anti-VOX
+    m_txPopup->setButtonLabel(5, "SSB BW", "2.8k", false);    // SSB TX Bandwidth
+    m_txPopup->setButtonLabel(6, "ESSB", "OFF", false);       // ESSB toggle
     connect(m_txPopup, &ButtonRowPopup::closed, this, [this]() {
         if (m_bottomMenuBar) {
             m_bottomMenuBar->setTxActive(false);
@@ -259,8 +263,95 @@ MainWindow::MainWindow(QWidget *parent)
                 m_lineInPopup->showAboveWidget(m_txPopup);
             }
             break;
+        case 3: // MIC INP - show mic input selection popup
+            if (m_micInputPopup && m_txPopup) {
+                m_micInputPopup->setCurrentInput(m_radioState->micInput());
+                m_micInputPopup->showAboveWidget(m_txPopup);
+            }
+            break;
+        case 4: // VOX GN - show VOX Gain popup
+            if (m_voxPopup && m_txPopup) {
+                bool isDataMode =
+                    (m_radioState->mode() == RadioState::DATA || m_radioState->mode() == RadioState::DATA_R);
+                m_voxPopup->setPopupMode(VoxPopupWidget::VoxGain);
+                m_voxPopup->setDataMode(isDataMode);
+                m_voxPopup->setValue(m_radioState->voxGainForCurrentMode());
+                m_voxPopup->setVoxEnabled(m_radioState->voxForCurrentMode());
+                m_voxPopup->showAboveWidget(m_txPopup);
+            }
+            break;
+        case 5: // SSB BW - show SSB TX Bandwidth popup
+            if (m_ssbBwPopup && m_txPopup) {
+                m_ssbBwPopup->setEssbEnabled(m_radioState->essbEnabled());
+                int bw = m_radioState->ssbTxBw();
+                if (bw >= 24 && bw <= 45) {
+                    m_ssbBwPopup->setBandwidth(bw);
+                }
+                m_ssbBwPopup->showAboveWidget(m_txPopup);
+            }
+            break;
+        case 6: { // ESSB toggle
+            bool newState = !m_radioState->essbEnabled();
+            int bw = m_radioState->ssbTxBw();
+            // Ensure bw is valid for the new mode
+            // SSB: 24-28, ESSB: 30-45
+            if (newState) {
+                // Switching to ESSB - use 30 if bw is outside ESSB range
+                if (bw < 30 || bw > 45)
+                    bw = 30;
+            } else {
+                // Switching to SSB - use 28 if bw is outside SSB range
+                if (bw < 24 || bw > 28)
+                    bw = 28;
+            }
+            m_tcpClient->sendCAT(QString("ES%1%2;").arg(newState ? 1 : 0).arg(bw, 2, 10, QChar('0')));
+            // Optimistic update
+            m_radioState->setEssbEnabled(newState);
+            m_radioState->setSsbTxBw(bw);
+            // Update button labels
+            if (m_txPopup) {
+                QString bwStr = QString("%1k").arg(bw / 10.0, 0, 'f', 1);
+                m_txPopup->setButtonLabel(5, "SSB BW", bwStr, false);
+                m_txPopup->setButtonLabel(6, "ESSB", newState ? "ON" : "OFF", false);
+            }
+            break;
+        }
         default:
             break;
+        }
+    });
+
+    // TX popup right-click handler for MIC CFG and ANTIVOX
+    connect(m_txPopup, &ButtonRowPopup::buttonRightClicked, this, [this](int index) {
+        if (!m_tcpClient || !m_tcpClient->isConnected())
+            return;
+        if (index == 4) { // ANTIVOX
+            if (m_voxPopup && m_txPopup) {
+                m_voxPopup->setPopupMode(VoxPopupWidget::AntiVox);
+                m_voxPopup->setValue(m_radioState->antiVox());
+                m_voxPopup->setVoxEnabled(m_radioState->voxForCurrentMode());
+                m_voxPopup->showAboveWidget(m_txPopup);
+            }
+        } else if (index == 3) { // MIC CFG
+            int input = m_radioState->micInput();
+            // LINE IN only (input=2) has no mic config
+            if (input == 2)
+                return;
+
+            // Determine if Front or Rear mic
+            bool isFront = (input == 0 || input == 3); // 0=front, 3=front+line
+            if (m_micConfigPopup && m_txPopup) {
+                m_micConfigPopup->setMicType(isFront ? MicConfigPopupWidget::Front : MicConfigPopupWidget::Rear);
+                if (isFront) {
+                    m_micConfigPopup->setBias(m_radioState->micFrontBias());
+                    m_micConfigPopup->setPreamp(m_radioState->micFrontPreamp());
+                    m_micConfigPopup->setButtons(m_radioState->micFrontButtons());
+                } else {
+                    m_micConfigPopup->setBias(m_radioState->micRearBias());
+                    m_micConfigPopup->setPreamp(m_radioState->micRearPreamp());
+                }
+                m_micConfigPopup->showAboveWidget(m_txPopup);
+            }
         }
     });
 
@@ -414,7 +505,8 @@ MainWindow::MainWindow(QWidget *parent)
         QVector<int> currentBands = m_radioState->txEqBands();
 
         bool ok;
-        QString name = QInputDialog::getText(this, "Save TX Preset", "Preset name:", QLineEdit::Normal, defaultName, &ok);
+        QString name =
+            QInputDialog::getText(this, "Save TX Preset", "Preset name:", QLineEdit::Normal, defaultName, &ok);
 
         // Re-show the EQ popup after dialog closes
         if (m_bottomMenuBar) {
@@ -565,6 +657,161 @@ MainWindow::MainWindow(QWidget *parent)
         }
     });
 
+    // Create Mic Input popup (TX menu button index 3, left-click)
+    m_micInputPopup = new MicInputPopupWidget(this);
+    connect(m_micInputPopup, &MicInputPopupWidget::inputChanged, this, [this](int input) {
+        if (!m_tcpClient || !m_tcpClient->isConnected())
+            return;
+        m_radioState->setMicInput(input);
+        m_tcpClient->sendCAT(QString("MI%1;").arg(input));
+    });
+    // Connect RadioState to update popup when K4 sends MI response
+    connect(m_radioState, &RadioState::micInputChanged, this, [this](int input) {
+        if (m_micInputPopup) {
+            m_micInputPopup->setCurrentInput(input);
+        }
+    });
+
+    // Create Mic Config popup (TX menu button index 3, right-click)
+    m_micConfigPopup = new MicConfigPopupWidget(this);
+    connect(m_micConfigPopup, &MicConfigPopupWidget::biasChanged, this, [this](int bias) {
+        if (!m_tcpClient || !m_tcpClient->isConnected())
+            return;
+        // Use individual SET command based on mic type
+        if (m_micConfigPopup->micType() == MicConfigPopupWidget::Front) {
+            m_radioState->setMicFrontBias(bias);
+            m_tcpClient->sendCAT(QString("MSB%1;").arg(bias));
+        } else {
+            m_radioState->setMicRearBias(bias);
+            m_tcpClient->sendCAT(QString("MSE%1;").arg(bias));
+        }
+    });
+    connect(m_micConfigPopup, &MicConfigPopupWidget::preampChanged, this, [this](int preamp) {
+        if (!m_tcpClient || !m_tcpClient->isConnected())
+            return;
+        if (m_micConfigPopup->micType() == MicConfigPopupWidget::Front) {
+            m_radioState->setMicFrontPreamp(preamp);
+            m_tcpClient->sendCAT(QString("MSA%1;").arg(preamp));
+        } else {
+            m_radioState->setMicRearPreamp(preamp);
+            m_tcpClient->sendCAT(QString("MSD%1;").arg(preamp));
+        }
+    });
+    connect(m_micConfigPopup, &MicConfigPopupWidget::buttonsChanged, this, [this](int buttons) {
+        if (!m_tcpClient || !m_tcpClient->isConnected())
+            return;
+        // Buttons only applies to Front mic
+        m_radioState->setMicFrontButtons(buttons);
+        m_tcpClient->sendCAT(QString("MSC%1;").arg(buttons));
+    });
+    // Connect RadioState to update popup when K4 sends MS response
+    connect(m_radioState, &RadioState::micSetupChanged, this, [this]() {
+        if (m_micConfigPopup) {
+            if (m_micConfigPopup->micType() == MicConfigPopupWidget::Front) {
+                m_micConfigPopup->setBias(m_radioState->micFrontBias());
+                m_micConfigPopup->setPreamp(m_radioState->micFrontPreamp());
+                m_micConfigPopup->setButtons(m_radioState->micFrontButtons());
+            } else {
+                m_micConfigPopup->setBias(m_radioState->micRearBias());
+                m_micConfigPopup->setPreamp(m_radioState->micRearPreamp());
+            }
+        }
+    });
+
+    // Create VOX Gain / Anti-VOX popup (TX menu button index 4)
+    m_voxPopup = new VoxPopupWidget(this);
+    connect(m_voxPopup, &VoxPopupWidget::valueChanged, this, [this](int value) {
+        if (!m_tcpClient || !m_tcpClient->isConnected())
+            return;
+        if (m_voxPopup->popupMode() == VoxPopupWidget::VoxGain) {
+            // VOX Gain: VGVnnn or VGDnnn depending on mode
+            bool isDataMode = (m_radioState->mode() == RadioState::DATA || m_radioState->mode() == RadioState::DATA_R);
+            QString modeChar = isDataMode ? "D" : "V";
+            if (isDataMode) {
+                m_radioState->setVoxGainData(value);
+            } else {
+                m_radioState->setVoxGainVoice(value);
+            }
+            m_tcpClient->sendCAT(QString("VG%1%2;").arg(modeChar).arg(value, 3, 10, QChar('0')));
+        } else {
+            // Anti-VOX: VInnn
+            m_radioState->setAntiVox(value);
+            m_tcpClient->sendCAT(QString("VI%1;").arg(value, 3, 10, QChar('0')));
+        }
+    });
+    connect(m_voxPopup, &VoxPopupWidget::voxToggled, this, [this](bool enabled) {
+        if (!m_tcpClient || !m_tcpClient->isConnected())
+            return;
+        // VXmn where m=C/V/D, n=0/1
+        RadioState::Mode mode = m_radioState->mode();
+        QString modeChar;
+        if (mode == RadioState::CW || mode == RadioState::CW_R) {
+            modeChar = "C";
+        } else if (mode == RadioState::DATA || mode == RadioState::DATA_R) {
+            modeChar = "D";
+        } else {
+            modeChar = "V";
+        }
+        m_tcpClient->sendCAT(QString("VX%1%2;").arg(modeChar).arg(enabled ? 1 : 0));
+    });
+    // Connect RadioState to update popup when K4 sends VG/VI/VX response
+    connect(m_radioState, &RadioState::voxGainChanged, this, [this](int mode, int gain) {
+        if (m_voxPopup && m_voxPopup->popupMode() == VoxPopupWidget::VoxGain) {
+            bool isDataMode = (m_radioState->mode() == RadioState::DATA || m_radioState->mode() == RadioState::DATA_R);
+            if ((mode == 1 && isDataMode) || (mode == 0 && !isDataMode)) {
+                m_voxPopup->setValue(gain);
+            }
+        }
+    });
+    connect(m_radioState, &RadioState::antiVoxChanged, this, [this](int level) {
+        if (m_voxPopup && m_voxPopup->popupMode() == VoxPopupWidget::AntiVox) {
+            m_voxPopup->setValue(level);
+        }
+    });
+    connect(m_radioState, &RadioState::voxChanged, this, [this](bool enabled) {
+        if (m_voxPopup) {
+            m_voxPopup->setVoxEnabled(m_radioState->voxForCurrentMode());
+        }
+    });
+
+    // Create SSB TX Bandwidth popup (TX menu button index 5)
+    m_ssbBwPopup = new SsbBwPopupWidget(this);
+    connect(m_ssbBwPopup, &SsbBwPopupWidget::bandwidthChanged, this, [this](int bw) {
+        if (!m_tcpClient || !m_tcpClient->isConnected())
+            return;
+        // ES command: ESnbb where n=essb mode, bb=bandwidth
+        int essbMode = m_radioState->essbEnabled() ? 1 : 0;
+        m_radioState->setSsbTxBw(bw);
+        m_tcpClient->sendCAT(QString("ES%1%2;").arg(essbMode).arg(bw, 2, 10, QChar('0')));
+        // Update button label with new bandwidth (optimistic)
+        if (m_txPopup) {
+            QString bwStr = QString("%1k").arg(bw / 10.0, 0, 'f', 1);
+            m_txPopup->setButtonLabel(5, "SSB BW", bwStr, false);
+        }
+    });
+    // Connect RadioState to update popup and ESSB button when K4 sends ES response
+    // SSB: 24-28 (2.4-2.8 kHz), ESSB: 30-45 (3.0-4.5 kHz)
+    connect(m_radioState, &RadioState::essbChanged, this, [this](bool enabled, int bw) {
+        if (m_ssbBwPopup) {
+            m_ssbBwPopup->setEssbEnabled(enabled);
+            if (bw >= 24 && bw <= 45) {
+                m_ssbBwPopup->setBandwidth(bw);
+            }
+        }
+        // Update TX popup button labels
+        if (m_txPopup) {
+            // Button 5: SSB BW with current bandwidth value (e.g., "2.8k" or "3.0k")
+            if (bw >= 24 && bw <= 45) {
+                QString bwStr = QString("%1k").arg(bw / 10.0, 0, 'f', 1);
+                m_txPopup->setButtonLabel(5, "SSB BW", bwStr, false);
+            }
+            // Button 6: ESSB toggle with ON/OFF state
+            m_txPopup->setButtonLabel(6, "ESSB", enabled ? "ON" : "OFF", false);
+        }
+        // Update mode labels to show USB+/LSB+ when ESSB enabled
+        updateModeLabels();
+    });
+
     // Create floating text decode windows (separate for MAIN RX and SUB RX)
     // Controls integrated in title bar - no separate popup needed
     m_textDecodeWindowMain = new TextDecodeWindow(TextDecodeWindow::MainRx, this);
@@ -692,8 +939,7 @@ MainWindow::MainWindow(QWidget *parent)
         onVoxChanged(false); // Refresh VOX display when mode changes (VOX is mode-specific)
     });
     // Data sub-mode changes also update mode label (AFSK, FSK, PSK, DATA)
-    connect(m_radioState, &RadioState::dataSubModeChanged, this,
-            [this](int) { m_modeALabel->setText(m_radioState->modeStringFull()); });
+    connect(m_radioState, &RadioState::dataSubModeChanged, this, [this](int) { updateModeLabels(); });
     connect(m_radioState, &RadioState::sMeterChanged, this, &MainWindow::onSMeterChanged);
     connect(m_radioState, &RadioState::filterBandwidthChanged, this, &MainWindow::onBandwidthChanged);
     // RX EQ state -> popup (Main and Sub RX share the same EQ)
@@ -733,8 +979,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_radioState, &RadioState::frequencyBChanged, this, &MainWindow::onFrequencyBChanged);
     connect(m_radioState, &RadioState::modeBChanged, this, &MainWindow::onModeBChanged);
     // Data sub-mode changes also update mode label (AFSK, FSK, PSK, DATA)
-    connect(m_radioState, &RadioState::dataSubModeBChanged, this,
-            [this](int) { m_modeBLabel->setText(m_radioState->modeStringFullB()); });
+    connect(m_radioState, &RadioState::dataSubModeBChanged, this, [this](int) { updateModeLabels(); });
     connect(m_radioState, &RadioState::sMeterBChanged, this, &MainWindow::onSMeterBChanged);
     connect(m_radioState, &RadioState::filterBandwidthBChanged, this, &MainWindow::onBandwidthBChanged);
 
@@ -3426,13 +3671,32 @@ void MainWindow::onFrequencyBChanged(quint64 freq) {
 void MainWindow::onModeChanged(RadioState::Mode mode) {
     Q_UNUSED(mode)
     // Use full mode string which includes data sub-mode (AFSK, FSK, PSK, DATA)
-    m_modeALabel->setText(m_radioState->modeStringFull());
+    // Also adds "+" suffix for USB/LSB when ESSB is enabled
+    updateModeLabels();
 }
 
 void MainWindow::onModeBChanged(RadioState::Mode mode) {
     Q_UNUSED(mode)
     // Use full mode string which includes data sub-mode (AFSK, FSK, PSK, DATA)
-    m_modeBLabel->setText(m_radioState->modeStringFullB());
+    updateModeLabels();
+}
+
+void MainWindow::updateModeLabels() {
+    // VFO A mode label
+    QString modeA = m_radioState->modeStringFull();
+    RadioState::Mode mode = m_radioState->mode();
+    if (m_radioState->essbEnabled() && (mode == RadioState::USB || mode == RadioState::LSB)) {
+        modeA += "+";
+    }
+    m_modeALabel->setText(modeA);
+
+    // VFO B mode label
+    QString modeB = m_radioState->modeStringFullB();
+    RadioState::Mode modeVfoB = m_radioState->modeB();
+    if (m_radioState->essbEnabled() && (modeVfoB == RadioState::USB || modeVfoB == RadioState::LSB)) {
+        modeB += "+";
+    }
+    m_modeBLabel->setText(modeB);
 }
 
 void MainWindow::onSMeterChanged(double value) {

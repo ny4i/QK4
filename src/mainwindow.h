@@ -31,6 +31,10 @@ class RxEqPopupWidget;
 class AntennaCfgPopupWidget;
 class LineOutPopupWidget;
 class LineInPopupWidget;
+class MicInputPopupWidget;
+class MicConfigPopupWidget;
+class VoxPopupWidget;
+class SsbBwPopupWidget;
 class TextDecodeWindow;
 class MacroDialog;
 class FilterIndicatorWidget;
@@ -155,6 +159,7 @@ private:
     void setupSpectrumPlaceholder(QWidget *parent);
     void updateConnectionState(TcpClient::ConnectionState state);
     QString formatFrequency(quint64 freq);
+    void updateModeLabels();
 
     // Band and mini pan helpers
     int getBandFromFrequency(quint64 freq);
@@ -275,6 +280,10 @@ private:
     RxEqPopupWidget *m_txEqPopup;
     LineOutPopupWidget *m_lineOutPopup;
     LineInPopupWidget *m_lineInPopup;
+    MicInputPopupWidget *m_micInputPopup;
+    MicConfigPopupWidget *m_micConfigPopup;
+    VoxPopupWidget *m_voxPopup;
+    SsbBwPopupWidget *m_ssbBwPopup;
     TextDecodeWindow *m_textDecodeWindowMain;
     TextDecodeWindow *m_textDecodeWindowSub;
     AntennaCfgPopupWidget *m_mainRxAntCfgPopup;

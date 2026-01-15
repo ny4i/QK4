@@ -121,7 +121,7 @@ void BottomMenuBar::setTxActive(bool active) {
 
 void BottomMenuBar::setPttActive(bool active) {
     if (active) {
-        m_pttBtn->setStyleSheet(K4Styles::menuBarButtonActive());
+        m_pttBtn->setStyleSheet(K4Styles::menuBarButtonPttPressed());
     } else {
         m_pttBtn->setStyleSheet(K4Styles::menuBarButton());
     }

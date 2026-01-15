@@ -57,6 +57,12 @@ QString menuBarButtonActive();
 QString menuBarButtonSmall();
 
 /**
+ * @brief PTT button pressed state.
+ * Red background with white text for transmit indication.
+ */
+QString menuBarButtonPttPressed();
+
+/**
  * @brief Standard horizontal slider stylesheet.
  * Amber handle on dark groove, uses Dimensions::Slider* constants.
  *
@@ -181,8 +187,8 @@ constexpr const char *BorderSelected = "#AAAAAA";
 constexpr const char *BorderLight = "#909090";
 
 // Dialog-specific colors
-constexpr const char *DialogBorder = "#333333";  // Dialog borders and separators
-constexpr const char *ErrorRed = "#FF6666";      // Error/not connected status indicators
+constexpr const char *DialogBorder = "#333333"; // Dialog borders and separators
+constexpr const char *ErrorRed = "#FF6666";     // Error/not connected status indicators
 } // namespace Colors
 
 namespace Dimensions {
@@ -229,10 +235,10 @@ constexpr int MenuBarHeight = 52;  // Bottom menu bar container height
 // =============================================================================
 // Common UI Widths
 // =============================================================================
-constexpr int FormLabelWidth = 80;   // Form field labels in dialogs
-constexpr int VfoSquareSize = 45;    // VFO A/B indicator squares and mode labels
-constexpr int NavButtonWidth = 54;   // Navigation buttons in overlays
-constexpr int SidePanelWidth = 105;  // Left and right side panels
+constexpr int FormLabelWidth = 80;  // Form field labels in dialogs
+constexpr int VfoSquareSize = 45;   // VFO A/B indicator squares and mode labels
+constexpr int NavButtonWidth = 54;  // Navigation buttons in overlays
+constexpr int SidePanelWidth = 105; // Left and right side panels
 
 // =============================================================================
 // Font Sizes (in points) - use with QFont::setPointSize()
@@ -246,6 +252,14 @@ constexpr int FontSizeLarge = 11;  // Feature labels, primary labels
 constexpr int FontSizeButton = 12; // Button text, value displays
 constexpr int FontSizePopup = 14;  // Notifications, popup titles
 constexpr int FontSizeTitle = 16;  // Large control buttons (+/-)
+
+// =============================================================================
+// Popup Menu Font Sizes (standardized for horizontal control bar popups)
+// =============================================================================
+constexpr int PopupTitleSize = 12;   // Popup title labels (e.g., "MIC INPUT", "ATTENUATOR")
+constexpr int PopupButtonSize = 11;  // Popup selection buttons (e.g., "FRONT", "REAR")
+constexpr int PopupValueSize = 12;   // Value displays (e.g., "6 dB", "184 Hz")
+constexpr int PopupAltTextSize = 10; // Alternate/secondary text on buttons
 
 // =============================================================================
 // Slider Dimensions

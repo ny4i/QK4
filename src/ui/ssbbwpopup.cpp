@@ -1,4 +1,4 @@
-#include "lineinpopup.h"
+#include "ssbbwpopup.h"
 #include "k4styles.h"
 #include <QApplication>
 #include <QHBoxLayout>
@@ -11,10 +11,16 @@
 namespace {
 const int ContentHeight = 52;
 const int ContentMargin = 12;
-const int MaxLevel = 250;
+// SSB mode (ESSB off): 24-28 (2.4-2.8 kHz)
+const int SsbMinBw = 24;
+const int SsbMaxBw = 28;
+// ESSB mode (ESSB on): 30-45 (3.0-4.5 kHz)
+const int EssbMinBw = 30;
+const int EssbMaxBw = 45;
+const int TitleWidth = 180; // "SSB TX BANDWIDTH" or "ESSB TX BANDWIDTH"
 } // namespace
 
-LineInPopupWidget::LineInPopupWidget(QWidget *parent) : QWidget(parent) {
+SsbBwPopupWidget::SsbBwPopupWidget(QWidget *parent) : QWidget(parent) {
     setWindowFlags(Qt::Popup | Qt::FramelessWindowHint);
     setAttribute(Qt::WA_TranslucentBackground);
     setFocusPolicy(Qt::StrongFocus);
@@ -22,7 +28,7 @@ LineInPopupWidget::LineInPopupWidget(QWidget *parent) : QWidget(parent) {
     hide();
 }
 
-void LineInPopupWidget::setupUi() {
+void SsbBwPopupWidget::setupUi() {
     setFixedHeight(ContentHeight + 2 * K4Styles::Dimensions::ShadowMargin);
 
     auto *layout = new QHBoxLayout(this);
@@ -31,9 +37,9 @@ void LineInPopupWidget::setupUi() {
         K4Styles::Dimensions::ShadowMargin + ContentMargin, K4Styles::Dimensions::ShadowMargin + 6);
     layout->setSpacing(6);
 
-    // Title label - "LINE IN"
-    m_titleLabel = new QLabel("LINE IN", this);
-    m_titleLabel->setFixedSize(K4Styles::Dimensions::InputFieldWidthMedium, K4Styles::Dimensions::ButtonHeightMedium);
+    // Title label - will be updated based on ESSB state
+    m_titleLabel = new QLabel("SSB TX BANDWIDTH", this);
+    m_titleLabel->setFixedSize(TitleWidth, K4Styles::Dimensions::ButtonHeightMedium);
     m_titleLabel->setAlignment(Qt::AlignCenter);
     m_titleLabel->setStyleSheet(QString("QLabel {"
                                         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
@@ -54,23 +60,9 @@ void LineInPopupWidget::setupUi() {
                                     .arg(K4Styles::Dimensions::BorderRadius)
                                     .arg(K4Styles::Dimensions::PopupTitleSize));
 
-    // SOUND CARD button - selectable (two lines)
-    m_soundCardBtn = new QPushButton("SOUND\nCARD", this);
-    m_soundCardBtn->setFixedSize(K4Styles::Dimensions::PopupButtonWidth, K4Styles::Dimensions::ButtonHeightMedium);
-    m_soundCardBtn->setCheckable(true);
-    m_soundCardBtn->setChecked(true); // Sound card selected by default (source=0)
-    m_soundCardBtn->setCursor(Qt::PointingHandCursor);
-
-    // LINE IN JACK button - selectable (two lines)
-    m_lineInJackBtn = new QPushButton("LINE IN\nJACK", this);
-    m_lineInJackBtn->setFixedSize(K4Styles::Dimensions::PopupButtonWidth, K4Styles::Dimensions::ButtonHeightMedium);
-    m_lineInJackBtn->setCheckable(true);
-    m_lineInJackBtn->setChecked(false);
-    m_lineInJackBtn->setCursor(Qt::PointingHandCursor);
-
-    // Value display label
-    m_valueLabel = new QLabel(QString::number(m_soundCardLevel), this);
-    m_valueLabel->setFixedSize(K4Styles::Dimensions::NavButtonWidth, K4Styles::Dimensions::ButtonHeightMedium);
+    // Value display label - shows bandwidth as X.X kHz
+    m_valueLabel = new QLabel("3.0 kHz", this);
+    m_valueLabel->setFixedSize(80, K4Styles::Dimensions::ButtonHeightMedium);
     m_valueLabel->setAlignment(Qt::AlignCenter);
     m_valueLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: 600;")
                                     .arg(K4Styles::Colors::TextWhite)
@@ -89,122 +81,65 @@ void LineInPopupWidget::setupUi() {
     m_incrementBtn->setStyleSheet(K4Styles::menuBarButtonSmall());
 
     // Close button
-    m_closeBtn = new QPushButton("\u21A9", this); // ↩
+    m_closeBtn = new QPushButton("\u21A9", this); // U+21A9 leftwards arrow with hook
     m_closeBtn->setFixedSize(K4Styles::Dimensions::NavButtonWidth, K4Styles::Dimensions::ButtonHeightMedium);
     m_closeBtn->setCursor(Qt::PointingHandCursor);
     m_closeBtn->setStyleSheet(K4Styles::menuBarButton());
 
     // Add to layout
     layout->addWidget(m_titleLabel);
-    layout->addWidget(m_soundCardBtn);
-    layout->addWidget(m_lineInJackBtn);
     layout->addWidget(m_valueLabel);
     layout->addWidget(m_decrementBtn);
     layout->addWidget(m_incrementBtn);
     layout->addWidget(m_closeBtn);
 
-    // Initial button styles
-    updateButtonStyles();
-
     // Connect signals
-    connect(m_soundCardBtn, &QPushButton::clicked, this, [this]() {
-        if (m_source != 0) {
-            m_source = 0;
-            m_soundCardBtn->setChecked(true);
-            m_lineInJackBtn->setChecked(false);
-            updateButtonStyles();
-            updateValueDisplay();
-            emit sourceChanged(m_source);
-        }
-    });
+    connect(m_decrementBtn, &QPushButton::clicked, this, [this]() { adjustValue(-1); });
 
-    connect(m_lineInJackBtn, &QPushButton::clicked, this, [this]() {
-        if (m_source != 1) {
-            m_source = 1;
-            m_soundCardBtn->setChecked(false);
-            m_lineInJackBtn->setChecked(true);
-            updateButtonStyles();
-            updateValueDisplay();
-            emit sourceChanged(m_source);
-        }
-    });
+    connect(m_incrementBtn, &QPushButton::clicked, this, [this]() { adjustValue(1); });
 
-    connect(m_decrementBtn, &QPushButton::clicked, this, [this]() {
-        // Shift held = adjust by 10, otherwise by 1
-        int delta = (QApplication::keyboardModifiers() & Qt::ShiftModifier) ? -10 : -1;
-        adjustValue(delta);
-    });
+    connect(m_closeBtn, &QPushButton::clicked, this, &SsbBwPopupWidget::hidePopup);
 
-    connect(m_incrementBtn, &QPushButton::clicked, this, [this]() {
-        // Shift held = adjust by 10, otherwise by 1
-        int delta = (QApplication::keyboardModifiers() & Qt::ShiftModifier) ? 10 : 1;
-        adjustValue(delta);
-    });
-
-    connect(m_closeBtn, &QPushButton::clicked, this, &LineInPopupWidget::hidePopup);
+    updateTitle();
+    updateValueDisplay();
 }
 
-void LineInPopupWidget::updateButtonStyles() {
-    // SOUND CARD button - selected style when checked
-    m_soundCardBtn->setStyleSheet(m_soundCardBtn->isChecked() ? K4Styles::popupButtonSelected()
-                                                              : K4Styles::popupButtonNormal());
-
-    // LINE IN JACK button - selected style when checked
-    m_lineInJackBtn->setStyleSheet(m_lineInJackBtn->isChecked() ? K4Styles::popupButtonSelected()
-                                                                : K4Styles::popupButtonNormal());
-}
-
-void LineInPopupWidget::updateValueDisplay() {
-    // Show value for the currently selected source
-    int value = (m_source == 0) ? m_soundCardLevel : m_lineInJackLevel;
-    m_valueLabel->setText(QString::number(value));
-}
-
-void LineInPopupWidget::adjustValue(int delta) {
-    if (m_source == 0) {
-        // Adjusting Sound Card level
-        int newLevel = qBound(0, m_soundCardLevel + delta, MaxLevel);
-        if (newLevel != m_soundCardLevel) {
-            m_soundCardLevel = newLevel;
-            updateValueDisplay();
-            emit soundCardLevelChanged(newLevel);
-        }
-    } else {
-        // Adjusting LINE IN Jack level
-        int newLevel = qBound(0, m_lineInJackLevel + delta, MaxLevel);
-        if (newLevel != m_lineInJackLevel) {
-            m_lineInJackLevel = newLevel;
-            updateValueDisplay();
-            emit lineInJackLevelChanged(newLevel);
-        }
+void SsbBwPopupWidget::setEssbEnabled(bool enabled) {
+    if (enabled != m_essbEnabled) {
+        m_essbEnabled = enabled;
+        updateTitle();
     }
 }
 
-void LineInPopupWidget::setSoundCardLevel(int level) {
-    m_soundCardLevel = qBound(0, level, MaxLevel);
-    if (m_source == 0) {
+void SsbBwPopupWidget::updateTitle() {
+    m_titleLabel->setText(m_essbEnabled ? "ESSB TX BANDWIDTH" : "SSB TX BANDWIDTH");
+}
+
+void SsbBwPopupWidget::updateValueDisplay() {
+    // Convert 30-45 to "3.0 kHz" - "4.5 kHz"
+    double kHz = m_bandwidth / 10.0;
+    m_valueLabel->setText(QString("%1 kHz").arg(kHz, 0, 'f', 1));
+}
+
+void SsbBwPopupWidget::adjustValue(int delta) {
+    int minBw = m_essbEnabled ? EssbMinBw : SsbMinBw;
+    int maxBw = m_essbEnabled ? EssbMaxBw : SsbMaxBw;
+    int newBw = qBound(minBw, m_bandwidth + delta, maxBw);
+    if (newBw != m_bandwidth) {
+        m_bandwidth = newBw;
         updateValueDisplay();
+        emit bandwidthChanged(newBw);
     }
 }
 
-void LineInPopupWidget::setLineInJackLevel(int level) {
-    m_lineInJackLevel = qBound(0, level, MaxLevel);
-    if (m_source == 1) {
-        updateValueDisplay();
-    }
+void SsbBwPopupWidget::setBandwidth(int bw) {
+    int minBw = m_essbEnabled ? EssbMinBw : SsbMinBw;
+    int maxBw = m_essbEnabled ? EssbMaxBw : SsbMaxBw;
+    m_bandwidth = qBound(minBw, bw, maxBw);
+    updateValueDisplay();
 }
 
-void LineInPopupWidget::setSource(int source) {
-    if (source != m_source && (source == 0 || source == 1)) {
-        m_source = source;
-        m_soundCardBtn->setChecked(source == 0);
-        m_lineInJackBtn->setChecked(source == 1);
-        updateButtonStyles();
-        updateValueDisplay();
-    }
-}
-
-void LineInPopupWidget::showAboveWidget(QWidget *referenceWidget) {
+void SsbBwPopupWidget::showAboveWidget(QWidget *referenceWidget) {
     if (!referenceWidget)
         return;
 
@@ -236,16 +171,16 @@ void LineInPopupWidget::showAboveWidget(QWidget *referenceWidget) {
     update();
 }
 
-void LineInPopupWidget::hidePopup() {
+void SsbBwPopupWidget::hidePopup() {
     hide();
 }
 
-void LineInPopupWidget::hideEvent(QHideEvent *event) {
+void SsbBwPopupWidget::hideEvent(QHideEvent *event) {
     QWidget::hideEvent(event);
     emit closed();
 }
 
-void LineInPopupWidget::keyPressEvent(QKeyEvent *event) {
+void SsbBwPopupWidget::keyPressEvent(QKeyEvent *event) {
     if (event->key() == Qt::Key_Escape) {
         hidePopup();
     } else {
@@ -253,13 +188,13 @@ void LineInPopupWidget::keyPressEvent(QKeyEvent *event) {
     }
 }
 
-void LineInPopupWidget::wheelEvent(QWheelEvent *event) {
+void SsbBwPopupWidget::wheelEvent(QWheelEvent *event) {
     int delta = (event->angleDelta().y() > 0) ? 1 : -1;
     adjustValue(delta);
     event->accept();
 }
 
-void LineInPopupWidget::paintEvent(QPaintEvent *event) {
+void SsbBwPopupWidget::paintEvent(QPaintEvent *event) {
     Q_UNUSED(event)
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
@@ -292,6 +227,5 @@ void LineInPopupWidget::paintEvent(QPaintEvent *event) {
     };
 
     drawDelimiter(m_titleLabel);
-    drawDelimiter(m_lineInJackBtn);
     drawDelimiter(m_incrementBtn);
 }

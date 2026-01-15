@@ -626,6 +626,49 @@ void RadioState::parseCATCommand(const QString &command) {
                 emit lineInChanged();
         }
     }
+    // MI - Mic Input Select
+    // Format: MIn where n=0-4 (0=front, 1=rear, 2=line in, 3=front+line, 4=rear+line)
+    else if (cmd.startsWith("MI") && cmd.length() >= 3) {
+        int input = cmd.mid(2, 1).toInt();
+        if (input >= 0 && input <= 4 && input != m_micInput) {
+            m_micInput = input;
+            emit micInputChanged(m_micInput);
+        }
+    }
+    // MS - Mic Setup
+    // Format: MSabcde where a=frontPreamp(0-2), b=frontBias(0-1), c=frontButtons(0-1),
+    //         d=rearPreamp(0-1), e=rearBias(0-1)
+    else if (cmd.startsWith("MS") && cmd.length() >= 7) {
+        int frontPreamp = cmd.mid(2, 1).toInt();
+        int frontBias = cmd.mid(3, 1).toInt();
+        int frontButtons = cmd.mid(4, 1).toInt();
+        int rearPreamp = cmd.mid(5, 1).toInt();
+        int rearBias = cmd.mid(6, 1).toInt();
+
+        bool changed = false;
+        if (frontPreamp >= 0 && frontPreamp <= 2 && frontPreamp != m_micFrontPreamp) {
+            m_micFrontPreamp = frontPreamp;
+            changed = true;
+        }
+        if ((frontBias == 0 || frontBias == 1) && frontBias != m_micFrontBias) {
+            m_micFrontBias = frontBias;
+            changed = true;
+        }
+        if ((frontButtons == 0 || frontButtons == 1) && frontButtons != m_micFrontButtons) {
+            m_micFrontButtons = frontButtons;
+            changed = true;
+        }
+        if ((rearPreamp == 0 || rearPreamp == 1) && rearPreamp != m_micRearPreamp) {
+            m_micRearPreamp = rearPreamp;
+            changed = true;
+        }
+        if ((rearBias == 0 || rearBias == 1) && rearBias != m_micRearBias) {
+            m_micRearBias = rearBias;
+            changed = true;
+        }
+        if (changed)
+            emit micSetupChanged();
+    }
     // Text Decode Sub RX (TD$) - must check before TD
     else if (cmd.startsWith("TD$") && cmd.length() >= 6) {
         int mode = cmd.mid(3, 1).toInt();
@@ -762,6 +805,61 @@ void RadioState::parseCATCommand(const QString &command) {
         }
         if (changed) {
             emit voxChanged(voxEnabled());
+        }
+    }
+    // VOX Gain (VG) - VGmnnn where m=V(voice)/D(data), nnn=000-060
+    else if (cmd.startsWith("VG") && cmd.length() >= 5) {
+        QChar modeChar = cmd.at(2);
+        bool ok;
+        int gain = cmd.mid(3, 3).toInt(&ok);
+        if (ok && gain >= 0 && gain <= 60) {
+            if (modeChar == 'V' && gain != m_voxGainVoice) {
+                m_voxGainVoice = gain;
+                emit voxGainChanged(0, gain);
+            } else if (modeChar == 'D' && gain != m_voxGainData) {
+                m_voxGainData = gain;
+                emit voxGainChanged(1, gain);
+            }
+        }
+    }
+    // Anti-VOX (VI) - VInnn where nnn=000-060
+    else if (cmd.startsWith("VI") && cmd.length() >= 5) {
+        bool ok;
+        int level = cmd.mid(2, 3).toInt(&ok);
+        if (ok && level >= 0 && level <= 60 && level != m_antiVox) {
+            m_antiVox = level;
+            emit antiVoxChanged(level);
+        }
+    }
+    // ESSB/SSB TX Bandwidth (ES) - ESnbb where n=0/1, bb=bandwidth
+    // SSB mode (n=0): bb range is 24-28 (2.4-2.8 kHz)
+    // ESSB mode (n=1): bb range is 30-45 (3.0-4.5 kHz)
+    else if (cmd.startsWith("ES") && cmd.length() >= 4) {
+        bool ok;
+        int modeVal = cmd.mid(2, 1).toInt(&ok);
+        if (ok && (modeVal == 0 || modeVal == 1)) {
+            bool newEssb = (modeVal == 1);
+            int newBw = -1;
+            // Check if bandwidth is included (full format ESnbb)
+            if (cmd.length() >= 5) {
+                newBw = cmd.mid(3, 2).toInt(&ok);
+                // Accept valid range for either mode (24-45 covers both)
+                if (!ok || newBw < 24 || newBw > 45) {
+                    newBw = m_ssbTxBw; // Keep existing if invalid
+                }
+            }
+            bool changed = false;
+            if (newEssb != m_essbEnabled) {
+                m_essbEnabled = newEssb;
+                changed = true;
+            }
+            if (newBw >= 24 && newBw <= 45 && newBw != m_ssbTxBw) {
+                m_ssbTxBw = newBw;
+                changed = true;
+            }
+            if (changed) {
+                emit essbChanged(m_essbEnabled, m_ssbTxBw);
+            }
         }
     }
     // IF Shift Sub RX (IS$) - check BEFORE IS to avoid prefix collision
@@ -1898,6 +1996,49 @@ void RadioState::setLineInSource(int source) {
     }
 }
 
+// Mic Input/Setup optimistic setters
+void RadioState::setMicInput(int input) {
+    if (input >= 0 && input <= 4 && input != m_micInput) {
+        m_micInput = input;
+        emit micInputChanged(m_micInput);
+    }
+}
+
+void RadioState::setMicFrontPreamp(int preamp) {
+    if (preamp >= 0 && preamp <= 2 && preamp != m_micFrontPreamp) {
+        m_micFrontPreamp = preamp;
+        emit micSetupChanged();
+    }
+}
+
+void RadioState::setMicFrontBias(int bias) {
+    if ((bias == 0 || bias == 1) && bias != m_micFrontBias) {
+        m_micFrontBias = bias;
+        emit micSetupChanged();
+    }
+}
+
+void RadioState::setMicFrontButtons(int buttons) {
+    if ((buttons == 0 || buttons == 1) && buttons != m_micFrontButtons) {
+        m_micFrontButtons = buttons;
+        emit micSetupChanged();
+    }
+}
+
+void RadioState::setMicRearPreamp(int preamp) {
+    if ((preamp == 0 || preamp == 1) && preamp != m_micRearPreamp) {
+        m_micRearPreamp = preamp;
+        emit micSetupChanged();
+    }
+}
+
+void RadioState::setMicRearBias(int bias) {
+    if ((bias == 0 || bias == 1) && bias != m_micRearBias) {
+        m_micRearBias = bias;
+        emit micSetupChanged();
+    }
+}
+
 // Text Decode optimistic setters - Main RX
 void RadioState::setTextDecodeMode(int mode) {
     mode = qBound(0, mode, 4);
@@ -1945,5 +2086,45 @@ void RadioState::setTextDecodeLinesB(int lines) {
     if (lines != m_textDecodeLinesB) {
         m_textDecodeLinesB = lines;
         emit textDecodeBChanged();
+    }
+}
+
+// VOX Gain optimistic setters
+void RadioState::setVoxGainVoice(int gain) {
+    gain = qBound(0, gain, 60);
+    if (gain != m_voxGainVoice) {
+        m_voxGainVoice = gain;
+        emit voxGainChanged(0, gain);
+    }
+}
+
+void RadioState::setVoxGainData(int gain) {
+    gain = qBound(0, gain, 60);
+    if (gain != m_voxGainData) {
+        m_voxGainData = gain;
+        emit voxGainChanged(1, gain);
+    }
+}
+
+void RadioState::setAntiVox(int level) {
+    level = qBound(0, level, 60);
+    if (level != m_antiVox) {
+        m_antiVox = level;
+        emit antiVoxChanged(level);
+    }
+}
+
+void RadioState::setEssbEnabled(bool enabled) {
+    if (enabled != m_essbEnabled) {
+        m_essbEnabled = enabled;
+        emit essbChanged(m_essbEnabled, m_ssbTxBw);
+    }
+}
+
+void RadioState::setSsbTxBw(int bw) {
+    bw = qBound(30, bw, 45);
+    if (bw != m_ssbTxBw) {
+        m_ssbTxBw = bw;
+        emit essbChanged(m_essbEnabled, m_ssbTxBw);
     }
 }

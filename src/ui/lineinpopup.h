@@ -10,9 +10,9 @@ class LineInPopupWidget : public QWidget {
 public:
     explicit LineInPopupWidget(QWidget *parent = nullptr);
 
-    void setSoundCardLevel(int level);   // 0-250
-    void setLineInJackLevel(int level);  // 0-250
-    void setSource(int source);          // 0=SoundCard, 1=LineInJack
+    void setSoundCardLevel(int level);  // 0-250
+    void setLineInJackLevel(int level); // 0-250
+    void setSource(int source);         // 0=SoundCard, 1=LineInJack
 
     int soundCardLevel() const { return m_soundCardLevel; }
     int lineInJackLevel() const { return m_lineInJackLevel; }
@@ -51,7 +51,7 @@ private:
 
     int m_soundCardLevel = 0;
     int m_lineInJackLevel = 0;
-    int m_source = 0;  // 0=SoundCard, 1=LineInJack
+    int m_source = 0; // 0=SoundCard, 1=LineInJack
 };
 
 #endif // LINEINPOPUP_H

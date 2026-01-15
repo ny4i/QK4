@@ -7,8 +7,7 @@
 #include <QLinearGradient>
 
 DualControlButton::DualControlButton(QWidget *parent) : QWidget(parent) {
-    setFixedSize(K4Styles::Dimensions::MenuBarButtonWidth,
-                 K4Styles::Dimensions::ButtonHeightLarge);
+    setFixedSize(K4Styles::Dimensions::MenuBarButtonWidth, K4Styles::Dimensions::ButtonHeightLarge);
     setCursor(Qt::PointingHandCursor);
     setMouseTracking(true);
 }
@@ -99,8 +98,8 @@ void DualControlButton::paintEvent(QPaintEvent *event) {
     painter.fillPath(buttonPath, bgGradient);
 
     // Border (slightly brighter when indicator is shown)
-    QColor borderColor = m_showIndicator ? QColor(K4Styles::Colors::BorderHover)
-                                         : QColor(K4Styles::Colors::BorderNormal);
+    QColor borderColor =
+        m_showIndicator ? QColor(K4Styles::Colors::BorderHover) : QColor(K4Styles::Colors::BorderNormal);
     painter.setPen(QPen(borderColor, 2));
     painter.drawPath(buttonPath);
 

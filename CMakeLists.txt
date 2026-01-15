@@ -100,6 +100,10 @@ set(SOURCES
     src/ui/antennacfgpopup.cpp
     src/ui/lineoutpopup.cpp
     src/ui/lineinpopup.cpp
+    src/ui/micinputpopup.cpp
+    src/ui/micconfigpopup.cpp
+    src/ui/voxpopup.cpp
+    src/ui/ssbbwpopup.cpp
     src/ui/textdecodewindow.cpp
     src/ui/macrodialog.cpp
     src/ui/notificationwidget.cpp
@@ -149,6 +153,10 @@ set(HEADERS
     src/ui/antennacfgpopup.h
     src/ui/lineoutpopup.h
     src/ui/lineinpopup.h
+    src/ui/micinputpopup.h
+    src/ui/micconfigpopup.h
+    src/ui/voxpopup.h
+    src/ui/ssbbwpopup.h
     src/ui/textdecodewindow.h
     src/ui/macrodialog.h
     src/ui/notificationwidget.h

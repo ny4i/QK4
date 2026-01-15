@@ -1,4 +1,4 @@
-#include "lineinpopup.h"
+#include "voxpopup.h"
 #include "k4styles.h"
 #include <QApplication>
 #include <QHBoxLayout>
@@ -11,10 +11,12 @@
 namespace {
 const int ContentHeight = 52;
 const int ContentMargin = 12;
-const int MaxLevel = 250;
+const int MaxLevel = 60;
+const int TitleWidthVoxGain = 160; // "VOX GAIN, VOICE" or "VOX GAIN, DATA"
+const int TitleWidthAntiVox = 110; // "ANTI-VOX"
 } // namespace
 
-LineInPopupWidget::LineInPopupWidget(QWidget *parent) : QWidget(parent) {
+VoxPopupWidget::VoxPopupWidget(QWidget *parent) : QWidget(parent) {
     setWindowFlags(Qt::Popup | Qt::FramelessWindowHint);
     setAttribute(Qt::WA_TranslucentBackground);
     setFocusPolicy(Qt::StrongFocus);
@@ -22,7 +24,7 @@ LineInPopupWidget::LineInPopupWidget(QWidget *parent) : QWidget(parent) {
     hide();
 }
 
-void LineInPopupWidget::setupUi() {
+void VoxPopupWidget::setupUi() {
     setFixedHeight(ContentHeight + 2 * K4Styles::Dimensions::ShadowMargin);
 
     auto *layout = new QHBoxLayout(this);
@@ -31,9 +33,9 @@ void LineInPopupWidget::setupUi() {
         K4Styles::Dimensions::ShadowMargin + ContentMargin, K4Styles::Dimensions::ShadowMargin + 6);
     layout->setSpacing(6);
 
-    // Title label - "LINE IN"
-    m_titleLabel = new QLabel("LINE IN", this);
-    m_titleLabel->setFixedSize(K4Styles::Dimensions::InputFieldWidthMedium, K4Styles::Dimensions::ButtonHeightMedium);
+    // Title label - will be updated based on mode
+    m_titleLabel = new QLabel("VOX GAIN, VOICE", this);
+    m_titleLabel->setFixedSize(TitleWidthVoxGain, K4Styles::Dimensions::ButtonHeightMedium);
     m_titleLabel->setAlignment(Qt::AlignCenter);
     m_titleLabel->setStyleSheet(QString("QLabel {"
                                         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
@@ -54,22 +56,14 @@ void LineInPopupWidget::setupUi() {
                                     .arg(K4Styles::Dimensions::BorderRadius)
                                     .arg(K4Styles::Dimensions::PopupTitleSize));
 
-    // SOUND CARD button - selectable (two lines)
-    m_soundCardBtn = new QPushButton("SOUND\nCARD", this);
-    m_soundCardBtn->setFixedSize(K4Styles::Dimensions::PopupButtonWidth, K4Styles::Dimensions::ButtonHeightMedium);
-    m_soundCardBtn->setCheckable(true);
-    m_soundCardBtn->setChecked(true); // Sound card selected by default (source=0)
-    m_soundCardBtn->setCursor(Qt::PointingHandCursor);
-
-    // LINE IN JACK button - selectable (two lines)
-    m_lineInJackBtn = new QPushButton("LINE IN\nJACK", this);
-    m_lineInJackBtn->setFixedSize(K4Styles::Dimensions::PopupButtonWidth, K4Styles::Dimensions::ButtonHeightMedium);
-    m_lineInJackBtn->setCheckable(true);
-    m_lineInJackBtn->setChecked(false);
-    m_lineInJackBtn->setCursor(Qt::PointingHandCursor);
+    // VOX toggle button
+    m_voxBtn = new QPushButton("VOX\nOFF", this);
+    m_voxBtn->setFixedSize(K4Styles::Dimensions::PopupButtonWidth, K4Styles::Dimensions::ButtonHeightMedium);
+    m_voxBtn->setCursor(Qt::PointingHandCursor);
+    m_voxBtn->setStyleSheet(K4Styles::popupButtonNormal());
 
     // Value display label
-    m_valueLabel = new QLabel(QString::number(m_soundCardLevel), this);
+    m_valueLabel = new QLabel(QString::number(m_value), this);
     m_valueLabel->setFixedSize(K4Styles::Dimensions::NavButtonWidth, K4Styles::Dimensions::ButtonHeightMedium);
     m_valueLabel->setAlignment(Qt::AlignCenter);
     m_valueLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: 600;")
@@ -89,44 +83,24 @@ void LineInPopupWidget::setupUi() {
     m_incrementBtn->setStyleSheet(K4Styles::menuBarButtonSmall());
 
     // Close button
-    m_closeBtn = new QPushButton("\u21A9", this); // ↩
+    m_closeBtn = new QPushButton("\u21A9", this); // U+21A9 leftwards arrow with hook
     m_closeBtn->setFixedSize(K4Styles::Dimensions::NavButtonWidth, K4Styles::Dimensions::ButtonHeightMedium);
     m_closeBtn->setCursor(Qt::PointingHandCursor);
     m_closeBtn->setStyleSheet(K4Styles::menuBarButton());
 
     // Add to layout
     layout->addWidget(m_titleLabel);
-    layout->addWidget(m_soundCardBtn);
-    layout->addWidget(m_lineInJackBtn);
+    layout->addWidget(m_voxBtn);
     layout->addWidget(m_valueLabel);
     layout->addWidget(m_decrementBtn);
     layout->addWidget(m_incrementBtn);
     layout->addWidget(m_closeBtn);
 
-    // Initial button styles
-    updateButtonStyles();
-
     // Connect signals
-    connect(m_soundCardBtn, &QPushButton::clicked, this, [this]() {
-        if (m_source != 0) {
-            m_source = 0;
-            m_soundCardBtn->setChecked(true);
-            m_lineInJackBtn->setChecked(false);
-            updateButtonStyles();
-            updateValueDisplay();
-            emit sourceChanged(m_source);
-        }
-    });
-
-    connect(m_lineInJackBtn, &QPushButton::clicked, this, [this]() {
-        if (m_source != 1) {
-            m_source = 1;
-            m_soundCardBtn->setChecked(false);
-            m_lineInJackBtn->setChecked(true);
-            updateButtonStyles();
-            updateValueDisplay();
-            emit sourceChanged(m_source);
-        }
+    connect(m_voxBtn, &QPushButton::clicked, this, [this]() {
+        m_voxEnabled = !m_voxEnabled;
+        updateVoxButton();
+        emit voxToggled(m_voxEnabled);
     });
 
     connect(m_decrementBtn, &QPushButton::clicked, this, [this]() {
@@ -141,74 +115,84 @@ void LineInPopupWidget::setupUi() {
         adjustValue(delta);
     });
 
-    connect(m_closeBtn, &QPushButton::clicked, this, &LineInPopupWidget::hidePopup);
+    connect(m_closeBtn, &QPushButton::clicked, this, &VoxPopupWidget::hidePopup);
+
+    updateTitle();
+    updateVoxButton();
+    updateValueDisplay();
 }
 
-void LineInPopupWidget::updateButtonStyles() {
-    // SOUND CARD button - selected style when checked
-    m_soundCardBtn->setStyleSheet(m_soundCardBtn->isChecked() ? K4Styles::popupButtonSelected()
-                                                              : K4Styles::popupButtonNormal());
-
-    // LINE IN JACK button - selected style when checked
-    m_lineInJackBtn->setStyleSheet(m_lineInJackBtn->isChecked() ? K4Styles::popupButtonSelected()
-                                                                : K4Styles::popupButtonNormal());
+void VoxPopupWidget::setPopupMode(PopupMode mode) {
+    if (mode != m_popupMode) {
+        m_popupMode = mode;
+        updateTitle();
+        // Resize to fit new layout
+        layout()->activate();
+        adjustSize();
+    }
 }
 
-void LineInPopupWidget::updateValueDisplay() {
-    // Show value for the currently selected source
-    int value = (m_source == 0) ? m_soundCardLevel : m_lineInJackLevel;
-    m_valueLabel->setText(QString::number(value));
+void VoxPopupWidget::setDataMode(bool isDataMode) {
+    if (isDataMode != m_isDataMode) {
+        m_isDataMode = isDataMode;
+        updateTitle();
+    }
 }
 
-void LineInPopupWidget::adjustValue(int delta) {
-    if (m_source == 0) {
-        // Adjusting Sound Card level
-        int newLevel = qBound(0, m_soundCardLevel + delta, MaxLevel);
-        if (newLevel != m_soundCardLevel) {
-            m_soundCardLevel = newLevel;
-            updateValueDisplay();
-            emit soundCardLevelChanged(newLevel);
-        }
+void VoxPopupWidget::updateTitle() {
+    QString title;
+    int width;
+
+    if (m_popupMode == VoxGain) {
+        title = m_isDataMode ? "VOX GAIN, DATA" : "VOX GAIN, VOICE";
+        width = TitleWidthVoxGain;
     } else {
-        // Adjusting LINE IN Jack level
-        int newLevel = qBound(0, m_lineInJackLevel + delta, MaxLevel);
-        if (newLevel != m_lineInJackLevel) {
-            m_lineInJackLevel = newLevel;
-            updateValueDisplay();
-            emit lineInJackLevelChanged(newLevel);
-        }
+        title = "ANTI-VOX";
+        width = TitleWidthAntiVox;
     }
+
+    m_titleLabel->setText(title);
+    m_titleLabel->setFixedWidth(width);
 }
 
-void LineInPopupWidget::setSoundCardLevel(int level) {
-    m_soundCardLevel = qBound(0, level, MaxLevel);
-    if (m_source == 0) {
+void VoxPopupWidget::updateVoxButton() {
+    m_voxBtn->setText(m_voxEnabled ? "VOX\nON" : "VOX\nOFF");
+    m_voxBtn->setStyleSheet(m_voxEnabled ? K4Styles::popupButtonSelected() : K4Styles::popupButtonNormal());
+}
+
+void VoxPopupWidget::updateValueDisplay() {
+    m_valueLabel->setText(QString::number(m_value));
+}
+
+void VoxPopupWidget::adjustValue(int delta) {
+    int newValue = qBound(0, m_value + delta, MaxLevel);
+    if (newValue != m_value) {
+        m_value = newValue;
         updateValueDisplay();
+        emit valueChanged(newValue);
     }
 }
 
-void LineInPopupWidget::setLineInJackLevel(int level) {
-    m_lineInJackLevel = qBound(0, level, MaxLevel);
-    if (m_source == 1) {
-        updateValueDisplay();
+void VoxPopupWidget::setValue(int value) {
+    m_value = qBound(0, value, MaxLevel);
+    updateValueDisplay();
+}
+
+void VoxPopupWidget::setVoxEnabled(bool enabled) {
+    if (enabled != m_voxEnabled) {
+        m_voxEnabled = enabled;
+        updateVoxButton();
     }
 }
 
-void LineInPopupWidget::setSource(int source) {
-    if (source != m_source && (source == 0 || source == 1)) {
-        m_source = source;
-        m_soundCardBtn->setChecked(source == 0);
-        m_lineInJackBtn->setChecked(source == 1);
-        updateButtonStyles();
-        updateValueDisplay();
-    }
-}
-
-void LineInPopupWidget::showAboveWidget(QWidget *referenceWidget) {
+void VoxPopupWidget::showAboveWidget(QWidget *referenceWidget) {
     if (!referenceWidget)
         return;
 
     m_referenceWidget = referenceWidget;
+
+    // Make sure layout is updated for current mode
+    updateTitle();
 
     layout()->activate();
     adjustSize();
@@ -236,16 +220,16 @@ void LineInPopupWidget::showAboveWidget(QWidget *referenceWidget) {
     update();
 }
 
-void LineInPopupWidget::hidePopup() {
+void VoxPopupWidget::hidePopup() {
     hide();
 }
 
-void LineInPopupWidget::hideEvent(QHideEvent *event) {
+void VoxPopupWidget::hideEvent(QHideEvent *event) {
     QWidget::hideEvent(event);
     emit closed();
 }
 
-void LineInPopupWidget::keyPressEvent(QKeyEvent *event) {
+void VoxPopupWidget::keyPressEvent(QKeyEvent *event) {
     if (event->key() == Qt::Key_Escape) {
         hidePopup();
     } else {
@@ -253,13 +237,13 @@ void LineInPopupWidget::keyPressEvent(QKeyEvent *event) {
     }
 }
 
-void LineInPopupWidget::wheelEvent(QWheelEvent *event) {
+void VoxPopupWidget::wheelEvent(QWheelEvent *event) {
     int delta = (event->angleDelta().y() > 0) ? 1 : -1;
     adjustValue(delta);
     event->accept();
 }
 
-void LineInPopupWidget::paintEvent(QPaintEvent *event) {
+void VoxPopupWidget::paintEvent(QPaintEvent *event) {
     Q_UNUSED(event)
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
@@ -292,6 +276,6 @@ void LineInPopupWidget::paintEvent(QPaintEvent *event) {
     };
 
     drawDelimiter(m_titleLabel);
-    drawDelimiter(m_lineInJackBtn);
+    drawDelimiter(m_voxBtn);
     drawDelimiter(m_incrementBtn);
 }

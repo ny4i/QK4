@@ -43,7 +43,7 @@ void FeatureMenuBar::setupUi() {
                                         "  border: %6px solid %7;"
                                         "  border-radius: %8px;"
                                         "  font-size: %9px;"
-                                        "  font-weight: bold;"
+                                        "  font-weight: 600;"
                                         "}")
                                     .arg(K4Styles::Colors::GradientTop)
                                     .arg(K4Styles::Colors::GradientMid1)
@@ -53,7 +53,7 @@ void FeatureMenuBar::setupUi() {
                                     .arg(K4Styles::Dimensions::BorderWidth)
                                     .arg(K4Styles::Colors::BorderNormal)
                                     .arg(K4Styles::Dimensions::BorderRadius)
-                                    .arg(K4Styles::Dimensions::FontSizePopup));
+                                    .arg(K4Styles::Dimensions::PopupTitleSize));
 
     // OFF/ON toggle button
     m_toggleBtn = new QPushButton("OFF", this);
@@ -73,9 +73,9 @@ void FeatureMenuBar::setupUi() {
 
     // Value label (center, bold)
     m_valueLabel = new QLabel("0", this);
-    m_valueLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+    m_valueLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: 600;")
                                     .arg(K4Styles::Colors::TextWhite)
-                                    .arg(K4Styles::Dimensions::FontSizePopup));
+                                    .arg(K4Styles::Dimensions::PopupValueSize));
     m_valueLabel->setAlignment(Qt::AlignCenter);
     m_valueLabel->setMinimumWidth(80);
 
