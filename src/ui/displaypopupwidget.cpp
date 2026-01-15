@@ -859,45 +859,57 @@ void DisplayPopupWidget::onMenuItemClicked(MenuItem item) {
     // Note: AveragePeak only shows control page (first switch) - no CAT command on click
     // The +/- buttons in the control page handle averaging changes via averagingIncrement/DecrementRequested signals
     case FixedFreeze: {
-        // Cycle through 6 fixed tune modes: SLIDE1 → SLIDE2 → FIXED1 → FIXED2 → STATIC → TRACK → SLIDE1
-        // Internal state: 0=TRACK, 1=SLIDE1, 2=SLIDE2, 3=FIXED1, 4=FIXED2, 5=STATIC
-        // Cycle order: 1 → 2 → 3 → 4 → 5 → 0 → 1
-        int newMode = (m_fixedTuneMode % 6) + 1;
-        if (newMode > 5)
+        // Cycle: STATIC(5) → SLIDE2(2) → TRACK(0) → FIXED1(3) → FIXED2(4) → SLIDE1(1) → repeat
+        int newMode;
+        switch (m_fixedTuneMode) {
+        case 5:
+            newMode = 2;
+            break; // STATIC → SLIDE2
+        case 2:
             newMode = 0;
-        if (newMode == 6)
-            newMode = 0;
-
-        // Map internal state to FXT/FXA commands
-        if (newMode == 0) {
-            // TRACK: FXT=0
-            emit catCommandRequested("#FXT0;");
-        } else {
-            // Fixed modes: FXT=1, then set FXA
-            emit catCommandRequested("#FXT1;");
-            int fxa;
-            switch (newMode) {
-            case 1:
-                fxa = 0;
-                break; // SLIDE1: FXA=0
-            case 2:
-                fxa = 4;
-                break; // SLIDE2: FXA=4
-            case 3:
-                fxa = 1;
-                break; // FIXED1: FXA=1
-            case 4:
-                fxa = 2;
-                break; // FIXED2: FXA=2
-            case 5:
-                fxa = 3;
-                break; // STATIC: FXA=3
-            default:
-                fxa = 0;
-                break;
-            }
-            emit catCommandRequested(QString("#FXA%1;").arg(fxa));
+            break; // SLIDE2 → TRACK
+        case 0:
+            newMode = 3;
+            break; // TRACK → FIXED1
+        case 3:
+            newMode = 4;
+            break; // FIXED1 → FIXED2
+        case 4:
+            newMode = 1;
+            break; // FIXED2 → SLIDE1
+        case 1:
+            newMode = 5;
+            break; // SLIDE1 → STATIC
+        default:
+            newMode = 5;
+            break; // Start at STATIC
         }
+
+        // Send optimized CAT commands
+        switch (newMode) {
+        case 5:
+            emit catCommandRequested("#FXA3;");
+            break; // STATIC
+        case 2:
+            emit catCommandRequested("#FXA4;");
+            break; // SLIDE2
+        case 0:
+            emit catCommandRequested("#FXA0;#FXT0;");
+            break; // TRACK
+        case 3:
+            emit catCommandRequested("#FXT1;");
+            break; // FIXED1
+        case 4:
+            emit catCommandRequested("#FXA1;");
+            break; // FIXED2
+        case 1:
+            emit catCommandRequested("#FXA2;");
+            break; // SLIDE1
+        }
+
+        // Optimistic update (K4 doesn't echo #FXT/#FXA commands)
+        m_fixedTuneMode = newMode;
+        updateMenuButtonLabels();
         break;
     }
     case CursAB:
