@@ -171,7 +171,7 @@ void TxMeterWidget::decayValues() {
     auto decayPeak = [&](double &peak, double display, int &holdCounter) {
         if (peak > display) {
             if (holdCounter > 0) {
-                holdCounter--;  // Wait during hold period
+                holdCounter--; // Wait during hold period
             } else {
                 peak -= PeakDecayRate;
                 if (peak < display)
