@@ -35,7 +35,8 @@ float sampleLanczos3(float u) {
     float texelSize = 1.0 / textureWidth;
 
     // Bins are centered in texture
-    float binOffset = (textureWidth - binCount) / 2.0;
+    // Use floor() to match C++ integer division for bin centering
+    float binOffset = floor((textureWidth - binCount) / 2.0);
 
     int center = int(srcPos);
     float frac = srcPos - float(center);

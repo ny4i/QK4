@@ -13,47 +13,18 @@ layout(std140, binding = 0) uniform buf {
     float padding;
 };
 
-// Lanczos kernel - sinc(x) * sinc(x/a) windowed
-float lanczos(float x) {
-    if (x == 0.0) return 1.0;
-    if (abs(x) >= 3.0) return 0.0;
-    float px = 3.14159265 * x;
-    return (sin(px) / px) * (sin(px / 3.0) / (px / 3.0));
-}
-
-// Sample waterfall texture with Lanczos-3 interpolation
-// Raw bins are centered in texture, this function handles the mapping
-float sampleLanczos3(vec2 uv) {
-    // Map display X [0,1] to bin index [0, binCount-1]
-    float srcPos = uv.x * (binCount - 1.0);
+void main() {
+    // Map display X [0,1] to bin index, then to texture coordinate
+    // This gives crisp, non-interpolated waterfall showing actual bin data
+    float binIndex = fragTexCoord.x * binCount;
     float texelSize = 1.0 / textureWidth;
 
-    // Bins are centered in texture
-    float binOffset = (textureWidth - binCount) / 2.0;
+    // Bins are centered in texture - use floor() to match C++ integer division
+    float binOffset = floor((textureWidth - binCount) / 2.0);
 
-    int center = int(srcPos);
-    float frac = srcPos - float(center);
+    // Nearest-neighbor: truncate to get bin, add 0.5 to sample center of texel
+    float texU = (binOffset + floor(binIndex) + 0.5) * texelSize;
 
-    float sum = 0.0;
-    float weightSum = 0.0;
-
-    // 6-tap Lanczos kernel (a=3)
-    for (int i = -2; i <= 3; i++) {
-        float weight = lanczos(float(i) - frac);
-        int idx = center + i;
-        if (idx >= 0 && idx < int(binCount)) {
-            // Map bin index to texture coordinate
-            float texU = (binOffset + float(idx) + 0.5) * texelSize;
-            sum += texture(waterfallTex, vec2(texU, uv.y)).r * weight;
-            weightSum += weight;
-        }
-    }
-
-    return (weightSum > 0.0) ? (sum / weightSum) : 0.0;
-}
-
-void main() {
-    // Use Lanczos interpolation for high-quality waterfall display
-    float dbValue = sampleLanczos3(fragTexCoord);
+    float dbValue = texture(waterfallTex, vec2(texU, fragTexCoord.y)).r;
     outColor = texture(colorLutTex, vec2(dbValue, 0.5));
 }
