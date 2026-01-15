@@ -34,16 +34,9 @@ protected:
         QPainter painter(this);
         painter.setRenderHint(QPainter::Antialiasing);
 
-        QFont scaleFont;
+        QFont scaleFont("JetBrains Mono");
         scaleFont.setStyleHint(QFont::Monospace);
         scaleFont.setPointSize(K4Styles::Dimensions::FontSizeSmall);
-#ifdef Q_OS_MACOS
-        scaleFont.setFamily("Menlo");
-#elif defined(Q_OS_WIN)
-        scaleFont.setFamily("Consolas");
-#else
-        scaleFont.setFamily("DejaVu Sans Mono");
-#endif
         painter.setFont(scaleFont);
         painter.setPen(Qt::white);
 
@@ -110,6 +103,138 @@ private:
     bool m_useSUnits = false;
 };
 
+// Transparent overlay widget for frequency scale labels at spectrum/waterfall boundary
+class FrequencyScaleOverlay : public QWidget {
+public:
+    FrequencyScaleOverlay(QWidget *parent = nullptr) : QWidget(parent) {
+        setAttribute(Qt::WA_TransparentForMouseEvents);
+        setAttribute(Qt::WA_TranslucentBackground);
+    }
+
+    void setFrequencyRange(qint64 centerFreq, int spanHz, int cwPitch, const QString &mode) {
+        m_centerFreq = centerFreq;
+        m_spanHz = spanHz;
+        m_cwPitch = cwPitch;
+        m_mode = mode;
+        update();
+    }
+
+protected:
+    void paintEvent(QPaintEvent *) override {
+        if (m_spanHz <= 0)
+            return;
+
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::Antialiasing);
+        painter.setRenderHint(QPainter::TextAntialiasing);
+
+        QFont scaleFont("JetBrains Mono");
+        scaleFont.setStyleHint(QFont::Monospace);
+        scaleFont.setPointSize(K4Styles::Dimensions::FontSizeSmall);
+        painter.setFont(scaleFont);
+        painter.setPen(Qt::white);
+
+        QFontMetrics fm(scaleFont);
+        const int textHeight = fm.height();
+        const int w = width();
+        const int h = height();
+
+        // Calculate effective center frequency (CW mode applies pitch offset)
+        qint64 effectiveCenter = m_centerFreq;
+        if (m_mode == "CW") {
+            effectiveCenter = m_centerFreq + m_cwPitch;
+        } else if (m_mode == "CW-R") {
+            effectiveCenter = m_centerFreq - m_cwPitch;
+        }
+
+        qint64 startFreq = effectiveCenter - m_spanHz / 2;
+        qint64 endFreq = effectiveCenter + m_spanHz / 2;
+
+        // Get appropriate interval for this span (targets ~20-30 labels)
+        int interval = calculateLabelInterval(m_spanHz);
+
+        // Find first label frequency (round up to next interval boundary)
+        qint64 firstLabel = (startFreq / interval) * interval;
+        if (firstLabel < startFreq)
+            firstLabel += interval;
+
+        // Measure sample label width for spacing check
+        QString sampleLabel = formatFrequency(firstLabel);
+        int labelWidth = fm.horizontalAdvance(sampleLabel);
+        int minSpacing = labelWidth + 12; // Minimum gap between labels
+
+        // Draw labels at each interval
+        int lastDrawnX = -1000; // Track last drawn position for overlap prevention
+        for (qint64 freq = firstLabel; freq <= endFreq; freq += interval) {
+            // Convert frequency to X pixel position
+            float normalized = static_cast<float>(freq - startFreq) / static_cast<float>(m_spanHz);
+            int x = static_cast<int>(normalized * w);
+
+            QString label = formatFrequency(freq);
+            int textWidth = fm.horizontalAdvance(label);
+
+            // Center text horizontally on the frequency position
+            int textX = x - textWidth / 2;
+
+            // Skip if too close to previous label or clipped at edges
+            if (textX < 2 || textX + textWidth > w - 2)
+                continue;
+            if (textX < lastDrawnX + minSpacing)
+                continue;
+
+            // Draw text centered vertically in overlay
+            int textY = (h + textHeight) / 2 - 2;
+            painter.drawText(textX, textY, label);
+            lastDrawnX = textX + textWidth;
+        }
+    }
+
+private:
+    // Calculate frequency intervals to get ~20-30 labels across the span
+    int calculateLabelInterval(int spanHz) const {
+        // Target approximately 25 labels
+        int targetLabels = 25;
+        int rawInterval = spanHz / targetLabels;
+
+        // Round to "nice" intervals (multiples that look clean on display)
+        // Use intervals that result in clean MHz decimal values
+        static const int niceIntervals[] = {
+            100,    // 0.0001 MHz - for very narrow spans
+            200,    // 0.0002 MHz
+            500,    // 0.0005 MHz
+            1000,   // 0.001 MHz (1 kHz)
+            2000,   // 0.002 MHz (2 kHz)
+            5000,   // 0.005 MHz (5 kHz)
+            6000,   // 0.006 MHz (6 kHz) - common on K4
+            10000,  // 0.010 MHz (10 kHz)
+            12000,  // 0.012 MHz (12 kHz)
+            20000,  // 0.020 MHz (20 kHz)
+            25000,  // 0.025 MHz (25 kHz)
+            50000,  // 0.050 MHz (50 kHz)
+            100000, // 0.100 MHz (100 kHz)
+        };
+
+        // Find the smallest nice interval that gives <= targetLabels
+        for (int nice : niceIntervals) {
+            if (spanHz / nice <= targetLabels + 5) {
+                return nice;
+            }
+        }
+        return 100000; // Default for very wide spans
+    }
+
+    // Format frequency as MHz string with 3 decimal places (e.g., "14.172")
+    QString formatFrequency(qint64 freqHz) const {
+        double freqMHz = freqHz / 1000000.0;
+        return QString::number(freqMHz, 'f', 3);
+    }
+
+    qint64 m_centerFreq = 0;
+    int m_spanHz = 10000;
+    int m_cwPitch = 500;
+    QString m_mode = "USB";
+};
+
 PanadapterRhiWidget::PanadapterRhiWidget(QWidget *parent) : QRhiWidget(parent) {
     setMinimumHeight(200);
     setMouseTracking(true);
@@ -152,6 +277,11 @@ PanadapterRhiWidget::PanadapterRhiWidget(QWidget *parent) : QRhiWidget(parent) {
     m_dbmScaleOverlay = new DbmScaleOverlay(this);
     m_dbmScaleOverlay->setDbRange(m_minDb, m_maxDb);
     m_dbmScaleOverlay->show();
+
+    // Create frequency scale overlay (child widget at spectrum/waterfall boundary)
+    m_freqScaleOverlay = new FrequencyScaleOverlay(this);
+    m_freqScaleOverlay->setFrequencyRange(m_centerFreq, m_spanHz, m_cwPitch, m_mode);
+    m_freqScaleOverlay->show();
 }
 
 PanadapterRhiWidget::~PanadapterRhiWidget() {
@@ -161,6 +291,7 @@ PanadapterRhiWidget::~PanadapterRhiWidget() {
 void PanadapterRhiWidget::resizeEvent(QResizeEvent *event) {
     QRhiWidget::resizeEvent(event);
     updateDbmScaleOverlay();
+    updateFreqScaleOverlay();
 }
 
 void PanadapterRhiWidget::updateDbmScaleOverlay() {
@@ -175,6 +306,24 @@ void PanadapterRhiWidget::updateDbmScaleOverlay() {
     m_dbmScaleOverlay->setGeometry(0, 0, 70, spectrumHeight);
     m_dbmScaleOverlay->setDbRange(m_minDb, m_maxDb);
     m_dbmScaleOverlay->raise(); // Ensure it's on top
+}
+
+void PanadapterRhiWidget::updateFreqScaleOverlay() {
+    if (!m_freqScaleOverlay)
+        return;
+
+    const int h = height();
+    const int w = width();
+    const int spectrumHeight = static_cast<int>(h * m_spectrumRatio);
+
+    // Position overlay centered on the boundary between spectrum and waterfall
+    // Overlay height: 16px, centered on spectrumHeight boundary line
+    const int overlayHeight = 16;
+    const int overlayY = spectrumHeight - overlayHeight / 2;
+
+    m_freqScaleOverlay->setGeometry(0, overlayY, w, overlayHeight);
+    m_freqScaleOverlay->setFrequencyRange(m_centerFreq, m_spanHz, m_cwPitch, m_mode);
+    m_freqScaleOverlay->raise(); // Ensure it renders on top
 }
 
 void PanadapterRhiWidget::initColorLUT() {
@@ -1214,6 +1363,7 @@ void PanadapterRhiWidget::updateSpectrum(const QByteArray &bins, qint64 centerFr
     }
 
     m_waterfallNeedsUpdate = true;
+    updateFreqScaleOverlay(); // Update frequency labels when center freq changes
     update();
 }
 
@@ -1350,7 +1500,8 @@ void PanadapterRhiWidget::setDbRange(float minDb, float maxDb) {
 
 void PanadapterRhiWidget::setSpectrumRatio(float ratio) {
     m_spectrumRatio = qBound(0.1f, ratio, 0.9f);
-    updateDbmScaleOverlay(); // Resize dBm scale to match new spectrum area
+    updateDbmScaleOverlay();  // Resize dBm scale to match new spectrum area
+    updateFreqScaleOverlay(); // Reposition frequency labels at boundary
     update();
 }
 
@@ -1359,7 +1510,8 @@ void PanadapterRhiWidget::setWaterfallHeight(int percent) {
     // Spectrum ratio = (100 - waterfallHeight) / 100
     float ratio = (100.0f - qBound(10, percent, 90)) / 100.0f;
     m_spectrumRatio = qBound(0.1f, ratio, 0.9f);
-    updateDbmScaleOverlay(); // Resize dBm scale to match new spectrum area
+    updateDbmScaleOverlay();  // Resize dBm scale to match new spectrum area
+    updateFreqScaleOverlay(); // Reposition frequency labels at boundary
     update();
 }
 
@@ -1379,6 +1531,7 @@ void PanadapterRhiWidget::setFilterBandwidth(int bwHz) {
 
 void PanadapterRhiWidget::setMode(const QString &mode) {
     m_mode = mode;
+    updateFreqScaleOverlay();
     update();
 }
 
@@ -1392,6 +1545,7 @@ void PanadapterRhiWidget::setIfShift(int shift) {
 void PanadapterRhiWidget::setCwPitch(int pitchHz) {
     if (m_cwPitch != pitchHz) {
         m_cwPitch = pitchHz;
+        updateFreqScaleOverlay();
         update();
     }
 }
@@ -1448,6 +1602,7 @@ void PanadapterRhiWidget::updateDbRangeFromRefAndScale() {
 void PanadapterRhiWidget::setSpan(int spanHz) {
     if (m_spanHz != spanHz && spanHz > 0) {
         m_spanHz = spanHz;
+        updateFreqScaleOverlay();
         update();
     }
 }

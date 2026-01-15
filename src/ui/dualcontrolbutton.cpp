@@ -6,21 +6,9 @@
 #include <QWheelEvent>
 #include <QLinearGradient>
 
-// Colors matching K4 design
-namespace DualButtonColors {
-const QColor Background("#2a2a2a");
-const QColor BackgroundHover("#3a3a3a");
-const QColor Border("#555555");
-const QColor BorderActive("#777777");
-const QColor TextWhite("#FFFFFF");
-const QColor TextYellow("#FFB000"); // Amber/yellow for alternate
-const QColor BarOrange("#FF8C00");  // Global context
-const QColor BarCyan("#00BFFF");    // Main RX context
-const QColor BarGreen("#00FF00");   // Sub RX context
-} // namespace DualButtonColors
-
 DualControlButton::DualControlButton(QWidget *parent) : QWidget(parent) {
-    setFixedSize(90, 48); // Slightly taller for better text fit
+    setFixedSize(K4Styles::Dimensions::MenuBarButtonWidth,
+                 K4Styles::Dimensions::ButtonHeightLarge);
     setCursor(Qt::PointingHandCursor);
     setMouseTracking(true);
 }
@@ -72,13 +60,13 @@ void DualControlButton::swapFunctions() {
 QColor DualControlButton::contextColor() const {
     switch (m_context) {
     case Global:
-        return DualButtonColors::BarOrange;
+        return QColor(K4Styles::Colors::AccentAmber);
     case MainRx:
-        return DualButtonColors::BarCyan;
+        return QColor(K4Styles::Colors::VfoACyan);
     case SubRx:
-        return DualButtonColors::BarGreen;
+        return QColor(K4Styles::Colors::VfoBGreen);
     }
-    return DualButtonColors::BarCyan;
+    return QColor(K4Styles::Colors::VfoACyan);
 }
 
 void DualControlButton::paintEvent(QPaintEvent *event) {
@@ -111,7 +99,8 @@ void DualControlButton::paintEvent(QPaintEvent *event) {
     painter.fillPath(buttonPath, bgGradient);
 
     // Border (slightly brighter when indicator is shown)
-    QColor borderColor = m_showIndicator ? DualButtonColors::BorderActive : DualButtonColors::Border;
+    QColor borderColor = m_showIndicator ? QColor(K4Styles::Colors::BorderHover)
+                                         : QColor(K4Styles::Colors::BorderNormal);
     painter.setPen(QPen(borderColor, 2));
     painter.drawPath(buttonPath);
 
@@ -140,7 +129,7 @@ void DualControlButton::paintEvent(QPaintEvent *event) {
 
     // Primary label (left side, white) - e.g., "WPM"
     painter.setFont(labelFont);
-    painter.setPen(DualButtonColors::TextWhite);
+    painter.setPen(QColor(K4Styles::Colors::TextWhite));
     painter.drawText(textLeft, 18, m_primaryLabel);
 
     // Primary value (right side, white) - e.g., "15"
@@ -151,7 +140,7 @@ void DualControlButton::paintEvent(QPaintEvent *event) {
 
     // Alternate label and value (bottom, yellow/amber) - e.g., "PTCH 600"
     painter.setFont(altFont);
-    painter.setPen(DualButtonColors::TextYellow);
+    painter.setPen(QColor(K4Styles::Colors::AccentAmber));
 
     QString altText = m_alternateLabel;
     if (!m_alternateValue.isEmpty()) {

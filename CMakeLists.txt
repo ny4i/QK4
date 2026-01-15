@@ -99,6 +99,7 @@ set(SOURCES
     src/ui/rxeqpopupwidget.cpp
     src/ui/antennacfgpopup.cpp
     src/ui/lineoutpopup.cpp
+    src/ui/lineinpopup.cpp
     src/ui/textdecodewindow.cpp
     src/ui/macrodialog.cpp
     src/ui/notificationwidget.cpp
@@ -147,6 +148,7 @@ set(HEADERS
     src/ui/rxeqpopupwidget.h
     src/ui/antennacfgpopup.h
     src/ui/lineoutpopup.h
+    src/ui/lineinpopup.h
     src/ui/textdecodewindow.h
     src/ui/macrodialog.h
     src/ui/notificationwidget.h

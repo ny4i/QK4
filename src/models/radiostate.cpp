@@ -599,6 +599,33 @@ void RadioState::parseCATCommand(const QString &command) {
                 emit lineOutChanged();
         }
     }
+    // LI - Line In levels and source
+    // Format: LIuuullls where uuu=soundcard(000-250), lll=linein(000-250), s=source(0/1)
+    else if (cmd.startsWith("LI") && cmd.length() >= 9) {
+        bool okS, okL;
+        int soundCard = cmd.mid(2, 3).toInt(&okS);
+        int lineIn = cmd.mid(5, 3).toInt(&okL);
+        int source = cmd.mid(8, 1).toInt();
+
+        if (okS && okL && soundCard >= 0 && soundCard <= 250 && lineIn >= 0 && lineIn <= 250 &&
+            (source == 0 || source == 1)) {
+            bool changed = false;
+            if (soundCard != m_lineInSoundCard) {
+                m_lineInSoundCard = soundCard;
+                changed = true;
+            }
+            if (lineIn != m_lineInJack) {
+                m_lineInJack = lineIn;
+                changed = true;
+            }
+            if (source != m_lineInSource) {
+                m_lineInSource = source;
+                changed = true;
+            }
+            if (changed)
+                emit lineInChanged();
+        }
+    }
     // Text Decode Sub RX (TD$) - must check before TD
     else if (cmd.startsWith("TD$") && cmd.length() >= 6) {
         int mode = cmd.mid(3, 1).toInt();
@@ -1352,6 +1379,44 @@ void RadioState::parseCATCommand(const QString &command) {
             }
         }
     }
+    // TX Graphic Equalizer (TE) - TE+00+00+00+00+00+00+00+00
+    // 8 bands, each is +XX or -XX (signed, -16 to +16 dB)
+    // Bands: 100, 200, 400, 800, 1200, 1600, 2400, 3200 Hz
+    else if (cmd.startsWith("TE") && cmd.length() >= 26) {
+        // Format: TE+00+00+00+00+00+00+00+00 (2 + 8*3 = 26 chars minimum)
+        QString data = cmd.mid(2); // Skip "TE"
+        bool changed = false;
+        int newBands[8];
+        bool parseOk = true;
+
+        // Parse each 3-character band value (+XX or -XX)
+        for (int i = 0; i < 8 && parseOk; i++) {
+            if (data.length() >= (i + 1) * 3) {
+                QString bandStr = data.mid(i * 3, 3); // +00, -05, +16, etc.
+                bool ok;
+                int value = bandStr.toInt(&ok);
+                if (ok && value >= -16 && value <= 16) {
+                    newBands[i] = value;
+                } else {
+                    parseOk = false;
+                }
+            } else {
+                parseOk = false;
+            }
+        }
+
+        if (parseOk) {
+            for (int i = 0; i < 8; i++) {
+                if (m_txEqBands[i] != newBands[i]) {
+                    m_txEqBands[i] = newBands[i];
+                    changed = true;
+                }
+            }
+            if (changed) {
+                emit txEqChanged();
+            }
+        }
+    }
 
     emit stateUpdated();
 }
@@ -1710,6 +1775,31 @@ void RadioState::setRxEqBands(const QVector<int> &bands) {
     }
 }
 
+void RadioState::setTxEqBand(int index, int dB) {
+    if (index < 0 || index >= 8)
+        return;
+    dB = qBound(-16, dB, 16);
+    if (m_txEqBands[index] != dB) {
+        m_txEqBands[index] = dB;
+        emit txEqBandChanged(index, dB);
+        emit txEqChanged();
+    }
+}
+
+void RadioState::setTxEqBands(const QVector<int> &bands) {
+    bool changed = false;
+    for (int i = 0; i < qMin(bands.size(), 8); i++) {
+        int dB = qBound(-16, bands[i], 16);
+        if (m_txEqBands[i] != dB) {
+            m_txEqBands[i] = dB;
+            changed = true;
+        }
+    }
+    if (changed) {
+        emit txEqChanged();
+    }
+}
+
 void RadioState::setMainRxAntConfig(bool displayAll, const QVector<bool> &mask) {
     bool changed = false;
     if (displayAll != m_mainRxDisplayAll) {
@@ -1781,6 +1871,30 @@ void RadioState::setLineOutRightEqualsLeft(bool enabled) {
     if (enabled != m_lineOutRightEqualsLeft) {
         m_lineOutRightEqualsLeft = enabled;
         emit lineOutChanged();
+    }
+}
+
+// Line In optimistic setters
+void RadioState::setLineInSoundCard(int level) {
+    level = qBound(0, level, 250);
+    if (level != m_lineInSoundCard) {
+        m_lineInSoundCard = level;
+        emit lineInChanged();
+    }
+}
+
+void RadioState::setLineInJack(int level) {
+    level = qBound(0, level, 250);
+    if (level != m_lineInJack) {
+        m_lineInJack = level;
+        emit lineInChanged();
+    }
+}
+
+void RadioState::setLineInSource(int source) {
+    if ((source == 0 || source == 1) && source != m_lineInSource) {
+        m_lineInSource = source;
+        emit lineInChanged();
     }
 }
 

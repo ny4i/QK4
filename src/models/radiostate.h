@@ -391,6 +391,15 @@ public:
     void setRxEqBand(int index, int dB);
     void setRxEqBands(const QVector<int> &bands);
 
+    // TX Graphic Equalizer (TE command) - 8 bands, -16 to +16 dB
+    // Bands: 100, 200, 400, 800, 1200, 1600, 2400, 3200 Hz
+    int txEqBand(int index) const { return (index >= 0 && index < 8) ? m_txEqBands[index] : 0; }
+    QVector<int> txEqBands() const { return QVector<int>(m_txEqBands, m_txEqBands + 8); }
+
+    // Optimistic setter for TX EQ bands (radio doesn't echo)
+    void setTxEqBand(int index, int dB);
+    void setTxEqBands(const QVector<int> &bands);
+
     // Antenna Configuration Masks (ACM/ACS/ACT commands)
     // ACM - Main RX antenna access mask
     bool mainRxDisplayAll() const { return m_mainRxDisplayAll; }
@@ -421,6 +430,16 @@ public:
     void setLineOutLeft(int level);
     void setLineOutRight(int level);
     void setLineOutRightEqualsLeft(bool enabled);
+
+    // Line In levels and source (LI command)
+    int lineInSoundCard() const { return m_lineInSoundCard; }
+    int lineInJack() const { return m_lineInJack; }
+    int lineInSource() const { return m_lineInSource; } // 0=SoundCard, 1=LineInJack
+
+    // Optimistic setters for Line In
+    void setLineInSoundCard(int level);
+    void setLineInJack(int level);
+    void setLineInSource(int source);
 
     // Text Decode (TD$ command) - Main RX
     int textDecodeMode() const { return m_textDecodeMode; }           // 0=off, 2-4=CW WPM ranges, 1=DATA/SSB on
@@ -542,6 +561,10 @@ signals:
     void rxEqChanged();                      // Any EQ band value changed
     void rxEqBandChanged(int index, int dB); // Specific band changed
 
+    // TX Graphic Equalizer
+    void txEqChanged();                      // Any EQ band value changed
+    void txEqBandChanged(int index, int dB); // Specific band changed
+
     // Antenna Configuration Masks
     void mainRxAntCfgChanged(); // ACM command received/changed
     void subRxAntCfgChanged();  // ACS command received/changed
@@ -549,6 +572,9 @@ signals:
 
     // Line Out
     void lineOutChanged(); // LO command - left/right level or mode changed
+
+    // Line In
+    void lineInChanged(); // LI command - sound card/line in jack level or source changed
 
     // Text Decode
     void textDecodeChanged();                                   // TD$ command - Main RX settings changed
@@ -751,6 +777,10 @@ private:
     // Range: -16 to +16 dB, init to 0 (flat)
     int m_rxEqBands[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
+    // TX Graphic Equalizer (8 bands: 100, 200, 400, 800, 1200, 1600, 2400, 3200 Hz)
+    // Range: -16 to +16 dB, init to 0 (flat)
+    int m_txEqBands[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+
     // Antenna Configuration Masks (ACM/ACS/ACT commands)
     // ACM - Main RX: z=displayAll, a-g = ANT1, ANT2, ANT3, RX1, RX2, =TX ANT, =OPP TX ANT
     bool m_mainRxDisplayAll = true;
@@ -768,6 +798,11 @@ private:
     int m_lineOutLeft = -1;  // 0-40, init to -1 to ensure first emit
     int m_lineOutRight = -1; // 0-40
     bool m_lineOutRightEqualsLeft = false;
+
+    // Line In levels and source (LI command)
+    int m_lineInSoundCard = -1; // 0-250, init to -1 to ensure first emit
+    int m_lineInJack = -1;      // 0-250
+    int m_lineInSource = -1;    // 0=SoundCard, 1=LineInJack
 
     // Text Decode (TD$ command) - Main RX
     int m_textDecodeMode = -1;      // 0=off, 2=8-45WPM, 3=8-60WPM, 4=8-90WPM, 1=DATA/SSB on

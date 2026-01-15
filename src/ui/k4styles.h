@@ -179,6 +179,10 @@ constexpr const char *BorderHover = "#808080";
 constexpr const char *BorderPressed = "#909090";
 constexpr const char *BorderSelected = "#AAAAAA";
 constexpr const char *BorderLight = "#909090";
+
+// Dialog-specific colors
+constexpr const char *DialogBorder = "#333333";  // Dialog borders and separators
+constexpr const char *ErrorRed = "#FF6666";      // Error/not connected status indicators
 } // namespace Colors
 
 namespace Dimensions {
@@ -220,13 +224,15 @@ constexpr int PopupContentMargin = 12;
 // =============================================================================
 constexpr int SeparatorHeight = 1; // Horizontal/vertical separator lines
 constexpr int MenuItemHeight = 40; // Menu overlay items, frequency labels
+constexpr int MenuBarHeight = 52;  // Bottom menu bar container height
 
 // =============================================================================
 // Common UI Widths
 // =============================================================================
-constexpr int FormLabelWidth = 80; // Form field labels in dialogs
-constexpr int VfoSquareSize = 45;  // VFO A/B indicator squares and mode labels
-constexpr int NavButtonWidth = 54; // Navigation buttons in overlays
+constexpr int FormLabelWidth = 80;   // Form field labels in dialogs
+constexpr int VfoSquareSize = 45;    // VFO A/B indicator squares and mode labels
+constexpr int NavButtonWidth = 54;   // Navigation buttons in overlays
+constexpr int SidePanelWidth = 105;  // Left and right side panels
 
 // =============================================================================
 // Font Sizes (in points) - use with QFont::setPointSize()
@@ -250,6 +256,19 @@ constexpr int SliderHandleMargin = -5;    // Vertical margin for handle position
 constexpr int SliderBorderRadius = 3;     // Groove border radius
 constexpr int SliderHandleRadius = 8;     // Handle border radius (half of width)
 constexpr int SliderValueLabelWidth = 40; // Width for percentage value labels
+
+// =============================================================================
+// Dialog Dimensions
+// =============================================================================
+constexpr int DialogMargin = 20;           // Dialog content margins
+constexpr int TabListWidth = 150;          // Options dialog tab list width
+constexpr int InputFieldWidthSmall = 100;  // Port number, small inputs
+constexpr int InputFieldWidthMedium = 120; // Version labels, medium fields
+constexpr int IndicatorSize = 40;          // Dit/dah paddle indicators
+constexpr int CheckboxSize = 18;           // Checkbox indicator dimensions
+constexpr int PaddingSmall = 6;            // Small padding (inputs)
+constexpr int PaddingMedium = 10;          // Medium padding (buttons)
+constexpr int PaddingLarge = 15;           // Large padding (list items)
 } // namespace Dimensions
 
 // =============================================================================

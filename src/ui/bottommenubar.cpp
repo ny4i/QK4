@@ -7,11 +7,11 @@ BottomMenuBar::BottomMenuBar(QWidget *parent) : QWidget(parent) {
 }
 
 void BottomMenuBar::setupUi() {
-    setFixedHeight(52);
+    setFixedHeight(K4Styles::Dimensions::MenuBarHeight);
 
     auto *layout = new QHBoxLayout(this);
     // Left margin matches side panel width to align buttons with waterfall above
-    layout->setContentsMargins(105, 6, 10, 6);
+    layout->setContentsMargins(K4Styles::Dimensions::SidePanelWidth, 6, 10, 6);
     layout->setSpacing(10); // Equal spacing between all buttons
 
     // Add stretch before buttons to center them

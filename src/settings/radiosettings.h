@@ -112,6 +112,11 @@ public:
     void setRxEqPreset(int index, const EqPreset &preset); // Set preset 0-3
     void clearRxEqPreset(int index);                       // Clear preset 0-3
 
+    // TX EQ Presets (4 slots)
+    EqPreset txEqPreset(int index) const;                  // Get preset 0-3
+    void setTxEqPreset(int index, const EqPreset &preset); // Set preset 0-3
+    void clearTxEqPreset(int index);                       // Clear preset 0-3
+
 signals:
     void radiosChanged();
     void kpodEnabledChanged(bool enabled);
@@ -128,6 +133,7 @@ signals:
     void halikeyPortNameChanged(const QString &portName);
     void sidetoneVolumeChanged(int value);
     void rxEqPresetsChanged();
+    void txEqPresetsChanged();
 
 private:
     explicit RadioSettings(QObject *parent = nullptr);
@@ -158,6 +164,9 @@ private:
 
     // RX EQ Presets (4 slots)
     EqPreset m_rxEqPresets[4];
+
+    // TX EQ Presets (4 slots)
+    EqPreset m_txEqPresets[4];
 
     QSettings m_settings;
 };

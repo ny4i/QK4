@@ -30,6 +30,7 @@ class FnPopupWidget;
 class RxEqPopupWidget;
 class AntennaCfgPopupWidget;
 class LineOutPopupWidget;
+class LineInPopupWidget;
 class TextDecodeWindow;
 class MacroDialog;
 class FilterIndicatorWidget;
@@ -271,7 +272,9 @@ private:
     ButtonRowPopup *m_subRxPopup;
     ButtonRowPopup *m_txPopup;
     RxEqPopupWidget *m_rxEqPopup;
+    RxEqPopupWidget *m_txEqPopup;
     LineOutPopupWidget *m_lineOutPopup;
+    LineInPopupWidget *m_lineInPopup;
     TextDecodeWindow *m_textDecodeWindowMain;
     TextDecodeWindow *m_textDecodeWindowSub;
     AntennaCfgPopupWidget *m_mainRxAntCfgPopup;
@@ -306,6 +309,9 @@ private:
 
     // Debounce timer for RX EQ slider changes
     QTimer *m_rxEqDebounceTimer;
+
+    // Debounce timer for TX EQ slider changes
+    QTimer *m_txEqDebounceTimer;
 };
 
 #endif // MAINWINDOW_H

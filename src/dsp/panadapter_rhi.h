@@ -8,8 +8,9 @@
 #include <QVector>
 #include <memory>
 
-// Forward declaration for dBm scale overlay
+// Forward declarations for overlay widgets
 class DbmScaleOverlay;
+class FrequencyScaleOverlay;
 
 // Modern GPU-accelerated panadapter using Qt RHI
 // Supports Metal (macOS), DirectX (Windows), Vulkan (Linux)
@@ -85,6 +86,8 @@ protected:
 private:
     // Update dBm scale overlay position and values
     void updateDbmScaleOverlay();
+    // Update frequency scale overlay position and values
+    void updateFreqScaleOverlay();
     // Update dB range based on current ref level and scale
     void updateDbRangeFromRefAndScale();
     // Initialization
@@ -234,6 +237,8 @@ private:
 
     // dBm scale overlay (child widget for text rendering)
     DbmScaleOverlay *m_dbmScaleOverlay = nullptr;
+    // Frequency scale overlay (child widget for frequency labels at boundary)
+    FrequencyScaleOverlay *m_freqScaleOverlay = nullptr;
 };
 
 #endif // PANADAPTER_RHI_H

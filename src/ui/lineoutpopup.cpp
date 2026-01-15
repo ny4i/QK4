@@ -32,7 +32,8 @@ void LineOutPopupWidget::setupUi() {
 
     // Title label - "LINE OUT"
     m_titleLabel = new QLabel("LINE OUT", this);
-    m_titleLabel->setFixedSize(110, K4Styles::Dimensions::ButtonHeightMedium);
+    m_titleLabel->setFixedSize(K4Styles::Dimensions::InputFieldWidthMedium,
+                               K4Styles::Dimensions::ButtonHeightMedium);
     m_titleLabel->setAlignment(Qt::AlignCenter);
     m_titleLabel->setStyleSheet(QString("QLabel {"
                                         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
@@ -62,7 +63,8 @@ void LineOutPopupWidget::setupUi() {
 
     // Left value label
     m_leftValueLabel = new QLabel(QString::number(m_leftLevel), this);
-    m_leftValueLabel->setFixedSize(50, K4Styles::Dimensions::ButtonHeightMedium);
+    m_leftValueLabel->setFixedSize(K4Styles::Dimensions::NavButtonWidth,
+                                   K4Styles::Dimensions::ButtonHeightMedium);
     m_leftValueLabel->setAlignment(Qt::AlignCenter);
     m_leftValueLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
                                         .arg(K4Styles::Colors::TextWhite)
@@ -77,7 +79,8 @@ void LineOutPopupWidget::setupUi() {
 
     // Right value label
     m_rightValueLabel = new QLabel(QString::number(m_rightLevel), this);
-    m_rightValueLabel->setFixedSize(50, K4Styles::Dimensions::ButtonHeightMedium);
+    m_rightValueLabel->setFixedSize(K4Styles::Dimensions::NavButtonWidth,
+                                    K4Styles::Dimensions::ButtonHeightMedium);
     m_rightValueLabel->setAlignment(Qt::AlignCenter);
     m_rightValueLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
                                          .arg(K4Styles::Colors::TextWhite)
@@ -93,7 +96,8 @@ void LineOutPopupWidget::setupUi() {
 
     // Close button
     m_closeBtn = new QPushButton("\u21A9", this); // ↩
-    m_closeBtn->setFixedSize(50, K4Styles::Dimensions::ButtonHeightMedium);
+    m_closeBtn->setFixedSize(K4Styles::Dimensions::NavButtonWidth,
+                             K4Styles::Dimensions::ButtonHeightMedium);
     m_closeBtn->setCursor(Qt::PointingHandCursor);
     m_closeBtn->setStyleSheet(K4Styles::menuBarButton());
 

@@ -20,6 +20,7 @@
 #include "ui/k4styles.h"
 #include "ui/antennacfgpopup.h"
 #include "ui/lineoutpopup.h"
+#include "ui/lineinpopup.h"
 #include "ui/textdecodewindow.h"
 #include "models/menumodel.h"
 #include "dsp/panadapter_rhi.h"
@@ -225,7 +226,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_txPopup = new ButtonRowPopup(this);
     m_txPopup->setButtonLabel(0, "ANT", "CFG", false); // TX Antenna config
     m_txPopup->setButtonLabel(1, "TX", "EQ", false);   // TX Equalizer (future)
-    m_txPopup->setButtonLabel(2, "3", "");             // Placeholder
+    m_txPopup->setButtonLabel(2, "LINE", "IN", false);  // LINE IN control
     m_txPopup->setButtonLabel(3, "4", "");             // Placeholder
     m_txPopup->setButtonLabel(4, "5", "");             // Placeholder
     m_txPopup->setButtonLabel(5, "6", "");             // Placeholder
@@ -244,7 +245,19 @@ MainWindow::MainWindow(QWidget *parent)
                 m_txAntCfgPopup->showAboveWidget(m_txPopup);
             }
             break;
-        case 1: // TX EQ - future TX equalizer
+        case 1: // TX EQ - show TX graphic equalizer popup
+            if (m_txEqPopup && m_txPopup) {
+                m_txEqPopup->setAllBands(m_radioState->txEqBands());
+                m_txEqPopup->showAboveWidget(m_txPopup);
+            }
+            break;
+        case 2: // LINE IN - show line in control popup
+            if (m_lineInPopup && m_txPopup) {
+                m_lineInPopup->setSoundCardLevel(m_radioState->lineInSoundCard());
+                m_lineInPopup->setLineInJackLevel(m_radioState->lineInJack());
+                m_lineInPopup->setSource(m_radioState->lineInSource());
+                m_lineInPopup->showAboveWidget(m_txPopup);
+            }
             break;
         default:
             break;
@@ -342,6 +355,97 @@ MainWindow::MainWindow(QWidget *parent)
         m_rxEqPopup->updatePresetName(i, preset.name);
     }
 
+    // Create TX EQ popup (amber theme)
+    m_txEqPopup = new RxEqPopupWidget("TX GRAPHIC EQUALIZER", K4Styles::Colors::AccentAmber, this);
+    connect(m_txEqPopup, &RxEqPopupWidget::closed, this, [this]() {
+        // Close the TX button row popup when EQ popup closes
+    });
+
+    // Debounce timer for TX EQ - sends command 100ms after last slider change
+    m_txEqDebounceTimer = new QTimer(this);
+    m_txEqDebounceTimer->setSingleShot(true);
+    m_txEqDebounceTimer->setInterval(100);
+    connect(m_txEqDebounceTimer, &QTimer::timeout, this, [this]() {
+        // Build TE command with all 8 bands: TE+00+00+00+00+00+00+00+00;
+        QString cmd = "TE";
+        for (int i = 0; i < 8; i++) {
+            int value = m_radioState->txEqBand(i);
+            cmd += QString("%1%2").arg(value >= 0 ? '+' : '-').arg(qAbs(value), 2, 10, QChar('0'));
+        }
+        m_tcpClient->sendCAT(cmd);
+    });
+
+    connect(m_txEqPopup, &RxEqPopupWidget::bandValueChanged, this, [this](int bandIndex, int dB) {
+        // Update optimistic state immediately (UI stays responsive)
+        m_radioState->setTxEqBand(bandIndex, dB);
+        // Restart debounce timer - will send after 100ms of no changes
+        m_txEqDebounceTimer->start();
+    });
+    connect(m_txEqPopup, &RxEqPopupWidget::flatRequested, this, [this]() {
+        // Reset all bands to 0 and send CAT command
+        QVector<int> flat(8, 0);
+        m_radioState->setTxEqBands(flat);
+        m_tcpClient->sendCAT("TE+00+00+00+00+00+00+00+00");
+    });
+
+    // TX EQ Preset load: get preset from RadioSettings, apply to sliders, send CAT
+    connect(m_txEqPopup, &RxEqPopupWidget::presetLoadRequested, this, [this](int index) {
+        EqPreset preset = RadioSettings::instance()->txEqPreset(index);
+        if (!preset.isEmpty() && preset.bands.size() == 8) {
+            m_txEqPopup->setAllBands(preset.bands);
+            m_radioState->setTxEqBands(preset.bands);
+
+            // Send CAT command
+            QString cmd = "TE";
+            for (int i = 0; i < 8; i++) {
+                int value = preset.bands[i];
+                cmd += QString("%1%2").arg(value >= 0 ? '+' : '-').arg(qAbs(value), 2, 10, QChar('0'));
+            }
+            m_tcpClient->sendCAT(cmd);
+        }
+    });
+
+    // TX EQ Preset save: show name dialog, save current EQ to preset
+    connect(m_txEqPopup, &RxEqPopupWidget::presetSaveRequested, this, [this](int index) {
+        EqPreset existing = RadioSettings::instance()->txEqPreset(index);
+        QString defaultName = existing.name.isEmpty() ? QString("Preset %1").arg(index + 1) : existing.name;
+
+        // Store current EQ bands before dialog (popup may close)
+        QVector<int> currentBands = m_radioState->txEqBands();
+
+        bool ok;
+        QString name = QInputDialog::getText(this, "Save TX Preset", "Preset name:", QLineEdit::Normal, defaultName, &ok);
+
+        // Re-show the EQ popup after dialog closes
+        if (m_bottomMenuBar) {
+            m_txEqPopup->showAboveButton(m_bottomMenuBar->txButton());
+        }
+
+        if (ok) {
+            // Use default name if user cleared it
+            if (name.isEmpty()) {
+                name = QString("Preset %1").arg(index + 1);
+            }
+            EqPreset preset;
+            preset.name = name;
+            preset.bands = currentBands;
+            RadioSettings::instance()->setTxEqPreset(index, preset);
+            m_txEqPopup->updatePresetName(index, name);
+        }
+    });
+
+    // TX EQ Preset clear: remove preset from RadioSettings
+    connect(m_txEqPopup, &RxEqPopupWidget::presetClearRequested, this, [this](int index) {
+        RadioSettings::instance()->clearTxEqPreset(index);
+        m_txEqPopup->updatePresetName(index, "");
+    });
+
+    // Load TX EQ preset names on popup creation
+    for (int i = 0; i < 4; i++) {
+        EqPreset preset = RadioSettings::instance()->txEqPreset(i);
+        m_txEqPopup->updatePresetName(i, preset.name);
+    }
+
     // Create antenna configuration popups (MAIN RX, SUB RX, TX)
     m_mainRxAntCfgPopup = new AntennaCfgPopupWidget(AntennaCfgVariant::MainRx, this);
     connect(m_mainRxAntCfgPopup, &AntennaCfgPopupWidget::configChanged, this,
@@ -417,6 +521,47 @@ MainWindow::MainWindow(QWidget *parent)
             m_lineOutPopup->setLeftLevel(m_radioState->lineOutLeft());
             m_lineOutPopup->setRightLevel(m_radioState->lineOutRight());
             m_lineOutPopup->setRightEqualsLeft(m_radioState->lineOutRightEqualsLeft());
+        }
+    });
+
+    // Create Line In popup (TX menu button index 3)
+    m_lineInPopup = new LineInPopupWidget(this);
+    connect(m_lineInPopup, &LineInPopupWidget::soundCardLevelChanged, this, [this](int level) {
+        if (!m_tcpClient || !m_tcpClient->isConnected())
+            return;
+        m_radioState->setLineInSoundCard(level);
+        QString cmd = QString("LI%1%2%3;")
+                          .arg(level, 3, 10, QChar('0'))
+                          .arg(m_radioState->lineInJack(), 3, 10, QChar('0'))
+                          .arg(m_radioState->lineInSource());
+        m_tcpClient->sendCAT(cmd);
+    });
+    connect(m_lineInPopup, &LineInPopupWidget::lineInJackLevelChanged, this, [this](int level) {
+        if (!m_tcpClient || !m_tcpClient->isConnected())
+            return;
+        m_radioState->setLineInJack(level);
+        QString cmd = QString("LI%1%2%3;")
+                          .arg(m_radioState->lineInSoundCard(), 3, 10, QChar('0'))
+                          .arg(level, 3, 10, QChar('0'))
+                          .arg(m_radioState->lineInSource());
+        m_tcpClient->sendCAT(cmd);
+    });
+    connect(m_lineInPopup, &LineInPopupWidget::sourceChanged, this, [this](int source) {
+        if (!m_tcpClient || !m_tcpClient->isConnected())
+            return;
+        m_radioState->setLineInSource(source);
+        QString cmd = QString("LI%1%2%3;")
+                          .arg(m_radioState->lineInSoundCard(), 3, 10, QChar('0'))
+                          .arg(m_radioState->lineInJack(), 3, 10, QChar('0'))
+                          .arg(source);
+        m_tcpClient->sendCAT(cmd);
+    });
+    // Connect RadioState to update popup when K4 sends LI response
+    connect(m_radioState, &RadioState::lineInChanged, this, [this]() {
+        if (m_lineInPopup) {
+            m_lineInPopup->setSoundCardLevel(m_radioState->lineInSoundCard());
+            m_lineInPopup->setLineInJackLevel(m_radioState->lineInJack());
+            m_lineInPopup->setSource(m_radioState->lineInSource());
         }
     });
 
@@ -555,6 +700,12 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_radioState, &RadioState::rxEqChanged, this, [this]() {
         if (m_rxEqPopup) {
             m_rxEqPopup->setAllBands(m_radioState->rxEqBands());
+        }
+    });
+    // TX EQ state -> popup
+    connect(m_radioState, &RadioState::txEqChanged, this, [this]() {
+        if (m_txEqPopup) {
+            m_txEqPopup->setAllBands(m_radioState->txEqBands());
         }
     });
 

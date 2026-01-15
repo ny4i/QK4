@@ -299,6 +299,29 @@ void RadioSettings::clearRxEqPreset(int index) {
     }
 }
 
+EqPreset RadioSettings::txEqPreset(int index) const {
+    if (index >= 0 && index < 4) {
+        return m_txEqPresets[index];
+    }
+    return EqPreset();
+}
+
+void RadioSettings::setTxEqPreset(int index, const EqPreset &preset) {
+    if (index >= 0 && index < 4) {
+        m_txEqPresets[index] = preset;
+        save();
+        emit txEqPresetsChanged();
+    }
+}
+
+void RadioSettings::clearTxEqPreset(int index) {
+    if (index >= 0 && index < 4) {
+        m_txEqPresets[index] = EqPreset();
+        save();
+        emit txEqPresetsChanged();
+    }
+}
+
 void RadioSettings::load() {
     int count = m_settings.beginReadArray("radios");
     m_radios.clear();
@@ -366,6 +389,24 @@ void RadioSettings::load() {
             }
         }
     }
+
+    // TX EQ Presets (4 slots)
+    for (int i = 0; i < 4; ++i) {
+        QString prefix = QString("txEqPresets/%1/").arg(i);
+        m_txEqPresets[i].name = m_settings.value(prefix + "name", "").toString();
+        QString bandsStr = m_settings.value(prefix + "bands", "").toString();
+        m_txEqPresets[i].bands.clear();
+        if (!bandsStr.isEmpty()) {
+            QStringList bandsList = bandsStr.split(",");
+            for (const QString &val : bandsList) {
+                bool ok;
+                int dB = val.toInt(&ok);
+                if (ok) {
+                    m_txEqPresets[i].bands.append(qBound(-16, dB, 16));
+                }
+            }
+        }
+    }
 }
 
 void RadioSettings::save() {
@@ -418,6 +459,18 @@ void RadioSettings::save() {
         // Convert bands to comma-separated string
         QStringList bandsList;
         for (int dB : m_rxEqPresets[j].bands) {
+            bandsList.append(QString::number(dB));
+        }
+        m_settings.setValue(prefix + "bands", bandsList.join(","));
+    }
+
+    // TX EQ Presets (4 slots)
+    for (int j = 0; j < 4; ++j) {
+        QString prefix = QString("txEqPresets/%1/").arg(j);
+        m_settings.setValue(prefix + "name", m_txEqPresets[j].name);
+        // Convert bands to comma-separated string
+        QStringList bandsList;
+        for (int dB : m_txEqPresets[j].bands) {
             bandsList.append(QString::number(dB));
         }
         m_settings.setValue(prefix + "bands", bandsList.join(","));

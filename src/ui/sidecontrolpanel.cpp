@@ -17,7 +17,7 @@ SideControlPanel::SideControlPanel(QWidget *parent) : QWidget(parent) {
 }
 
 void SideControlPanel::setupUi() {
-    setFixedWidth(105); // Slightly wider for better text fit
+    setFixedWidth(K4Styles::Dimensions::SidePanelWidth);
     // Note: No explicit size policy - let Qt handle vertical expansion like RightSidePanel
 
     auto *layout = new QVBoxLayout(this);
@@ -229,26 +229,8 @@ void SideControlPanel::setupUi() {
     m_volumeSlider = new QSlider(Qt::Horizontal, this);
     m_volumeSlider->setRange(0, 100);
     m_volumeSlider->setValue(RadioSettings::instance()->volume()); // Restore from settings (default 45%)
-    m_volumeSlider->setStyleSheet(QString("QSlider::groove:horizontal {"
-                                          "    border: 2px solid %1;"
-                                          "    height: 6px;"
-                                          "    background: %2;"
-                                          "    border-radius: 3px;"
-                                          "}"
-                                          "QSlider::handle:horizontal {"
-                                          "    background: %3;"
-                                          "    border: 2px solid %3;"
-                                          "    width: 14px;"
-                                          "    margin: -4px 0;"
-                                          "    border-radius: 7px;"
-                                          "}"
-                                          "QSlider::sub-page:horizontal {"
-                                          "    background: %3;"
-                                          "    border-radius: 3px;"
-                                          "}")
-                                      .arg(K4Styles::Colors::TextDark)
-                                      .arg(K4Styles::Colors::DarkBackground)
-                                      .arg(K4Styles::Colors::VfoACyan));
+    m_volumeSlider->setStyleSheet(
+        K4Styles::sliderHorizontal(K4Styles::Colors::DarkBackground, K4Styles::Colors::VfoACyan));
     layout->addWidget(m_volumeSlider);
 
     connect(m_volumeSlider, &QSlider::valueChanged, this, &SideControlPanel::volumeChanged);
@@ -265,26 +247,8 @@ void SideControlPanel::setupUi() {
     m_subVolumeSlider = new QSlider(Qt::Horizontal, this);
     m_subVolumeSlider->setRange(0, 100);
     m_subVolumeSlider->setValue(RadioSettings::instance()->subVolume()); // Restore from settings (default 45%)
-    m_subVolumeSlider->setStyleSheet(QString("QSlider::groove:horizontal {"
-                                             "    border: 2px solid %1;"
-                                             "    height: 6px;"
-                                             "    background: %2;"
-                                             "    border-radius: 3px;"
-                                             "}"
-                                             "QSlider::handle:horizontal {"
-                                             "    background: %3;"
-                                             "    border: 2px solid %3;"
-                                             "    width: 14px;"
-                                             "    margin: -4px 0;"
-                                             "    border-radius: 7px;"
-                                             "}"
-                                             "QSlider::sub-page:horizontal {"
-                                             "    background: %3;"
-                                             "    border-radius: 3px;"
-                                             "}")
-                                         .arg(K4Styles::Colors::TextDark)
-                                         .arg(K4Styles::Colors::DarkBackground)
-                                         .arg(K4Styles::Colors::VfoBGreen));
+    m_subVolumeSlider->setStyleSheet(
+        K4Styles::sliderHorizontal(K4Styles::Colors::DarkBackground, K4Styles::Colors::VfoBGreen));
     layout->addWidget(m_subVolumeSlider);
 
     connect(m_subVolumeSlider, &QSlider::valueChanged, this, &SideControlPanel::subVolumeChanged);

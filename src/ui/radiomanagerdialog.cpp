@@ -34,29 +34,35 @@ void RadioManagerDialog::setupUi() {
     leftSection->setSpacing(8);
 
     auto *serversTitle = new QLabel("Available Servers", this);
-    serversTitle->setStyleSheet("QLabel { color: #FFD700; font-weight: bold; font-size: 14px; }");
+    serversTitle->setStyleSheet(QString("QLabel { color: %1; font-weight: bold; font-size: %2px; }")
+                                    .arg(K4Styles::Colors::AccentAmber)
+                                    .arg(K4Styles::Dimensions::FontSizePopup));
     leftSection->addWidget(serversTitle);
 
     m_radioList = new QListWidget(this);
     m_radioList->setMinimumWidth(180);
     m_radioList->setMaximumWidth(200);
-    m_radioList->setStyleSheet("QListWidget { "
-                               "  background-color: #3c3c3c; "
-                               "  color: #ffffff; "
-                               "  border: 1px solid #555555; "
-                               "  border-radius: 4px; "
-                               "  padding: 4px; "
-                               "} "
-                               "QListWidget::item { "
-                               "  padding: 6px; "
-                               "} "
-                               "QListWidget::item:selected { "
-                               "  background-color: #0078d4; "
-                               "  color: #ffffff; "
-                               "} "
-                               "QListWidget::item:hover { "
-                               "  background-color: #4a4a4a; "
-                               "}");
+    m_radioList->setStyleSheet(QString("QListWidget { "
+                                       "  background-color: %1; "
+                                       "  color: %2; "
+                                       "  border: 1px solid %3; "
+                                       "  border-radius: 4px; "
+                                       "  padding: 4px; "
+                                       "} "
+                                       "QListWidget::item { "
+                                       "  padding: %4px; "
+                                       "} "
+                                       "QListWidget::item:selected { "
+                                       "  background-color: %5; "
+                                       "  color: %1; "
+                                       "} "
+                                       "QListWidget::item:hover { "
+                                       "  background-color: %6; "
+                                       "}")
+                                   .arg(K4Styles::Colors::DarkBackground, K4Styles::Colors::TextWhite,
+                                        K4Styles::Colors::DialogBorder)
+                                   .arg(K4Styles::Dimensions::PaddingSmall)
+                                   .arg(K4Styles::Colors::AccentAmber, K4Styles::Colors::GradientBottom));
     leftSection->addWidget(m_radioList);
     topLayout->addLayout(leftSection);
 
@@ -65,7 +71,9 @@ void RadioManagerDialog::setupUi() {
     rightSection->setSpacing(8);
 
     auto *editTitle = new QLabel("Edit Connect", this);
-    editTitle->setStyleSheet("QLabel { color: #FFD700; font-weight: bold; font-size: 14px; }");
+    editTitle->setStyleSheet(QString("QLabel { color: %1; font-weight: bold; font-size: %2px; }")
+                                 .arg(K4Styles::Colors::AccentAmber)
+                                 .arg(K4Styles::Dimensions::FontSizePopup));
     rightSection->addWidget(editTitle);
 
     // Form fields - label on LEFT of text box
@@ -74,16 +82,20 @@ void RadioManagerDialog::setupUi() {
     formLayout->setVerticalSpacing(10);
 
     QString lineEditStyle = QString("QLineEdit { "
-                                    "  background-color: #3c3c3c; "
-                                    "  color: %1; "
-                                    "  border: 1px solid #555555; "
+                                    "  background-color: %1; "
+                                    "  color: %2; "
+                                    "  border: 1px solid %3; "
                                     "  border-radius: 4px; "
-                                    "  padding: 6px; "
+                                    "  padding: %4px; "
                                     "  min-width: 150px; "
                                     "}")
-                                .arg(K4Styles::Colors::TextWhite);
+                                .arg(K4Styles::Colors::DarkBackground, K4Styles::Colors::TextWhite,
+                                     K4Styles::Colors::DialogBorder)
+                                .arg(K4Styles::Dimensions::PaddingSmall);
 
-    QString labelStyle = QString("QLabel { color: %1; font-size: 12px; }").arg(K4Styles::Colors::TextGray);
+    QString labelStyle = QString("QLabel { color: %1; font-size: %2px; }")
+                             .arg(K4Styles::Colors::TextGray)
+                             .arg(K4Styles::Dimensions::FontSizeButton);
 
     // Row 0: Name
     auto *nameLabel = new QLabel("Name", this);
@@ -134,9 +146,11 @@ void RadioManagerDialog::setupUi() {
 
     // Row 5: TLS Checkbox (below ID field)
     m_tlsCheckbox = new QCheckBox("Use TLS (Encrypted)", this);
-    m_tlsCheckbox->setStyleSheet(QString("QCheckBox { color: %1; font-size: 12px; spacing: 8px; } "
+    m_tlsCheckbox->setStyleSheet(QString("QCheckBox { color: %1; font-size: %2px; spacing: %3px; } "
                                          "QCheckBox::indicator { width: 14px; height: 14px; }")
-                                     .arg(K4Styles::Colors::TextGray));
+                                     .arg(K4Styles::Colors::TextGray)
+                                     .arg(K4Styles::Dimensions::FontSizeButton)
+                                     .arg(K4Styles::Dimensions::BorderRadiusLarge));
     formLayout->addWidget(m_tlsCheckbox, 5, 0, 1, 2);
 
     // Row 6: Encode Mode dropdown
@@ -144,11 +158,11 @@ void RadioManagerDialog::setupUi() {
     encodeModeLabel->setStyleSheet(labelStyle);
     m_encodeModeCombo = new QComboBox(this);
     m_encodeModeCombo->setStyleSheet(QString("QComboBox { "
-                                             "  background-color: #3c3c3c; "
-                                             "  color: %1; "
-                                             "  border: 1px solid #555555; "
+                                             "  background-color: %1; "
+                                             "  color: %2; "
+                                             "  border: 1px solid %3; "
                                              "  border-radius: 4px; "
-                                             "  padding: 6px; "
+                                             "  padding: %4px; "
                                              "} "
                                              "QComboBox::drop-down { "
                                              "  border: none; "
@@ -158,14 +172,17 @@ void RadioManagerDialog::setupUi() {
                                              "  image: none; "
                                              "  border-left: 5px solid transparent; "
                                              "  border-right: 5px solid transparent; "
-                                             "  border-top: 5px solid %1; "
+                                             "  border-top: 5px solid %2; "
                                              "} "
                                              "QComboBox QAbstractItemView { "
-                                             "  background-color: #3c3c3c; "
-                                             "  color: %1; "
-                                             "  selection-background-color: #0078d4; "
+                                             "  background-color: %1; "
+                                             "  color: %2; "
+                                             "  selection-background-color: %5; "
                                              "}")
-                                         .arg(K4Styles::Colors::TextWhite));
+                                         .arg(K4Styles::Colors::DarkBackground, K4Styles::Colors::TextWhite,
+                                              K4Styles::Colors::DialogBorder)
+                                         .arg(K4Styles::Dimensions::PaddingSmall)
+                                         .arg(K4Styles::Colors::AccentAmber));
     m_encodeModeCombo->addItem("EM3 - Opus Float", 3); // Default
     m_encodeModeCombo->addItem("EM2 - Opus Int", 2);
     m_encodeModeCombo->addItem("EM1 - RAW 16-bit", 1);
@@ -189,36 +206,46 @@ void RadioManagerDialog::setupUi() {
     auto *buttonLayout = new QHBoxLayout();
     buttonLayout->setSpacing(16); // More spacing between buttons
 
-    QString buttonStyle = "QPushButton { "
-                          "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-                          "    stop:0 #4a4a4a, stop:0.4 #3a3a3a, "
-                          "    stop:0.6 #353535, stop:1 #2a2a2a); "
-                          "  color: #FFFFFF; "
-                          "  border: 1px solid #606060; "
-                          "  border-radius: 5px; "
-                          "  padding: 10px 20px; "
-                          "  font-size: 12px; "
-                          "  font-weight: bold; "
-                          "  min-width: 70px; "
-                          "} "
-                          "QPushButton:hover { "
-                          "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-                          "    stop:0 #5a5a5a, stop:0.4 #4a4a4a, "
-                          "    stop:0.6 #454545, stop:1 #3a3a3a); "
-                          "  border: 1px solid #808080; "
-                          "} "
-                          "QPushButton:pressed { "
-                          "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-                          "    stop:0 #2a2a2a, stop:0.4 #353535, "
-                          "    stop:0.6 #3a3a3a, stop:1 #4a4a4a); "
-                          "  border: 1px solid #909090; "
-                          "} "
-                          "QPushButton:disabled { "
-                          "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-                          "    stop:0 #3a3a3a, stop:1 #2a2a2a); "
-                          "  color: #666666; "
-                          "  border: 1px solid #444444; "
-                          "}";
+    QString buttonStyle = QString("QPushButton { "
+                                  "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+                                  "    stop:0 %1, stop:0.4 %2, "
+                                  "    stop:0.6 %3, stop:1 %4); "
+                                  "  color: %5; "
+                                  "  border: 1px solid %6; "
+                                  "  border-radius: 5px; "
+                                  "  padding: %13px 20px; "
+                                  "  font-size: %14px; "
+                                  "  font-weight: bold; "
+                                  "  min-width: 70px; "
+                                  "} "
+                                  "QPushButton:hover { "
+                                  "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+                                  "    stop:0 %7, stop:0.4 %8, "
+                                  "    stop:0.6 %9, stop:1 %10); "
+                                  "  border: 1px solid %11; "
+                                  "} "
+                                  "QPushButton:pressed { "
+                                  "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+                                  "    stop:0 %4, stop:0.4 %3, "
+                                  "    stop:0.6 %2, stop:1 %1); "
+                                  "  border: 1px solid %12; "
+                                  "} "
+                                  "QPushButton:disabled { "
+                                  "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+                                  "    stop:0 %2, stop:1 %4); "
+                                  "  color: %15; "
+                                  "  border: 1px solid %16; "
+                                  "}")
+                              .arg(K4Styles::Colors::GradientTop, K4Styles::Colors::GradientMid1,
+                                   K4Styles::Colors::GradientMid2, K4Styles::Colors::GradientBottom,
+                                   K4Styles::Colors::TextWhite, K4Styles::Colors::BorderNormal,
+                                   K4Styles::Colors::HoverTop, K4Styles::Colors::HoverMid1,
+                                   K4Styles::Colors::HoverMid2)
+                              .arg(K4Styles::Colors::HoverBottom, K4Styles::Colors::BorderHover,
+                                   K4Styles::Colors::BorderPressed)
+                              .arg(K4Styles::Dimensions::PaddingMedium)
+                              .arg(K4Styles::Dimensions::FontSizeButton)
+                              .arg(K4Styles::Colors::TextGray, K4Styles::Colors::DialogBorder);
 
     m_connectButton = new QPushButton("Connect", this);
     m_connectButton->setStyleSheet(buttonStyle);
@@ -237,28 +264,36 @@ void RadioManagerDialog::setupUi() {
     buttonLayout->addWidget(m_deleteButton);
 
     // Back button - smaller with curved arrow
-    QString backButtonStyle = "QPushButton { "
-                              "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-                              "    stop:0 #4a4a4a, stop:0.4 #3a3a3a, "
-                              "    stop:0.6 #353535, stop:1 #2a2a2a); "
-                              "  color: #FFFFFF; "
-                              "  border: 1px solid #606060; "
-                              "  border-radius: 4px; "
-                              "  padding: 4px; "
-                              "  font-size: 14px; "
-                              "} "
-                              "QPushButton:hover { "
-                              "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-                              "    stop:0 #5a5a5a, stop:0.4 #4a4a4a, "
-                              "    stop:0.6 #454545, stop:1 #3a3a3a); "
-                              "  border: 1px solid #808080; "
-                              "} "
-                              "QPushButton:pressed { "
-                              "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-                              "    stop:0 #2a2a2a, stop:0.4 #353535, "
-                              "    stop:0.6 #3a3a3a, stop:1 #4a4a4a); "
-                              "  border: 1px solid #909090; "
-                              "}";
+    QString backButtonStyle = QString("QPushButton { "
+                                      "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+                                      "    stop:0 %1, stop:0.4 %2, "
+                                      "    stop:0.6 %3, stop:1 %4); "
+                                      "  color: %5; "
+                                      "  border: 1px solid %6; "
+                                      "  border-radius: 4px; "
+                                      "  padding: 4px; "
+                                      "  font-size: %12px; "
+                                      "} "
+                                      "QPushButton:hover { "
+                                      "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+                                      "    stop:0 %7, stop:0.4 %8, "
+                                      "    stop:0.6 %9, stop:1 %10); "
+                                      "  border: 1px solid %11; "
+                                      "} "
+                                      "QPushButton:pressed { "
+                                      "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+                                      "    stop:0 %4, stop:0.4 %3, "
+                                      "    stop:0.6 %2, stop:1 %1); "
+                                      "  border: 1px solid %13; "
+                                      "}")
+                                  .arg(K4Styles::Colors::GradientTop, K4Styles::Colors::GradientMid1,
+                                       K4Styles::Colors::GradientMid2, K4Styles::Colors::GradientBottom,
+                                       K4Styles::Colors::TextWhite, K4Styles::Colors::BorderNormal,
+                                       K4Styles::Colors::HoverTop, K4Styles::Colors::HoverMid1,
+                                       K4Styles::Colors::HoverMid2)
+                                  .arg(K4Styles::Colors::HoverBottom, K4Styles::Colors::BorderHover)
+                                  .arg(K4Styles::Dimensions::FontSizePopup)
+                                  .arg(K4Styles::Colors::BorderPressed);
 
     m_backButton = new QPushButton(QString::fromUtf8("\xE2\x86\xA9"), this); // ↩ Curved arrow
     m_backButton->setStyleSheet(backButtonStyle);

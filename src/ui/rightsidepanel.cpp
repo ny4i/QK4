@@ -14,7 +14,7 @@ RightSidePanel::RightSidePanel(QWidget *parent)
 
 void RightSidePanel::setupUi() {
     // Match left panel dimensions exactly
-    setFixedWidth(105);
+    setFixedWidth(K4Styles::Dimensions::SidePanelWidth);
 
     m_layout = new QVBoxLayout(this);
     m_layout->setContentsMargins(6, 8, 6, 8);
