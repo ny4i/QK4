@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(K4Controller VERSION 0.1.0 LANGUAGES CXX)
+project(K4Controller VERSION 0.2.0 LANGUAGES CXX)
 
 # Full version string can include prerelease info (e.g., "0.1.0-alpha.123")
 # CI sets this via -DK4CONTROLLER_VERSION_FULL="x.y.z-prerelease"
@@ -172,8 +172,8 @@ set(HEADERS
 # On macOS, create an app bundle
 if(APPLE)
     set(MACOSX_BUNDLE_BUNDLE_NAME ${PROJECT_NAME})
-    set(MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION})
-    set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION})
+    set(MACOSX_BUNDLE_BUNDLE_VERSION ${K4CONTROLLER_VERSION_FULL})
+    set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${K4CONTROLLER_VERSION_FULL})
     set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.elecraft.k4controller")
     add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES} ${HEADERS})
 
