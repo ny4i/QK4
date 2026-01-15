@@ -452,7 +452,7 @@ openssl s_client -tls1_2 -psk <hex> -connect 192.168.x.x:9204
 
 1. **Info.plist.in** (`resources/Info.plist.in`):
    - macOS app bundle metadata template
-   - Bundle identifier: `com.elecraft.k4controller`
+   - Bundle identifier: `com.ai5qk.k4controller`
    - Minimum macOS version: 14.0
 
 2. **CMakeLists.txt** - Added `deploy` target:
