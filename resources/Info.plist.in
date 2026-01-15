@@ -26,6 +26,8 @@
     <true/>
     <key>NSMicrophoneUsageDescription</key>
     <string>K4Controller needs microphone access for transmit audio.</string>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>K4Controller needs local network access to connect to your Elecraft K4 radio.</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
     <key>LSApplicationCategoryType</key>
