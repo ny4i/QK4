@@ -437,6 +437,19 @@ void MacroDialog::populateItems() {
         {MacroIds::Kpod7H, "K-pod.7H"},
         {MacroIds::Kpod8T, "K-pod.8T"},
         {MacroIds::Kpod8H, "K-pod.8H"},
+        // Keyboard Function Keys
+        {MacroIds::KbdF1, "Keyboard-F1"},
+        {MacroIds::KbdF2, "Keyboard-F2"},
+        {MacroIds::KbdF3, "Keyboard-F3"},
+        {MacroIds::KbdF4, "Keyboard-F4"},
+        {MacroIds::KbdF5, "Keyboard-F5"},
+        {MacroIds::KbdF6, "Keyboard-F6"},
+        {MacroIds::KbdF7, "Keyboard-F7"},
+        {MacroIds::KbdF8, "Keyboard-F8"},
+        {MacroIds::KbdF9, "Keyboard-F9"},
+        {MacroIds::KbdF10, "Keyboard-F10"},
+        {MacroIds::KbdF11, "Keyboard-F11"},
+        {MacroIds::KbdF12, "Keyboard-F12"},
     };
 
     auto settings = RadioSettings::instance();

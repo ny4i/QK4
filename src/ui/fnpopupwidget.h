@@ -45,6 +45,20 @@ const QString Kpod7H = "K-pod.7H";
 const QString Kpod8T = "K-pod.8T";
 const QString Kpod8H = "K-pod.8H";
 
+// Keyboard Function Keys (F1-F12)
+const QString KbdF1 = "Keyboard-F1";
+const QString KbdF2 = "Keyboard-F2";
+const QString KbdF3 = "Keyboard-F3";
+const QString KbdF4 = "Keyboard-F4";
+const QString KbdF5 = "Keyboard-F5";
+const QString KbdF6 = "Keyboard-F6";
+const QString KbdF7 = "Keyboard-F7";
+const QString KbdF8 = "Keyboard-F8";
+const QString KbdF9 = "Keyboard-F9";
+const QString KbdF10 = "Keyboard-F10";
+const QString KbdF11 = "Keyboard-F11";
+const QString KbdF12 = "Keyboard-F12";
+
 // Built-in functions (not user-configurable)
 const QString ScrnCap = "SCRN_CAP";
 const QString Macros = "MACROS";

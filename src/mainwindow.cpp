@@ -3833,6 +3833,18 @@ void MainWindow::showEvent(QShowEvent *event) {
     QMainWindow::showEvent(event);
 }
 
+void MainWindow::keyPressEvent(QKeyEvent *event) {
+    // Handle F1-F12 for keyboard macros
+    if (event->key() >= Qt::Key_F1 && event->key() <= Qt::Key_F12) {
+        int fKeyNum = event->key() - Qt::Key_F1 + 1; // 1-12
+        QString functionId = QString("Keyboard-F%1").arg(fKeyNum);
+        executeMacro(functionId);
+        event->accept();
+        return;
+    }
+    QMainWindow::keyPressEvent(event);
+}
+
 void MainWindow::setPanadapterMode(PanadapterMode mode) {
     m_panadapterMode = mode;
     switch (mode) {

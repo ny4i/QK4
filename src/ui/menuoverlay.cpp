@@ -287,15 +287,14 @@ void MenuOverlayWidget::createSearchPopup() {
 
     m_searchInput = new QLineEdit(m_searchPopup);
     m_searchInput->setPlaceholderText("Search...");
-    m_searchInput->setStyleSheet(
-        QString("QLineEdit { background-color: %1; color: %2; border: 1px solid %3; "
-                "border-radius: 4px; padding: 6px; font-size: %4px; }"
-                "QLineEdit:focus { border-color: %5; }")
-            .arg(K4Styles::Colors::OverlayContentBg)
-            .arg(K4Styles::Colors::TextWhite)
-            .arg(K4Styles::Colors::OverlayNavButton)
-            .arg(K4Styles::Dimensions::FontSizeMedium)
-            .arg(K4Styles::Colors::VfoACyan));
+    m_searchInput->setStyleSheet(QString("QLineEdit { background-color: %1; color: %2; border: 1px solid %3; "
+                                         "border-radius: 4px; padding: 6px; font-size: %4px; }"
+                                         "QLineEdit:focus { border-color: %5; }")
+                                     .arg(K4Styles::Colors::OverlayContentBg)
+                                     .arg(K4Styles::Colors::TextWhite)
+                                     .arg(K4Styles::Colors::OverlayNavButton)
+                                     .arg(K4Styles::Dimensions::FontSizeMedium)
+                                     .arg(K4Styles::Colors::VfoACyan));
     layout->addWidget(m_searchInput);
 
     m_searchPopup->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::OverlayHeaderBg));
@@ -332,7 +331,8 @@ void MenuOverlayWidget::populateItems() {
     m_itemWidgets.clear();
 
     // Add menu items (filtered if search is active)
-    QVector<MenuItem *> items = m_currentFilter.isEmpty() ? m_model->getAllItems() : m_model->filterByName(m_currentFilter);
+    QVector<MenuItem *> items =
+        m_currentFilter.isEmpty() ? m_model->getAllItems() : m_model->filterByName(m_currentFilter);
     for (MenuItem *item : items) {
         MenuItemWidget *widget = new MenuItemWidget(item, m_listContainer);
         connect(widget, &MenuItemWidget::clicked, this, [this, widget]() {
