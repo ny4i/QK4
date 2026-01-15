@@ -6,6 +6,7 @@
 #include <QResizeEvent>
 #include <QtMath>
 #include <cmath>
+#include <cstring>
 
 // Transparent overlay widget for dBm/S-unit scale labels
 class DbmScaleOverlay : public QWidget {
@@ -484,8 +485,9 @@ void PanadapterRhiWidget::createPipelines() {
     {
         m_waterfallSrb.reset(m_rhi->newShaderResourceBindings());
         m_waterfallSrb->setBindings(
-            {QRhiShaderResourceBinding::uniformBuffer(0, QRhiShaderResourceBinding::VertexStage,
-                                                      m_waterfallUniformBuffer.get()),
+            {QRhiShaderResourceBinding::uniformBuffer(
+                 0, QRhiShaderResourceBinding::VertexStage | QRhiShaderResourceBinding::FragmentStage,
+                 m_waterfallUniformBuffer.get()),
              QRhiShaderResourceBinding::sampledTexture(1, QRhiShaderResourceBinding::FragmentStage,
                                                        m_waterfallTexture.get(), m_sampler.get()),
              QRhiShaderResourceBinding::sampledTexture(2, QRhiShaderResourceBinding::FragmentStage,
@@ -621,12 +623,15 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
         m_waterfallNeedsUpdate = false;
     }
 
-    // Update waterfall uniform buffer
+    // Update waterfall uniform buffer with Lanczos parameters
     float scrollOffset = static_cast<float>(m_waterfallWriteRow) / m_waterfallHistory;
+    float binCount = static_cast<float>(m_currentSpectrum.isEmpty() ? m_textureWidth : m_currentSpectrum.size());
     struct {
         float scrollOffset;
-        float padding[3];
-    } waterfallUniforms = {scrollOffset, {0, 0, 0}};
+        float binCount;
+        float textureWidth;
+        float padding;
+    } waterfallUniforms = {scrollOffset, binCount, static_cast<float>(m_textureWidth), 0.0f};
     rub->updateDynamicBuffer(m_waterfallUniformBuffer.get(), 0, sizeof(waterfallUniforms), &waterfallUniforms);
 
     // Calculate smoothed baseline for spectrum normalization
@@ -643,14 +648,15 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
         else
             m_smoothedBaseline = baselineAlpha * frameMinNormalized + (1.0f - baselineAlpha) * m_smoothedBaseline;
 
-        // Upload spectrum data to 1D texture (must be done before beginPass)
-        QVector<float> normalizedSpectrum(m_textureWidth);
-        for (int i = 0; i < m_textureWidth; ++i) {
-            float srcPos = static_cast<float>(i) / (m_textureWidth - 1) * (m_currentSpectrum.size() - 1);
-            int idx = qBound(0, qRound(srcPos), m_currentSpectrum.size() - 1);
-            float normalized = normalizeDb(m_currentSpectrum[idx]);
+        // Upload raw spectrum bins to 1D texture - GPU shader does Lanczos interpolation
+        int specSize = m_currentSpectrum.size();
+        int offset = (m_textureWidth - specSize) / 2;
+
+        QVector<float> normalizedSpectrum(m_textureWidth, 0.0f); // Initialize to zero
+        for (int i = 0; i < specSize; ++i) {
+            float normalized = normalizeDb(m_currentSpectrum[i]);
             float adjusted = qMax(0.0f, normalized - m_smoothedBaseline);
-            normalizedSpectrum[i] = adjusted * 0.95f;
+            normalizedSpectrum[offset + i] = adjusted * 0.95f;
         }
 
         QRhiTextureSubresourceUploadDescription specDataUpload(normalizedSpectrum.constData(),
@@ -659,6 +665,8 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
         rub->uploadTexture(m_spectrumDataTexture.get(), QRhiTextureUploadEntry(0, 0, specDataUpload));
 
         // Update blue spectrum uniform buffer (80 bytes, std140 layout)
+        float specBinCount =
+            static_cast<float>(m_currentSpectrum.isEmpty() ? m_textureWidth : m_currentSpectrum.size());
         struct {
             float fillBaseColor[4]; // offset 0: dark navy
             float fillPeakColor[4]; // offset 16: electric blue
@@ -666,19 +674,21 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
             float glowIntensity;    // offset 48
             float glowWidth;        // offset 52
             float spectrumHeightPx; // offset 56
-            float padding1;         // offset 60
+            float binCount;         // offset 60: for Lanczos interpolation
             float viewportSize[2];  // offset 64
-            float padding2[2];      // offset 72
+            float textureWidth;     // offset 72: for Lanczos interpolation
+            float padding;          // offset 76
         } specBlueUniforms = {
-            {0.0f, 0.08f, 0.16f, 0.85f}, // fillBaseColor: dark navy
-            {0.0f, 0.63f, 1.0f, 0.85f},  // fillPeakColor: electric blue
-            {0.0f, 0.83f, 1.0f, 1.0f},   // glowColor: cyan
-            0.8f,                        // glowIntensity
-            0.04f,                       // glowWidth
-            spectrumHeight,              // spectrumHeight in pixels
-            0.0f,                        // padding1
-            {w, h},                      // viewportSize
-            {0.0f, 0.0f}                 // padding2
+            {0.0f, 0.08f, 0.16f, 0.85f},        // fillBaseColor: dark navy
+            {0.0f, 0.63f, 1.0f, 0.85f},         // fillPeakColor: electric blue
+            {0.0f, 0.83f, 1.0f, 1.0f},          // glowColor: cyan
+            0.8f,                               // glowIntensity
+            0.04f,                              // glowWidth
+            spectrumHeight,                     // spectrumHeight in pixels
+            specBinCount,                       // binCount for Lanczos
+            {w, h},                             // viewportSize
+            static_cast<float>(m_textureWidth), // textureWidth for Lanczos
+            0.0f                                // padding
         };
         rub->updateDynamicBuffer(m_spectrumBlueAmpUniformBuffer.get(), 0, sizeof(specBlueUniforms), &specBlueUniforms);
     }
@@ -1168,7 +1178,7 @@ void PanadapterRhiWidget::updateSpectrum(const QByteArray &bins, qint64 centerFr
     if (tierSpanHz > m_spanHz && totalBins > 100 && m_spanHz > 0) {
         int requestedBins = (static_cast<qint64>(m_spanHz) * totalBins) / tierSpanHz;
         requestedBins = qBound(50, requestedBins, totalBins);
-        int centerStart = (totalBins - requestedBins + 1) / 2; // Round up for symmetric extraction
+        int centerStart = (totalBins - requestedBins) / 2; // Center extraction
         binsToUse = bins.mid(centerStart, requestedBins);
     } else {
         binsToUse = bins;
@@ -1243,13 +1253,18 @@ void PanadapterRhiWidget::updateWaterfallData() {
     if (m_currentSpectrum.isEmpty())
         return;
 
-    // Resample spectrum to texture width
+    // Upload raw bins centered in texture - GPU shader does Lanczos interpolation
     int row = m_waterfallWriteRow;
-    for (int i = 0; i < m_textureWidth; ++i) {
-        float srcPos = static_cast<float>(i) / (m_textureWidth - 1) * (m_currentSpectrum.size() - 1);
-        int idx = qBound(0, qRound(srcPos), m_currentSpectrum.size() - 1);
-        float normalized = normalizeDb(m_currentSpectrum[idx]);
-        m_waterfallData[row * m_textureWidth + i] =
+    int specSize = m_currentSpectrum.size();
+    int offset = (m_textureWidth - specSize) / 2;
+
+    // Clear row (zeros outside bin region = no signal)
+    std::memset(&m_waterfallData[row * m_textureWidth], 0, m_textureWidth);
+
+    // Copy raw bins (no interpolation - GPU handles it)
+    for (int i = 0; i < specSize; ++i) {
+        float normalized = normalizeDb(m_currentSpectrum[i]);
+        m_waterfallData[row * m_textureWidth + offset + i] =
             static_cast<quint8>(qBound(0, static_cast<int>(normalized * 255), 255));
     }
 }

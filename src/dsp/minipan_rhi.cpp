@@ -237,8 +237,9 @@ void MiniPanRhiWidget::createPipelines() {
     {
         m_waterfallSrb.reset(m_rhi->newShaderResourceBindings());
         m_waterfallSrb->setBindings(
-            {QRhiShaderResourceBinding::uniformBuffer(0, QRhiShaderResourceBinding::VertexStage,
-                                                      m_waterfallUniformBuffer.get()),
+            {QRhiShaderResourceBinding::uniformBuffer(
+                 0, QRhiShaderResourceBinding::VertexStage | QRhiShaderResourceBinding::FragmentStage,
+                 m_waterfallUniformBuffer.get()),
              QRhiShaderResourceBinding::sampledTexture(1, QRhiShaderResourceBinding::FragmentStage,
                                                        m_waterfallTexture.get(), m_sampler.get()),
              QRhiShaderResourceBinding::sampledTexture(2, QRhiShaderResourceBinding::FragmentStage,
@@ -406,12 +407,14 @@ void MiniPanRhiWidget::render(QRhiCommandBuffer *cb) {
     } spectrumUniforms = {w, spectrumHeight, {0, 0}};
     rub->updateDynamicBuffer(m_spectrumUniformBuffer.get(), 0, sizeof(spectrumUniforms), &spectrumUniforms);
 
-    // Update waterfall uniform buffer
+    // Update waterfall uniform buffer (matches waterfall.frag Lanczos shader layout)
     float scrollOffset = static_cast<float>(m_waterfallWriteRow) / WATERFALL_HISTORY;
     struct {
         float scrollOffset;
-        float padding[3];
-    } waterfallUniforms = {scrollOffset, {0, 0, 0}};
+        float binCount; // For Lanczos: texture is pre-filled, so binCount = textureWidth
+        float textureWidth;
+        float padding;
+    } waterfallUniforms = {scrollOffset, static_cast<float>(TEXTURE_WIDTH), static_cast<float>(TEXTURE_WIDTH), 0.0f};
     rub->updateDynamicBuffer(m_waterfallUniformBuffer.get(), 0, sizeof(waterfallUniforms), &waterfallUniforms);
 
     // Build spectrum vertices with peak-hold downsampling

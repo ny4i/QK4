@@ -6,10 +6,10 @@ layout(location = 1) in vec2 texCoord;
 layout(location = 0) out vec2 fragTexCoord;
 
 layout(std140, binding = 0) uniform buf {
-    float scrollOffset;
-    float padding1;
-    float padding2;
-    float padding3;
+    float scrollOffset;   // Row scroll offset for circular buffer
+    float binCount;       // Actual bin count (passed to fragment shader)
+    float textureWidth;   // Texture width (passed to fragment shader)
+    float padding;
 };
 
 void main() {
