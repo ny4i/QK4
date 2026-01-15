@@ -79,7 +79,7 @@ public:
 
     // Audio input (microphone) settings
     int micGain() const;
-    void setMicGain(int value); // 0-100, default 50
+    void setMicGain(int value); // 0-100, default 25
     QString micDevice() const;
     void setMicDevice(const QString &deviceId);
 

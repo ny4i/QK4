@@ -133,12 +133,12 @@ void RadioSettings::setSubVolume(int value) {
 }
 
 int RadioSettings::micGain() const {
-    return m_settings.value("audio/micGain", 50).toInt();
+    return m_settings.value("audio/micGain", 25).toInt();
 }
 
 void RadioSettings::setMicGain(int value) {
     value = qBound(0, value, 100);
-    int oldValue = m_settings.value("audio/micGain", 50).toInt();
+    int oldValue = m_settings.value("audio/micGain", 25).toInt();
     if (oldValue != value) {
         m_settings.setValue("audio/micGain", value);
         m_settings.sync();

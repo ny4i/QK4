@@ -79,7 +79,7 @@ private:
     float m_volume = 1.0f;
 
     // Microphone gain control
-    float m_micGain = 0.5f; // Default 50%
+    float m_micGain = 0.25f; // Default 25% (macOS mic input is typically hot)
 
     // Microphone frame buffering for Opus encoding
     // Buffer accumulates S16LE samples at 12kHz until we have a complete frame
