@@ -50,6 +50,7 @@ public:
     const MenuItem *getMenuItemByName(const QString &name) const;
     QVector<MenuItem *> getAllItems();
     QVector<MenuItem *> getItemsByCategory(const QString &category);
+    QVector<MenuItem *> filterByName(const QString &pattern);
     QStringList getCategories() const;
 
     // Get count

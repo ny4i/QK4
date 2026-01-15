@@ -223,25 +223,33 @@ void MenuOverlayWidget::setupUi() {
     navOuterLayout->addLayout(row1);
     navOuterLayout->addStretch();
 
-    // Row 2: NORM and Back buttons side by side
+    // Row 2: Search, NORM, and Back buttons (3 buttons, smaller width)
     QHBoxLayout *row3 = new QHBoxLayout();
-    row3->setSpacing(8);
+    row3->setSpacing(6); // Tighter spacing for 3 buttons
+
+    constexpr int smallNavBtnWidth = 34; // Smaller buttons for 3-button row
+
+    m_searchBtn = new QPushButton("\xF0\x9F\x94\x8D", navPanel); // 🔍
+    m_searchBtn->setFixedSize(smallNavBtnWidth, K4Styles::Dimensions::PopupButtonHeight);
+    m_searchBtn->setStyleSheet(buttonStyle);
+    connect(m_searchBtn, &QPushButton::clicked, this, &MenuOverlayWidget::toggleSearchPopup);
+    row3->addWidget(m_searchBtn);
 
     m_normBtn = new QPushButton("NORM", navPanel);
-    m_normBtn->setFixedSize(K4Styles::Dimensions::NavButtonWidth, K4Styles::Dimensions::PopupButtonHeight);
+    m_normBtn->setFixedSize(smallNavBtnWidth, K4Styles::Dimensions::PopupButtonHeight);
     m_normBtn->setStyleSheet(QString("QPushButton { background-color: %1; color: %2; border: none; "
                                      "border-radius: %3px; font-size: %4px; font-weight: bold; }"
                                      "QPushButton:pressed { background-color: %5; }")
                                  .arg(K4Styles::Colors::OverlayNavButton)
                                  .arg(K4Styles::Colors::TextGray)
                                  .arg(K4Styles::Dimensions::BorderRadius)
-                                 .arg(K4Styles::Dimensions::FontSizeMedium)
+                                 .arg(K4Styles::Dimensions::FontSizeMedium) // Fits in narrow button
                                  .arg(K4Styles::Colors::OverlayNavButtonPressed));
     connect(m_normBtn, &QPushButton::clicked, this, &MenuOverlayWidget::resetToDefault);
     row3->addWidget(m_normBtn);
 
     m_backBtn = new QPushButton("\xE2\x86\xA9", navPanel); // ↩
-    m_backBtn->setFixedSize(K4Styles::Dimensions::NavButtonWidth, K4Styles::Dimensions::PopupButtonHeight);
+    m_backBtn->setFixedSize(smallNavBtnWidth, K4Styles::Dimensions::PopupButtonHeight);
     m_backBtn->setStyleSheet(QString("QPushButton { background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
                                      "stop:0 %1, stop:0.4 %2, stop:0.6 %3, stop:1 %4);"
                                      "color: %5; border: %6px solid %7; border-radius: %8px; "
@@ -265,6 +273,54 @@ void MenuOverlayWidget::setupUi() {
     mainLayout->addWidget(navPanel);
 
     setLayout(mainLayout);
+
+    // Create search popup (initially hidden)
+    createSearchPopup();
+}
+
+void MenuOverlayWidget::createSearchPopup() {
+    m_searchPopup = new QWidget(this, Qt::Popup);
+    m_searchPopup->setFixedWidth(130);
+
+    QVBoxLayout *layout = new QVBoxLayout(m_searchPopup);
+    layout->setContentsMargins(6, 6, 6, 6);
+
+    m_searchInput = new QLineEdit(m_searchPopup);
+    m_searchInput->setPlaceholderText("Search...");
+    m_searchInput->setStyleSheet(
+        QString("QLineEdit { background-color: %1; color: %2; border: 1px solid %3; "
+                "border-radius: 4px; padding: 6px; font-size: %4px; }"
+                "QLineEdit:focus { border-color: %5; }")
+            .arg(K4Styles::Colors::OverlayContentBg)
+            .arg(K4Styles::Colors::TextWhite)
+            .arg(K4Styles::Colors::OverlayNavButton)
+            .arg(K4Styles::Dimensions::FontSizeMedium)
+            .arg(K4Styles::Colors::VfoACyan));
+    layout->addWidget(m_searchInput);
+
+    m_searchPopup->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::OverlayHeaderBg));
+
+    connect(m_searchInput, &QLineEdit::textChanged, this, &MenuOverlayWidget::onSearchTextChanged);
+
+    m_searchPopup->hide();
+}
+
+void MenuOverlayWidget::toggleSearchPopup() {
+    if (m_searchPopup->isVisible()) {
+        m_searchPopup->hide();
+    } else {
+        // Position below search button
+        QPoint pos = m_searchBtn->mapToGlobal(QPoint(0, m_searchBtn->height() + 4));
+        m_searchPopup->move(pos);
+        m_searchPopup->show();
+        m_searchInput->setFocus();
+        m_searchInput->selectAll();
+    }
+}
+
+void MenuOverlayWidget::onSearchTextChanged(const QString &text) {
+    m_currentFilter = text;
+    populateItems();
 }
 
 void MenuOverlayWidget::populateItems() {
@@ -275,8 +331,8 @@ void MenuOverlayWidget::populateItems() {
     }
     m_itemWidgets.clear();
 
-    // Add menu items
-    QVector<MenuItem *> items = m_model->getAllItems();
+    // Add menu items (filtered if search is active)
+    QVector<MenuItem *> items = m_currentFilter.isEmpty() ? m_model->getAllItems() : m_model->filterByName(m_currentFilter);
     for (MenuItem *item : items) {
         MenuItemWidget *widget = new MenuItemWidget(item, m_listContainer);
         connect(widget, &MenuItemWidget::clicked, this, [this, widget]() {
@@ -310,6 +366,14 @@ void MenuOverlayWidget::show() {
 }
 
 void MenuOverlayWidget::hide() {
+    // Clear search filter when closing
+    m_currentFilter.clear();
+    if (m_searchInput) {
+        m_searchInput->clear();
+    }
+    if (m_searchPopup && m_searchPopup->isVisible()) {
+        m_searchPopup->hide();
+    }
     QWidget::hide();
     emit closed();
 }
@@ -341,7 +405,10 @@ void MenuOverlayWidget::keyPressEvent(QKeyEvent *event) {
         selectCurrent();
         break;
     case Qt::Key_Escape:
-        if (m_editMode) {
+        // Close search popup first if open
+        if (m_searchPopup && m_searchPopup->isVisible()) {
+            m_searchPopup->hide();
+        } else if (m_editMode) {
             setEditMode(false);
         } else {
             closeOverlay();

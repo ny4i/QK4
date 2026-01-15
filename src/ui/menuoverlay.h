@@ -8,6 +8,7 @@
 #include <QScrollArea>
 #include <QLabel>
 #include <QPushButton>
+#include <QLineEdit>
 #include <QList>
 #include <QWheelEvent>
 #include "../models/menumodel.h"
@@ -71,9 +72,12 @@ private slots:
     void closeOverlay();
     void resetToDefault();
     void onMenuValueChanged(int menuId, int newValue);
+    void toggleSearchPopup();
+    void onSearchTextChanged(const QString &text);
 
 private:
     void setupUi();
+    void createSearchPopup();
     void populateItems();
     void updateSelection();
     void ensureSelectedVisible();
@@ -95,8 +99,14 @@ private:
     // Navigation buttons
     QPushButton *m_upBtn;
     QPushButton *m_downBtn;
+    QPushButton *m_searchBtn;
     QPushButton *m_normBtn;
     QPushButton *m_backBtn;
+
+    // Search functionality
+    QWidget *m_searchPopup;
+    QLineEdit *m_searchInput;
+    QString m_currentFilter;
 };
 
 #endif // MENUOVERLAY_H

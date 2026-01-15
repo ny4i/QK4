@@ -76,6 +76,22 @@ QVector<MenuItem *> MenuModel::getItemsByCategory(const QString &category) {
     return result;
 }
 
+QVector<MenuItem *> MenuModel::filterByName(const QString &pattern) {
+    if (pattern.isEmpty()) {
+        return getAllItems();
+    }
+    QVector<MenuItem *> result;
+    for (auto it = m_items.begin(); it != m_items.end(); ++it) {
+        if (it.value().name.contains(pattern, Qt::CaseInsensitive)) {
+            result.append(&it.value());
+        }
+    }
+    // Sort alphabetically by name
+    std::sort(result.begin(), result.end(),
+              [](MenuItem *a, MenuItem *b) { return a->name.toLower() < b->name.toLower(); });
+    return result;
+}
+
 QStringList MenuModel::getCategories() const {
     QSet<QString> categories;
     for (const auto &item : m_items) {
