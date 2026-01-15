@@ -238,8 +238,10 @@ jobs:
           find "$APP_BUNDLE/Contents/PlugIns" -name "*.dylib" -exec \
             codesign --force --options runtime --sign "Developer ID Application: Michael Richard Garcia ($APPLE_TEAM_ID)" {} \;
 
-          echo "=== Signing main application ==="
-          codesign --force --options runtime --sign "Developer ID Application: Michael Richard Garcia ($APPLE_TEAM_ID)" \
+          echo "=== Signing main application with entitlements ==="
+          codesign --force --options runtime \
+            --entitlements "resources/K4Controller.entitlements" \
+            --sign "Developer ID Application: Michael Richard Garcia ($APPLE_TEAM_ID)" \
             "$APP_BUNDLE"
 
           echo "=== Verifying signature ==="
