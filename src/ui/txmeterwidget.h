@@ -66,10 +66,18 @@ private:
     double m_swrPeak = 0.0;
     double m_currentPeak = 0.0;
 
+    // Peak hold timers (counts down from PeakHoldTicks)
+    int m_powerPeakHold = 0;
+    int m_alcPeakHold = 0;
+    int m_compPeakHold = 0;
+    int m_swrPeakHold = 0;
+    int m_currentPeakHold = 0;
+
     // S-meter mode values (for dual S/Po meter)
     double m_sMeterTarget = 0.0;
     double m_sMeterDisplay = 0.0;
     double m_sMeterPeak = 0.0;
+    int m_sMeterPeakHold = 0;
 
     bool m_isQrp = false;
     bool m_isTransmitting = false; // RX mode shows S-meter, TX mode shows Po
@@ -79,6 +87,7 @@ private:
     static constexpr int DecayIntervalMs = 50;    // Timer fires every 50ms
     static constexpr double DecayRate = 0.1;      // Ratio units per interval (~500ms full decay)
     static constexpr double PeakDecayRate = 0.05; // Peak decays slower
+    static constexpr int PeakHoldTicks = 10;      // 500ms hold time (10 × 50ms)
 
     // Meter types for color selection
     enum class MeterType { Gradient, Red };

@@ -67,6 +67,7 @@ void VFOWidget::setupUi() {
         freqRow->addWidget(freqContainer);
     }
     mainLayout->addLayout(freqRow);
+    mainLayout->addSpacing(6); // Room for tuning rate indicator below frequency
 
     // Stacked widget for normal content vs mini-pan
     // Use dynamic height - stacked widget resizes based on active page
@@ -262,7 +263,7 @@ void VFOWidget::drawTuningRateIndicator(QPainter &painter) {
 
     // Underline properties
     const int spacing = 2;   // pixels below digit baseline
-    const int thickness = 2; // underline height
+    const int thickness = 4; // underline height
 
     // Calculate underline position in widget coordinates
     int underlineX = labelRect.left() + charX;

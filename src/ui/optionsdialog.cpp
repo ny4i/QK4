@@ -110,6 +110,7 @@ void OptionsDialog::setupUi() {
     m_tabList->addItem("CW Keyer");
     m_tabList->addItem("K-Pod");
     m_tabList->addItem("KPA1500");
+    m_tabList->addItem("DX Cluster");
     m_tabList->setCurrentRow(0);
 
     // Right side: stacked pages
@@ -122,6 +123,7 @@ void OptionsDialog::setupUi() {
     m_pageStack->addWidget(createCwKeyerPage());
     m_pageStack->addWidget(createKpodPage());
     m_pageStack->addWidget(createKpa1500Page());
+    m_pageStack->addWidget(createDxClusterPage());
 
     // Connect tab selection to page switching
     connect(m_tabList, &QListWidget::currentRowChanged, m_pageStack, &QStackedWidget::setCurrentIndex);
@@ -1572,4 +1574,38 @@ void OptionsDialog::updateCwKeyerStatus() {
                 .arg(K4Styles::Dimensions::BorderWidth)
                 .arg(K4Styles::Dimensions::IndicatorSize / 2));
     }
+}
+
+QWidget *OptionsDialog::createDxClusterPage() {
+    auto *page = new QWidget(this);
+    page->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::Background));
+
+    auto *layout = new QVBoxLayout(page);
+    layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin,
+                               K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
+    layout->setSpacing(15);
+
+    // Title
+    auto *titleLabel = new QLabel("DX Cluster", page);
+    titleLabel->setStyleSheet(
+        QString("color: %1; font-size: 16px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
+    layout->addWidget(titleLabel);
+
+    // Separator line
+    auto *line = new QFrame(page);
+    line->setFrameShape(QFrame::HLine);
+    line->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::DialogBorder));
+    line->setFixedHeight(K4Styles::Dimensions::SeparatorHeight);
+    layout->addWidget(line);
+
+    // Placeholder message
+    auto *placeholderLabel = new QLabel("DX Cluster settings will be configured here.", page);
+    placeholderLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
+                                        .arg(K4Styles::Colors::TextGray)
+                                        .arg(K4Styles::Dimensions::FontSizePopup));
+    placeholderLabel->setWordWrap(true);
+    layout->addWidget(placeholderLabel);
+
+    layout->addStretch();
+    return page;
 }

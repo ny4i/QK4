@@ -29,6 +29,7 @@ void TxMeterWidget::setPower(double watts, bool isQrp) {
     }
     if (ratio > m_powerPeak) {
         m_powerPeak = ratio;
+        m_powerPeakHold = PeakHoldTicks;
     }
     update();
 }
@@ -41,6 +42,7 @@ void TxMeterWidget::setAlc(int bars) {
     }
     if (ratio > m_alcPeak) {
         m_alcPeak = ratio;
+        m_alcPeakHold = PeakHoldTicks;
     }
     update();
 }
@@ -53,6 +55,7 @@ void TxMeterWidget::setCompression(int dB) {
     }
     if (ratio > m_compPeak) {
         m_compPeak = ratio;
+        m_compPeakHold = PeakHoldTicks;
     }
     update();
 }
@@ -66,6 +69,7 @@ void TxMeterWidget::setSwr(double ratio) {
     }
     if (fillRatio > m_swrPeak) {
         m_swrPeak = fillRatio;
+        m_swrPeakHold = PeakHoldTicks;
     }
     update();
 }
@@ -78,6 +82,7 @@ void TxMeterWidget::setCurrent(double amps) {
     }
     if (ratio > m_currentPeak) {
         m_currentPeak = ratio;
+        m_currentPeakHold = PeakHoldTicks;
     }
     update();
 }
@@ -89,32 +94,40 @@ void TxMeterWidget::setTxMeters(int alc, int compDb, double fwdPower, double swr
     m_powerTarget = powerRatio;
     if (powerRatio > m_powerDisplay)
         m_powerDisplay = powerRatio;
-    if (powerRatio > m_powerPeak)
+    if (powerRatio > m_powerPeak) {
         m_powerPeak = powerRatio;
+        m_powerPeakHold = PeakHoldTicks;
+    }
 
     // ALC
     double alcRatio = qBound(0, alc, 10) / 10.0;
     m_alcTarget = alcRatio;
     if (alcRatio > m_alcDisplay)
         m_alcDisplay = alcRatio;
-    if (alcRatio > m_alcPeak)
+    if (alcRatio > m_alcPeak) {
         m_alcPeak = alcRatio;
+        m_alcPeakHold = PeakHoldTicks;
+    }
 
     // Compression
     double compRatio = qBound(0, compDb, 25) / 25.0;
     m_compTarget = compRatio;
     if (compRatio > m_compDisplay)
         m_compDisplay = compRatio;
-    if (compRatio > m_compPeak)
+    if (compRatio > m_compPeak) {
         m_compPeak = compRatio;
+        m_compPeakHold = PeakHoldTicks;
+    }
 
     // SWR
     double swrRatio = qMin((qMax(1.0, swr) - 1.0) / 2.0, 1.0);
     m_swrTarget = swrRatio;
     if (swrRatio > m_swrDisplay)
         m_swrDisplay = swrRatio;
-    if (swrRatio > m_swrPeak)
+    if (swrRatio > m_swrPeak) {
         m_swrPeak = swrRatio;
+        m_swrPeakHold = PeakHoldTicks;
+    }
 
     update();
 }
@@ -129,6 +142,7 @@ void TxMeterWidget::setSMeter(double sValue) {
     }
     if (ratio > m_sMeterPeak) {
         m_sMeterPeak = ratio;
+        m_sMeterPeakHold = PeakHoldTicks;
     }
     update();
 }
@@ -153,12 +167,16 @@ void TxMeterWidget::decayValues() {
         }
     };
 
-    // Decay peak values (slower)
-    auto decayPeak = [&](double &peak, double display) {
+    // Decay peak values (with hold time)
+    auto decayPeak = [&](double &peak, double display, int &holdCounter) {
         if (peak > display) {
-            peak -= PeakDecayRate;
-            if (peak < display)
-                peak = display;
+            if (holdCounter > 0) {
+                holdCounter--;  // Wait during hold period
+            } else {
+                peak -= PeakDecayRate;
+                if (peak < display)
+                    peak = display;
+            }
             needsUpdate = true;
         }
     };
@@ -170,12 +188,12 @@ void TxMeterWidget::decayValues() {
     decayValue(m_currentDisplay, m_currentTarget);
     decayValue(m_sMeterDisplay, m_sMeterTarget); // S-meter decay
 
-    decayPeak(m_powerPeak, m_powerDisplay);
-    decayPeak(m_alcPeak, m_alcDisplay);
-    decayPeak(m_compPeak, m_compDisplay);
-    decayPeak(m_swrPeak, m_swrDisplay);
-    decayPeak(m_currentPeak, m_currentDisplay);
-    decayPeak(m_sMeterPeak, m_sMeterDisplay); // S-meter peak decay
+    decayPeak(m_powerPeak, m_powerDisplay, m_powerPeakHold);
+    decayPeak(m_alcPeak, m_alcDisplay, m_alcPeakHold);
+    decayPeak(m_compPeak, m_compDisplay, m_compPeakHold);
+    decayPeak(m_swrPeak, m_swrDisplay, m_swrPeakHold);
+    decayPeak(m_currentPeak, m_currentDisplay, m_currentPeakHold);
+    decayPeak(m_sMeterPeak, m_sMeterDisplay, m_sMeterPeakHold); // S-meter peak decay
 
     if (needsUpdate) {
         update();
@@ -242,7 +260,7 @@ void TxMeterWidget::paintEvent(QPaintEvent *event) {
 
     // === ALC - Gradient ===
     {
-        QStringList labels = {"", "", "", "", "", "", "", "", "", "", ""}; // Just tick marks
+        QStringList labels = {"", "1", "3", "5", "7"};
         drawMeterRow(painter, y, rowHeight, "ALC", m_alcDisplay, m_alcPeak, labels, scaleFont, barStartX, barWidth,
                      barHeight, MeterType::Gradient);
         y += rowHeight + spacing;
@@ -322,13 +340,18 @@ void TxMeterWidget::drawMeterRow(QPainter &painter, int y, int rowHeight, const 
 
     // Scale labels below bar
     painter.setFont(scaleFont);
-    painter.setPen(QColor(K4Styles::Colors::TextGray));
     int scaleY = barY + barHeight + 1;
     int numLabels = scaleLabels.size();
     if (numLabels > 0) {
         for (int i = 0; i < numLabels; i++) {
             if (scaleLabels[i].isEmpty())
                 continue;
+            // Color +dB labels red (S-meter over S9)
+            if (scaleLabels[i].startsWith('+')) {
+                painter.setPen(QColor(K4Styles::Colors::TxRed));
+            } else {
+                painter.setPen(QColor(K4Styles::Colors::TextGray));
+            }
             int x = barStartX + (barWidth * i) / (numLabels - 1);
             // Center the label, but keep last one right-aligned
             int labelW = 20;

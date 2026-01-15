@@ -1766,12 +1766,6 @@ void MainWindow::setupMenuBar() {
     connect(quitAction, &QAction::triggered, this, &QMainWindow::close);
     fileMenu->addAction(quitAction);
 
-    // Connect menu
-    QMenu *connectMenu = menuBar()->addMenu("&Connect");
-    QAction *radiosAction = new QAction("&Radios...", this);
-    connect(radiosAction, &QAction::triggered, this, &MainWindow::showRadioManager);
-    connectMenu->addAction(radiosAction);
-
     // Tools menu
     QMenu *toolsMenu = menuBar()->addMenu("&Tools");
     QAction *optionsAction = new QAction("&Settings...", this);

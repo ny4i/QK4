@@ -49,6 +49,7 @@ private:
     QWidget *createNetworkPage();
     QWidget *createRigControlPage();
     QWidget *createCwKeyerPage();
+    QWidget *createDxClusterPage();
     void updateKpa1500Status();
     void updateCatServerStatus();
     void populateMicDevices();
