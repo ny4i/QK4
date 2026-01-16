@@ -39,6 +39,11 @@ jobs:
       - name: Install dependencies
         run: |
           brew install qt@6 opus hidapi openssl@3 dbus brotli
+          # Force link in case packages are cached but not linked
+          brew link --overwrite qt@6 || true
+          brew link --overwrite opus || true
+          brew link --overwrite hidapi || true
+          brew link --overwrite dbus || true
 
       - name: Configure CMake
         run: |
