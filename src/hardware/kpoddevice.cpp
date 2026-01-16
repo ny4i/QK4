@@ -2,6 +2,7 @@
 #include <hidapi/hidapi.h>
 #include <QDebug>
 #include <QDateTime>
+#include <QDir>
 #include <QFile>
 #include <QStandardPaths>
 #include <QTextStream>
@@ -15,7 +16,15 @@ static void kpodLog(const QString &msg) {
     qDebug() << "KPOD:" << msg;
 #ifdef Q_OS_WIN
     // Also write to file on Windows since console output doesn't work for GUI apps
-    static QString logPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/kpod_debug.log";
+    static QString logDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    static QString logPath = logDir + "/kpod_debug.log";
+    static bool dirCreated = false;
+
+    if (!dirCreated) {
+        QDir().mkpath(logDir);
+        dirCreated = true;
+    }
+
     QFile file(logPath);
     if (file.open(QIODevice::Append | QIODevice::Text)) {
         QTextStream out(&file);
