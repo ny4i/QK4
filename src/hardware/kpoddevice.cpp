@@ -261,6 +261,31 @@ KpodDeviceInfo KpodDevice::detectDevice() {
     struct hid_device_info *devs = hid_enumerate(VENDOR_ID, PRODUCT_ID);
     struct hid_device_info *cur_dev = devs;
 
+    // Log ALL enumerated interfaces (KPOD may have multiple)
+    int interfaceCount = 0;
+    struct hid_device_info *selected_dev = nullptr;
+    for (struct hid_device_info *d = devs; d != nullptr; d = d->next) {
+        interfaceCount++;
+        kpodLog(QString("Interface %1: usage_page=0x%2, usage=0x%3, interface=%4, path=%5")
+            .arg(interfaceCount)
+            .arg(d->usage_page, 4, 16, QChar('0'))
+            .arg(d->usage, 4, 16, QChar('0'))
+            .arg(d->interface_number)
+            .arg(d->path ? QString::fromUtf8(d->path) : "null"));
+
+        // Prefer vendor-defined usage page (0xFF00) or the first valid interface
+        if (!selected_dev) {
+            selected_dev = d;
+        } else if (d->usage_page >= 0xFF00 && selected_dev->usage_page < 0xFF00) {
+            // Prefer vendor-defined interface
+            selected_dev = d;
+            kpodLog(QString("Selecting interface %1 (vendor-defined usage page)").arg(interfaceCount));
+        }
+    }
+    kpodLog(QString("Total interfaces found: %1").arg(interfaceCount));
+
+    cur_dev = selected_dev;
+
     if (cur_dev) {
         info.detected = true;
         info.vendorId = cur_dev->vendor_id;
@@ -276,10 +301,11 @@ KpodDeviceInfo KpodDevice::detectDevice() {
             info.devicePath = QString::fromUtf8(cur_dev->path);
         }
 
-        kpodLog(QString("Device found: %1 (VID=%2, PID=%3)")
+        kpodLog(QString("Selected device: %1 (VID=%2, PID=%3, usage_page=0x%4)")
             .arg(info.productName)
             .arg(info.vendorId, 4, 16, QChar('0'))
-            .arg(info.productId, 4, 16, QChar('0')));
+            .arg(info.productId, 4, 16, QChar('0'))
+            .arg(cur_dev->usage_page, 4, 16, QChar('0')));
         kpodLog(QString("Device path: %1").arg(info.devicePath));
 
         // Try to open device to get firmware version and device ID
