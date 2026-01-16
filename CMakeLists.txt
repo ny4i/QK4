@@ -175,7 +175,13 @@ if(APPLE)
     set(MACOSX_BUNDLE_BUNDLE_VERSION ${K4CONTROLLER_VERSION_FULL})
     set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${K4CONTROLLER_VERSION_FULL})
     set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.ai5qk.k4controller")
-    add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES} ${HEADERS})
+    set(MACOSX_BUNDLE_ICON_FILE K4Controller.icns)
+
+    # Set the icon file as a resource
+    set(APP_ICON_MACOS "${CMAKE_SOURCE_DIR}/resources/K4Controller.icns")
+    set_source_files_properties(${APP_ICON_MACOS} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+
+    add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES} ${HEADERS} ${APP_ICON_MACOS})
 
     # Set the app bundle output directory
     set_target_properties(${PROJECT_NAME} PROPERTIES
