@@ -15,15 +15,8 @@
 static void kpodLog(const QString &msg) {
     qDebug() << "KPOD:" << msg;
 #ifdef Q_OS_WIN
-    // Also write to file on Windows since console output doesn't work for GUI apps
-    static QString logDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    static QString logPath = logDir + "/kpod_debug.log";
-    static bool dirCreated = false;
-
-    if (!dirCreated) {
-        QDir().mkpath(logDir);
-        dirCreated = true;
-    }
+    // Write to TEMP directory - guaranteed to exist and be writable
+    static QString logPath = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/kpod_debug.log";
 
     QFile file(logPath);
     if (file.open(QIODevice::Append | QIODevice::Text)) {
