@@ -1,10 +1,29 @@
 #include "kpoddevice.h"
 #include <hidapi/hidapi.h>
 #include <QDebug>
+#include <QDateTime>
+#include <QFile>
+#include <QStandardPaths>
+#include <QTextStream>
 
 #ifdef Q_OS_MACOS
 #include <CoreFoundation/CoreFoundation.h>
 #endif
+
+// Debug logging helper for KPOD troubleshooting
+static void kpodLog(const QString &msg) {
+    qDebug() << "KPOD:" << msg;
+#ifdef Q_OS_WIN
+    // Also write to file on Windows since console output doesn't work for GUI apps
+    static QString logPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/kpod_debug.log";
+    QFile file(logPath);
+    if (file.open(QIODevice::Append | QIODevice::Text)) {
+        QTextStream out(&file);
+        out << QDateTime::currentDateTime().toString(Qt::ISODate) << " " << msg << "\n";
+        file.close();
+    }
+#endif
+}
 
 KpodDevice::KpodDevice(QObject *parent)
     : QObject(parent), m_hidDevice(nullptr), m_pollTimer(new QTimer(this)), m_lastRockerPosition(RockerCenter) {
@@ -219,10 +238,14 @@ void KpodDevice::processResponse(const unsigned char *buffer) {
 KpodDeviceInfo KpodDevice::detectDevice() {
     KpodDeviceInfo info;
 
+    kpodLog("detectDevice() starting");
+
     if (hid_init() != 0) {
+        kpodLog("hid_init() failed");
         return info;
     }
 
+    kpodLog("hid_init() succeeded, enumerating devices...");
     struct hid_device_info *devs = hid_enumerate(VENDOR_ID, PRODUCT_ID);
     struct hid_device_info *cur_dev = devs;
 
@@ -241,42 +264,97 @@ KpodDeviceInfo KpodDevice::detectDevice() {
             info.devicePath = QString::fromUtf8(cur_dev->path);
         }
 
+        kpodLog(QString("Device found: %1 (VID=%2, PID=%3)")
+            .arg(info.productName)
+            .arg(info.vendorId, 4, 16, QChar('0'))
+            .arg(info.productId, 4, 16, QChar('0')));
+        kpodLog(QString("Device path: %1").arg(info.devicePath));
+
         // Try to open device to get firmware version and device ID
+        kpodLog("Attempting to open device...");
         hid_device *dev = hid_open(VENDOR_ID, PRODUCT_ID, nullptr);
         if (dev) {
+            kpodLog("Device opened successfully");
             unsigned char buf[8];
+
+            // Use longer timeout on Windows (HID driver latency)
+#ifdef Q_OS_WIN
+            const int readTimeout = 500;
+#else
+            const int readTimeout = 100;
+#endif
+            kpodLog(QString("Using read timeout: %1ms").arg(readTimeout));
 
             // Get Device ID (command '=')
             memset(buf, 0, sizeof(buf));
             buf[0] = '=';
-            if (hid_write(dev, buf, sizeof(buf)) > 0) {
-                if (hid_read_timeout(dev, buf, sizeof(buf), 100) == 8) {
+            kpodLog("Sending Device ID command '='...");
+            int writeResult = hid_write(dev, buf, sizeof(buf));
+            kpodLog(QString("hid_write returned: %1").arg(writeResult));
+            if (writeResult > 0) {
+                int readResult = hid_read_timeout(dev, buf, sizeof(buf), readTimeout);
+                kpodLog(QString("hid_read_timeout returned: %1").arg(readResult));
+                if (readResult == 8) {
                     QString idStr;
                     for (int i = 1; i < 8 && buf[i] != 0; ++i) {
                         idStr += QChar(buf[i]);
                     }
                     info.deviceId = idStr.trimmed();
+                    kpodLog(QString("Device ID: '%1'").arg(info.deviceId));
+                } else if (readResult < 0) {
+                    const wchar_t *err = hid_error(dev);
+                    kpodLog(QString("Read error: %1").arg(err ? QString::fromWCharArray(err) : "unknown"));
+                } else {
+                    kpodLog(QString("Read returned %1 bytes (expected 8)").arg(readResult));
                 }
+            } else {
+                const wchar_t *err = hid_error(dev);
+                kpodLog(QString("Write error: %1").arg(err ? QString::fromWCharArray(err) : "unknown"));
             }
 
             // Get Firmware Version (command 'v')
             memset(buf, 0, sizeof(buf));
             buf[0] = 'v';
-            if (hid_write(dev, buf, sizeof(buf)) > 0) {
-                if (hid_read_timeout(dev, buf, sizeof(buf), 100) == 8) {
+            kpodLog("Sending Firmware Version command 'v'...");
+            writeResult = hid_write(dev, buf, sizeof(buf));
+            kpodLog(QString("hid_write returned: %1").arg(writeResult));
+            if (writeResult > 0) {
+                int readResult = hid_read_timeout(dev, buf, sizeof(buf), readTimeout);
+                kpodLog(QString("hid_read_timeout returned: %1").arg(readResult));
+                if (readResult == 8) {
                     qint16 versionBcd = static_cast<qint16>(buf[1] | (buf[2] << 8));
                     int major = versionBcd / 100;
                     int minor = versionBcd % 100;
                     info.firmwareVersion = QString("%1.%2").arg(major).arg(minor, 2, 10, QChar('0'));
+                    kpodLog(QString("Firmware version: %1 (raw BCD: %2)").arg(info.firmwareVersion).arg(versionBcd));
+                } else if (readResult < 0) {
+                    const wchar_t *err = hid_error(dev);
+                    kpodLog(QString("Read error: %1").arg(err ? QString::fromWCharArray(err) : "unknown"));
+                } else {
+                    kpodLog(QString("Read returned %1 bytes (expected 8)").arg(readResult));
                 }
+            } else {
+                const wchar_t *err = hid_error(dev);
+                kpodLog(QString("Write error: %1").arg(err ? QString::fromWCharArray(err) : "unknown"));
             }
 
             hid_close(dev);
+            kpodLog("Device closed");
+        } else {
+            const wchar_t *err = hid_error(nullptr);
+            kpodLog(QString("Failed to open device: %1").arg(err ? QString::fromWCharArray(err) : "unknown"));
         }
+    } else {
+        kpodLog("No KPOD device found in enumeration");
     }
 
     hid_free_enumeration(devs);
     hid_exit();
+
+    kpodLog(QString("detectDevice() complete - detected=%1, version=%2, id=%3")
+        .arg(info.detected)
+        .arg(info.firmwareVersion)
+        .arg(info.deviceId));
 
     return info;
 }
