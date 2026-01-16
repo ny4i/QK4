@@ -32,24 +32,20 @@ jobs:
             /opt/homebrew/Cellar/openssl@3
             /opt/homebrew/Cellar/dbus
             /opt/homebrew/Cellar/brotli
-          key: brew-macos-14-${{ hashFiles('.github/workflows/release.yml') }}
+          key: brew-macos-14-v2-${{ hashFiles('.github/workflows/release.yml') }}
           restore-keys: |
-            brew-macos-14-
+            brew-macos-14-v2-
 
       - name: Install dependencies
         run: |
-          brew install qt@6 opus hidapi openssl@3 dbus brotli
-          # Force link in case packages are cached but not linked
-          brew link --overwrite qt@6 || true
-          brew link --overwrite opus || true
-          brew link --overwrite hidapi || true
-          brew link --overwrite dbus || true
+          # qt@6 renamed to qt in Homebrew (Qt 6 is now default)
+          brew install qt opus hidapi openssl@3 dbus brotli
 
       - name: Configure CMake
         run: |
           cmake -B build \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="$(brew --prefix qt@6)" \
+            -DCMAKE_PREFIX_PATH="$(brew --prefix qt)" \
             -DK4CONTROLLER_VERSION_FULL="${{ steps.version.outputs.version }}"
 
       - name: Build
@@ -63,7 +59,7 @@ jobs:
           FRAMEWORKS="$APP_BUNDLE/Contents/Frameworks"
 
           # Run macdeployqt to bundle Qt frameworks
-          $(brew --prefix qt@6)/bin/macdeployqt "$APP_BUNDLE" -verbose=2
+          $(brew --prefix qt)/bin/macdeployqt "$APP_BUNDLE" -verbose=2
 
           # Copy QtDBus.framework (transitive dependency of QtGui in Homebrew Qt)
           # Note: qtbase is the actual package containing Qt libraries, qt@6 is just a meta-formula
