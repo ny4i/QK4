@@ -223,10 +223,13 @@ private:
         return 100000; // Default for very wide spans
     }
 
-    // Format frequency as MHz string with 3 decimal places (e.g., "14.172")
+    // Format frequency as MHz string with adaptive decimal places
+    // Narrow spans need more precision to avoid duplicate labels
     QString formatFrequency(qint64 freqHz) const {
         double freqMHz = freqHz / 1000000.0;
-        return QString::number(freqMHz, 'f', 3);
+        // Use 4 decimals for spans <= 20 kHz, 3 decimals for wider spans
+        int decimals = (m_spanHz <= 20000) ? 4 : 3;
+        return QString::number(freqMHz, 'f', decimals);
     }
 
     qint64 m_centerFreq = 0;
@@ -759,6 +762,13 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
     const float waterfallHeight = h - spectrumHeight;
 
     QRhiResourceUpdateBatch *rub = m_rhi->nextResourceUpdateBatch();
+
+    // Full waterfall clear (on disconnect)
+    if (m_waterfallNeedsFullClear) {
+        QRhiTextureSubresourceUploadDescription fullUpload(m_waterfallData.constData(), m_waterfallData.size());
+        rub->uploadTexture(m_waterfallTexture.get(), QRhiTextureUploadEntry(0, 0, fullUpload));
+        m_waterfallNeedsFullClear = false;
+    }
 
     // Update waterfall texture if needed
     if (m_waterfallNeedsUpdate && !m_currentSpectrum.isEmpty()) {
@@ -1556,6 +1566,7 @@ void PanadapterRhiWidget::clear() {
     m_peakHold.clear();
     m_waterfallWriteRow = 0;
     m_waterfallData.fill(0);
+    m_waterfallNeedsFullClear = true;
     update();
 }
 

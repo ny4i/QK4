@@ -3722,6 +3722,31 @@ void MainWindow::updateConnectionState(TcpClient::ConnectionState state) {
         if (m_audioEngine) {
             m_audioEngine->stop();
         }
+
+        // Clear all UI state to avoid showing stale data
+        // Clear spectrum displays
+        m_panadapterA->clear();
+        m_panadapterB->clear();
+
+        // Clear mini-pan displays
+        if (m_vfoA->miniPan())
+            m_vfoA->miniPan()->clear();
+        if (m_vfoB->miniPan())
+            m_vfoB->miniPan()->clear();
+
+        // Reset VFO displays and embedded meters
+        m_vfoA->setFrequency(0);
+        m_vfoA->setSMeterValue(0);
+        m_vfoA->setTransmitting(false);
+        m_vfoA->setTxMeters(0, 0, 0, 1.0);
+        m_vfoB->setFrequency(0);
+        m_vfoB->setSMeterValue(0);
+        m_vfoB->setTransmitting(false);
+        m_vfoB->setTxMeters(0, 0, 0, 1.0);
+
+        // Clear menu model
+        m_menuModel->clear();
+
         break;
 
     case TcpClient::Connecting:

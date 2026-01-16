@@ -366,6 +366,13 @@ void MiniPanRhiWidget::render(QRhiCommandBuffer *cb) {
 
     QRhiResourceUpdateBatch *rub = m_rhi->nextResourceUpdateBatch();
 
+    // Full waterfall clear (on disconnect)
+    if (m_waterfallNeedsFullClear) {
+        QRhiTextureSubresourceUploadDescription fullUpload(m_waterfallData.constData(), m_waterfallData.size());
+        rub->uploadTexture(m_waterfallTexture.get(), QRhiTextureUploadEntry(0, 0, fullUpload));
+        m_waterfallNeedsFullClear = false;
+    }
+
     // Update waterfall texture if needed
     if (m_waterfallNeedsUpdate && !m_smoothedSpectrum.isEmpty()) {
         // Resample spectrum to texture width
@@ -836,6 +843,7 @@ void MiniPanRhiWidget::clear() {
     m_waterfallWriteRow = 0;
     m_smoothedBaseline = 0.0f;
     m_waterfallData.fill(0);
+    m_waterfallNeedsFullClear = true;
     update();
 }
 

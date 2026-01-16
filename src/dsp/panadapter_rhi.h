@@ -170,6 +170,7 @@ private:
     int m_waterfallWriteRow = 0;
     QVector<quint8> m_waterfallData;
     bool m_waterfallNeedsUpdate = false;
+    bool m_waterfallNeedsFullClear = false;
 
     // Color LUT (256 RGBA entries) - for waterfall
     QVector<quint8> m_colorLUT;

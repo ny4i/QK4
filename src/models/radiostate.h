@@ -772,13 +772,13 @@ private:
     int m_scale = -1; // 10-150, init to -1 to ensure first emit
 
     // Panadapter span (Main, from #SPN command)
-    int m_spanHz = 10000; // Default 10 kHz
+    int m_spanHz = 0; // Init to 0 to ensure first emit
 
     // Panadapter REF level (Sub)
     int m_refLevelB = -110; // Default -110 dBm
 
     // Panadapter span (Sub, from #SPN$ command)
-    int m_spanHzB = 10000; // Default 10 kHz
+    int m_spanHzB = 0; // Init to 0 to ensure first emit
 
     // Radio info
     QString m_radioID;

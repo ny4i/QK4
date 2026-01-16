@@ -35,7 +35,8 @@ void TxMeterWidget::setPower(double watts, bool isQrp) {
 }
 
 void TxMeterWidget::setAlc(int bars) {
-    double ratio = qBound(0, bars, 10) / 10.0;
+    // K4 ALC meter is 0-7 bars (labeled 1, 3, 5, 7)
+    double ratio = qBound(0, bars, 7) / 7.0;
     m_alcTarget = ratio;
     if (ratio > m_alcDisplay) {
         m_alcDisplay = ratio;
@@ -99,8 +100,8 @@ void TxMeterWidget::setTxMeters(int alc, int compDb, double fwdPower, double swr
         m_powerPeakHold = PeakHoldTicks;
     }
 
-    // ALC
-    double alcRatio = qBound(0, alc, 10) / 10.0;
+    // ALC - K4 ALC meter is 0-7 bars (labeled 1, 3, 5, 7)
+    double alcRatio = qBound(0, alc, 7) / 7.0;
     m_alcTarget = alcRatio;
     if (alcRatio > m_alcDisplay)
         m_alcDisplay = alcRatio;

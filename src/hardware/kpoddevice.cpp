@@ -267,11 +267,11 @@ KpodDeviceInfo KpodDevice::detectDevice() {
     for (struct hid_device_info *d = devs; d != nullptr; d = d->next) {
         interfaceCount++;
         kpodLog(QString("Interface %1: usage_page=0x%2, usage=0x%3, interface=%4, path=%5")
-            .arg(interfaceCount)
-            .arg(d->usage_page, 4, 16, QChar('0'))
-            .arg(d->usage, 4, 16, QChar('0'))
-            .arg(d->interface_number)
-            .arg(d->path ? QString::fromUtf8(d->path) : "null"));
+                    .arg(interfaceCount)
+                    .arg(d->usage_page, 4, 16, QChar('0'))
+                    .arg(d->usage, 4, 16, QChar('0'))
+                    .arg(d->interface_number)
+                    .arg(d->path ? QString::fromUtf8(d->path) : "null"));
 
         // Prefer vendor-defined usage page (0xFF00) or the first valid interface
         if (!selected_dev) {
@@ -302,10 +302,10 @@ KpodDeviceInfo KpodDevice::detectDevice() {
         }
 
         kpodLog(QString("Selected device: %1 (VID=%2, PID=%3, usage_page=0x%4)")
-            .arg(info.productName)
-            .arg(info.vendorId, 4, 16, QChar('0'))
-            .arg(info.productId, 4, 16, QChar('0'))
-            .arg(cur_dev->usage_page, 4, 16, QChar('0')));
+                    .arg(info.productName)
+                    .arg(info.vendorId, 4, 16, QChar('0'))
+                    .arg(info.productId, 4, 16, QChar('0'))
+                    .arg(cur_dev->usage_page, 4, 16, QChar('0')));
         kpodLog(QString("Device path: %1").arg(info.devicePath));
 
         // Try to open device to get firmware version and device ID
@@ -395,9 +395,9 @@ KpodDeviceInfo KpodDevice::detectDevice() {
     hid_exit();
 
     kpodLog(QString("detectDevice() complete - detected=%1, version=%2, id=%3")
-        .arg(info.detected)
-        .arg(info.firmwareVersion)
-        .arg(info.deviceId));
+                .arg(info.detected)
+                .arg(info.firmwareVersion)
+                .arg(info.deviceId));
 
     return info;
 }
