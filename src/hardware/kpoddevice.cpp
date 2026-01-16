@@ -97,7 +97,17 @@ bool KpodDevice::openDevice() {
         return false;
     }
 
+    // Use hid_open_path() on Windows - hid_open() can fail even when enumerate succeeds
+#ifdef Q_OS_WIN
+    if (m_deviceInfo.devicePath.isEmpty()) {
+        qWarning() << "KPOD: No device path available";
+        hid_exit();
+        return false;
+    }
+    m_hidDevice = hid_open_path(m_deviceInfo.devicePath.toUtf8().constData());
+#else
     m_hidDevice = hid_open(VENDOR_ID, PRODUCT_ID, nullptr);
+#endif
     if (!m_hidDevice) {
         qWarning() << "KPOD: Failed to open device";
         hid_exit();
@@ -273,8 +283,13 @@ KpodDeviceInfo KpodDevice::detectDevice() {
         kpodLog(QString("Device path: %1").arg(info.devicePath));
 
         // Try to open device to get firmware version and device ID
+        // Use hid_open_path() on Windows - hid_open() can fail even when enumerate succeeds
         kpodLog("Attempting to open device...");
+#ifdef Q_OS_WIN
+        hid_device *dev = hid_open_path(cur_dev->path);
+#else
         hid_device *dev = hid_open(VENDOR_ID, PRODUCT_ID, nullptr);
+#endif
         if (dev) {
             kpodLog("Device opened successfully");
             unsigned char buf[8];
