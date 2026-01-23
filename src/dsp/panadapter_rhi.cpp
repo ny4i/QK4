@@ -782,7 +782,7 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
         m_waterfallNeedsUpdate = false;
     }
 
-    // Update waterfall uniform buffer with Lanczos parameters
+    // Update waterfall uniform buffer with bin parameters
     float scrollOffset = static_cast<float>(m_waterfallWriteRow) / m_waterfallHistory;
     float binCount = static_cast<float>(m_currentSpectrum.isEmpty() ? m_textureWidth : m_currentSpectrum.size());
     struct {
@@ -807,7 +807,7 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
         else
             m_smoothedBaseline = baselineAlpha * frameMinNormalized + (1.0f - baselineAlpha) * m_smoothedBaseline;
 
-        // Upload raw spectrum bins to 1D texture - GPU shader does Lanczos interpolation
+        // Upload raw spectrum bins to 1D texture - GPU shader does bilinear interpolation
         int specSize = m_currentSpectrum.size();
         int offset = (m_textureWidth - specSize) / 2;
 
@@ -833,9 +833,9 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
             float glowIntensity;    // offset 48
             float glowWidth;        // offset 52
             float spectrumHeightPx; // offset 56
-            float binCount;         // offset 60: for Lanczos interpolation
+            float binCount;         // offset 60: actual bin count
             float viewportSize[2];  // offset 64
-            float textureWidth;     // offset 72: for Lanczos interpolation
+            float textureWidth;     // offset 72: for bin centering
             float padding;          // offset 76
         } specBlueUniforms = {
             {0.0f, 0.08f, 0.16f, 0.85f},        // fillBaseColor: dark navy
@@ -844,9 +844,9 @@ void PanadapterRhiWidget::render(QRhiCommandBuffer *cb) {
             0.8f,                               // glowIntensity
             0.04f,                              // glowWidth
             spectrumHeight,                     // spectrumHeight in pixels
-            specBinCount,                       // binCount for Lanczos
+            specBinCount,                       // binCount for shader
             {w, h},                             // viewportSize
-            static_cast<float>(m_textureWidth), // textureWidth for Lanczos
+            static_cast<float>(m_textureWidth), // textureWidth for bin centering
             0.0f                                // padding
         };
         rub->updateDynamicBuffer(m_spectrumBlueAmpUniformBuffer.get(), 0, sizeof(specBlueUniforms), &specBlueUniforms);
@@ -1413,7 +1413,7 @@ void PanadapterRhiWidget::updateWaterfallData() {
     if (m_currentSpectrum.isEmpty())
         return;
 
-    // Upload raw bins centered in texture - GPU shader does Lanczos interpolation
+    // Upload raw bins centered in texture for shader sampling
     int row = m_waterfallWriteRow;
     int specSize = m_currentSpectrum.size();
     int offset = (m_textureWidth - specSize) / 2;

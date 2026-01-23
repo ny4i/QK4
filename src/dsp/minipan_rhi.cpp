@@ -414,11 +414,11 @@ void MiniPanRhiWidget::render(QRhiCommandBuffer *cb) {
     } spectrumUniforms = {w, spectrumHeight, {0, 0}};
     rub->updateDynamicBuffer(m_spectrumUniformBuffer.get(), 0, sizeof(spectrumUniforms), &spectrumUniforms);
 
-    // Update waterfall uniform buffer (matches waterfall.frag Lanczos shader layout)
+    // Update waterfall uniform buffer (matches waterfall.frag shader layout)
     float scrollOffset = static_cast<float>(m_waterfallWriteRow) / WATERFALL_HISTORY;
     struct {
         float scrollOffset;
-        float binCount; // For Lanczos: texture is pre-filled, so binCount = textureWidth
+        float binCount; // Texture is pre-filled, so binCount = textureWidth
         float textureWidth;
         float padding;
     } waterfallUniforms = {scrollOffset, static_cast<float>(TEXTURE_WIDTH), static_cast<float>(TEXTURE_WIDTH), 0.0f};

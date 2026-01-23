@@ -14,54 +14,24 @@ layout(std140, binding = 0) uniform buf {
     float glowIntensity;    // offset 48: glow strength (0.8)
     float glowWidth;        // offset 52: glow falloff width (0.04)
     float spectrumHeight;   // offset 56: spectrum area height in pixels
-    float binCount;         // offset 60: actual spectrum bin count for Lanczos
+    float binCount;         // offset 60: actual spectrum bin count
     vec2 viewportSize;      // offset 64: viewport dimensions
-    float textureWidth;     // offset 72: texture width for Lanczos
+    float textureWidth;     // offset 72: texture width for bin centering
     float padding;          // offset 76: padding for 16-byte alignment
 };  // Total: 80 bytes
 
-// Lanczos kernel - sinc(x) * sinc(x/a) windowed
-float lanczos(float x) {
-    if (x == 0.0) return 1.0;
-    if (abs(x) >= 3.0) return 0.0;
-    float px = 3.14159265 * x;
-    return (sin(px) / px) * (sin(px / 3.0) / (px / 3.0));
-}
-
-// Sample spectrum texture with Lanczos-3 interpolation
-float sampleLanczos3(float u) {
-    // Map display X [0,1] to bin index [0, binCount-1]
-    float srcPos = u * (binCount - 1.0);
-    float texelSize = 1.0 / textureWidth;
-
-    // Bins are centered in texture
-    // Use floor() to match C++ integer division for bin centering
+// Simple bilinear sampling - let GPU handle interpolation
+float sampleBilinear(float u) {
+    // Bins are centered in texture - use floor() to match C++ integer division
     float binOffset = floor((textureWidth - binCount) / 2.0);
-
-    int center = int(srcPos);
-    float frac = srcPos - float(center);
-
-    float sum = 0.0;
-    float weightSum = 0.0;
-
-    // 6-tap Lanczos kernel (a=3)
-    for (int i = -2; i <= 3; i++) {
-        float weight = lanczos(float(i) - frac);
-        int idx = center + i;
-        if (idx >= 0 && idx < int(binCount)) {
-            // Map bin index to texture coordinate
-            float texU = (binOffset + float(idx) + 0.5) * texelSize;
-            sum += texture(spectrumData, vec2(texU, 0.5)).r * weight;
-            weightSum += weight;
-        }
-    }
-
-    return (weightSum > 0.0) ? (sum / weightSum) : 0.0;
+    // Map display X [0,1] to texture coordinate where bins are stored
+    float texU = (binOffset + u * binCount + 0.5) / textureWidth;
+    return texture(spectrumData, vec2(texU, 0.5)).r;
 }
 
 void main() {
-    // Sample spectrum value using Lanczos interpolation
-    float spectrumValue = sampleLanczos3(fragTexCoord.x);
+    // Sample spectrum value using GPU bilinear interpolation
+    float spectrumValue = sampleBilinear(fragTexCoord.x);
 
     // spectrumValue is 0.0 (no signal) to ~1.0 (max signal)
     // Convert to Y threshold: peakY where 0.0 = top, 1.0 = bottom (in texCoord space)
