@@ -162,9 +162,10 @@ private:
     QVector<float> m_rawSpectrum;
     QVector<float> m_peakHold;
 
-    // Waterfall data - sized for good quality without excessive CPU overhead
-    static constexpr int BASE_WATERFALL_HISTORY = 256;
-    static constexpr int BASE_TEXTURE_WIDTH = 2048;
+    // Waterfall data - sized for 4K/HiDPI displays
+    // Memory: 4096 × 1024 × 1 byte = 4 MB (trivial for modern GPUs)
+    static constexpr int BASE_WATERFALL_HISTORY = 1024;
+    static constexpr int BASE_TEXTURE_WIDTH = 4096;
     int m_textureWidth = BASE_TEXTURE_WIDTH;         // Scaled by devicePixelRatio
     int m_waterfallHistory = BASE_WATERFALL_HISTORY; // Scaled by devicePixelRatio
     int m_waterfallWriteRow = 0;

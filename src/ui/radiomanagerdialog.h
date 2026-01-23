@@ -53,6 +53,7 @@ private:
     QLineEdit *m_identityEdit;
     QLabel *m_identityLabel;
     QComboBox *m_encodeModeCombo;
+    QComboBox *m_streamingLatencyCombo;
 
     QPushButton *m_connectButton;
     QPushButton *m_newButton;

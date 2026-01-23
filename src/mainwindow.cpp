@@ -993,6 +993,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_radioState, &RadioState::supplyCurrentChanged, this, &MainWindow::onSupplyCurrentChanged);
     connect(m_radioState, &RadioState::swrChanged, this, &MainWindow::onSwrChanged);
 
+    // Display FPS (synthetic menu item)
+    connect(m_radioState, &RadioState::displayFpsChanged, this, &MainWindow::onDisplayFpsChanged);
+
     // Error/notification messages from K4 (ERxx: format) -> show notification popup
     connect(m_radioState, &RadioState::errorNotificationReceived, this, &MainWindow::onErrorNotification);
 
@@ -3565,8 +3568,9 @@ void MainWindow::connectToRadio(const RadioEntry &radio) {
     m_titleLabel->setText("Elecraft K4 - " + radio.name);
 
     qDebug() << "Connecting to" << radio.host << ":" << radio.port << (radio.useTls ? "(TLS/PSK)" : "(unencrypted)")
-             << "encodeMode:" << radio.encodeMode;
-    m_tcpClient->connectToHost(radio.host, radio.port, radio.password, radio.useTls, radio.identity, radio.encodeMode);
+             << "encodeMode:" << radio.encodeMode << "streamingLatency:" << radio.streamingLatency;
+    m_tcpClient->connectToHost(radio.host, radio.port, radio.password, radio.useTls, radio.identity, radio.encodeMode,
+                               radio.streamingLatency);
 }
 
 void MainWindow::onConnectClicked() {
@@ -3607,8 +3611,12 @@ void MainWindow::onAuthenticated() {
     m_tcpClient->sendCAT("#DSM;");  // Display mode (LCD) - not in RDY
     m_tcpClient->sendCAT("#HDSM;"); // Display mode (EXT) - not in RDY
     m_tcpClient->sendCAT("#FRZ;");  // Freeze - not in RDY
+    m_tcpClient->sendCAT("#FPS;");  // Display FPS - not in RDY
     m_tcpClient->sendCAT("SIRC1;"); // Enable 1-second client stats updates
     // Note: ML commands (monitor levels) come in RDY; dump - no need to query
+
+    // Create synthetic "Display FPS" menu item with stored preference
+    m_menuModel->addSyntheticDisplayFpsItem(m_currentRadio.displayFps);
 }
 
 void MainWindow::onAuthenticationFailed() {
@@ -3790,6 +3798,18 @@ void MainWindow::onSupplyCurrentChanged(double amps) {
 void MainWindow::onSwrChanged(double swr) {
     m_swrLabel->setText(QString("%1:1").arg(swr, 0, 'f', 1));
     m_sideControlPanel->setSwr(swr);
+}
+
+void MainWindow::onDisplayFpsChanged(int fps) {
+    // Update synthetic menu item value
+    m_menuModel->updateValue(MenuModel::SYNTHETIC_DISPLAY_FPS_ID, fps);
+
+    // Compare to stored preference and send if different
+    if (m_tcpClient->isConnected() && m_currentRadio.displayFps != fps) {
+        qDebug() << "Display FPS mismatch: stored=" << m_currentRadio.displayFps << "radio=" << fps << "-> sending #FPS"
+                 << m_currentRadio.displayFps;
+        m_tcpClient->sendCAT(QString("#FPS%1;").arg(m_currentRadio.displayFps));
+    }
 }
 
 void MainWindow::onSplitChanged(bool enabled) {
@@ -4327,7 +4347,34 @@ void MainWindow::showMenuOverlay() {
 }
 
 void MainWindow::onMenuValueChangeRequested(int menuId, const QString &action) {
-    // Build and send ME command
+    // Handle synthetic menu items (negative IDs)
+    if (menuId == MenuModel::SYNTHETIC_DISPLAY_FPS_ID) {
+        MenuItem *item = m_menuModel->getMenuItem(menuId);
+        if (!item)
+            return;
+
+        int newValue = item->currentValue;
+        if (action == "+") {
+            newValue = qMin(item->currentValue + 1, 30);
+        } else if (action == "-") {
+            newValue = qMax(item->currentValue - 1, 12);
+        }
+
+        // Update menu model
+        m_menuModel->updateValue(menuId, newValue);
+
+        // Send #FPS command (not ME command)
+        if (m_tcpClient->isConnected()) {
+            qDebug() << "Display FPS change:" << QString("#FPS%1;").arg(newValue);
+            m_tcpClient->sendCAT(QString("#FPS%1;").arg(newValue));
+        }
+
+        // Update stored preference
+        m_currentRadio.displayFps = newValue;
+        return;
+    }
+
+    // Build and send ME command for real K4 menu items
     // action: "+" = increment, "-" = decrement, "/" = toggle
     QString cmd = QString("ME%1.%2;").arg(menuId, 4, 10, QChar('0')).arg(action);
     qDebug() << "Menu value change:" << cmd;

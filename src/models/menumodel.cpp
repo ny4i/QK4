@@ -19,6 +19,21 @@ void MenuModel::updateValue(int menuId, int value) {
     }
 }
 
+void MenuModel::addSyntheticDisplayFpsItem(int currentValue) {
+    MenuItem item;
+    item.id = SYNTHETIC_DISPLAY_FPS_ID;
+    item.name = "Display FPS";
+    item.category = "APP SETTINGS";
+    item.type = "DEC";
+    item.flag = 0;
+    item.minValue = 12;
+    item.maxValue = 30;
+    item.defaultValue = 30;
+    item.currentValue = currentValue;
+    item.step = 1;
+    addMenuItem(item);
+}
+
 MenuItem *MenuModel::getMenuItem(int menuId) {
     if (m_items.contains(menuId)) {
         return &m_items[menuId];

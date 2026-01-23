@@ -37,10 +37,16 @@ class MenuModel : public QObject {
     Q_OBJECT
 
 public:
+    // Synthetic menu IDs (negative to distinguish from real K4 menu IDs)
+    static constexpr int SYNTHETIC_DISPLAY_FPS_ID = -1;
+
     explicit MenuModel(QObject *parent = nullptr);
 
     // Add/update menu items
     void addMenuItem(const MenuItem &item);
+
+    // Add synthetic "Display FPS" menu item (app-specific, not from K4 MEDF)
+    void addSyntheticDisplayFpsItem(int currentValue);
     void updateValue(int menuId, int value);
 
     // Access menu items

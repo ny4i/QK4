@@ -1283,6 +1283,20 @@ void RadioState::parseCATCommand(const QString &command) {
             emit displayModeLcdChanged(mode);
         }
     }
+    // Display FPS (#FPS) - #FPS12 to #FPS30
+    else if (cmd.startsWith("#FPS") && cmd.length() > 4) {
+        bool ok;
+        // Parse value after "#FPS" (could be 1 or 2 digits)
+        QString fpsStr = cmd.mid(4);
+        if (fpsStr.endsWith(';')) {
+            fpsStr.chop(1);
+        }
+        int fps = fpsStr.toInt(&ok);
+        if (ok && fps >= 12 && fps <= 30 && fps != m_displayFps) {
+            m_displayFps = fps;
+            emit displayFpsChanged(fps);
+        }
+    }
     // Waterfall Color (#WFC) - #WFC0-4 or #WFC$0-4 for VFO B
     else if (cmd.startsWith("#WFC") && cmd.length() > 4) {
         int offset = cmd.startsWith("#WFC$") ? 5 : 4;

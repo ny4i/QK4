@@ -140,6 +140,9 @@ private slots:
     void onPttReleased();
     void onMicrophoneFrame(const QByteArray &s16leData);
 
+    // Display FPS (synthetic menu item)
+    void onDisplayFpsChanged(int fps);
+
     // Fn popup / macro slots
     void onFnFunctionTriggered(const QString &functionId);
     void executeMacro(const QString &functionId);

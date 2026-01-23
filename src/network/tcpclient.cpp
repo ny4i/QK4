@@ -8,7 +8,7 @@
 TcpClient::TcpClient(QObject *parent)
     : QObject(parent), m_socket(new QSslSocket(this)), m_protocol(new Protocol(this)), m_authTimer(new QTimer(this)),
       m_pingTimer(new QTimer(this)), m_port(K4Protocol::DEFAULT_PORT), m_useTls(false), m_encodeMode(3),
-      m_state(Disconnected), m_authResponseReceived(false) {
+      m_streamingLatency(3), m_state(Disconnected), m_authResponseReceived(false) {
     // Socket signals
     connect(m_socket, &QSslSocket::connected, this, &TcpClient::onSocketConnected);
     connect(m_socket, &QSslSocket::encrypted, this, &TcpClient::onSocketEncrypted);
@@ -48,7 +48,11 @@ TcpClient::TcpClient(QObject *parent)
             sendCAT("K41;"); // Enable advanced K4 protocol mode
             sendCAT("ER1;"); // Request long format error messages
             // Set audio encode mode (0=RAW32, 1=RAW16, 2=Opus Int, 3=Opus Float)
+            qDebug() << "Sending:" << QString("EM%1;").arg(m_encodeMode);
             sendCAT(QString("EM%1;").arg(m_encodeMode));
+            // Set streaming audio latency (0-7, higher values for high-latency connections)
+            qDebug() << "Sending:" << QString("SL%1;").arg(m_streamingLatency);
+            sendCAT(QString("SL%1;").arg(m_streamingLatency));
         }
     });
     connect(m_protocol, &Protocol::catResponseReceived, this, &TcpClient::onCatResponse);
@@ -62,7 +66,7 @@ TcpClient::~TcpClient() {
 }
 
 void TcpClient::connectToHost(const QString &host, quint16 port, const QString &password, bool useTls,
-                              const QString &identity, int encodeMode) {
+                              const QString &identity, int encodeMode, int streamingLatency) {
     if (m_state != Disconnected) {
         disconnectFromHost();
     }
@@ -71,8 +75,9 @@ void TcpClient::connectToHost(const QString &host, quint16 port, const QString &
     m_port = port;
     m_password = password; // Also used as PSK when TLS enabled
     m_useTls = useTls;
-    m_identity = identity;     // TLS-PSK identity (optional)
-    m_encodeMode = encodeMode; // Audio encode mode (0=RAW32, 1=RAW16, 2=Opus Int, 3=Opus Float)
+    m_identity = identity;                 // TLS-PSK identity (optional)
+    m_encodeMode = encodeMode;             // Audio encode mode (0=RAW32, 1=RAW16, 2=Opus Int, 3=Opus Float)
+    m_streamingLatency = streamingLatency; // Remote streaming audio latency (0-7)
     m_authResponseReceived = false;
 
     setState(Connecting);

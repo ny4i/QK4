@@ -16,7 +16,7 @@ RadioManagerDialog::RadioManagerDialog(QWidget *parent) : QDialog(parent), m_cur
 
 void RadioManagerDialog::setupUi() {
     setWindowTitle("Server Manager");
-    setFixedSize(580, 360);
+    setFixedSize(580, 395);
 
     // Dark theme for the dialog
     setStyleSheet(QString("QDialog { background-color: %1; }").arg(K4Styles::Colors::Background));
@@ -191,6 +191,18 @@ void RadioManagerDialog::setupUi() {
     formLayout->addWidget(encodeModeLabel, 6, 0);
     formLayout->addWidget(m_encodeModeCombo, 6, 1);
 
+    // Row 7: Streaming Latency dropdown
+    auto *streamingLatencyLabel = new QLabel("Streaming Latency", this);
+    streamingLatencyLabel->setStyleSheet(labelStyle);
+    m_streamingLatencyCombo = new QComboBox(this);
+    m_streamingLatencyCombo->setStyleSheet(m_encodeModeCombo->styleSheet());
+    for (int i = 0; i <= 7; i++) {
+        m_streamingLatencyCombo->addItem(QString::number(i), i);
+    }
+    m_streamingLatencyCombo->setCurrentIndex(3); // Default: 3
+    formLayout->addWidget(streamingLatencyLabel, 7, 0);
+    formLayout->addWidget(m_streamingLatencyCombo, 7, 1);
+
     // Initially hide ID field (shown when TLS is checked)
     m_identityLabel->setVisible(false);
     m_identityEdit->setVisible(false);
@@ -350,6 +362,7 @@ void RadioManagerDialog::onConnectClicked() {
         entry.useTls = m_tlsCheckbox->isChecked();
         entry.identity = m_identityEdit->text();
         entry.encodeMode = m_encodeModeCombo->currentData().toInt();
+        entry.streamingLatency = m_streamingLatencyCombo->currentData().toInt();
 
         // Set port based on TLS mode if not specified
         if (portText.isEmpty()) {
@@ -397,6 +410,7 @@ void RadioManagerDialog::onSaveClicked() {
     entry.useTls = useTls;
     entry.identity = identity;
     entry.encodeMode = m_encodeModeCombo->currentData().toInt();
+    entry.streamingLatency = m_streamingLatencyCombo->currentData().toInt();
 
     // Set port based on TLS mode if not specified
     if (portText.isEmpty()) {
@@ -471,7 +485,8 @@ void RadioManagerDialog::clearFields() {
     m_identityEdit->clear();
     m_identityLabel->setVisible(false);
     m_identityEdit->setVisible(false);
-    m_encodeModeCombo->setCurrentIndex(0); // Reset to EM3 (default)
+    m_encodeModeCombo->setCurrentIndex(0);       // Reset to EM3 (default)
+    m_streamingLatencyCombo->setCurrentIndex(3); // Reset to SL3 (default)
 }
 
 void RadioManagerDialog::populateFieldsFromSelection() {
@@ -489,6 +504,11 @@ void RadioManagerDialog::populateFieldsFromSelection() {
         int encodeModeIndex = m_encodeModeCombo->findData(radio.encodeMode);
         if (encodeModeIndex >= 0) {
             m_encodeModeCombo->setCurrentIndex(encodeModeIndex);
+        }
+        // Set streaming latency combo to match saved value
+        int latencyIndex = m_streamingLatencyCombo->findData(radio.streamingLatency);
+        if (latencyIndex >= 0) {
+            m_streamingLatencyCombo->setCurrentIndex(latencyIndex);
         }
     }
 }

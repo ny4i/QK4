@@ -363,6 +363,7 @@ public:
     int dualPanModeExt() const { return m_dualPanModeExt; }
     int displayModeLcd() const { return m_displayModeLcd; }
     int displayModeExt() const { return m_displayModeExt; }
+    int displayFps() const { return m_displayFps; }
     int waterfallColor() const { return m_waterfallColor; }
     int waterfallHeight() const { return m_waterfallHeight; }       // LCD: #WFHxx (0-100%)
     int waterfallHeightExt() const { return m_waterfallHeightExt; } // EXT: #HWFHxx (0-100%)
@@ -569,6 +570,7 @@ signals:
     void dualPanModeExtChanged(int mode);        // #HDPM: EXT 0=A, 1=B, 2=Dual
     void displayModeLcdChanged(int mode);        // #DSM: LCD 0=spectrum, 1=spectrum+waterfall
     void displayModeExtChanged(int mode);        // #HDSM: EXT 0=spectrum, 1=spectrum+waterfall
+    void displayFpsChanged(int fps);             // #FPS: Display frame rate 12-30
     void waterfallColorChanged(int color);       // #WFC: 0-4
     void waterfallHeightChanged(int percent);    // #WFHxx: LCD 0-100%
     void waterfallHeightExtChanged(int percent); // #HWFHxx: EXT 0-100%
@@ -797,6 +799,7 @@ private:
     int m_dualPanModeExt = -1;     // #HDPM: EXT 0=A, 1=B, 2=Dual
     int m_displayModeLcd = -1;     // #DSM: LCD 0=spectrum, 1=spectrum+waterfall
     int m_displayModeExt = -1;     // #HDSM: EXT 0=spectrum, 1=spectrum+waterfall
+    int m_displayFps = 30;         // #FPS: Display frame rate 12-30 (default 30)
     int m_waterfallColor = -1;     // #WFC: 0-4
     int m_waterfallHeight = 50;    // #WFHxx: LCD waterfall height 0-100% (default 50%)
     int m_waterfallHeightExt = 50; // #HWFHxx: EXT waterfall height 0-100% (default 50%)

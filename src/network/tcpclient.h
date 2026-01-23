@@ -17,7 +17,7 @@ public:
     ~TcpClient();
 
     void connectToHost(const QString &host, quint16 port, const QString &password, bool useTls = false,
-                       const QString &identity = QString(), int encodeMode = 3);
+                       const QString &identity = QString(), int encodeMode = 3, int streamingLatency = 3);
     void disconnectFromHost();
     bool isConnected() const;
     ConnectionState connectionState() const;
@@ -63,8 +63,9 @@ private:
     quint16 m_port;
     QString m_password; // Also used as PSK when TLS enabled
     bool m_useTls;
-    QString m_identity; // TLS-PSK identity (optional)
-    int m_encodeMode;   // Audio encode mode (0-3)
+    QString m_identity;     // TLS-PSK identity (optional)
+    int m_encodeMode;       // Audio encode mode (0-3)
+    int m_streamingLatency; // Remote streaming audio latency (0-7)
     ConnectionState m_state;
     bool m_authResponseReceived;
 };

@@ -334,7 +334,9 @@ void RadioSettings::load() {
         entry.port = m_settings.value("port").toUInt();
         entry.useTls = m_settings.value("useTls", false).toBool();
         entry.identity = m_settings.value("identity").toString();
-        entry.encodeMode = m_settings.value("encodeMode", 3).toInt(); // Default EM3 (Opus Float)
+        entry.encodeMode = m_settings.value("encodeMode", 3).toInt();             // Default EM3 (Opus Float)
+        entry.streamingLatency = m_settings.value("streamingLatency", 3).toInt(); // Default SL3
+        entry.displayFps = m_settings.value("displayFps", 30).toInt();            // Default 30 FPS
         m_radios.append(entry);
     }
     m_settings.endArray();
@@ -420,6 +422,8 @@ void RadioSettings::save() {
         m_settings.setValue("useTls", m_radios[i].useTls);
         m_settings.setValue("identity", m_radios[i].identity);
         m_settings.setValue("encodeMode", m_radios[i].encodeMode);
+        m_settings.setValue("streamingLatency", m_radios[i].streamingLatency);
+        m_settings.setValue("displayFps", m_radios[i].displayFps);
     }
     m_settings.endArray();
 
