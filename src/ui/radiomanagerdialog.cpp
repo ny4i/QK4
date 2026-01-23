@@ -22,16 +22,17 @@ void RadioManagerDialog::setupUi() {
     setStyleSheet(QString("QDialog { background-color: %1; }").arg(K4Styles::Colors::Background));
 
     auto *mainLayout = new QVBoxLayout(this);
-    mainLayout->setSpacing(12);
-    mainLayout->setContentsMargins(15, 15, 15, 15);
+    mainLayout->setSpacing(K4Styles::Dimensions::PopupContentMargin);
+    mainLayout->setContentsMargins(K4Styles::Dimensions::PaddingLarge, K4Styles::Dimensions::PaddingLarge,
+                                   K4Styles::Dimensions::PaddingLarge, K4Styles::Dimensions::PaddingLarge);
 
     // Top horizontal section - servers list on left, edit fields on right
     auto *topLayout = new QHBoxLayout();
-    topLayout->setSpacing(20);
+    topLayout->setSpacing(K4Styles::Dimensions::DialogMargin);
 
     // === LEFT SIDE: Available Servers ===
     auto *leftSection = new QVBoxLayout();
-    leftSection->setSpacing(8);
+    leftSection->setSpacing(K4Styles::Dimensions::PopupButtonSpacing);
 
     auto *serversTitle = new QLabel("Available Servers", this);
     serversTitle->setStyleSheet(QString("QLabel { color: %1; font-weight: bold; font-size: %2px; }")
@@ -68,7 +69,7 @@ void RadioManagerDialog::setupUi() {
 
     // === RIGHT SIDE: Edit Connect ===
     auto *rightSection = new QVBoxLayout();
-    rightSection->setSpacing(8);
+    rightSection->setSpacing(K4Styles::Dimensions::PopupButtonSpacing);
 
     auto *editTitle = new QLabel("Edit Connect", this);
     editTitle->setStyleSheet(QString("QLabel { color: %1; font-weight: bold; font-size: %2px; }")
@@ -78,8 +79,8 @@ void RadioManagerDialog::setupUi() {
 
     // Form fields - label on LEFT of text box
     auto *formLayout = new QGridLayout();
-    formLayout->setHorizontalSpacing(10);
-    formLayout->setVerticalSpacing(10);
+    formLayout->setHorizontalSpacing(K4Styles::Dimensions::PaddingMedium);
+    formLayout->setVerticalSpacing(K4Styles::Dimensions::PaddingMedium);
 
     QString lineEditStyle =
         QString("QLineEdit { "

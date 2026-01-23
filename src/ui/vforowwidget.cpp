@@ -33,8 +33,9 @@ void VfoRowWidget::setupWidgets() {
     m_modeALabel->setFixedWidth(K4Styles::Dimensions::VfoSquareSize);
     m_modeALabel->setAlignment(Qt::AlignCenter);
     m_modeALabel->setCursor(Qt::PointingHandCursor);
-    m_modeALabel->setStyleSheet(
-        QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextWhite));
+    m_modeALabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                    .arg(K4Styles::Colors::TextWhite)
+                                    .arg(K4Styles::Dimensions::FontSizeLarge));
     vfoAColumn->addWidget(m_modeALabel, 0, Qt::AlignHCenter);
 
     // === TX Container (TEST label + triangles + TX) ===
@@ -98,8 +99,9 @@ void VfoRowWidget::setupWidgets() {
     m_modeBLabel->setFixedWidth(K4Styles::Dimensions::VfoSquareSize);
     m_modeBLabel->setAlignment(Qt::AlignCenter);
     m_modeBLabel->setCursor(Qt::PointingHandCursor);
-    m_modeBLabel->setStyleSheet(
-        QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextWhite));
+    m_modeBLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                    .arg(K4Styles::Colors::TextWhite)
+                                    .arg(K4Styles::Dimensions::FontSizeLarge));
     vfoBColumn->addWidget(m_modeBLabel, 0, Qt::AlignHCenter);
 
     // === SUB/DIV Container ===

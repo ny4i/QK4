@@ -22,12 +22,12 @@ EqBandWidget::EqBandWidget(int bandIndex, const QString &freqLabel, const QStrin
     m_valueLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
                                     .arg(K4Styles::Colors::TextWhite)
                                     .arg(K4Styles::Dimensions::FontSizeMedium));
-    m_valueLabel->setFixedHeight(18);
+    m_valueLabel->setFixedHeight(K4Styles::Dimensions::CheckboxSize);
     layout->addWidget(m_valueLabel);
 
     // Plus button
     m_plusBtn = new QPushButton("+", this);
-    m_plusBtn->setFixedSize(32, 24);
+    m_plusBtn->setFixedSize(32, K4Styles::Dimensions::ButtonHeightMini);
     m_plusBtn->setStyleSheet(K4Styles::menuBarButtonSmall());
     connect(m_plusBtn, &QPushButton::clicked, this, &EqBandWidget::onPlusClicked);
     layout->addWidget(m_plusBtn, 0, Qt::AlignCenter);
@@ -37,7 +37,7 @@ EqBandWidget::EqBandWidget(int bandIndex, const QString &freqLabel, const QStrin
     m_slider->setMinimum(MIN_DB);
     m_slider->setMaximum(MAX_DB);
     m_slider->setValue(0);
-    m_slider->setFixedSize(32, 120);
+    m_slider->setFixedSize(32, K4Styles::Dimensions::InputFieldWidthMedium);
 
     // Vertical slider stylesheet with cyan fill below handle
     QString sliderStyle = QString("QSlider::groove:vertical {"
@@ -53,7 +53,7 @@ EqBandWidget::EqBandWidget(int bandIndex, const QString &freqLabel, const QStrin
                                   "  border: 1px solid %6;"
                                   "  height: 16px;"
                                   "  margin: 0 -10px;"
-                                  "  border-radius: 3px;"
+                                  "  border-radius: %8px;"
                                   "}"
                                   "QSlider::add-page:vertical {"
                                   "  background: %7;"
@@ -65,13 +65,14 @@ EqBandWidget::EqBandWidget(int bandIndex, const QString &freqLabel, const QStrin
                                   "  border-radius: 5px;"
                                   "  margin: 0 10px;"
                                   "}")
-                              .arg(K4Styles::Colors::BorderNormal)   // groove border
-                              .arg(K4Styles::Colors::DarkBackground) // groove bg (unfilled)
-                              .arg(K4Styles::Colors::SelectedTop)    // handle gradient top
-                              .arg(K4Styles::Colors::SelectedMid1)   // handle gradient mid
-                              .arg(K4Styles::Colors::SelectedBottom) // handle gradient bottom
-                              .arg(K4Styles::Colors::BorderNormal)   // handle border
-                              .arg(accentColor);                     // fill color (cyan)
+                              .arg(K4Styles::Colors::BorderNormal)            // groove border
+                              .arg(K4Styles::Colors::DarkBackground)          // groove bg (unfilled)
+                              .arg(K4Styles::Colors::SelectedTop)             // handle gradient top
+                              .arg(K4Styles::Colors::SelectedMid1)            // handle gradient mid
+                              .arg(K4Styles::Colors::SelectedBottom)          // handle gradient bottom
+                              .arg(K4Styles::Colors::BorderNormal)            // handle border
+                              .arg(accentColor)                               // fill color (cyan)
+                              .arg(K4Styles::Dimensions::SliderBorderRadius); // handle border radius
 
     m_slider->setStyleSheet(sliderStyle);
     connect(m_slider, &QSlider::valueChanged, this, &EqBandWidget::onSliderChanged);
@@ -79,7 +80,7 @@ EqBandWidget::EqBandWidget(int bandIndex, const QString &freqLabel, const QStrin
 
     // Minus button
     m_minusBtn = new QPushButton("-", this);
-    m_minusBtn->setFixedSize(32, 24);
+    m_minusBtn->setFixedSize(32, K4Styles::Dimensions::ButtonHeightMini);
     m_minusBtn->setStyleSheet(K4Styles::menuBarButtonSmall());
     connect(m_minusBtn, &QPushButton::clicked, this, &EqBandWidget::onMinusClicked);
     layout->addWidget(m_minusBtn, 0, Qt::AlignCenter);
@@ -193,7 +194,7 @@ EqPresetRowWidget::EqPresetRowWidget(int presetIndex, QWidget *parent) : QWidget
 
     // Save button
     m_saveBtn = new QPushButton("S", this);
-    m_saveBtn->setFixedSize(24, 26);
+    m_saveBtn->setFixedSize(K4Styles::Dimensions::ButtonHeightMini, 26);
     m_saveBtn->setStyleSheet(
         K4Styles::menuBarButtonSmall() +
         QString("QPushButton { font-size: %1px; font-weight: bold; }").arg(K4Styles::Dimensions::FontSizeSmall));
@@ -252,7 +253,7 @@ RxEqPopupWidget::RxEqPopupWidget(const QString &title, const QString &accentColo
 void RxEqPopupWidget::setupUi(const QString &title, const QString &accentColor) {
     auto *mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(contentMargins());
-    mainLayout->setSpacing(8);
+    mainLayout->setSpacing(K4Styles::Dimensions::PopupButtonSpacing);
 
     // Title bar
     auto *titleLabel = new QLabel(title, this);
@@ -273,7 +274,7 @@ void RxEqPopupWidget::setupUi(const QString &title, const QString &accentColor) 
 
     // EQ bands row
     auto *bandsLayout = new QHBoxLayout();
-    bandsLayout->setSpacing(8);
+    bandsLayout->setSpacing(K4Styles::Dimensions::PopupButtonSpacing);
 
     for (int i = 0; i < 8; i++) {
         auto *band = new EqBandWidget(i, FREQ_LABELS[i], accentColor, this);
@@ -312,7 +313,7 @@ void RxEqPopupWidget::setupUi(const QString &title, const QString &accentColor) 
 
     // Close button
     m_closeBtn = new QPushButton(this);
-    m_closeBtn->setFixedSize(76, 36);
+    m_closeBtn->setFixedSize(76, K4Styles::Dimensions::ButtonHeightMedium);
     m_closeBtn->setText("\u21A9"); // ↩ return arrow
     m_closeBtn->setStyleSheet(K4Styles::popupButtonNormal() +
                               QString("QPushButton { font-size: %1px; }").arg(K4Styles::Dimensions::FontSizeTitle));
@@ -320,7 +321,7 @@ void RxEqPopupWidget::setupUi(const QString &title, const QString &accentColor) 
     buttonsLayout->addWidget(m_closeBtn);
 
     // Small spacer before presets
-    buttonsLayout->addSpacing(12);
+    buttonsLayout->addSpacing(K4Styles::Dimensions::PopupContentMargin);
 
     // 4 preset rows
     for (int i = 0; i < 4; i++) {
@@ -336,7 +337,7 @@ void RxEqPopupWidget::setupUi(const QString &title, const QString &accentColor) 
 
     // FLAT button
     m_flatBtn = new QPushButton("FLAT", this);
-    m_flatBtn->setFixedSize(76, 36);
+    m_flatBtn->setFixedSize(76, K4Styles::Dimensions::ButtonHeightMedium);
     m_flatBtn->setStyleSheet(K4Styles::popupButtonNormal());
     connect(m_flatBtn, &QPushButton::clicked, this, &RxEqPopupWidget::onFlatClicked);
     buttonsLayout->addWidget(m_flatBtn);

@@ -9,14 +9,14 @@
 #include <QWheelEvent>
 
 namespace {
-const int TitleBarHeight = 36;
+const int TitleBarHeight = K4Styles::Dimensions::ButtonHeightMedium;
 const int BorderWidth = 4;
 const int MinWidth = 350;
 const int MinHeight = 150;
 const int DefaultWidth = 400;
 const int DefaultHeight = 300;
-const int CloseButtonSize = 24;
-const int ControlButtonHeight = 24;
+const int CloseButtonSize = K4Styles::Dimensions::ButtonHeightMini;
+const int ControlButtonHeight = K4Styles::Dimensions::ButtonHeightMini;
 const int ResizeGripSize = 16;
 } // namespace
 
@@ -38,7 +38,8 @@ void TextDecodeWindow::setupUi() {
     auto *titleBar = new QWidget(this);
     titleBar->setFixedHeight(TitleBarHeight);
     auto *titleLayout = new QHBoxLayout(titleBar);
-    titleLayout->setContentsMargins(6, 6, 6, 6);
+    titleLayout->setContentsMargins(K4Styles::Dimensions::PaddingSmall, K4Styles::Dimensions::PaddingSmall,
+                                    K4Styles::Dimensions::PaddingSmall, K4Styles::Dimensions::PaddingSmall);
     titleLayout->setSpacing(2);
 
     // ON/OFF button

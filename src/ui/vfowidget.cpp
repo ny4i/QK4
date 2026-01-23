@@ -18,7 +18,8 @@ void VFOWidget::setupUi() {
     setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::Background));
 
     auto *mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(8, 4, 8, 4);
+    mainLayout->setContentsMargins(K4Styles::Dimensions::PopupButtonSpacing, 4,
+                                   K4Styles::Dimensions::PopupButtonSpacing, 4);
     mainLayout->setSpacing(2);
 
     // Row 1: Frequency (aligned with S-meter)
@@ -35,12 +36,13 @@ void VFOWidget::setupUi() {
     // Frequency entry line edit (hidden by default)
     m_frequencyEdit = new QLineEdit(this);
     m_frequencyEdit->setStyleSheet(
-        QString("QLineEdit { color: %1; background-color: %2; border: 2px solid %3; "
+        QString("QLineEdit { color: %1; background-color: %2; border: %4px solid %3; "
                 "font-size: 32px; font-weight: bold; font-family: 'JetBrains Mono', 'Courier New', monospace; "
                 "padding: 2px 4px; }")
             .arg(K4Styles::Colors::TextWhite)
             .arg(K4Styles::Colors::DarkBackground)
-            .arg(m_primaryColor));
+            .arg(m_primaryColor)
+            .arg(K4Styles::Dimensions::BorderWidth));
     m_frequencyEdit->setFixedHeight(K4Styles::Dimensions::MenuItemHeight);
     m_frequencyEdit->setMaxLength(11); // Max 11 digits per K4 spec
     m_frequencyEdit->setAlignment(Qt::AlignRight);
@@ -67,7 +69,7 @@ void VFOWidget::setupUi() {
         freqRow->addWidget(freqContainer);
     }
     mainLayout->addLayout(freqRow);
-    mainLayout->addSpacing(6); // Room for tuning rate indicator below frequency
+    mainLayout->addSpacing(K4Styles::Dimensions::PaddingSmall); // Room for tuning rate indicator below frequency
 
     // Stacked widget for normal content vs mini-pan
     // Use dynamic height - stacked widget resizes based on active page

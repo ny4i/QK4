@@ -2804,7 +2804,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
 
     // VOX / ATU / QSK indicator row (fixed-height container so visibility toggles don't shift layout)
     auto *indicatorContainer = new QWidget(centerWidget);
-    indicatorContainer->setFixedHeight(20);
+    indicatorContainer->setFixedHeight(K4Styles::Dimensions::DialogMargin);
     auto *indicatorLayout = new QHBoxLayout(indicatorContainer);
     indicatorLayout->setContentsMargins(0, 0, 0, 0);
     indicatorLayout->setSpacing(8);

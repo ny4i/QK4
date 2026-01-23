@@ -21,7 +21,8 @@ void SideControlPanel::setupUi() {
     // Note: No explicit size policy - let Qt handle vertical expansion like RightSidePanel
 
     auto *layout = new QVBoxLayout(this);
-    layout->setContentsMargins(6, 8, 6, 8);
+    layout->setContentsMargins(K4Styles::Dimensions::PaddingSmall, K4Styles::Dimensions::PopupButtonSpacing,
+                               K4Styles::Dimensions::PaddingSmall, K4Styles::Dimensions::PopupButtonSpacing);
     layout->setSpacing(4); // Default spacing between buttons in a group
 
     // ===== TX Function Buttons (2x3 grid) =====
@@ -132,7 +133,7 @@ void SideControlPanel::setupUi() {
 
     // Wrap in container widget for proper layout sizing
     auto *swBtnContainer = new QWidget(this);
-    swBtnContainer->setFixedHeight(24);
+    swBtnContainer->setFixedHeight(K4Styles::Dimensions::ButtonHeightMini);
     auto *swBtnRow = new QHBoxLayout(swBtnContainer);
     swBtnRow->setContentsMargins(0, 0, 0, 0);
     swBtnRow->setSpacing(2);
@@ -169,17 +170,17 @@ void SideControlPanel::setupUi() {
 
     m_monBtn = new QPushButton("MON", swBtnContainer);
     m_monBtn->setStyleSheet(swBtnStyle);
-    m_monBtn->setFixedHeight(24);
+    m_monBtn->setFixedHeight(K4Styles::Dimensions::ButtonHeightMini);
     swBtnRow->addWidget(m_monBtn);
 
     m_normBtn = new QPushButton("NORM", swBtnContainer);
     m_normBtn->setStyleSheet(swBtnStyle);
-    m_normBtn->setFixedHeight(24);
+    m_normBtn->setFixedHeight(K4Styles::Dimensions::ButtonHeightMini);
     swBtnRow->addWidget(m_normBtn);
 
     m_balBtn = new QPushButton("BAL", swBtnContainer);
     m_balBtn->setStyleSheet(swBtnStyle);
-    m_balBtn->setFixedHeight(24);
+    m_balBtn->setFixedHeight(K4Styles::Dimensions::ButtonHeightMini);
     swBtnRow->addWidget(m_balBtn);
 
     layout->addWidget(swBtnContainer);
@@ -270,12 +271,12 @@ void SideControlPanel::setupUi() {
     m_voltageCurrentLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(K4Styles::Colors::TextWhite));
     layout->addWidget(m_voltageCurrentLabel);
 
-    layout->addSpacing(8);
+    layout->addSpacing(K4Styles::Dimensions::PopupButtonSpacing);
 
     // ===== Icon Buttons at bottom =====
     auto *iconRow = new QHBoxLayout();
     iconRow->setContentsMargins(0, 0, 0, 0);
-    iconRow->setSpacing(8);
+    iconRow->setSpacing(K4Styles::Dimensions::PopupButtonSpacing);
 
     m_helpBtn = createIconButton("?");
     m_connectBtn = createIconButton(QString::fromUtf8("\xF0\x9F\x8C\x90")); // 🌐 Globe
@@ -730,7 +731,7 @@ QWidget *SideControlPanel::createTxFunctionButton(const QString &mainText, const
     auto *subLabel = new QLabel(subText, container);
     subLabel->setStyleSheet(QString("color: %1; font-size: 8px; margin-top: 4px;").arg(K4Styles::Colors::AccentAmber));
     subLabel->setAlignment(Qt::AlignCenter);
-    subLabel->setFixedHeight(12);
+    subLabel->setFixedHeight(K4Styles::Dimensions::PopupContentMargin);
     layout->addWidget(subLabel);
 
     return container;
