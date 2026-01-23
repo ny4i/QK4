@@ -138,8 +138,14 @@ void KpodDevice::poll() {
     }
 
     // Send update request command
+    // Windows hidapi requires report ID as first byte (0x00 for devices without numbered reports)
+#ifdef Q_OS_WIN
+    unsigned char cmd[9] = {0x00, 'u', 0, 0, 0, 0, 0, 0, 0};
+    int writeResult = hid_write(m_hidDevice, cmd, sizeof(cmd));
+#else
     unsigned char cmd[8] = {'u', 0, 0, 0, 0, 0, 0, 0};
     int writeResult = hid_write(m_hidDevice, cmd, sizeof(cmd));
+#endif
 
     if (writeResult < 0) {
         // Write failed - device may be disconnected
@@ -352,28 +358,39 @@ KpodDeviceInfo KpodDevice::detectDevice() {
         if (dev) {
             kpodLog("Device opened successfully");
             unsigned char buf[8];
+            unsigned char readBuf[8];
 
             // Use longer timeout on Windows (HID driver latency)
 #ifdef Q_OS_WIN
             const int readTimeout = 500;
+            // Windows hidapi requires report ID as first byte (0x00 for devices without numbered reports)
+            unsigned char winBuf[9] = {0};
 #else
             const int readTimeout = 100;
 #endif
             kpodLog(QString("Using read timeout: %1ms").arg(readTimeout));
 
             // Get Device ID (command '=')
+#ifdef Q_OS_WIN
+            memset(winBuf, 0, sizeof(winBuf));
+            winBuf[0] = 0x00; // Report ID
+            winBuf[1] = '=';
+            kpodLog("Sending Device ID command '=' (with report ID)...");
+            int writeResult = hid_write(dev, winBuf, sizeof(winBuf));
+#else
             memset(buf, 0, sizeof(buf));
             buf[0] = '=';
             kpodLog("Sending Device ID command '='...");
             int writeResult = hid_write(dev, buf, sizeof(buf));
+#endif
             kpodLog(QString("hid_write returned: %1").arg(writeResult));
             if (writeResult > 0) {
-                int readResult = hid_read_timeout(dev, buf, sizeof(buf), readTimeout);
+                int readResult = hid_read_timeout(dev, readBuf, sizeof(readBuf), readTimeout);
                 kpodLog(QString("hid_read_timeout returned: %1").arg(readResult));
                 if (readResult == 8) {
                     QString idStr;
-                    for (int i = 1; i < 8 && buf[i] != 0; ++i) {
-                        idStr += QChar(buf[i]);
+                    for (int i = 1; i < 8 && readBuf[i] != 0; ++i) {
+                        idStr += QChar(readBuf[i]);
                     }
                     info.deviceId = idStr.trimmed();
                     kpodLog(QString("Device ID: '%1'").arg(info.deviceId));
@@ -389,16 +406,24 @@ KpodDeviceInfo KpodDevice::detectDevice() {
             }
 
             // Get Firmware Version (command 'v')
+#ifdef Q_OS_WIN
+            memset(winBuf, 0, sizeof(winBuf));
+            winBuf[0] = 0x00; // Report ID
+            winBuf[1] = 'v';
+            kpodLog("Sending Firmware Version command 'v' (with report ID)...");
+            writeResult = hid_write(dev, winBuf, sizeof(winBuf));
+#else
             memset(buf, 0, sizeof(buf));
             buf[0] = 'v';
             kpodLog("Sending Firmware Version command 'v'...");
             writeResult = hid_write(dev, buf, sizeof(buf));
+#endif
             kpodLog(QString("hid_write returned: %1").arg(writeResult));
             if (writeResult > 0) {
-                int readResult = hid_read_timeout(dev, buf, sizeof(buf), readTimeout);
+                int readResult = hid_read_timeout(dev, readBuf, sizeof(readBuf), readTimeout);
                 kpodLog(QString("hid_read_timeout returned: %1").arg(readResult));
                 if (readResult == 8) {
-                    qint16 versionBcd = static_cast<qint16>(buf[1] | (buf[2] << 8));
+                    qint16 versionBcd = static_cast<qint16>(readBuf[1] | (readBuf[2] << 8));
                     int major = versionBcd / 100;
                     int minor = versionBcd % 100;
                     info.firmwareVersion = QString("%1.%2").arg(major).arg(minor, 2, 10, QChar('0'));
