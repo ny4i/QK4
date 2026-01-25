@@ -3,7 +3,7 @@
 
 // Poll commands from user's Node-RED flow
 const QString KPA1500Client::POLL_COMMANDS =
-    "^BN;^WS;^TM;^FS;^OS;^VI;^FC;^ON;^FL;^AN;^IP;^SN;^PC;^VM1;^VM2;^VM3;^VM5;^LR;^CR;^PWF;^PWR;^PWD;";
+    "^BN;^WS;^TM;^FS;^VI;^FC;^ON;^FL;^AN;^IP;^SN;^PC;^VM1;^VM2;^VM3;^VM5;^LR;^CR;^PWF;^PWR;^PWD;";
 
 KPA1500Client::KPA1500Client(QObject *parent)
     : QObject(parent), m_socket(new QTcpSocket(this)), m_pollTimer(new QTimer(this)), m_port(1500),
@@ -17,7 +17,11 @@ KPA1500Client::KPA1500Client(QObject *parent)
 
 KPA1500Client::~KPA1500Client() {
     stopPolling();
-    disconnectFromHost();
+    // Abort socket directly without emitting signals during destruction
+    // Don't call disconnectFromHost() which emits stateChanged/disconnected
+    if (m_socket->state() != QAbstractSocket::UnconnectedState) {
+        m_socket->abort();
+    }
 }
 
 void KPA1500Client::connectToHost(const QString &host, quint16 port) {
@@ -278,10 +282,6 @@ void KPA1500Client::parseSingleResponse(const QString &response) {
                 emit atuStatusChanged(present, active);
             }
         }
-    }
-    // ^OS - Operating Status (deprecated, use ON instead)
-    else if (cmd.startsWith("OS")) {
-        // Similar to ON but older format
     }
     // ^IP - Input Power (similar to drive power)
     else if (cmd.startsWith("IP")) {

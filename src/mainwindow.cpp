@@ -1752,7 +1752,14 @@ MainWindow::MainWindow(QWidget *parent)
     // QTimer::singleShot(0, this, [this]() { resize(1340, 800); });
 }
 
-MainWindow::~MainWindow() {}
+MainWindow::~MainWindow() {
+    // Disconnect KPA1500 signals before child destruction to prevent
+    // callbacks accessing destroyed widgets during cleanup
+    if (m_kpa1500Client) {
+        disconnect(m_kpa1500Client, nullptr, this, nullptr);
+        m_kpa1500Client->disconnectFromHost();
+    }
+}
 
 void MainWindow::setupMenuBar() {
     // Standard menu bar order: File, Connect, Tools, View, Help
@@ -2633,7 +2640,7 @@ void MainWindow::setupTopStatusBar(QWidget *parent) {
     layout->addWidget(m_kpa1500StatusLabel);
 
     // K4 Connection status
-    m_connectionStatusLabel = new QLabel("K4 Disconnected", statusBar);
+    m_connectionStatusLabel = new QLabel("K4", statusBar);
     m_connectionStatusLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::InactiveGray));
     layout->addWidget(m_connectionStatusLabel);
 }
@@ -3722,7 +3729,7 @@ void MainWindow::onBandwidthBChanged(int bw) {
 void MainWindow::updateConnectionState(TcpClient::ConnectionState state) {
     switch (state) {
     case TcpClient::Disconnected:
-        m_connectionStatusLabel->setText("K4 Disconnected");
+        m_connectionStatusLabel->setText("K4");
         m_connectionStatusLabel->setStyleSheet(
             QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::InactiveGray));
         m_titleLabel->setText("Elecraft K4");
@@ -3758,19 +3765,19 @@ void MainWindow::updateConnectionState(TcpClient::ConnectionState state) {
         break;
 
     case TcpClient::Connecting:
-        m_connectionStatusLabel->setText("K4 Connecting...");
+        m_connectionStatusLabel->setText("K4");
         m_connectionStatusLabel->setStyleSheet(
             QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
         break;
 
     case TcpClient::Authenticating:
-        m_connectionStatusLabel->setText("K4 Authenticating...");
+        m_connectionStatusLabel->setText("K4");
         m_connectionStatusLabel->setStyleSheet(
             QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
         break;
 
     case TcpClient::Connected:
-        m_connectionStatusLabel->setText("K4 Connected");
+        m_connectionStatusLabel->setText("K4");
         m_connectionStatusLabel->setStyleSheet(
             QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Styles::Colors::AgcGreen));
         break;
@@ -4729,13 +4736,13 @@ void MainWindow::updateKpa1500Status() {
     } else {
         m_kpa1500StatusLabel->show();
         if (connected) {
-            m_kpa1500StatusLabel->setText("KPA1500 Connected");
+            m_kpa1500StatusLabel->setText("KPA1500");
             m_kpa1500StatusLabel->setStyleSheet(
                 QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Styles::Colors::AgcGreen));
         } else {
-            m_kpa1500StatusLabel->setText("KPA1500 Not Connected");
+            m_kpa1500StatusLabel->setText("KPA1500");
             m_kpa1500StatusLabel->setStyleSheet(
-                QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Styles::Colors::TxRed));
+                QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::InactiveGray));
         }
     }
 }
