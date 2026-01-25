@@ -3386,6 +3386,23 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
         m_tcpClient->sendCAT("FA;");
     });
 
+    // Right-click on panadapter A tunes VFO B (opposite VFO)
+    connect(m_panadapterA, &PanadapterRhiWidget::frequencyRightClicked, this, [this](qint64 freq) {
+        if (!m_tcpClient->isConnected() || freq <= 0)
+            return;
+        QString cmd = QString("FB%1;").arg(freq, 11, 10, QChar('0'));
+        m_tcpClient->sendCAT(cmd);
+        m_tcpClient->sendCAT("FB;");
+    });
+
+    connect(m_panadapterA, &PanadapterRhiWidget::frequencyRightDragged, this, [this](qint64 freq) {
+        if (!m_tcpClient->isConnected() || freq <= 0)
+            return;
+        QString cmd = QString("FB%1;").arg(freq, 11, 10, QChar('0'));
+        m_tcpClient->sendCAT(cmd);
+        m_radioState->parseCATCommand(cmd);
+    });
+
     // VFO B connections
     connect(m_radioState, &RadioState::frequencyBChanged, this,
             [this](quint64 freq) { m_panadapterB->setTunedFrequency(freq); });
@@ -3475,6 +3492,23 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
         }
         // Request frequency back to update UI
         m_tcpClient->sendCAT("FB;");
+    });
+
+    // Right-click on panadapter B tunes VFO A (opposite VFO)
+    connect(m_panadapterB, &PanadapterRhiWidget::frequencyRightClicked, this, [this](qint64 freq) {
+        if (!m_tcpClient->isConnected() || freq <= 0)
+            return;
+        QString cmd = QString("FA%1;").arg(freq, 11, 10, QChar('0'));
+        m_tcpClient->sendCAT(cmd);
+        m_tcpClient->sendCAT("FA;");
+    });
+
+    connect(m_panadapterB, &PanadapterRhiWidget::frequencyRightDragged, this, [this](qint64 freq) {
+        if (!m_tcpClient->isConnected() || freq <= 0)
+            return;
+        QString cmd = QString("FA%1;").arg(freq, 11, 10, QChar('0'));
+        m_tcpClient->sendCAT(cmd);
+        m_radioState->parseCATCommand(cmd);
     });
 }
 

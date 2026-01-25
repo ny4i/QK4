@@ -1717,8 +1717,15 @@ void PanadapterRhiWidget::setBackgroundGradient(const QColor &center, const QCol
 void PanadapterRhiWidget::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         m_isDragging = true;
+        m_isRightDragging = false;
         qint64 freq = xToFreq(event->pos().x(), width());
         emit frequencyClicked(freq);
+        event->accept();
+    } else if (event->button() == Qt::RightButton) {
+        m_isRightDragging = true;
+        m_isDragging = false;
+        qint64 freq = xToFreq(event->pos().x(), width());
+        emit frequencyRightClicked(freq);
         event->accept();
     }
 }
@@ -1728,12 +1735,19 @@ void PanadapterRhiWidget::mouseMoveEvent(QMouseEvent *event) {
         qint64 freq = xToFreq(event->pos().x(), width());
         emit frequencyDragged(freq);
         event->accept();
+    } else if (m_isRightDragging && (event->buttons() & Qt::RightButton)) {
+        qint64 freq = xToFreq(event->pos().x(), width());
+        emit frequencyRightDragged(freq);
+        event->accept();
     }
 }
 
 void PanadapterRhiWidget::mouseReleaseEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         m_isDragging = false;
+        event->accept();
+    } else if (event->button() == Qt::RightButton) {
+        m_isRightDragging = false;
         event->accept();
     }
 }

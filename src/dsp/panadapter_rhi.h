@@ -70,6 +70,9 @@ signals:
     void frequencyClicked(qint64 freq);
     void frequencyDragged(qint64 freq);
     void frequencyScrolled(int steps);
+    // Right-click signals (for tuning opposite VFO)
+    void frequencyRightClicked(qint64 freq);
+    void frequencyRightDragged(qint64 freq);
 
 protected:
     // QRhiWidget overrides
@@ -204,6 +207,7 @@ private:
 
     // Mouse drag state
     bool m_isDragging = false;
+    bool m_isRightDragging = false;
 
     // Secondary VFO (other receiver's passband)
     qint64 m_secondaryTunedFreq = 0;
