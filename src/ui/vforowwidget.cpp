@@ -3,10 +3,75 @@
 #include <QHBoxLayout>
 #include <QResizeEvent>
 
+// ============== VfoSquareWidget Implementation ==============
+
+VfoSquareWidget::VfoSquareWidget(const QString &text, const QColor &color, QWidget *parent)
+    : QWidget(parent), m_text(text), m_color(color) {
+    // Size: 30 wide x 40 high (30 for square + 10 for arc space at top)
+    setFixedSize(30, 40);
+    setCursor(Qt::PointingHandCursor);
+}
+
+void VfoSquareWidget::setLocked(bool locked) {
+    if (m_locked != locked) {
+        m_locked = locked;
+        update();
+    }
+}
+
+void VfoSquareWidget::paintEvent(QPaintEvent *) {
+    QPainter p(this);
+    p.setRenderHint(QPainter::Antialiasing);
+
+    const int arcHeight = 10; // Space reserved for lock arc at top
+    const int squareSize = 30;
+    const int borderRadius = 4;
+
+    // Draw the rounded square (offset down by arcHeight)
+    QRectF squareRect(0, arcHeight, squareSize, squareSize);
+    p.setBrush(m_color);
+    p.setPen(Qt::NoPen);
+    p.drawRoundedRect(squareRect, borderRadius, borderRadius);
+
+    // Draw "A" or "B" text
+    p.setPen(QColor(K4Styles::Colors::DarkBackground));
+    QFont font;
+    font.setPixelSize(16);
+    font.setBold(true);
+    p.setFont(font);
+    p.drawText(squareRect, Qt::AlignCenter, m_text);
+
+    // Draw lock arc if locked (creates padlock shackle effect)
+    if (m_locked) {
+        QPen arcPen(m_color, 4, Qt::SolidLine, Qt::RoundCap);
+        p.setPen(arcPen);
+        p.setBrush(Qt::NoBrush);
+
+        // Arc rect: centered horizontally, connects to top of square
+        // Arc should look like the top of a padlock
+        int arcWidth = 18;
+        int arcX = (squareSize - arcWidth) / 2;
+        QRectF arcRect(arcX, 0, arcWidth, arcHeight * 2);
+        // Draw top half of ellipse (180 degrees starting from 0)
+        p.drawArc(arcRect, 0, 180 * 16);
+    }
+}
+
+// ============== VfoRowWidget Implementation ==============
+
 VfoRowWidget::VfoRowWidget(QWidget *parent) : QWidget(parent) {
     setupWidgets();
     // Set fixed height to match content (A/B squares + mode labels)
-    setFixedHeight(55);
+    // Increased from 55 to 65 to accommodate lock arc
+    setFixedHeight(65);
+}
+
+void VfoRowWidget::setLockA(bool locked) {
+    m_vfoASquare->setLocked(locked);
+}
+
+void VfoRowWidget::setLockB(bool locked) {
+    m_vfoBSquare->setLocked(locked);
 }
 
 void VfoRowWidget::setupWidgets() {
@@ -20,13 +85,7 @@ void VfoRowWidget::setupWidgets() {
     vfoAColumn->setContentsMargins(0, 0, 0, 0);
     vfoAColumn->setSpacing(2);
 
-    m_vfoASquare = new QLabel("A", m_vfoAContainer);
-    m_vfoASquare->setFixedSize(30, 30);
-    m_vfoASquare->setAlignment(Qt::AlignCenter);
-    m_vfoASquare->setCursor(Qt::PointingHandCursor);
-    m_vfoASquare->setStyleSheet(
-        QString("background-color: %1; color: %2; font-size: 16px; font-weight: bold; border-radius: 4px;")
-            .arg(K4Styles::Colors::VfoACyan, K4Styles::Colors::DarkBackground));
+    m_vfoASquare = new VfoSquareWidget("A", QColor(K4Styles::Colors::VfoACyan), m_vfoAContainer);
     vfoAColumn->addWidget(m_vfoASquare, 0, Qt::AlignHCenter);
 
     m_modeALabel = new QLabel("USB", m_vfoAContainer);
@@ -86,13 +145,7 @@ void VfoRowWidget::setupWidgets() {
     vfoBColumn->setContentsMargins(0, 0, 0, 0);
     vfoBColumn->setSpacing(2);
 
-    m_vfoBSquare = new QLabel("B", m_vfoBContainer);
-    m_vfoBSquare->setFixedSize(30, 30);
-    m_vfoBSquare->setAlignment(Qt::AlignCenter);
-    m_vfoBSquare->setCursor(Qt::PointingHandCursor);
-    m_vfoBSquare->setStyleSheet(
-        QString("background-color: %1; color: %2; font-size: 16px; font-weight: bold; border-radius: 4px;")
-            .arg(K4Styles::Colors::AgcGreen, K4Styles::Colors::DarkBackground));
+    m_vfoBSquare = new VfoSquareWidget("B", QColor(K4Styles::Colors::AgcGreen), m_vfoBContainer);
     vfoBColumn->addWidget(m_vfoBSquare, 0, Qt::AlignHCenter);
 
     m_modeBLabel = new QLabel("USB", m_vfoBContainer);
@@ -149,10 +202,11 @@ void VfoRowWidget::positionWidgets() {
     int centerX = w / 2;
     int y = 0; // Top of row
 
-    // TX container - centered at widget center
+    // TX container - centered at widget center, offset down to align with squares
     m_txContainer->adjustSize();
     int txWidth = m_txContainer->width();
-    m_txContainer->move(centerX - txWidth / 2, y);
+    int txY = 10; // Offset to align TX with the square (below lock arc space)
+    m_txContainer->move(centerX - txWidth / 2, txY);
 
     // A container - left of TX with gap
     int gap = 15;
@@ -161,6 +215,6 @@ void VfoRowWidget::positionWidgets() {
     // B container - right of TX with gap (symmetric with A)
     m_vfoBContainer->move(centerX + txWidth / 2 + gap, y);
 
-    // SUB/DIV - to right of B (doesn't affect centering)
-    m_subDivContainer->move(m_vfoBContainer->x() + m_vfoBContainer->width() + 10, y);
+    // SUB/DIV - to right of B (doesn't affect centering), offset down to align
+    m_subDivContainer->move(m_vfoBContainer->x() + m_vfoBContainer->width() + 10, txY);
 }

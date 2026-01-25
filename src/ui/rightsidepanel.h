@@ -86,6 +86,7 @@ signals:
 
     // Bottom row secondary signals (right-click)
     void khzClicked();       // RATE right-click
+    void lockBClicked();     // LOCK A right-click (LOCK B)
     void diversityClicked(); // SUB right-click
 
 protected:

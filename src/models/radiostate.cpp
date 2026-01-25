@@ -573,6 +573,30 @@ void RadioState::parseCATCommand(const QString &command) {
             }
         }
     }
+    // VFO B Lock (LK$) - LK$n where n=0(unlocked)/1(locked) - must check before LK
+    else if (cmd.startsWith("LK$") && cmd.length() >= 4) {
+        bool ok;
+        int lk = cmd.mid(3).toInt(&ok);
+        if (ok) {
+            bool locked = (lk == 1);
+            if (locked != m_lockB) {
+                m_lockB = locked;
+                emit lockBChanged(m_lockB);
+            }
+        }
+    }
+    // VFO A Lock (LK) - LKn where n=0(unlocked)/1(locked)
+    else if (cmd.startsWith("LK") && cmd.length() >= 3) {
+        bool ok;
+        int lk = cmd.mid(2).toInt(&ok);
+        if (ok) {
+            bool locked = (lk == 1);
+            if (locked != m_lockA) {
+                m_lockA = locked;
+                emit lockAChanged(m_lockA);
+            }
+        }
+    }
     // LO - Line Out levels
     // Format: LOlllrrrm where lll=left(000-040), rrr=right(000-040), m=mode(0/1)
     else if (cmd.startsWith("LO") && cmd.length() >= 9) {

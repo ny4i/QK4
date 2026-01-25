@@ -128,8 +128,9 @@ void RightSidePanel::setupUi() {
     connect(m_lockABtn, &QPushButton::clicked, this, &RightSidePanel::lockAClicked);
     connect(m_subBtn, &QPushButton::clicked, this, &RightSidePanel::subClicked);
 
-    // Install event filter for right-click on RATE and SUB buttons
+    // Install event filter for right-click on RATE, LOCK A, and SUB buttons
     m_rateBtn->installEventFilter(this);
+    m_lockABtn->installEventFilter(this);
     m_subBtn->installEventFilter(this);
 }
 
@@ -287,6 +288,9 @@ bool RightSidePanel::eventFilter(QObject *watched, QEvent *event) {
             // Bottom row right-click signals
             else if (watched == m_rateBtn) {
                 emit khzClicked();
+                return true;
+            } else if (watched == m_lockABtn) {
+                emit lockBClicked();
                 return true;
             } else if (watched == m_subBtn) {
                 emit diversityClicked();

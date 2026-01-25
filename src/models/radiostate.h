@@ -197,6 +197,10 @@ public:
     bool apfEnabledB() const { return m_apfEnabledB; }    // Sub RX
     int apfBandwidthB() const { return m_apfBandwidthB; } // Sub RX: 0=30Hz, 1=50Hz, 2=150Hz
 
+    // VFO Lock (LK/LK$ commands)
+    bool lockA() const { return m_lockA; }
+    bool lockB() const { return m_lockB; }
+
     // VFO Link (LN command)
     bool vfoLink() const { return m_vfoLink; }
 
@@ -594,6 +598,8 @@ signals:
     void apfChanged(bool enabled, int width);      // AP: Main RX APF (0=30Hz, 1=50Hz, 2=150Hz)
     void apfBChanged(bool enabled, int width);     // AP$: Sub RX APF (0=30Hz, 1=50Hz, 2=150Hz)
     void vfoLinkChanged(bool linked);              // LN: VFOs linked
+    void lockAChanged(bool locked);                // LK: VFO A lock state
+    void lockBChanged(bool locked);                // LK$: VFO B lock state
     void monitorLevelChanged(int mode, int level); // ML: Monitor level (0=CW, 1=Data, 2=Voice)
 
     // RX Graphic Equalizer
@@ -761,6 +767,10 @@ private:
 
     // VFO Link (LN command)
     bool m_vfoLink = false;
+
+    // VFO Lock (LK/LK$ commands)
+    bool m_lockA = false;
+    bool m_lockB = false;
 
     // Monitor Level (ML command) - sidetone/speech monitor (0-100)
     int m_monitorLevelCW = -1;    // CW sidetone level

@@ -211,11 +211,11 @@ private:
     VfoRowWidget *m_vfoRow;
 
     // Center section labels (pointers to VfoRowWidget children)
-    QLabel *m_vfoASquare;
+    QWidget *m_vfoASquare; // VfoSquareWidget - used for event filter
     QLabel *m_txTriangle;  // Left triangle (pointing at A) - shown when split OFF
     QLabel *m_txTriangleB; // Right triangle (pointing at B) - shown when split ON
     QLabel *m_txIndicator;
-    QLabel *m_vfoBSquare;
+    QWidget *m_vfoBSquare; // VfoSquareWidget - used for event filter
     QLabel *m_splitLabel;
     QLabel *m_bSetLabel;
     QLabel *m_subLabel; // SUB indicator (green when sub RX enabled)

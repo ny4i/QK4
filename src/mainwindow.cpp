@@ -1130,6 +1130,10 @@ MainWindow::MainWindow(QWidget *parent)
         }
     });
 
+    // VFO Lock indicators - show lock arc on VFO A/B squares when locked
+    connect(m_radioState, &RadioState::lockAChanged, this, [this](bool locked) { m_vfoRow->setLockA(locked); });
+    connect(m_radioState, &RadioState::lockBChanged, this, [this](bool locked) { m_vfoRow->setLockB(locked); });
+
     // NOTE: KPA1500 amplifier integration groundwork is in the KPA1500 section (after m_kpa1500Client creation)
 
     // RadioState signals -> Side control panel updates (BW/SHFT/HI/LO)
@@ -2549,13 +2553,17 @@ void MainWindow::setupUi() {
         }
     });
 
-    // Bottom row signals (SUB, DIVERSITY, RATE)
+    // Bottom row signals (SUB, DIVERSITY, RATE, LOCK)
     connect(m_rightSidePanel, &RightSidePanel::subClicked, this, [this]() { m_tcpClient->sendCAT("SW83;"); });
     connect(m_rightSidePanel, &RightSidePanel::diversityClicked, this, [this]() { m_tcpClient->sendCAT("SW152;"); });
     connect(m_rightSidePanel, &RightSidePanel::rateClicked, this,
             [this]() { m_tcpClient->sendCAT("SW73;"); }); // Cycle fine rates
     connect(m_rightSidePanel, &RightSidePanel::khzClicked, this,
             [this]() { m_tcpClient->sendCAT("SW150;"); }); // Jump to 100kHz
+    connect(m_rightSidePanel, &RightSidePanel::lockAClicked, this,
+            [this]() { m_tcpClient->sendCAT("SW63;"); }); // Toggle Lock A
+    connect(m_rightSidePanel, &RightSidePanel::lockBClicked, this,
+            [this]() { m_tcpClient->sendCAT("SW151;"); }); // Toggle Lock B
 
     // Connect memory buttons (M1-M4, REC, STORE, RCL)
     // Primary actions (left click)

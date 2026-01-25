@@ -2,8 +2,33 @@
 #define VFOROWWIDGET_H
 
 #include <QLabel>
+#include <QPainter>
 #include <QVBoxLayout>
 #include <QWidget>
+
+/**
+ * VfoSquareWidget - Custom painted VFO A/B indicator with lock arc
+ *
+ * Draws a rounded square with "A" or "B" text, and optionally a
+ * semi-circular arc on top to indicate lock state (padlock effect).
+ */
+class VfoSquareWidget : public QWidget {
+    Q_OBJECT
+
+public:
+    explicit VfoSquareWidget(const QString &text, const QColor &color, QWidget *parent = nullptr);
+
+    void setLocked(bool locked);
+    bool isLocked() const { return m_locked; }
+
+protected:
+    void paintEvent(QPaintEvent *event) override;
+
+private:
+    QString m_text;
+    QColor m_color;
+    bool m_locked = false;
+};
 
 /**
  * VfoRowWidget - First row of center section with absolute positioning
@@ -18,9 +43,13 @@ class VfoRowWidget : public QWidget {
 public:
     explicit VfoRowWidget(QWidget *parent = nullptr);
 
+    // Lock state setters
+    void setLockA(bool locked);
+    void setLockB(bool locked);
+
     // Accessors for MainWindow to connect signals and install event filters
-    QLabel *vfoASquare() const { return m_vfoASquare; }
-    QLabel *vfoBSquare() const { return m_vfoBSquare; }
+    VfoSquareWidget *vfoASquare() const { return m_vfoASquare; }
+    VfoSquareWidget *vfoBSquare() const { return m_vfoBSquare; }
     QLabel *modeALabel() const { return m_modeALabel; }
     QLabel *modeBLabel() const { return m_modeBLabel; }
     QLabel *txIndicator() const { return m_txIndicator; }
@@ -43,9 +72,10 @@ private:
     QWidget *m_vfoBContainer;
     QWidget *m_subDivContainer;
 
+    // VFO squares (custom painted for lock arc)
+    VfoSquareWidget *m_vfoASquare;
+    VfoSquareWidget *m_vfoBSquare;
     // Labels within containers
-    QLabel *m_vfoASquare;
-    QLabel *m_vfoBSquare;
     QLabel *m_modeALabel;
     QLabel *m_modeBLabel;
     QLabel *m_txIndicator;
