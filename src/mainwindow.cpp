@@ -1500,6 +1500,8 @@ MainWindow::MainWindow(QWidget *parent)
         int newScale = qMin(currentScale + 1, 150); // Increment by 1, max 150
         if (newScale != currentScale) {
             m_tcpClient->sendCAT(QString("#SCL%1;").arg(newScale));
+            // Optimistic update (scale is global, may not echo back)
+            m_radioState->setScale(newScale); // Also updates panadapters via signal
         }
     });
     connect(m_displayPopup, &DisplayPopupWidget::scaleDecrementRequested, this, [this]() {
@@ -1509,6 +1511,8 @@ MainWindow::MainWindow(QWidget *parent)
         int newScale = qMax(currentScale - 1, 10); // Decrement by 1, min 10
         if (newScale != currentScale) {
             m_tcpClient->sendCAT(QString("#SCL%1;").arg(newScale));
+            // Optimistic update (scale is global, may not echo back)
+            m_radioState->setScale(newScale); // Also updates panadapters via signal
         }
     });
 
@@ -3197,7 +3201,7 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     // Main panadapter for VFO A (left side) - QRhiWidget with Metal/DirectX/Vulkan
     m_panadapterA = new PanadapterRhiWidget(m_spectrumContainer);
     m_panadapterA->setSpectrumLineColor(QColor(K4Styles::Colors::VfoACyan));
-    m_panadapterA->setDbRange(-140.0f, -20.0f);
+    // dB range set via setScale()/setRefLevel() from radio's #SCL/#REF values
     m_panadapterA->setSpectrumRatio(0.35f);
     m_panadapterA->setGridEnabled(true);
     // Primary VFO A uses default cyan passband
@@ -3212,7 +3216,7 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     // Sub panadapter for VFO B (right side) - QRhiWidget with Metal/DirectX/Vulkan
     m_panadapterB = new PanadapterRhiWidget(m_spectrumContainer);
     m_panadapterB->setSpectrumLineColor(QColor(K4Styles::Colors::VfoBGreen));
-    m_panadapterB->setDbRange(-140.0f, -20.0f);
+    // dB range set via setScale()/setRefLevel() from radio's #SCL/#REF$ values
     m_panadapterB->setSpectrumRatio(0.35f);
     m_panadapterB->setGridEnabled(true);
     // Primary VFO B uses green passband
@@ -3420,6 +3424,32 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
         m_tcpClient->sendCAT("FA;");
     });
 
+    // Shift+Wheel: Adjust scale (dB range) - global setting applies to both panadapters
+    connect(m_panadapterA, &PanadapterRhiWidget::scaleScrolled, this, [this](int steps) {
+        if (!m_tcpClient->isConnected())
+            return;
+        int currentScale = m_radioState->scale();
+        if (currentScale < 0)
+            currentScale = 75; // Default if not yet received from radio
+        int newScale = qBound(10, currentScale + steps * 5, 150); // 5 dB per step
+        m_tcpClient->sendCAT(QString("#SCL%1;").arg(newScale));
+        // Optimistic update (scale is global) - updates both panadapters via signal
+        m_radioState->setScale(newScale);
+    });
+
+    // Ctrl+Wheel: Adjust reference level for Main RX
+    connect(m_panadapterA, &PanadapterRhiWidget::refLevelScrolled, this, [this](int steps) {
+        if (!m_tcpClient->isConnected())
+            return;
+        int currentRef = m_radioState->refLevel();
+        if (currentRef < -200)
+            currentRef = -110; // Default if not yet received
+        int newRef = qBound(-140, currentRef + steps, 10);
+        m_tcpClient->sendCAT(QString("#REF%1;").arg(newRef));
+        // Optimistic update
+        m_panadapterA->setRefLevel(newRef);
+    });
+
     // Right-click on panadapter A tunes VFO B (opposite VFO)
     connect(m_panadapterA, &PanadapterRhiWidget::frequencyRightClicked, this, [this](qint64 freq) {
         if (!m_tcpClient->isConnected() || freq <= 0)
@@ -3526,6 +3556,32 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
         }
         // Request frequency back to update UI
         m_tcpClient->sendCAT("FB;");
+    });
+
+    // Shift+Wheel on panadapter B: Adjust scale (same as A - global setting)
+    connect(m_panadapterB, &PanadapterRhiWidget::scaleScrolled, this, [this](int steps) {
+        if (!m_tcpClient->isConnected())
+            return;
+        int currentScale = m_radioState->scale();
+        if (currentScale < 0)
+            currentScale = 75;
+        int newScale = qBound(10, currentScale + steps * 5, 150);
+        m_tcpClient->sendCAT(QString("#SCL%1;").arg(newScale));
+        // Optimistic update (scale is global) - updates both panadapters via signal
+        m_radioState->setScale(newScale);
+    });
+
+    // Ctrl+Wheel on panadapter B: Adjust reference level for Sub RX
+    connect(m_panadapterB, &PanadapterRhiWidget::refLevelScrolled, this, [this](int steps) {
+        if (!m_tcpClient->isConnected())
+            return;
+        int currentRef = m_radioState->refLevelB();
+        if (currentRef < -200)
+            currentRef = -110;
+        int newRef = qBound(-140, currentRef + steps, 10);
+        m_tcpClient->sendCAT(QString("#REF$%1;").arg(newRef)); // Note: #REF$ for Sub RX
+        // Optimistic update
+        m_panadapterB->setRefLevel(newRef);
     });
 
     // Right-click on panadapter B tunes VFO A (opposite VFO)
@@ -3695,6 +3751,7 @@ void MainWindow::onAuthenticated() {
     m_tcpClient->sendCAT("#HDSM;"); // Display mode (EXT) - not in RDY
     m_tcpClient->sendCAT("#FRZ;");  // Freeze - not in RDY
     m_tcpClient->sendCAT("#FPS;");  // Display FPS - not in RDY
+    m_tcpClient->sendCAT("#SCL;");  // Panadapter scale - not in RDY, needed for dB range
     m_tcpClient->sendCAT("SIRC1;"); // Enable 1-second client stats updates
     // Note: ML commands (monitor levels) come in RDY; dump - no need to query
 

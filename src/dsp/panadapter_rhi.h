@@ -73,6 +73,9 @@ signals:
     // Right-click signals (for tuning opposite VFO)
     void frequencyRightClicked(qint64 freq);
     void frequencyRightDragged(qint64 freq);
+    // Scale/RefLevel scroll signals (Shift+Wheel, Ctrl+Wheel)
+    void scaleScrolled(int steps);
+    void refLevelScrolled(int steps);
 
 protected:
     // QRhiWidget overrides

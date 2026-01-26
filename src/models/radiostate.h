@@ -308,10 +308,18 @@ public:
         }
     }
 
-    // Panadapter scale (Main, from #SCL command, 25-150)
+    // Panadapter scale (Main, from #SCL command, 10-150)
     // Higher values = more compressed display (signals appear weaker)
     // Lower values = more expanded display (signals appear stronger)
     int scale() const { return m_scale; }
+
+    // Setter for optimistic scale updates (UI updates immediately)
+    void setScale(int scale) {
+        if (scale >= 10 && scale <= 150 && scale != m_scale) {
+            m_scale = scale;
+            emit scaleChanged(m_scale);
+        }
+    }
 
     // Panadapter span (Main, from #SPN command, in Hz)
     int spanHz() const { return m_spanHz; }

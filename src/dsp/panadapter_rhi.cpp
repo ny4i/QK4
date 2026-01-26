@@ -36,11 +36,11 @@ protected:
 
         QFont scaleFont("JetBrains Mono");
         scaleFont.setStyleHint(QFont::Monospace);
-        scaleFont.setPointSize(K4Styles::Dimensions::FontSizeSmall);
+        scaleFont.setPointSize(K4Styles::Dimensions::FontSizeNormal);
         painter.setFont(scaleFont);
         painter.setPen(Qt::white);
 
-        const int labelCount = 9;
+        const int labelCount = 9;  // Keep 9 divisions for grid alignment
         const float dbRange = m_maxDb - m_minDb;
         const int leftMargin = 4;
         const int h = height();
@@ -49,6 +49,10 @@ protected:
         int textHeight = fm.height();
 
         for (int i = 0; i < labelCount; ++i) {
+            // Skip top and bottom labels for breathing room
+            if (i == 0 || i == labelCount - 1)
+                continue;
+
             float dbValue = m_maxDb - (static_cast<float>(i) / 8.0f) * dbRange;
             int yPos = h * i / 8;
 
@@ -61,12 +65,6 @@ protected:
 
             // Vertically center on grid line
             int textY = yPos + textHeight / 3;
-
-            // Adjust top and bottom labels to stay in bounds
-            if (i == 0)
-                textY = textHeight - 2;
-            if (i == labelCount - 1)
-                textY = h - 4;
 
             painter.drawText(leftMargin, textY, label);
         }
@@ -130,7 +128,7 @@ protected:
 
         QFont scaleFont("JetBrains Mono");
         scaleFont.setStyleHint(QFont::Monospace);
-        scaleFont.setPointSize(K4Styles::Dimensions::FontSizeSmall);
+        scaleFont.setPointSize(K4Styles::Dimensions::FontSizeNormal);
         painter.setFont(scaleFont);
         painter.setPen(Qt::white);
 
@@ -1505,6 +1503,7 @@ QColor PanadapterRhiWidget::spectrumGradientColor(float t) {
 void PanadapterRhiWidget::setDbRange(float minDb, float maxDb) {
     m_minDb = minDb;
     m_maxDb = maxDb;
+    updateDbmScaleOverlay();  // Update overlay labels when range changes
     update();
 }
 
@@ -1757,7 +1756,16 @@ void PanadapterRhiWidget::wheelEvent(QWheelEvent *event) {
     int steps = degrees / 15;
 
     if (steps != 0) {
-        emit frequencyScrolled(steps);
+        if (event->modifiers() & Qt::ShiftModifier) {
+            // Shift+Wheel: Adjust scale (dB range)
+            emit scaleScrolled(steps);
+        } else if (event->modifiers() & Qt::ControlModifier) {
+            // Ctrl+Wheel: Adjust reference level
+            emit refLevelScrolled(steps);
+        } else {
+            // Plain wheel: Tune frequency
+            emit frequencyScrolled(steps);
+        }
     }
     event->accept();
 }
