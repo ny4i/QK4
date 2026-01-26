@@ -4,14 +4,14 @@
 #include <QLinearGradient>
 
 TxMeterWidget::TxMeterWidget(QWidget *parent) : QWidget(parent) {
-    // 5 meters, each ~18px high with spacing
-    setFixedHeight(95);
+    // 5 meters, each ~26px high with spacing (matches KPA1500 meter sizing)
+    setFixedHeight(130);
     setMinimumWidth(200);
     setMaximumWidth(380);
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
-    // Enable custom painting
-    setAttribute(Qt::WA_OpaquePaintEvent);
+    // Transparent background - let parent show through
+    setAttribute(Qt::WA_TranslucentBackground);
 
     // Setup decay timer
     m_decayTimer = new QTimer(this);
@@ -209,26 +209,25 @@ void TxMeterWidget::paintEvent(QPaintEvent *event) {
     int w = width();
     int h = height();
 
-    // Background
-    painter.fillRect(rect(), QColor(K4Styles::Colors::DarkBackground));
+    // No background fill - let parent widget show through
 
-    // Layout constants
-    const int labelWidth = 36; // Width of label box (Po, ALC, etc.)
-    const int rowHeight = 17;  // Height per meter row
+    // Layout constants (matched to KPA1500 meter styling)
+    const int labelWidth = 40; // Width of label box (Po, ALC, etc.)
+    const int rowHeight = 24;  // Height per meter row
     const int barStartX = labelWidth + 4;
     const int barWidth = w - barStartX - 4;
-    const int barHeight = 8;
+    const int barHeight = 14;
     const int spacing = 2;
 
-    // Font for labels
+    // Font for labels (10pt bold, matches KPA1500)
     QFont labelFont = font();
-    labelFont.setPointSize(K4Styles::Dimensions::FontSizeSmall);
+    labelFont.setPointSize(10);
     labelFont.setBold(true);
     painter.setFont(labelFont);
 
-    // Scale font (smaller)
+    // Scale font (8pt, matches KPA1500)
     QFont scaleFont = font();
-    scaleFont.setPointSize(K4Styles::Dimensions::FontSizeMicro);
+    scaleFont.setPointSize(K4Styles::Dimensions::FontSizeSmall);
 
     int y = 0;
 
@@ -294,16 +293,16 @@ void TxMeterWidget::paintEvent(QPaintEvent *event) {
 void TxMeterWidget::drawMeterRow(QPainter &painter, int y, int rowHeight, const QString &label, double fillRatio,
                                  double peakRatio, const QStringList &scaleLabels, const QFont &scaleFont,
                                  int barStartX, int barWidth, int barHeight, MeterType type) {
-    // Label box on the left
-    QRect labelRect(2, y + 2, 32, rowHeight - 4);
+    // Label box on the left (wider for larger font)
+    QRect labelRect(2, y + 2, 36, rowHeight - 4);
     painter.setPen(QColor(K4Styles::Colors::InactiveGray));
     painter.setBrush(QColor(K4Styles::Colors::Background));
     painter.drawRect(labelRect);
 
-    // Label text
+    // Label text (10pt bold, matches KPA1500)
     painter.setPen(QColor(K4Styles::Colors::TextWhite));
     QFont labelFont = font();
-    labelFont.setPointSize(K4Styles::Dimensions::FontSizeSmall);
+    labelFont.setPointSize(10);
     labelFont.setBold(true);
     painter.setFont(labelFont);
     painter.drawText(labelRect, Qt::AlignCenter, label);

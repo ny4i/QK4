@@ -3,7 +3,6 @@
 
 #include <QWidget>
 #include <QLabel>
-#include <QLineEdit>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QStackedWidget>
@@ -11,6 +10,7 @@
 
 class MiniPanRhiWidget;
 class TxMeterWidget;
+class FrequencyDisplayWidget;
 
 class VFOWidget : public QWidget {
     Q_OBJECT
@@ -55,15 +55,14 @@ public:
     // Access to mini-pan (may return nullptr if not yet created)
     MiniPanRhiWidget *miniPan() const { return m_miniPan; }
 
-    // Access to frequency label for styling (e.g., dimming when SUB RX off)
-    QLabel *frequencyLabel() const { return m_frequencyLabel; }
+    // Access to frequency display for styling (e.g., dimming when SUB RX off)
+    FrequencyDisplayWidget *frequencyDisplay() const { return m_frequencyDisplay; }
 
     // Get type
     VFOType type() const { return m_type; }
 
-    // Frequency entry
-    void startFrequencyEntry(); // Show line edit for frequency input
-    bool isFrequencyEntryActive() const { return m_frequencyEdit && m_frequencyEdit->isVisible(); }
+    // Check if frequency entry is active (in edit mode)
+    bool isFrequencyEntryActive() const;
 
 signals:
     void normalContentClicked();                      // User clicked normal view → show mini-pan
@@ -73,10 +72,6 @@ signals:
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
-
-private slots:
-    void onFrequencyEditFinished();
-    void cancelFrequencyEntry();
 
 private:
     void setupUi();
@@ -90,8 +85,7 @@ private:
     int m_tuningRate = 3; // Default 1kHz
 
     // Widgets
-    QLabel *m_frequencyLabel;
-    QLineEdit *m_frequencyEdit; // Frequency entry (shown on click)
+    FrequencyDisplayWidget *m_frequencyDisplay;
     QLabel *m_agcLabel;
     QLabel *m_preampLabel;
     QLabel *m_attLabel;

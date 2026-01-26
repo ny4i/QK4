@@ -3,6 +3,7 @@
 
 #include <QMap>
 #include <QObject>
+#include <QPoint>
 #include <QSettings>
 #include <QString>
 #include <QVector>
@@ -72,6 +73,8 @@ public:
     void setKpa1500Enabled(bool enabled);
     int kpa1500PollInterval() const;
     void setKpa1500PollInterval(int intervalMs);
+    QPoint kpa1500WindowPosition() const;
+    void setKpa1500WindowPosition(const QPoint &pos);
 
     // Audio output settings
     int volume() const;
@@ -150,7 +153,7 @@ private:
     QString m_kpa1500Host;
     quint16 m_kpa1500Port = 1500;
     bool m_kpa1500Enabled = false;
-    int m_kpa1500PollInterval = 800; // Default: 800ms
+    int m_kpa1500PollInterval = 300; // Default: 300ms for responsive meters
 
     // Rigctld settings
     bool m_rigctldEnabled = false;

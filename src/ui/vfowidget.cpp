@@ -1,6 +1,7 @@
 #include "vfowidget.h"
 #include "k4styles.h"
 #include "txmeterwidget.h"
+#include "frequencydisplaywidget.h"
 #include "../dsp/minipan_rhi.h"
 #include <QMouseEvent>
 #include <QKeyEvent>
@@ -22,33 +23,15 @@ void VFOWidget::setupUi() {
                                    K4Styles::Dimensions::PopupButtonSpacing, 4);
     mainLayout->setSpacing(2);
 
-    // Row 1: Frequency (aligned with S-meter)
+    // Row 1: Frequency display with inline editing
     auto *freqRow = new QHBoxLayout();
-    m_frequencyLabel = new QLabel("---.---.---", this);
-    m_frequencyLabel->setStyleSheet(
-        QString(
-            "color: %1; font-size: 32px; font-weight: bold; font-family: 'JetBrains Mono', 'Courier New', monospace;")
-            .arg(K4Styles::Colors::TextWhite));
-    m_frequencyLabel->setFixedHeight(K4Styles::Dimensions::MenuItemHeight);
-    m_frequencyLabel->setCursor(Qt::PointingHandCursor);
-    m_frequencyLabel->installEventFilter(this);
+    m_frequencyDisplay = new FrequencyDisplayWidget(this);
+    m_frequencyDisplay->setEditModeColor(QColor(m_primaryColor)); // Cyan for A, Green for B
+    m_frequencyDisplay->setFixedHeight(K4Styles::Dimensions::MenuItemHeight);
 
-    // Frequency entry line edit (hidden by default)
-    m_frequencyEdit = new QLineEdit(this);
-    m_frequencyEdit->setStyleSheet(
-        QString("QLineEdit { color: %1; background-color: %2; border: %4px solid %3; "
-                "font-size: 32px; font-weight: bold; font-family: 'JetBrains Mono', 'Courier New', monospace; "
-                "padding: 2px 4px; }")
-            .arg(K4Styles::Colors::TextWhite)
-            .arg(K4Styles::Colors::DarkBackground)
-            .arg(m_primaryColor)
-            .arg(K4Styles::Dimensions::BorderWidth));
-    m_frequencyEdit->setFixedHeight(K4Styles::Dimensions::MenuItemHeight);
-    m_frequencyEdit->setMaxLength(11); // Max 11 digits per K4 spec
-    m_frequencyEdit->setAlignment(Qt::AlignRight);
-    m_frequencyEdit->hide();
-    m_frequencyEdit->installEventFilter(this);
-    connect(m_frequencyEdit, &QLineEdit::returnPressed, this, &VFOWidget::onFrequencyEditFinished);
+    // Forward frequency entry signal
+    connect(m_frequencyDisplay, &FrequencyDisplayWidget::frequencyEntered,
+            this, &VFOWidget::frequencyEntered);
 
     // VFO A: frequency on left, VFO B: frequency on right
     // Frequency container width matches stacked widget (270px) for vertical alignment
@@ -57,8 +40,7 @@ void VFOWidget::setupUi() {
     auto *freqContainerLayout = new QHBoxLayout(freqContainer);
     freqContainerLayout->setContentsMargins(0, 0, 0, 0);
     freqContainerLayout->setSpacing(0);
-    freqContainerLayout->addWidget(m_frequencyLabel);
-    freqContainerLayout->addWidget(m_frequencyEdit);
+    freqContainerLayout->addWidget(m_frequencyDisplay);
     freqContainerLayout->addStretch();
 
     if (m_type == VFO_A) {
@@ -79,9 +61,9 @@ void VFOWidget::setupUi() {
     m_stackedWidget->setMaximumWidth(270); // Fit all indicators with values (ATT-6, NTCH-A/M, APF-150)
 
     // Page 0: Normal content (multifunction meter + features)
-    // Height must match MiniPanRhiWidget (110px) to prevent layout shift when toggling
+    // Height must match MiniPanRhiWidget (150px) to prevent layout shift when toggling
     m_normalContent = new QWidget(m_stackedWidget);
-    m_normalContent->setFixedSize(270, 110); // Fit all indicators with values (ATT-6, NTCH-A/M, APF-150)
+    m_normalContent->setFixedSize(270, 150); // Fit all indicators with values (ATT-6, NTCH-A/M, APF-150)
     auto *normalLayout = new QVBoxLayout(m_normalContent);
     normalLayout->setContentsMargins(0, 0, 0, 0);
     normalLayout->setSpacing(2);
@@ -171,32 +153,13 @@ bool VFOWidget::eventFilter(QObject *watched, QEvent *event) {
         return true;
     }
 
-    // Click on frequency label to start editing
-    if (watched == m_frequencyLabel && event->type() == QEvent::MouseButtonPress) {
-        startFrequencyEntry();
-        return true;
-    }
-
-    // Handle key events in frequency edit
-    if (watched == m_frequencyEdit && event->type() == QEvent::KeyPress) {
-        auto *keyEvent = static_cast<QKeyEvent *>(event);
-        if (keyEvent->key() == Qt::Key_Escape) {
-            cancelFrequencyEntry();
-            return true;
-        }
-    }
-
-    // Handle focus loss on frequency edit
-    if (watched == m_frequencyEdit && event->type() == QEvent::FocusOut) {
-        cancelFrequencyEntry();
-        return true;
-    }
+    // FrequencyDisplayWidget handles its own click/key events internally
 
     return QWidget::eventFilter(watched, event);
 }
 
 void VFOWidget::setFrequency(const QString &formatted) {
-    m_frequencyLabel->setText(formatted);
+    m_frequencyDisplay->setFrequency(formatted);
     update(); // Repaint to update tuning rate indicator position
 }
 
@@ -216,16 +179,17 @@ void VFOWidget::paintEvent(QPaintEvent *event) {
 }
 
 void VFOWidget::drawTuningRateIndicator(QPainter &painter) {
-    QString freqText = m_frequencyLabel->text();
+    QString freqText = m_frequencyDisplay->displayText();
     if (freqText.isEmpty() || freqText.startsWith("-"))
         return; // No frequency set yet
 
-    // Get frequency label geometry in widget coordinates
-    QPoint labelPos = m_frequencyLabel->mapTo(this, QPoint(0, 0));
-    QRect labelRect(labelPos, m_frequencyLabel->size());
+    // Get frequency display geometry in widget coordinates
+    QPoint displayPos = m_frequencyDisplay->mapTo(this, QPoint(0, 0));
+    QRect displayRect(displayPos, m_frequencyDisplay->size());
 
-    // Get font metrics for the frequency label's font
-    QFont font = m_frequencyLabel->font();
+    // Get font metrics for the frequency display font (32px JetBrains Mono Bold)
+    QFont font("JetBrains Mono", 32, QFont::Bold);
+    font.setStyleHint(QFont::Monospace);
     QFontMetrics fm(font);
 
     // VT rate maps to digit position from right:
@@ -268,8 +232,8 @@ void VFOWidget::drawTuningRateIndicator(QPainter &painter) {
     const int thickness = 4; // underline height
 
     // Calculate underline position in widget coordinates
-    int underlineX = labelRect.left() + charX;
-    int underlineY = labelRect.bottom() + spacing;
+    int underlineX = displayRect.left() + charX;
+    int underlineY = displayRect.bottom() + spacing;
     int underlineWidth = charWidth;
 
     // Draw underline in frequency text color (white)
@@ -452,53 +416,6 @@ void VFOWidget::setTxMeterCurrent(double amps) {
         m_txMeter->setCurrent(amps);
 }
 
-void VFOWidget::startFrequencyEntry() {
-    if (!m_frequencyEdit)
-        return;
-
-    // Get current frequency text, remove separators (dots) for editing
-    QString currentFreq = m_frequencyLabel->text();
-    currentFreq.remove('.');
-    currentFreq.remove('-'); // Remove placeholders if no frequency set
-
-    // Show edit field, hide label
-    m_frequencyLabel->hide();
-    m_frequencyEdit->setText(currentFreq);
-    m_frequencyEdit->show();
-    m_frequencyEdit->setFocus();
-    m_frequencyEdit->selectAll();
-}
-
-void VFOWidget::onFrequencyEditFinished() {
-    if (!m_frequencyEdit)
-        return;
-
-    QString enteredFreq = m_frequencyEdit->text().trimmed();
-
-    // Validate: only digits allowed
-    bool valid = true;
-    for (const QChar &c : enteredFreq) {
-        if (!c.isDigit()) {
-            valid = false;
-            break;
-        }
-    }
-
-    // Hide edit, show label
-    m_frequencyEdit->hide();
-    m_frequencyLabel->show();
-
-    // Emit signal if valid and not empty
-    if (valid && !enteredFreq.isEmpty()) {
-        emit frequencyEntered(enteredFreq);
-    }
-}
-
-void VFOWidget::cancelFrequencyEntry() {
-    if (!m_frequencyEdit)
-        return;
-
-    // Hide edit, show label (no change to frequency)
-    m_frequencyEdit->hide();
-    m_frequencyLabel->show();
+bool VFOWidget::isFrequencyEntryActive() const {
+    return m_frequencyDisplay && m_frequencyDisplay->isEditing();
 }

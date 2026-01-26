@@ -26,6 +26,7 @@
 #include "ui/voxpopup.h"
 #include "ui/ssbbwpopup.h"
 #include "ui/textdecodewindow.h"
+#include "ui/frequencydisplaywidget.h"
 #include "models/menumodel.h"
 #include "dsp/panadapter_rhi.h"
 #include "dsp/minipan_rhi.h"
@@ -36,6 +37,8 @@
 #include "hardware/kpoddevice.h"
 #include "hardware/halikeydevice.h"
 #include "network/kpa1500client.h"
+#include "ui/kpa1500window.h"
+#include "ui/kpa1500panel.h"
 #include "network/catserver.h"
 #include "settings/radiosettings.h"
 #include <QVBoxLayout>
@@ -1074,9 +1077,7 @@ MainWindow::MainWindow(QWidget *parent)
                                               .arg(K4Styles::Colors::AgcGreen));
             }
             // Restore VFO B frequency and mode to normal white
-            m_vfoB->frequencyLabel()->setStyleSheet(QString("color: %1; font-size: 32px; font-weight: bold; "
-                                                            "font-family: 'JetBrains Mono', 'Courier New', monospace;")
-                                                        .arg(K4Styles::Colors::TextWhite));
+            m_vfoB->frequencyDisplay()->setNormalColor(QColor(K4Styles::Colors::TextWhite));
             m_modeBLabel->setStyleSheet(
                 QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextWhite));
         } else {
@@ -1096,9 +1097,7 @@ MainWindow::MainWindow(QWidget *parent)
                         "border-radius: 2px;")
                     .arg(K4Styles::Colors::DisabledBackground, K4Styles::Colors::LightGradientTop));
             // Dim VFO B frequency and mode to indicate SUB RX is off
-            m_vfoB->frequencyLabel()->setStyleSheet(QString("color: %1; font-size: 32px; font-weight: bold; "
-                                                            "font-family: 'JetBrains Mono', 'Courier New', monospace;")
-                                                        .arg(K4Styles::Colors::InactiveGray));
+            m_vfoB->frequencyDisplay()->setNormalColor(QColor(K4Styles::Colors::InactiveGray));
             m_modeBLabel->setStyleSheet(
                 QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::InactiveGray));
 
@@ -1697,17 +1696,47 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_kpa1500Client, &KPA1500Client::disconnected, this, &MainWindow::onKpa1500Disconnected);
     connect(m_kpa1500Client, &KPA1500Client::errorOccurred, this, &MainWindow::onKpa1500Error);
 
+    // Connect KPA1500 data signals to panel
+    connect(m_kpa1500Client, &KPA1500Client::powerChanged, this,
+            [this](double fwd, double ref, double) {
+                m_kpa1500Window->panel()->setForwardPower(static_cast<float>(fwd));
+                m_kpa1500Window->panel()->setReflectedPower(static_cast<float>(ref));
+            });
+    connect(m_kpa1500Client, &KPA1500Client::swrChanged, this,
+            [this](double swr) { m_kpa1500Window->panel()->setSWR(static_cast<float>(swr)); });
+    connect(m_kpa1500Client, &KPA1500Client::paTemperatureChanged, this,
+            [this](double tempC) { m_kpa1500Window->panel()->setTemperature(static_cast<float>(tempC)); });
+    connect(m_kpa1500Client, &KPA1500Client::operatingStateChanged, this,
+            [this](KPA1500Client::OperatingState state) {
+                m_kpa1500Window->panel()->setMode(state == KPA1500Client::StateOperate);
+            });
+    connect(m_kpa1500Client, &KPA1500Client::atuInlineChanged, this,
+            [this](bool inline_) { m_kpa1500Window->panel()->setAtuMode(inline_); });
+    connect(m_kpa1500Client, &KPA1500Client::antennaChanged, this,
+            [this](int antenna) { m_kpa1500Window->panel()->setAntenna(antenna); });
+    connect(m_kpa1500Client, &KPA1500Client::faultStatusChanged, this,
+            [this](KPA1500Client::FaultStatus status, const QString &) {
+                // Only show FAULT for active faults, not fault history
+                m_kpa1500Window->panel()->setFault(status == KPA1500Client::FaultActive);
+            });
+
+    // Connect panel signals to send KPA1500 commands
+    connect(m_kpa1500Window->panel(), &KPA1500Panel::modeToggled, this,
+            [this](bool operate) { m_kpa1500Client->sendCommand(operate ? "^OS1;" : "^OS0;"); });
+    connect(m_kpa1500Window->panel(), &KPA1500Panel::atuTuneRequested, this,
+            [this]() { m_kpa1500Client->sendCommand("^FT;"); });
+    connect(m_kpa1500Window->panel(), &KPA1500Panel::atuModeToggled, this,
+            [this](bool in) { m_kpa1500Client->sendCommand(in ? "^AI1;" : "^AI0;"); });
+    connect(m_kpa1500Window->panel(), &KPA1500Panel::antennaChanged, this,
+            [this](int ant) { m_kpa1500Client->sendCommand(QString("^AN%1;").arg(ant)); });
+
     // Connect to settings for KPA1500 enable/disable and settings changes
     connect(RadioSettings::instance(), &RadioSettings::kpa1500EnabledChanged, this,
             &MainWindow::onKpa1500EnabledChanged);
     connect(RadioSettings::instance(), &RadioSettings::kpa1500SettingsChanged, this,
             &MainWindow::onKpa1500SettingsChanged);
 
-    // Start KPA1500 connection if enabled and configured
-    if (RadioSettings::instance()->kpa1500Enabled() && !RadioSettings::instance()->kpa1500Host().isEmpty()) {
-        m_kpa1500Client->connectToHost(RadioSettings::instance()->kpa1500Host(),
-                                       RadioSettings::instance()->kpa1500Port());
-    }
+    // KPA1500 connects when K4 connects (in onAuthenticated), not on app start
 
     // Initialize KPA1500 status display
     updateKpa1500Status();
@@ -3109,6 +3138,11 @@ void MainWindow::setupVfoSection(QWidget *parent) {
 
     layout->addWidget(m_vfoB, 1, Qt::AlignTop);
 
+    // ===== KPA1500 Floating Window =====
+    // Created as a separate floating window, not in the VFO row layout
+    m_kpa1500Window = new KPA1500Window(this);
+    m_kpa1500Window->hide(); // Hidden by default, shown when enabled + connected
+
     // Add the VFO row to main layout
     mainVLayout->addWidget(vfoRowWidget);
 
@@ -3666,6 +3700,13 @@ void MainWindow::onAuthenticated() {
 
     // Create synthetic "Display FPS" menu item with stored preference
     m_menuModel->addSyntheticDisplayFpsItem(m_currentRadio.displayFps);
+
+    // Connect KPA1500 if enabled and configured
+    if (RadioSettings::instance()->kpa1500Enabled() &&
+        !RadioSettings::instance()->kpa1500Host().isEmpty()) {
+        m_kpa1500Client->connectToHost(RadioSettings::instance()->kpa1500Host(),
+                                       RadioSettings::instance()->kpa1500Port());
+    }
 }
 
 void MainWindow::onAuthenticationFailed() {
@@ -3803,6 +3844,11 @@ void MainWindow::updateConnectionState(TcpClient::ConnectionState state) {
 
         // Clear menu model
         m_menuModel->clear();
+
+        // Disconnect KPA1500 when K4 disconnects
+        if (m_kpa1500Client->isConnected()) {
+            m_kpa1500Client->disconnectFromHost();
+        }
 
         break;
 
@@ -4787,6 +4833,10 @@ void MainWindow::updateKpa1500Status() {
                 QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::InactiveGray));
         }
     }
+
+    // Show KPA1500 window only when enabled AND connected
+    m_kpa1500Window->setVisible(enabled && connected);
+    m_kpa1500Window->panel()->setConnected(connected);
 }
 
 // ============== Fn Popup / Macro Slots ==============

@@ -746,7 +746,6 @@ void RadioState::parseCATCommand(const QString &command) {
         if (text.endsWith(';'))
             text.chop(1);
         if (!text.isEmpty()) {
-            qDebug() << "TB$ received (Sub), char:" << text;
             emit textBufferReceived(text, true); // Sub RX
         }
     }
@@ -760,7 +759,6 @@ void RadioState::parseCATCommand(const QString &command) {
         if (text.endsWith(';'))
             text.chop(1);
         if (!text.isEmpty()) {
-            qDebug() << "TB received (Main), char:" << text;
             emit textBufferReceived(text, false); // Main RX
         }
     }

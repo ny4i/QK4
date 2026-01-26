@@ -85,6 +85,7 @@ set(SOURCES
     src/ui/menuoverlay.cpp
     src/ui/micmeterwidget.cpp
     src/ui/vfowidget.cpp
+    src/ui/frequencydisplaywidget.cpp
     src/ui/vforowwidget.cpp
     src/ui/filterindicatorwidget.cpp
     src/ui/bandpopupwidget.cpp
@@ -109,6 +110,8 @@ set(SOURCES
     src/ui/notificationwidget.cpp
     src/ui/k4styles.cpp
     src/ui/k4popupbase.cpp
+    src/ui/kpa1500panel.cpp
+    src/ui/kpa1500window.cpp
     src/ui/sidecontroloverlay.cpp
     src/ui/monoverlay.cpp
     src/ui/baloverlay.cpp
@@ -138,6 +141,7 @@ set(HEADERS
     src/ui/menuoverlay.h
     src/ui/micmeterwidget.h
     src/ui/vfowidget.h
+    src/ui/frequencydisplaywidget.h
     src/ui/vforowwidget.h
     src/ui/filterindicatorwidget.h
     src/ui/bandpopupwidget.h
@@ -162,6 +166,8 @@ set(HEADERS
     src/ui/notificationwidget.h
     src/ui/k4styles.h
     src/ui/k4popupbase.h
+    src/ui/kpa1500panel.h
+    src/ui/kpa1500window.h
     src/ui/sidecontroloverlay.h
     src/ui/monoverlay.h
     src/ui/baloverlay.h

@@ -112,6 +112,18 @@ void RadioSettings::setKpa1500PollInterval(int intervalMs) {
     }
 }
 
+QPoint RadioSettings::kpa1500WindowPosition() const {
+    int x = m_settings.value("kpa1500/windowX", 0).toInt();
+    int y = m_settings.value("kpa1500/windowY", 0).toInt();
+    return QPoint(x, y);
+}
+
+void RadioSettings::setKpa1500WindowPosition(const QPoint &pos) {
+    m_settings.setValue("kpa1500/windowX", pos.x());
+    m_settings.setValue("kpa1500/windowY", pos.y());
+    m_settings.sync();
+}
+
 int RadioSettings::volume() const {
     return m_settings.value("audio/volume", 45).toInt();
 }
@@ -348,7 +360,7 @@ void RadioSettings::load() {
     m_kpa1500Host = m_settings.value("kpa1500/host", "").toString();
     m_kpa1500Port = m_settings.value("kpa1500/port", 1500).toUInt();
     m_kpa1500Enabled = m_settings.value("kpa1500/enabled", false).toBool();
-    m_kpa1500PollInterval = m_settings.value("kpa1500/pollInterval", 800).toInt();
+    m_kpa1500PollInterval = m_settings.value("kpa1500/pollInterval", 300).toInt();
 
     // Rigctld settings
     m_rigctldEnabled = m_settings.value("rigctld/enabled", false).toBool();

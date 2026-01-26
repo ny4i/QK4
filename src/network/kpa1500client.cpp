@@ -1,9 +1,11 @@
 #include "kpa1500client.h"
 #include <QDebug>
 
-// Poll commands from user's Node-RED flow
+// Poll commands - based on KPA1500 Programming Reference
+// ^AI = ATU Inline state, ^AN = Antenna selection
+// Note: ^FS is Fan Speed (not fault status), removed from polling
 const QString KPA1500Client::POLL_COMMANDS =
-    "^BN;^WS;^TM;^FS;^VI;^FC;^ON;^FL;^AN;^IP;^SN;^PC;^VM1;^VM2;^VM3;^VM5;^LR;^CR;^PWF;^PWR;^PWD;";
+    "^BN;^WS;^TM;^VI;^FC;^OS;^FL;^AI;^AN;^IP;^SN;^PC;^VM1;^VM2;^VM3;^VM5;^LR;^CR;^PWF;^PWR;^PWD;";
 
 KPA1500Client::KPA1500Client(QObject *parent)
     : QObject(parent), m_socket(new QTcpSocket(this)), m_pollTimer(new QTimer(this)), m_port(1500),
@@ -168,8 +170,8 @@ void KPA1500Client::parseSingleResponse(const QString &response) {
     else if (cmd.startsWith("VI")) {
         m_firmwareVersion = cmd.mid(2);
     }
-    // ^ON - Operating State (0=Standby, 1=Operate)
-    else if (cmd.startsWith("ON")) {
+    // ^OS - Operate/Standby Mode (0=Standby, 1=Operate)
+    else if (cmd.startsWith("OS")) {
         int state = cmd.mid(2).toInt();
         OperatingState newState = (state == 1) ? StateOperate : StateStandby;
         if (m_operatingState != newState) {
@@ -177,14 +179,9 @@ void KPA1500Client::parseSingleResponse(const QString &response) {
             emit operatingStateChanged(newState);
         }
     }
-    // ^FS - Fault Status (0=None, 1=Active, 2=History)
+    // ^FS - Fan Speed (0-5), NOT fault status
     else if (cmd.startsWith("FS")) {
-        int status = cmd.mid(2).toInt();
-        FaultStatus newStatus = static_cast<FaultStatus>(status);
-        if (m_faultStatus != newStatus) {
-            m_faultStatus = newStatus;
-            emit faultStatusChanged(newStatus, m_faultCode);
-        }
+        // Fan speed - ignore for now (could add m_fanSpeed if needed)
     }
     // ^FC - Fault Code
     else if (cmd.startsWith("FC")) {
@@ -204,16 +201,20 @@ void KPA1500Client::parseSingleResponse(const QString &response) {
             emit paTemperatureChanged(temp);
         }
     }
-    // ^WS - SWR
+    // ^WS - Forward Power and SWR (format: ^WSwwww sss; where wwww=watts, sss=SWR×10)
     else if (cmd.startsWith("WS")) {
-        bool ok;
-        double swr = cmd.mid(2).toDouble(&ok);
-        if (ok) {
-            // KPA1500 reports SWR as integer ratio * 10 (e.g., 15 = 1.5:1)
-            swr = swr / 10.0;
-            if (m_swr != swr) {
-                m_swr = swr;
-                emit swrChanged(swr);
+        QString data = cmd.mid(2);
+        QStringList parts = data.split(' ');
+        if (parts.size() >= 2) {
+            bool ok;
+            int swrTenths = parts[1].toInt(&ok);
+            if (ok) {
+                // SWR minimum is 1.0 (when swrTenths is 0, use 1.0 to allow decay animation)
+                double swr = swrTenths > 0 ? swrTenths / 10.0 : 1.0;
+                if (m_swr != swr) {
+                    m_swr = swr;
+                    emit swrChanged(swr);
+                }
             }
         }
     }
@@ -270,16 +271,22 @@ void KPA1500Client::parseSingleResponse(const QString &response) {
             }
         }
     }
-    // ^AN - ATU Status
+    // ^AN - Antenna Select (returns ^ANx; where x=1-9, or ^ANxx; for 10-32)
     else if (cmd.startsWith("AN")) {
-        // Format: ANxy where x=present, y=active
-        if (cmd.length() >= 4) {
-            bool present = (cmd[2] == '1');
-            bool active = (cmd[3] == '1');
-            if (m_atuPresent != present || m_atuActive != active) {
-                m_atuPresent = present;
-                m_atuActive = active;
-                emit atuStatusChanged(present, active);
+        bool ok;
+        int antenna = cmd.mid(2).toInt(&ok);
+        if (ok && antenna >= 1 && antenna <= 32 && m_antenna != antenna) {
+            m_antenna = antenna;
+            emit antennaChanged(antenna);
+        }
+    }
+    // ^AI - ATU Inline (returns ^AI1; for inline, ^AI0; for bypassed)
+    else if (cmd.startsWith("AI")) {
+        if (cmd.length() >= 3) {
+            bool inline_ = (cmd[2] == '1');
+            if (m_atuInline != inline_) {
+                m_atuInline = inline_;
+                emit atuInlineChanged(inline_);
             }
         }
     }

@@ -13,7 +13,7 @@ public:
     enum ConnectionState { Disconnected, Connecting, Connected };
     Q_ENUM(ConnectionState)
 
-    // Amp operating state (^ON response)
+    // Amp operating state (^OS response)
     enum OperatingState { StateUnknown = -1, StateStandby = 0, StateOperate = 1 };
     Q_ENUM(OperatingState)
 
@@ -46,7 +46,8 @@ public:
     FaultStatus faultStatus() const { return m_faultStatus; }
     QString faultCode() const { return m_faultCode; }
     bool atuPresent() const { return m_atuPresent; }
-    bool atuActive() const { return m_atuActive; }
+    bool atuInline() const { return m_atuInline; }
+    int antenna() const { return m_antenna; }
     QString serialNumber() const { return m_serialNumber; }
     QString firmwareVersion() const { return m_firmwareVersion; }
 
@@ -65,7 +66,9 @@ signals:
     void paTemperatureChanged(double tempC);
     void operatingStateChanged(OperatingState state);
     void faultStatusChanged(FaultStatus status, const QString &faultCode);
-    void atuStatusChanged(bool present, bool active);
+    void atuPresentChanged(bool present);
+    void atuInlineChanged(bool inline_);
+    void antennaChanged(int antenna);
 
 private slots:
     void onSocketConnected();
@@ -103,7 +106,8 @@ private:
     FaultStatus m_faultStatus = FaultNone;
     QString m_faultCode;
     bool m_atuPresent = false;
-    bool m_atuActive = false;
+    bool m_atuInline = false;
+    int m_antenna = 1;
     QString m_serialNumber;
     QString m_firmwareVersion;
 };

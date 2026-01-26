@@ -44,6 +44,7 @@ class KpodDevice;
 class HalikeyDevice;
 class TxMeterWidget;
 class KPA1500Client;
+class KPA1500Window;
 class CatServer;
 class NotificationWidget;
 class VfoRowWidget;
@@ -191,6 +192,7 @@ private:
     QLabel *m_currentLabel;
     QLabel *m_connectionStatusLabel;
     QLabel *m_kpa1500StatusLabel;
+    KPA1500Window *m_kpa1500Window;
 
     // VFO widgets (modular, reusable components)
     VFOWidget *m_vfoA;

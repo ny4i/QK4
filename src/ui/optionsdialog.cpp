@@ -590,7 +590,7 @@ QWidget *OptionsDialog::createKpa1500Page() {
     pollLabel->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
 
     m_kpa1500PollIntervalEdit = new QLineEdit(page);
-    m_kpa1500PollIntervalEdit->setPlaceholderText("800");
+    m_kpa1500PollIntervalEdit->setPlaceholderText("300");
     m_kpa1500PollIntervalEdit->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
     m_kpa1500PollIntervalEdit->setStyleSheet(
         QString("QLineEdit { background-color: %1; color: %2; border: 1px solid %3; "

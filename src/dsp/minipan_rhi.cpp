@@ -6,7 +6,7 @@
 #include <cmath>
 
 MiniPanRhiWidget::MiniPanRhiWidget(QWidget *parent) : QRhiWidget(parent) {
-    setFixedHeight(110);
+    setFixedHeight(150);
     setMinimumWidth(180);
     setMaximumWidth(200);
 
