@@ -243,7 +243,6 @@ constexpr int SidePanelWidth = 105; // Left and right side panels
 // =============================================================================
 // Font Sizes (in points) - use with QFont::setPointSize()
 // =============================================================================
-constexpr int FontSizeMicro = 6;   // Meter scale numbers
 constexpr int FontSizeTiny = 7;    // Sub-labels (BANK, AF REC, MESSAGE)
 constexpr int FontSizeSmall = 8;   // Scale fonts, secondary text
 constexpr int FontSizeNormal = 9;  // Alt/secondary button text
