@@ -1766,23 +1766,23 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     // Connect to settings for CAT server enable/disable
-    connect(RadioSettings::instance(), &RadioSettings::rigctldEnabledChanged, this, [this](bool enabled) {
+    connect(RadioSettings::instance(), &RadioSettings::catServerEnabledChanged, this, [this](bool enabled) {
         if (enabled) {
-            m_catServer->start(RadioSettings::instance()->rigctldPort());
+            m_catServer->start(RadioSettings::instance()->catServerPort());
         } else {
             m_catServer->stop();
         }
     });
-    connect(RadioSettings::instance(), &RadioSettings::rigctldPortChanged, this, [this](quint16 port) {
-        if (RadioSettings::instance()->rigctldEnabled()) {
+    connect(RadioSettings::instance(), &RadioSettings::catServerPortChanged, this, [this](quint16 port) {
+        if (RadioSettings::instance()->catServerEnabled()) {
             m_catServer->stop();
             m_catServer->start(port);
         }
     });
 
     // Start CAT server if enabled
-    if (RadioSettings::instance()->rigctldEnabled()) {
-        m_catServer->start(RadioSettings::instance()->rigctldPort());
+    if (RadioSettings::instance()->catServerEnabled()) {
+        m_catServer->start(RadioSettings::instance()->catServerPort());
     }
 
     // resize directly instead of deferring - testing if deferred resize affects QRhi

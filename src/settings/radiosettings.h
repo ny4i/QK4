@@ -92,11 +92,11 @@ public:
     QString speakerDevice() const;
     void setSpeakerDevice(const QString &deviceId);
 
-    // Rig Control (rigctld) settings
-    bool rigctldEnabled() const;
-    void setRigctldEnabled(bool enabled);
-    quint16 rigctldPort() const;
-    void setRigctldPort(quint16 port);
+    // CAT Server settings (local TCP server for external apps)
+    bool catServerEnabled() const;
+    void setCatServerEnabled(bool enabled);
+    quint16 catServerPort() const;
+    void setCatServerPort(quint16 port);
 
     // Macro settings
     QMap<QString, MacroEntry> macros() const;
@@ -131,8 +131,8 @@ signals:
     void micGainChanged(int value);
     void micDeviceChanged(const QString &deviceId);
     void speakerDeviceChanged(const QString &deviceId);
-    void rigctldEnabledChanged(bool enabled);
-    void rigctldPortChanged(quint16 port);
+    void catServerEnabledChanged(bool enabled);
+    void catServerPortChanged(quint16 port);
     void macrosChanged();
     void halikeyEnabledChanged(bool enabled);
     void halikeyPortNameChanged(const QString &portName);
@@ -155,9 +155,9 @@ private:
     bool m_kpa1500Enabled = false;
     int m_kpa1500PollInterval = 300; // Default: 300ms for responsive meters
 
-    // Rigctld settings
-    bool m_rigctldEnabled = false;
-    quint16 m_rigctldPort = 4532;
+    // CAT Server settings
+    bool m_catServerEnabled = false;
+    quint16 m_catServerPort = 9299;
 
     // HaliKey settings
     QString m_halikeyPortName;

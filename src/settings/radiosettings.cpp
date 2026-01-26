@@ -184,29 +184,29 @@ void RadioSettings::setSpeakerDevice(const QString &deviceId) {
     }
 }
 
-bool RadioSettings::rigctldEnabled() const {
-    return m_rigctldEnabled;
+bool RadioSettings::catServerEnabled() const {
+    return m_catServerEnabled;
 }
 
-void RadioSettings::setRigctldEnabled(bool enabled) {
-    if (m_rigctldEnabled != enabled) {
-        m_rigctldEnabled = enabled;
+void RadioSettings::setCatServerEnabled(bool enabled) {
+    if (m_catServerEnabled != enabled) {
+        m_catServerEnabled = enabled;
         save();
-        emit rigctldEnabledChanged(enabled);
+        emit catServerEnabledChanged(enabled);
     }
 }
 
-quint16 RadioSettings::rigctldPort() const {
-    return m_rigctldPort;
+quint16 RadioSettings::catServerPort() const {
+    return m_catServerPort;
 }
 
-void RadioSettings::setRigctldPort(quint16 port) {
+void RadioSettings::setCatServerPort(quint16 port) {
     // Clamp to valid port range (1024-65535)
     port = qBound(quint16(1024), port, quint16(65535));
-    if (m_rigctldPort != port) {
-        m_rigctldPort = port;
+    if (m_catServerPort != port) {
+        m_catServerPort = port;
         save();
-        emit rigctldPortChanged(port);
+        emit catServerPortChanged(port);
     }
 }
 
@@ -362,9 +362,11 @@ void RadioSettings::load() {
     m_kpa1500Enabled = m_settings.value("kpa1500/enabled", false).toBool();
     m_kpa1500PollInterval = m_settings.value("kpa1500/pollInterval", 300).toInt();
 
-    // Rigctld settings
-    m_rigctldEnabled = m_settings.value("rigctld/enabled", false).toBool();
-    m_rigctldPort = m_settings.value("rigctld/port", 4532).toUInt();
+    // CAT Server settings (migrate from old rigctld keys if present)
+    m_catServerEnabled = m_settings.value("catServer/enabled",
+        m_settings.value("rigctld/enabled", false)).toBool();
+    m_catServerPort = m_settings.value("catServer/port",
+        m_settings.value("rigctld/port", 9299)).toUInt();
 
     // HaliKey settings
     m_halikeyPortName = m_settings.value("halikey/portName", "").toString();
@@ -448,9 +450,9 @@ void RadioSettings::save() {
     m_settings.setValue("kpa1500/enabled", m_kpa1500Enabled);
     m_settings.setValue("kpa1500/pollInterval", m_kpa1500PollInterval);
 
-    // Rigctld settings
-    m_settings.setValue("rigctld/enabled", m_rigctldEnabled);
-    m_settings.setValue("rigctld/port", m_rigctldPort);
+    // CAT Server settings
+    m_settings.setValue("catServer/enabled", m_catServerEnabled);
+    m_settings.setValue("catServer/port", m_catServerPort);
 
     // HaliKey settings
     m_settings.setValue("halikey/portName", m_halikeyPortName);

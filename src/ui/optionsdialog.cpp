@@ -1130,7 +1130,7 @@ QWidget *OptionsDialog::createRigControlPage() {
     portLabel->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
 
     m_catServerPortEdit = new QLineEdit(page);
-    m_catServerPortEdit->setPlaceholderText("4532");
+    m_catServerPortEdit->setPlaceholderText("9299");
     m_catServerPortEdit->setFixedWidth(K4Styles::Dimensions::InputFieldWidthSmall);
     m_catServerPortEdit->setStyleSheet(QString("QLineEdit { background-color: %1; color: %2; border: 1px solid %3; "
                                                "           padding: %6px; font-size: %5px; border-radius: %7px; }"
@@ -1140,9 +1140,9 @@ QWidget *OptionsDialog::createRigControlPage() {
                                            .arg(K4Styles::Dimensions::FontSizePopup)
                                            .arg(K4Styles::Dimensions::PaddingSmall)
                                            .arg(K4Styles::Dimensions::SliderBorderRadius));
-    m_catServerPortEdit->setText(QString::number(RadioSettings::instance()->rigctldPort()));
+    m_catServerPortEdit->setText(QString::number(RadioSettings::instance()->catServerPort()));
 
-    auto *portHint = new QLabel("(default: 4532)", page);
+    auto *portHint = new QLabel("(default: 9299)", page);
     portHint->setStyleSheet(QString("color: %1; font-size: 11px;").arg(K4Styles::Colors::TextGray));
 
     portLayout->addWidget(portLabel);
@@ -1166,12 +1166,12 @@ QWidget *OptionsDialog::createRigControlPage() {
                                                  .arg(K4Styles::Dimensions::FontSizePopup)
                                                  .arg(K4Styles::Dimensions::BorderRadiusLarge)
                                                  .arg(K4Styles::Dimensions::CheckboxSize));
-    m_catServerEnableCheckbox->setChecked(RadioSettings::instance()->rigctldEnabled());
+    m_catServerEnableCheckbox->setChecked(RadioSettings::instance()->catServerEnabled());
     layout->addWidget(m_catServerEnableCheckbox);
 
     // Help text
     auto *helpLabel = new QLabel("Configure external apps to use Elecraft K4, host 127.0.0.1, and the port above. "
-                                 "Commands are forwarded to the real K4 - no Hamlib/rigctld needed.",
+                                 "Commands are forwarded to the real K4.",
                                  page);
     helpLabel->setStyleSheet(
         QString("color: %1; font-size: 11px; font-style: italic;").arg(K4Styles::Colors::TextGray));
@@ -1183,15 +1183,15 @@ QWidget *OptionsDialog::createRigControlPage() {
         bool ok;
         quint16 port = m_catServerPortEdit->text().toUShort(&ok);
         if (ok && port >= 1024) {
-            RadioSettings::instance()->setRigctldPort(port);
+            RadioSettings::instance()->setCatServerPort(port);
         } else {
             // Reset to current value if invalid
-            m_catServerPortEdit->setText(QString::number(RadioSettings::instance()->rigctldPort()));
+            m_catServerPortEdit->setText(QString::number(RadioSettings::instance()->catServerPort()));
         }
     });
 
     connect(m_catServerEnableCheckbox, &QCheckBox::toggled, this,
-            [](bool checked) { RadioSettings::instance()->setRigctldEnabled(checked); });
+            [](bool checked) { RadioSettings::instance()->setCatServerEnabled(checked); });
 
     layout->addStretch();
 

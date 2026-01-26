@@ -18,7 +18,7 @@ class TcpClient;
  * - Answered from RadioState cache (GET commands)
  * - Forwarded to real K4 via TcpClient (SET commands)
  *
- * This is much simpler than rigctld since no protocol translation is needed.
+ * Native K4 CAT passthrough - no protocol translation needed.
  */
 class CatServer : public QObject {
     Q_OBJECT
@@ -27,7 +27,7 @@ public:
     explicit CatServer(RadioState *state, QObject *parent = nullptr);
     ~CatServer();
 
-    bool start(quint16 port = 4532);
+    bool start(quint16 port = 9299);
     void stop();
     bool isListening() const;
     quint16 port() const;
