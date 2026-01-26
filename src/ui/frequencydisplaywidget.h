@@ -85,13 +85,13 @@ private:
     void parseFrequency(const QString &freq);
 
     // Member variables
-    QString m_digits;           // 8-digit string, left-padded with zeros
-    QString m_originalDigits;   // Backup for cancel operation
-    int m_cursorPosition = -1;  // -1 = not editing, 0-7 = digit position
+    QString m_digits;          // 8-digit string, left-padded with zeros
+    QString m_originalDigits;  // Backup for cancel operation
+    int m_cursorPosition = -1; // -1 = not editing, 0-7 = digit position
 
-    QColor m_normalColor;       // White - normal display color
-    QColor m_editColor;         // Cyan/Green - edit mode color
-    QFont m_font;               // JetBrains Mono, 32px bold
+    QColor m_normalColor; // White - normal display color
+    QColor m_editColor;   // Cyan/Green - edit mode color
+    QFont m_font;         // JetBrains Mono, 32px bold
 
     // Cached character metrics for click detection
     int m_charWidth = 0;

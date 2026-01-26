@@ -6,9 +6,7 @@
 #include <QFontMetrics>
 
 FrequencyDisplayWidget::FrequencyDisplayWidget(QWidget *parent)
-    : QWidget(parent),
-      m_digits("00000000"),
-      m_normalColor(K4Styles::Colors::TextWhite),
+    : QWidget(parent), m_digits("00000000"), m_normalColor(K4Styles::Colors::TextWhite),
       m_editColor(K4Styles::Colors::VfoACyan) {
 
     // Set up font
@@ -307,34 +305,27 @@ void FrequencyDisplayWidget::keyPressEvent(QKeyEvent *event) {
             m_cursorPosition++;
         }
         update();
-    }
-    else if (key == Qt::Key_Left) {
+    } else if (key == Qt::Key_Left) {
         if (m_cursorPosition > 0) {
             m_cursorPosition--;
             update();
         }
-    }
-    else if (key == Qt::Key_Right) {
+    } else if (key == Qt::Key_Right) {
         if (m_cursorPosition < 7) {
             m_cursorPosition++;
             update();
         }
-    }
-    else if (key == Qt::Key_Home) {
+    } else if (key == Qt::Key_Home) {
         m_cursorPosition = 0;
         update();
-    }
-    else if (key == Qt::Key_End) {
+    } else if (key == Qt::Key_End) {
         m_cursorPosition = 7;
         update();
-    }
-    else if (key == Qt::Key_Return || key == Qt::Key_Enter) {
+    } else if (key == Qt::Key_Return || key == Qt::Key_Enter) {
         exitEditMode(true); // Send frequency
-    }
-    else if (key == Qt::Key_Escape) {
+    } else if (key == Qt::Key_Escape) {
         exitEditMode(false); // Cancel
-    }
-    else {
+    } else {
         QWidget::keyPressEvent(event);
     }
 }

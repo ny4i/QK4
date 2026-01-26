@@ -45,8 +45,8 @@ private:
     void updateButtonStates();
 
     // Drawing helpers
-    void drawMeter(QPainter &painter, int y, const QString &label, const QString &valueStr,
-                   float displayRatio, float peakRatio, const QStringList &scaleLabels, bool large = true);
+    void drawMeter(QPainter &painter, int y, const QString &label, const QString &valueStr, float displayRatio,
+                   float peakRatio, const QStringList &scaleLabels, bool large = true);
     void drawStatusLabels(QPainter &painter, int y, int height);
     void drawPeakMarker(QPainter &painter, int barX, int barY, int barWidth, int barHeight, float peakRatio);
 

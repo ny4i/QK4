@@ -49,21 +49,21 @@ void KPA1500Panel::setupUi() {
             color: %15;
         }
     )")
-        .arg(K4Styles::Colors::GradientTop)      // %1
-        .arg(K4Styles::Colors::GradientMid1)     // %2
-        .arg(K4Styles::Colors::GradientMid2)     // %3
-        .arg(K4Styles::Colors::GradientBottom)   // %4
-        .arg(K4Styles::Colors::TextWhite)        // %5
-        .arg(K4Styles::Dimensions::BorderWidth)  // %6
-        .arg(K4Styles::Colors::BorderNormal)     // %7
-        .arg(K4Styles::Dimensions::BorderRadius) // %8
-        .arg(K4Styles::Dimensions::FontSizeNormal) // %9
-        .arg(K4Styles::Colors::HoverTop)         // %10
-        .arg(K4Styles::Colors::HoverMid1)        // %11
-        .arg(K4Styles::Colors::HoverMid2)        // %12
-        .arg(K4Styles::Colors::HoverBottom)      // %13
-        .arg(K4Styles::Colors::AccentAmber)      // %14
-        .arg(K4Styles::Colors::InactiveGray);    // %15
+                           .arg(K4Styles::Colors::GradientTop)        // %1
+                           .arg(K4Styles::Colors::GradientMid1)       // %2
+                           .arg(K4Styles::Colors::GradientMid2)       // %3
+                           .arg(K4Styles::Colors::GradientBottom)     // %4
+                           .arg(K4Styles::Colors::TextWhite)          // %5
+                           .arg(K4Styles::Dimensions::BorderWidth)    // %6
+                           .arg(K4Styles::Colors::BorderNormal)       // %7
+                           .arg(K4Styles::Dimensions::BorderRadius)   // %8
+                           .arg(K4Styles::Dimensions::FontSizeNormal) // %9
+                           .arg(K4Styles::Colors::HoverTop)           // %10
+                           .arg(K4Styles::Colors::HoverMid1)          // %11
+                           .arg(K4Styles::Colors::HoverMid2)          // %12
+                           .arg(K4Styles::Colors::HoverBottom)        // %13
+                           .arg(K4Styles::Colors::AccentAmber)        // %14
+                           .arg(K4Styles::Colors::InactiveGray);      // %15
 
     m_modeBtn = new QPushButton("STANDBY", this);
     m_modeBtn->setFixedHeight(K4Styles::Dimensions::ButtonHeightSmall);
@@ -202,24 +202,26 @@ void KPA1500Panel::onDecayTimer() {
             // Rising - use faster attack rate
             float step = (target - display) * ATTACK_RATE;
             display += qMax(step, minStep);
-            if (display > target) display = target;
+            if (display > target)
+                display = target;
             needsUpdate = true;
             allSettled = false;
         } else {
             // Falling - use slower decay rate
             float step = (display - target) * DECAY_RATE;
             display -= qMax(step, minStep);
-            if (display < target) display = target;
+            if (display < target)
+                display = target;
             needsUpdate = true;
             allSettled = false;
         }
     };
 
     // Animate display values toward actual values
-    animate(m_displayForwardPower, m_forwardPower, 2.0f);      // 2W min step
-    animate(m_displayReflectedPower, m_reflectedPower, 0.2f);  // 0.2W min step
-    animate(m_displaySwr, m_swr, 0.01f);                       // 0.01 min step
-    animate(m_displayTemperature, m_temperature, 0.2f);        // 0.2°C min step
+    animate(m_displayForwardPower, m_forwardPower, 2.0f);     // 2W min step
+    animate(m_displayReflectedPower, m_reflectedPower, 0.2f); // 0.2W min step
+    animate(m_displaySwr, m_swr, 0.01f);                      // 0.01 min step
+    animate(m_displayTemperature, m_temperature, 0.2f);       // 0.2°C min step
 
     // Decay peak markers (slower than display animation)
     if (m_peakForwardPower > m_forwardPower) {
@@ -300,7 +302,7 @@ void KPA1500Panel::paintEvent(QPaintEvent *event) {
     painter.drawLine(8, headerY + headerHeight + 2, w - 8, headerY + headerHeight + 2);
 
     // Meter layout constants
-    const int meterSpacing = 50;  // Height per full meter
+    const int meterSpacing = 50; // Height per full meter
     int meterY = 28;
 
     // FWD meter (0-1500W)
@@ -358,7 +360,7 @@ void KPA1500Panel::drawStatusLabels(QPainter &painter, int y, int height) {
 }
 
 void KPA1500Panel::drawMeter(QPainter &painter, int y, const QString &label, const QString &valueStr,
-                              float displayRatio, float peakRatio, const QStringList &scaleLabels, bool large) {
+                             float displayRatio, float peakRatio, const QStringList &scaleLabels, bool large) {
     int w = width();
     const int margin = 8;
     const int labelWidth = 32;
@@ -380,7 +382,8 @@ void KPA1500Panel::drawMeter(QPainter &painter, int y, const QString &label, con
     valueFont.setPointSize(valueFontSize);
     valueFont.setBold(true);
     painter.setFont(valueFont);
-    painter.drawText(w - margin - valueWidth, y, valueWidth, barHeight + 6, Qt::AlignRight | Qt::AlignVCenter, valueStr);
+    painter.drawText(w - margin - valueWidth, y, valueWidth, barHeight + 6, Qt::AlignRight | Qt::AlignVCenter,
+                     valueStr);
 
     // Bar dimensions
     int barX = margin + labelWidth + 4;

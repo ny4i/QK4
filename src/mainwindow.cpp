@@ -1701,19 +1701,17 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_kpa1500Client, &KPA1500Client::errorOccurred, this, &MainWindow::onKpa1500Error);
 
     // Connect KPA1500 data signals to panel
-    connect(m_kpa1500Client, &KPA1500Client::powerChanged, this,
-            [this](double fwd, double ref, double) {
-                m_kpa1500Window->panel()->setForwardPower(static_cast<float>(fwd));
-                m_kpa1500Window->panel()->setReflectedPower(static_cast<float>(ref));
-            });
+    connect(m_kpa1500Client, &KPA1500Client::powerChanged, this, [this](double fwd, double ref, double) {
+        m_kpa1500Window->panel()->setForwardPower(static_cast<float>(fwd));
+        m_kpa1500Window->panel()->setReflectedPower(static_cast<float>(ref));
+    });
     connect(m_kpa1500Client, &KPA1500Client::swrChanged, this,
             [this](double swr) { m_kpa1500Window->panel()->setSWR(static_cast<float>(swr)); });
     connect(m_kpa1500Client, &KPA1500Client::paTemperatureChanged, this,
             [this](double tempC) { m_kpa1500Window->panel()->setTemperature(static_cast<float>(tempC)); });
-    connect(m_kpa1500Client, &KPA1500Client::operatingStateChanged, this,
-            [this](KPA1500Client::OperatingState state) {
-                m_kpa1500Window->panel()->setMode(state == KPA1500Client::StateOperate);
-            });
+    connect(m_kpa1500Client, &KPA1500Client::operatingStateChanged, this, [this](KPA1500Client::OperatingState state) {
+        m_kpa1500Window->panel()->setMode(state == KPA1500Client::StateOperate);
+    });
     connect(m_kpa1500Client, &KPA1500Client::atuInlineChanged, this,
             [this](bool inline_) { m_kpa1500Window->panel()->setAtuMode(inline_); });
     connect(m_kpa1500Client, &KPA1500Client::antennaChanged, this,
@@ -3430,7 +3428,7 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
             return;
         int currentScale = m_radioState->scale();
         if (currentScale < 0)
-            currentScale = 75; // Default if not yet received from radio
+            currentScale = 75;                                    // Default if not yet received from radio
         int newScale = qBound(10, currentScale + steps * 5, 150); // 5 dB per step
         m_tcpClient->sendCAT(QString("#SCL%1;").arg(newScale));
         // Optimistic update (scale is global) - updates both panadapters via signal
@@ -3759,8 +3757,7 @@ void MainWindow::onAuthenticated() {
     m_menuModel->addSyntheticDisplayFpsItem(m_currentRadio.displayFps);
 
     // Connect KPA1500 if enabled and configured
-    if (RadioSettings::instance()->kpa1500Enabled() &&
-        !RadioSettings::instance()->kpa1500Host().isEmpty()) {
+    if (RadioSettings::instance()->kpa1500Enabled() && !RadioSettings::instance()->kpa1500Host().isEmpty()) {
         m_kpa1500Client->connectToHost(RadioSettings::instance()->kpa1500Host(),
                                        RadioSettings::instance()->kpa1500Port());
     }

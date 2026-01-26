@@ -40,7 +40,7 @@ protected:
         painter.setFont(scaleFont);
         painter.setPen(Qt::white);
 
-        const int labelCount = 9;  // Keep 9 divisions for grid alignment
+        const int labelCount = 9; // Keep 9 divisions for grid alignment
         const float dbRange = m_maxDb - m_minDb;
         const int leftMargin = 4;
         const int h = height();
@@ -1503,7 +1503,7 @@ QColor PanadapterRhiWidget::spectrumGradientColor(float t) {
 void PanadapterRhiWidget::setDbRange(float minDb, float maxDb) {
     m_minDb = minDb;
     m_maxDb = maxDb;
-    updateDbmScaleOverlay();  // Update overlay labels when range changes
+    updateDbmScaleOverlay(); // Update overlay labels when range changes
     update();
 }
 

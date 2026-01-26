@@ -38,27 +38,26 @@ void KPA1500Window::setupUi() {
 
     // Title label
     auto *titleLabel = new QLabel("KPA1500", titleBar);
-    titleLabel->setStyleSheet(QString("QLabel { color: %1; font-size: 11px; font-weight: bold; }")
-                                  .arg(K4Styles::Colors::AccentAmber));
+    titleLabel->setStyleSheet(
+        QString("QLabel { color: %1; font-size: 11px; font-weight: bold; }").arg(K4Styles::Colors::AccentAmber));
 
     // Close button
     m_closeBtn = new QPushButton(titleBar);
     m_closeBtn->setFixedSize(CloseButtonSize, CloseButtonSize);
     m_closeBtn->setCursor(Qt::PointingHandCursor);
-    m_closeBtn->setStyleSheet(QString(
-        "QPushButton { "
-        "  background-color: transparent; "
-        "  color: %1; "
-        "  border: none; "
-        "  font-size: 14px; "
-        "  font-weight: bold; "
-        "} "
-        "QPushButton:hover { "
-        "  background-color: %2; "
-        "  border-radius: 3px; "
-        "}")
-        .arg(K4Styles::Colors::TextGray)
-        .arg(K4Styles::Colors::BorderNormal));
+    m_closeBtn->setStyleSheet(QString("QPushButton { "
+                                      "  background-color: transparent; "
+                                      "  color: %1; "
+                                      "  border: none; "
+                                      "  font-size: 14px; "
+                                      "  font-weight: bold; "
+                                      "} "
+                                      "QPushButton:hover { "
+                                      "  background-color: %2; "
+                                      "  border-radius: 3px; "
+                                      "}")
+                                  .arg(K4Styles::Colors::TextGray)
+                                  .arg(K4Styles::Colors::BorderNormal));
     m_closeBtn->setText(QString::fromUtf8("\u00D7")); // × symbol
 
     connect(m_closeBtn, &QPushButton::clicked, this, [this]() {
@@ -77,8 +76,7 @@ void KPA1500Window::setupUi() {
     mainLayout->addWidget(m_panel);
 
     // Set fixed size based on panel + title bar + borders
-    setFixedSize(m_panel->width() + 2 * BorderWidth,
-                 m_panel->height() + TitleBarHeight + 2 * BorderWidth);
+    setFixedSize(m_panel->width() + 2 * BorderWidth, m_panel->height() + TitleBarHeight + 2 * BorderWidth);
 }
 
 void KPA1500Window::paintEvent(QPaintEvent *event) {
@@ -100,8 +98,7 @@ void KPA1500Window::paintEvent(QPaintEvent *event) {
 
     // Title bar separator line
     painter.setPen(QPen(borderColor, 1));
-    painter.drawLine(BorderWidth, TitleBarHeight + BorderWidth,
-                     width() - BorderWidth, TitleBarHeight + BorderWidth);
+    painter.drawLine(BorderWidth, TitleBarHeight + BorderWidth, width() - BorderWidth, TitleBarHeight + BorderWidth);
 }
 
 QRect KPA1500Window::titleBarRect() const {

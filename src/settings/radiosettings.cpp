@@ -363,10 +363,8 @@ void RadioSettings::load() {
     m_kpa1500PollInterval = m_settings.value("kpa1500/pollInterval", 300).toInt();
 
     // CAT Server settings (migrate from old rigctld keys if present)
-    m_catServerEnabled = m_settings.value("catServer/enabled",
-        m_settings.value("rigctld/enabled", false)).toBool();
-    m_catServerPort = m_settings.value("catServer/port",
-        m_settings.value("rigctld/port", 9299)).toUInt();
+    m_catServerEnabled = m_settings.value("catServer/enabled", m_settings.value("rigctld/enabled", false)).toBool();
+    m_catServerPort = m_settings.value("catServer/port", m_settings.value("rigctld/port", 9299)).toUInt();
 
     // HaliKey settings
     m_halikeyPortName = m_settings.value("halikey/portName", "").toString();
