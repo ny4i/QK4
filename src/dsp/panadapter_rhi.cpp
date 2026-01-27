@@ -1731,12 +1731,49 @@ void PanadapterRhiWidget::mousePressEvent(QMouseEvent *event) {
 
 void PanadapterRhiWidget::mouseMoveEvent(QMouseEvent *event) {
     if (m_isDragging && (event->buttons() & Qt::LeftButton)) {
-        qint64 freq = xToFreq(event->pos().x(), width());
-        emit frequencyDragged(freq);
+        int x = event->pos().x();
+        int w = width();
+
+        if (x < 0) {
+            // Dragging past left edge → emit scroll signal (like wheel down)
+            // Rate limit to prevent flooding: at most one scroll per 100ms
+            if (!m_edgeScrollTimer.isValid() || m_edgeScrollTimer.elapsed() >= 100) {
+                m_edgeScrollTimer.restart();
+                emit frequencyScrolled(-1);
+            }
+        } else if (x > w) {
+            // Dragging past right edge → emit scroll signal (like wheel up)
+            if (!m_edgeScrollTimer.isValid() || m_edgeScrollTimer.elapsed() >= 100) {
+                m_edgeScrollTimer.restart();
+                emit frequencyScrolled(1);
+            }
+        } else {
+            // Normal drag within display bounds
+            qint64 freq = xToFreq(x, w);
+            emit frequencyDragged(freq);
+        }
         event->accept();
     } else if (m_isRightDragging && (event->buttons() & Qt::RightButton)) {
-        qint64 freq = xToFreq(event->pos().x(), width());
-        emit frequencyRightDragged(freq);
+        int x = event->pos().x();
+        int w = width();
+
+        if (x < 0) {
+            // Dragging past left edge → emit scroll signal for opposite VFO
+            if (!m_edgeScrollTimer.isValid() || m_edgeScrollTimer.elapsed() >= 100) {
+                m_edgeScrollTimer.restart();
+                emit frequencyScrolled(-1);
+            }
+        } else if (x > w) {
+            // Dragging past right edge → emit scroll signal for opposite VFO
+            if (!m_edgeScrollTimer.isValid() || m_edgeScrollTimer.elapsed() >= 100) {
+                m_edgeScrollTimer.restart();
+                emit frequencyScrolled(1);
+            }
+        } else {
+            // Normal drag within display bounds
+            qint64 freq = xToFreq(x, w);
+            emit frequencyRightDragged(freq);
+        }
         event->accept();
     }
 }
