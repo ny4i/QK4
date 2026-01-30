@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- **RadioState command parsing refactored**: Replaced ~1500-line if-else chain with handler registry pattern
+  - New `registerCommandHandlers()` with ~80 command handlers sorted by prefix length
+  - `parseCATCommand()` reduced from ~1500 lines to 21 lines
+  - Adding new CAT command handlers now takes 5 lines instead of finding spot in if-else chain
+- **Protocol constants modernized**: ODR-safe inline constants, named packet offsets, Commands namespace
+- **Audio code quality improvements**:
+  - OpusDecoder: Extracted duplicated mixing loop to `mixStereoToMono()` helper
+  - OpusEncoder: Added error reporting, input validation, MAX_PACKET_SIZE constant
+  - AudioEngine: Added OUTPUT_BUFFER_SIZE, INPUT_BUFFER_SIZE, MIC_GAIN_SCALE constants
+- **DSP shared utilities**: Created `rhi_utils.h` with shared shader loading function and K4_DBM_OFFSET constant
+
 ### Added
 - **TX Meter enhancements**: 500ms decay animation, S-meter gradient colors (Po/ALC/COMP/SWR), peak hold indicators
 - **SCALE control**: Right-click REF LVL/SCALE in DISPLAY popup shows +/- controls (global, 10-150 range)

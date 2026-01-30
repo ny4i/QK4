@@ -31,6 +31,12 @@ public:
     float subVolume() const { return m_subVolume; }
 
 private:
+    // Mix interleaved stereo floats to mono with volume control and gain
+    // stereoFloats: interleaved [L0, R0, L1, R1, ...] normalized to ±1.0
+    // sampleCount: number of samples per channel (total floats = sampleCount * 2)
+    // gainBoost: multiplier (1.0 for raw, K4_GAIN_BOOST for compressed formats)
+    QByteArray mixStereoToMono(const float *stereoFloats, int sampleCount, float gainBoost);
+
     ::OpusDecoder *m_decoder;
     int m_sampleRate;
     int m_channels;
@@ -39,7 +45,12 @@ private:
     float m_mainVolume = 1.0f;
     float m_subVolume = 1.0f;
 
-    // K4-specific gain boost (audio is very quiet)
+    // Normalization constants
+    static constexpr float NORMALIZE_16BIT = 1.0f / 32768.0f;
+    static constexpr float NORMALIZE_32BIT = 1.0f / 2147483648.0f;
+
+    // K4-specific gain boost (Opus and S32LE audio is very quiet)
+    // Note: EM1 (S16LE RAW) is already at full scale and doesn't need boost
     static constexpr float K4_GAIN_BOOST = 32.0f;
 };
 

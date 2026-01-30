@@ -44,9 +44,9 @@ TcpClient::TcpClient(QObject *parent)
             // RDY triggers comprehensive state dump containing all radio state:
             // FA, FB, MD, MD$, BW, BW$, IS, CW, KS, PC, SD (per mode), SQ, RG, SQ$, RG$,
             // #SPN, #REF, VXC, VXV, VXD, and all menu definitions (MEDF)
-            sendCAT("RDY;"); // Ready - triggers comprehensive state dump (also enables AI mode)
-            sendCAT("K41;"); // Enable advanced K4 protocol mode
-            sendCAT("ER1;"); // Request long format error messages
+            sendCAT(K4Protocol::Commands::READY);            // Triggers comprehensive state dump
+            sendCAT(K4Protocol::Commands::ENABLE_K4_MODE);   // Enable advanced K4 protocol mode
+            sendCAT(K4Protocol::Commands::ENABLE_LONG_ERRORS); // Request long format error messages
             // Set audio encode mode (0=RAW32, 1=RAW16, 2=Opus Int, 3=Opus Float)
             qDebug() << "Sending:" << QString("EM%1;").arg(m_encodeMode);
             sendCAT(QString("EM%1;").arg(m_encodeMode));
@@ -131,7 +131,7 @@ void TcpClient::disconnectFromHost() {
     if (m_socket->state() != QAbstractSocket::UnconnectedState) {
         // Send graceful disconnect command
         if (m_state == Connected) {
-            sendCAT("RRN;");
+            sendCAT(K4Protocol::Commands::DISCONNECT);
         }
         m_socket->disconnectFromHost();
     }
@@ -267,7 +267,7 @@ void TcpClient::onAuthTimeout() {
 
 void TcpClient::onPingTimer() {
     if (m_state == Connected) {
-        sendCAT("PING;");
+        sendCAT(K4Protocol::Commands::PING);
     }
 }
 

@@ -169,6 +169,10 @@ private:
     QVector<float> m_rawSpectrum;
     QVector<float> m_peakHold;
 
+    // K4 spectrum calibration: dBm = raw_byte - K4_DBM_OFFSET
+    // Calibrated by comparing peak signals with K4 display
+    static constexpr float K4_DBM_OFFSET = 146.0f;
+
     // Waterfall data - sized for 4K/HiDPI displays
     // Memory: 4096 × 1024 × 1 byte = 4 MB (trivial for modern GPUs)
     static constexpr int BASE_WATERFALL_HISTORY = 1024;

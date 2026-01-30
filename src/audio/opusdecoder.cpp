@@ -58,10 +58,7 @@ QByteArray OpusDecoder::decodeK4Packet(const QByteArray &packet) {
         return QByteArray();
     }
 
-    // Decode based on encode mode
-    int monoSampleCount = 0;
-    QByteArray monoPcm;
-
+    // Decode based on encode mode and mix stereo to mono
     switch (encodeMode) {
     case 0x00: // EM0 - RAW 32-bit signed integer stereo PCM (S32LE)
     {
@@ -69,54 +66,30 @@ QByteArray OpusDecoder::decodeK4Packet(const QByteArray &packet) {
         // Note: Despite documentation saying "float", K4 sends 32-bit signed integers
         const qint32 *stereoSamples = reinterpret_cast<const qint32 *>(audioData.constData());
         int totalSamples = audioData.size() / sizeof(qint32);
-        monoSampleCount = totalSamples / 2;
+        int sampleCount = totalSamples / 2;
 
-        monoPcm.resize(monoSampleCount * sizeof(float));
-        float *monoFloats = reinterpret_cast<float *>(monoPcm.data());
-
-        // Normalize full 32-bit signed range to ±1.0
-        constexpr float NORMALIZE_32BIT = 1.0f / 2147483648.0f;
-
-        for (int i = 0; i < monoSampleCount; i++) {
-            qint32 mainSample = stereoSamples[i * 2];    // Left channel (Main RX / VFO A)
-            qint32 subSample = stereoSamples[i * 2 + 1]; // Right channel (Sub RX / VFO B)
-
-            float mainNormalized = static_cast<float>(mainSample) * NORMALIZE_32BIT;
-            float subNormalized = static_cast<float>(subSample) * NORMALIZE_32BIT;
-
-            // Apply volume and gain boost (32-bit samples are quiet like Opus)
-            float mainWithVolume = mainNormalized * m_mainVolume * K4_GAIN_BOOST;
-            float subWithVolume = subNormalized * m_subVolume * K4_GAIN_BOOST;
-
-            monoFloats[i] = qBound(-1.0f, mainWithVolume + subWithVolume, 1.0f);
+        // Normalize S32LE to float
+        QVector<float> normalized(totalSamples);
+        for (int i = 0; i < totalSamples; i++) {
+            normalized[i] = static_cast<float>(stereoSamples[i]) * NORMALIZE_32BIT;
         }
-        break;
+
+        return mixStereoToMono(normalized.constData(), sampleCount, K4_GAIN_BOOST);
     }
 
-    case 0x01: // EM1 - RAW 16-bit S16LE stereo PCM
+    case 0x01: // EM1 - RAW 16-bit S16LE stereo PCM (full scale, no boost needed)
     {
-        // Data is interleaved S16LE stereo [L0, R0, L1, R1, ...]
-        // RAW audio is already at full scale, no gain boost needed
         const qint16 *stereoSamples = reinterpret_cast<const qint16 *>(audioData.constData());
         int totalSamples = audioData.size() / sizeof(qint16);
-        monoSampleCount = totalSamples / 2;
+        int sampleCount = totalSamples / 2;
 
-        monoPcm.resize(monoSampleCount * sizeof(float));
-        float *monoFloats = reinterpret_cast<float *>(monoPcm.data());
-
-        for (int i = 0; i < monoSampleCount; i++) {
-            qint16 mainSample = stereoSamples[i * 2];    // Left channel (Main RX / VFO A)
-            qint16 subSample = stereoSamples[i * 2 + 1]; // Right channel (Sub RX / VFO B)
-
-            float mainNormalized = static_cast<float>(mainSample) / 32768.0f;
-            float subNormalized = static_cast<float>(subSample) / 32768.0f;
-
-            float mainWithVolume = mainNormalized * m_mainVolume;
-            float subWithVolume = subNormalized * m_subVolume;
-
-            monoFloats[i] = qBound(-1.0f, mainWithVolume + subWithVolume, 1.0f);
+        // Normalize S16LE to float
+        QVector<float> normalized(totalSamples);
+        for (int i = 0; i < totalSamples; i++) {
+            normalized[i] = static_cast<float>(stereoSamples[i]) * NORMALIZE_16BIT;
         }
-        break;
+
+        return mixStereoToMono(normalized.constData(), sampleCount, 1.0f);  // No boost for RAW
     }
 
     case 0x02: // EM2 - Opus encoded, decode with opus_decode() (returns S16LE)
@@ -128,24 +101,15 @@ QByteArray OpusDecoder::decodeK4Packet(const QByteArray &packet) {
 
         const qint16 *stereoSamples = reinterpret_cast<const qint16 *>(stereoPcm.constData());
         int totalSamples = stereoPcm.size() / sizeof(qint16);
-        monoSampleCount = totalSamples / 2;
+        int sampleCount = totalSamples / 2;
 
-        monoPcm.resize(monoSampleCount * sizeof(float));
-        float *monoFloats = reinterpret_cast<float *>(monoPcm.data());
-
-        for (int i = 0; i < monoSampleCount; i++) {
-            qint16 mainSample = stereoSamples[i * 2];    // Left channel (Main RX / VFO A)
-            qint16 subSample = stereoSamples[i * 2 + 1]; // Right channel (Sub RX / VFO B)
-
-            float mainNormalized = static_cast<float>(mainSample) / 32768.0f;
-            float subNormalized = static_cast<float>(subSample) / 32768.0f;
-
-            float mainWithVolume = mainNormalized * m_mainVolume * K4_GAIN_BOOST;
-            float subWithVolume = subNormalized * m_subVolume * K4_GAIN_BOOST;
-
-            monoFloats[i] = qBound(-1.0f, mainWithVolume + subWithVolume, 1.0f);
+        // Normalize S16LE to float
+        QVector<float> normalized(totalSamples);
+        for (int i = 0; i < totalSamples; i++) {
+            normalized[i] = static_cast<float>(stereoSamples[i]) * NORMALIZE_16BIT;
         }
-        break;
+
+        return mixStereoToMono(normalized.constData(), sampleCount, K4_GAIN_BOOST);
     }
 
     case 0x03: // EM3 - Opus encoded, decode with opus_decode_float() (returns float)
@@ -156,30 +120,15 @@ QByteArray OpusDecoder::decodeK4Packet(const QByteArray &packet) {
         }
 
         const float *stereoFloats = reinterpret_cast<const float *>(stereoPcm.constData());
-        int totalFloats = stereoPcm.size() / sizeof(float);
-        monoSampleCount = totalFloats / 2;
+        int sampleCount = stereoPcm.size() / sizeof(float) / 2;
 
-        monoPcm.resize(monoSampleCount * sizeof(float));
-        float *monoFloats = reinterpret_cast<float *>(monoPcm.data());
-
-        for (int i = 0; i < monoSampleCount; i++) {
-            float mainSample = stereoFloats[i * 2];    // Left channel (Main RX / VFO A)
-            float subSample = stereoFloats[i * 2 + 1]; // Right channel (Sub RX / VFO B)
-
-            float mainWithVolume = mainSample * m_mainVolume * K4_GAIN_BOOST;
-            float subWithVolume = subSample * m_subVolume * K4_GAIN_BOOST;
-
-            monoFloats[i] = qBound(-1.0f, mainWithVolume + subWithVolume, 1.0f);
-        }
-        break;
+        return mixStereoToMono(stereoFloats, sampleCount, K4_GAIN_BOOST);
     }
 
     default:
         qWarning() << "OpusDecoder: Unknown encode mode:" << encodeMode;
         return QByteArray();
     }
-
-    return monoPcm;
 }
 
 void OpusDecoder::setMainVolume(float volume) {
@@ -188,6 +137,23 @@ void OpusDecoder::setMainVolume(float volume) {
 
 void OpusDecoder::setSubVolume(float volume) {
     m_subVolume = qBound(0.0f, volume, 1.0f);
+}
+
+QByteArray OpusDecoder::mixStereoToMono(const float *stereoFloats, int sampleCount, float gainBoost) {
+    QByteArray monoPcm(sampleCount * sizeof(float), Qt::Uninitialized);
+    float *monoFloats = reinterpret_cast<float *>(monoPcm.data());
+
+    for (int i = 0; i < sampleCount; i++) {
+        float mainSample = stereoFloats[i * 2];     // Left channel (Main RX / VFO A)
+        float subSample = stereoFloats[i * 2 + 1];  // Right channel (Sub RX / VFO B)
+
+        float mainWithVolume = mainSample * m_mainVolume * gainBoost;
+        float subWithVolume = subSample * m_subVolume * gainBoost;
+
+        monoFloats[i] = qBound(-1.0f, mainWithVolume + subWithVolume, 1.0f);
+    }
+
+    return monoPcm;
 }
 
 QByteArray OpusDecoder::decode(const QByteArray &opusData) {

@@ -1,4 +1,5 @@
 #include "panadapter_rhi.h"
+#include "rhi_utils.h"
 #include "ui/k4styles.h"
 #include <QFile>
 #include <QMouseEvent>
@@ -453,20 +454,12 @@ void PanadapterRhiWidget::initialize(QRhiCommandBuffer *cb) {
     m_waterfallData.fill(0);
 
     // Load shaders from compiled .qsb resources
-    auto loadShader = [](const QString &path) -> QShader {
-        QFile f(path);
-        if (f.open(QIODevice::ReadOnly))
-            return QShader::fromSerialized(f.readAll());
-        qWarning() << "Failed to load shader:" << path;
-        return QShader();
-    };
-
-    m_spectrumBlueVert = loadShader(":/shaders/src/dsp/shaders/spectrum_blue.vert.qsb");
-    m_spectrumBlueAmpFrag = loadShader(":/shaders/src/dsp/shaders/spectrum_blue_amp.frag.qsb");
-    m_waterfallVert = loadShader(":/shaders/src/dsp/shaders/waterfall.vert.qsb");
-    m_waterfallFrag = loadShader(":/shaders/src/dsp/shaders/waterfall.frag.qsb");
-    m_overlayVert = loadShader(":/shaders/src/dsp/shaders/overlay.vert.qsb");
-    m_overlayFrag = loadShader(":/shaders/src/dsp/shaders/overlay.frag.qsb");
+    m_spectrumBlueVert = RhiUtils::loadShader(":/shaders/src/dsp/shaders/spectrum_blue.vert.qsb");
+    m_spectrumBlueAmpFrag = RhiUtils::loadShader(":/shaders/src/dsp/shaders/spectrum_blue_amp.frag.qsb");
+    m_waterfallVert = RhiUtils::loadShader(":/shaders/src/dsp/shaders/waterfall.vert.qsb");
+    m_waterfallFrag = RhiUtils::loadShader(":/shaders/src/dsp/shaders/waterfall.frag.qsb");
+    m_overlayVert = RhiUtils::loadShader(":/shaders/src/dsp/shaders/overlay.vert.qsb");
+    m_overlayFrag = RhiUtils::loadShader(":/shaders/src/dsp/shaders/overlay.frag.qsb");
 
     // Create waterfall texture (single channel for dB values)
     m_waterfallTexture.reset(m_rhi->newTexture(QRhiTexture::R8, QSize(m_textureWidth, m_waterfallHistory), 1,
@@ -1399,11 +1392,10 @@ void PanadapterRhiWidget::updateMiniSpectrum(const QByteArray &bins) {
 }
 
 void PanadapterRhiWidget::decompressBins(const QByteArray &bins, QVector<float> &out) {
-    // K4 spectrum bins: dBm = byte - 146
-    // Calibrated by comparing peak signals with K4 display
+    // K4 spectrum bins: dBm = raw_byte - K4_DBM_OFFSET
     out.resize(bins.size());
     for (int i = 0; i < bins.size(); ++i) {
-        out[i] = static_cast<quint8>(bins[i]) - 146.0f;
+        out[i] = static_cast<quint8>(bins[i]) - K4_DBM_OFFSET;
     }
 }
 

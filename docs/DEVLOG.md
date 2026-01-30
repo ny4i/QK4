@@ -1,5 +1,105 @@
 # K4Controller Development Log
 
+## January 30, 2026
+
+### Refactor: Comprehensive Code Quality Review
+
+**Summary:** Major refactoring across TCP/Protocol, RadioState, Audio, and Spectrum/Waterfall sections. Net result: +358 lines but massive maintainability improvements.
+
+**Key Achievement:** RadioState `parseCATCommand()` refactored from ~1500-line if-else chain to 21-line registry dispatch.
+
+---
+
+#### 1. Protocol Section (protocol.h, protocol.cpp, tcpclient.cpp)
+
+**Changes:**
+- ODR fix: `static const` → `inline const` for QByteArray markers
+- Added buffer overflow protection (MAX_BUFFER_SIZE check)
+- Added packet offset namespaces: `PanPacket`, `MiniPanPacket`, `AudioPacket`
+- Added `K4Protocol::Commands` namespace for magic strings (READY, PING, DISCONNECT)
+
+---
+
+#### 2. RadioState Command Handler Registry (radiostate.cpp)
+
+**Before:** ~1500-line if-else chain in `parseCATCommand()`
+```cpp
+if (cmd.startsWith("FA")) { ... }
+else if (cmd.startsWith("FB")) { ... }
+else if (cmd.startsWith("MD$")) { ... }
+// ... 80+ more conditions
+```
+
+**After:** 21-line registry dispatch
+```cpp
+for (const auto &entry : m_commandHandlers) {
+    if (cmd.startsWith(entry.prefix)) {
+        entry.handler(cmd);
+        emit stateUpdated();
+        return;
+    }
+}
+```
+
+**New Structure:**
+- `registerCommandHandlers()` - Registers ~80 handlers sorted by prefix length
+- Individual handlers: `handleFA()`, `handleFB()`, `handleMD()`, `handleMDSub()`, etc.
+- Prefix matching sorted longest-first (ensures `MD$` matches before `MD`)
+
+**File Stats:** 3805 → 2285 lines (-1520 lines, 40% reduction)
+
+---
+
+#### 3. Audio Section
+
+**OpusDecoder (opusdecoder.cpp/h):**
+- Extracted duplicated mono mixing loop to `mixStereoToMono()` helper
+- Added `NORMALIZE_16BIT`, `NORMALIZE_32BIT` constants
+- Stats: 275 → 252 lines (-23)
+
+**OpusEncoder (opusencoder.cpp/h):**
+- Added `qWarning()` for encoder creation failures
+- Added input size validation in `encode()`
+- Added `MAX_PACKET_SIZE` constant
+- Stats: 71 → 82 lines (+11 for safety)
+
+**AudioEngine (audioengine.cpp/h):**
+- Added `OUTPUT_BUFFER_SIZE`, `INPUT_BUFFER_SIZE`, `MIC_GAIN_SCALE` constants
+- Stats: 440 → 447 lines (+7)
+
+---
+
+#### 4. Spectrum/Waterfall Section
+
+**New File:** `src/dsp/rhi_utils.h`
+- `RhiUtils::loadShader()` - Shared shader loading function
+- `RhiUtils::K4_DBM_OFFSET` - Calibration constant (146.0f)
+
+**panadapter_rhi.cpp/h:**
+- Replaced inline shader loading lambda with `RhiUtils::loadShader()`
+- Added `K4_DBM_OFFSET` constant for dBm calibration
+- Stats: 2062 → 2058 lines (-4)
+
+**minipan_rhi.cpp:**
+- Replaced inline shader loading lambda with `RhiUtils::loadShader()`
+- Stats: 986 → 979 lines (-7)
+
+---
+
+#### Overall Stats
+
+| Section | Before | After | Change |
+|---------|--------|-------|--------|
+| Protocol | ~591 | 620 | +29 |
+| RadioState | 4886 | 3366 | -1520 |
+| Audio | 986 | 981 | -5 |
+| Spectrum | 3210 | 3226 | +16 |
+| **Total** | **~9673** | **8193** | **-1480** |
+
+**Git Stats:** 14 files modified, 1 new file, 2324 insertions, 1993 deletions
+
+---
+
 ## January 9, 2026
 
 ### Refactor: Centralized K4Styles System

@@ -1,4 +1,5 @@
 #include "minipan_rhi.h"
+#include "rhi_utils.h"
 #include "ui/k4styles.h"
 #include <QFile>
 #include <QMouseEvent>
@@ -89,20 +90,12 @@ void MiniPanRhiWidget::initialize(QRhiCommandBuffer *cb) {
     }
 
     // Load shaders from compiled .qsb resources (shared with main panadapter)
-    auto loadShader = [](const QString &path) -> QShader {
-        QFile f(path);
-        if (f.open(QIODevice::ReadOnly))
-            return QShader::fromSerialized(f.readAll());
-        qWarning() << "MiniPan: Failed to load shader:" << path;
-        return QShader();
-    };
-
-    m_spectrumVert = loadShader(":/shaders/src/dsp/shaders/spectrum.vert.qsb");
-    m_spectrumFrag = loadShader(":/shaders/src/dsp/shaders/spectrum.frag.qsb");
-    m_waterfallVert = loadShader(":/shaders/src/dsp/shaders/waterfall.vert.qsb");
-    m_waterfallFrag = loadShader(":/shaders/src/dsp/shaders/waterfall.frag.qsb");
-    m_overlayVert = loadShader(":/shaders/src/dsp/shaders/overlay.vert.qsb");
-    m_overlayFrag = loadShader(":/shaders/src/dsp/shaders/overlay.frag.qsb");
+    m_spectrumVert = RhiUtils::loadShader(":/shaders/src/dsp/shaders/spectrum.vert.qsb");
+    m_spectrumFrag = RhiUtils::loadShader(":/shaders/src/dsp/shaders/spectrum.frag.qsb");
+    m_waterfallVert = RhiUtils::loadShader(":/shaders/src/dsp/shaders/waterfall.vert.qsb");
+    m_waterfallFrag = RhiUtils::loadShader(":/shaders/src/dsp/shaders/waterfall.frag.qsb");
+    m_overlayVert = RhiUtils::loadShader(":/shaders/src/dsp/shaders/overlay.vert.qsb");
+    m_overlayFrag = RhiUtils::loadShader(":/shaders/src/dsp/shaders/overlay.frag.qsb");
 
     // Create waterfall texture (single channel for dB values)
     m_waterfallTexture.reset(m_rhi->newTexture(QRhiTexture::R8, QSize(TEXTURE_WIDTH, WATERFALL_HISTORY), 1,

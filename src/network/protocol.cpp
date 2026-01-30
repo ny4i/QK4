@@ -8,6 +8,13 @@ Protocol::Protocol(QObject *parent) : QObject(parent) {}
 void Protocol::parse(const QByteArray &data) {
     m_buffer.append(data);
 
+    // Prevent unbounded buffer growth from malformed data
+    if (m_buffer.size() > K4Protocol::MAX_BUFFER_SIZE) {
+        qWarning() << "Protocol buffer overflow (" << m_buffer.size() << "bytes), clearing";
+        m_buffer.clear();
+        return;
+    }
+
     // Process all complete packets in the buffer
     // All K4 data comes wrapped in binary packets with START/END markers
     while (true) {
@@ -81,49 +88,36 @@ void Protocol::processPacket(const QByteArray &payload) {
         break;
     }
     case K4Protocol::Audio: {
-        // Audio packet: [0x01][version][seq][mode][...opus data]
-        if (payload.size() > 6) {
+        // Audio packet structure - see K4Protocol::AudioPacket namespace for offset definitions
+        if (payload.size() > K4Protocol::AudioPacket::HEADER_SIZE) {
             emit audioDataReady(payload);
         }
         break;
     }
     case K4Protocol::PAN: {
-        // PAN Type 2 payload structure (from K4Protocol.swift / working implementation):
-        // Byte 0: TYPE (0x02 for PAN)
-        // Byte 1: VER (version)
-        // Byte 2: SEQ (sequence)
-        // Byte 3: PAN Type
-        // Byte 4: RX (0=Main, 1=Sub)
-        // Bytes 5-6: PAN Data Length (uint16 LE)
-        // Bytes 7-10: Reserved
-        // Bytes 11-18: Center Frequency (int64 LE, Hz)
-        // Bytes 19-22: Sample Rate (int32 LE) - tier indicator (24/48/96/192/384)
-        // Bytes 23-26: Noise Floor (int32 LE, divide by 10 for dB)
-        // Bytes 27+: Compressed bin data
-        // NOTE: K4-Remote Protocol Rev. A1 doc shows different offsets but this structure works
-        if (payload.size() > 27) {
-            int receiver = static_cast<quint8>(payload[4]); // 0=Main, 1=Sub
-            qint64 centerFreq = qFromLittleEndian<qint64>(reinterpret_cast<const uchar *>(payload.constData() + 11));
-            qint32 sampleRate = qFromLittleEndian<qint32>(reinterpret_cast<const uchar *>(payload.constData() + 19));
-            qint32 noiseFloorRaw = qFromLittleEndian<qint32>(reinterpret_cast<const uchar *>(payload.constData() + 23));
+        // PAN packet structure - see K4Protocol::PanPacket namespace for offset definitions
+        using namespace K4Protocol::PanPacket;
+        if (payload.size() > HEADER_SIZE) {
+            int receiver = static_cast<quint8>(payload[RECEIVER_OFFSET]);
+            qint64 centerFreq =
+                qFromLittleEndian<qint64>(reinterpret_cast<const uchar *>(payload.constData() + CENTER_FREQ_OFFSET));
+            qint32 sampleRate =
+                qFromLittleEndian<qint32>(reinterpret_cast<const uchar *>(payload.constData() + SAMPLE_RATE_OFFSET));
+            qint32 noiseFloorRaw =
+                qFromLittleEndian<qint32>(reinterpret_cast<const uchar *>(payload.constData() + NOISE_FLOOR_OFFSET));
             float noiseFloor = noiseFloorRaw / 10.0f;
 
-            QByteArray bins = payload.mid(27);
+            QByteArray bins = payload.mid(BINS_OFFSET);
             emit spectrumDataReady(receiver, bins, centerFreq, sampleRate, noiseFloor);
         }
         break;
     }
     case K4Protocol::MiniPAN: {
-        // MiniPAN Type 3 payload structure (discovered via packet analysis):
-        // Byte 0: TYPE (0x03)
-        // Byte 1: VER (0x00)
-        // Byte 2: SEQ (sequence)
-        // Byte 3: Reserved (0x00)
-        // Byte 4: RX (0=Main, 1=Sub)
-        // Byte 5+: Mini PAN Data
-        if (payload.size() > 5) {
-            int receiver = static_cast<quint8>(payload[4]); // RX byte
-            QByteArray bins = payload.mid(5);
+        // MiniPAN packet structure - see K4Protocol::MiniPanPacket namespace for offset definitions
+        using namespace K4Protocol::MiniPanPacket;
+        if (payload.size() > HEADER_SIZE) {
+            int receiver = static_cast<quint8>(payload[RECEIVER_OFFSET]);
+            QByteArray bins = payload.mid(BINS_OFFSET);
             emit miniSpectrumDataReady(receiver, bins);
         }
         break;

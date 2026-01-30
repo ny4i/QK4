@@ -80,6 +80,15 @@ private:
     // Microphone gain control
     float m_micGain = 0.25f; // Default 25% (macOS mic input is typically hot)
 
+    // Audio buffer sizes for ~100ms latency
+    // Output: 12kHz * 4 bytes/sample * 0.1 sec = 4800 bytes
+    // Input: 48kHz * 4 bytes/sample * 0.1 sec = 19200 bytes
+    static constexpr int OUTPUT_BUFFER_SIZE = 4800;
+    static constexpr int INPUT_BUFFER_SIZE = 19200;
+
+    // Microphone gain scaling factor (gain slider 0-1 maps to 0-2x, so 0.5 = unity)
+    static constexpr float MIC_GAIN_SCALE = 2.0f;
+
     // Microphone frame buffering for Opus encoding
     // Buffer accumulates S16LE samples at 12kHz until we have a complete frame
     static constexpr int FRAME_SAMPLES = 240;                                // 20ms at 12kHz

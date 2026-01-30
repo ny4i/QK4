@@ -96,8 +96,7 @@ bool AudioEngine::setupAudioOutput() {
     }
 
     m_audioSink = new QAudioSink(outputDevice, m_outputFormat, this);
-    // Buffer for ~100ms latency (12000 samples/sec * 4 bytes * 0.1 sec = 4800 bytes)
-    m_audioSink->setBufferSize(4800);
+    m_audioSink->setBufferSize(OUTPUT_BUFFER_SIZE);
 
     m_audioSinkDevice = m_audioSink->start();
     if (!m_audioSinkDevice) {
@@ -143,8 +142,7 @@ bool AudioEngine::setupAudioInput() {
     }
 
     m_audioSource = new QAudioSource(inputDevice, m_inputFormat, this);
-    // Buffer for ~100ms of audio at 48kHz (48000 samples/sec * 4 bytes * 0.1 sec = 19200 bytes)
-    m_audioSource->setBufferSize(19200);
+    m_audioSource->setBufferSize(INPUT_BUFFER_SIZE);
 
     // Don't start mic by default - user must enable
     return true;
@@ -237,8 +235,8 @@ void AudioEngine::onMicDataReady() {
 
     // Convert and append to buffer with gain applied
     for (int i = 0; i < floatSamples; i++) {
-        // Apply mic gain and clamp
-        float sample = qBound(-1.0f, floatData[i] * m_micGain * 2.0f, 1.0f); // *2 so 50% = unity
+        // Apply mic gain and clamp (MIC_GAIN_SCALE makes 50% slider = unity gain)
+        float sample = qBound(-1.0f, floatData[i] * m_micGain * MIC_GAIN_SCALE, 1.0f);
         qint16 s16Sample = static_cast<qint16>(sample * 32767.0f);
 
         // Accumulate for RMS calculation (after gain)

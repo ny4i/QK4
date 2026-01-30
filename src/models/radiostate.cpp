@@ -1,8 +1,11 @@
 #include "radiostate.h"
 #include <QDateTime>
 #include <QDebug>
+#include <algorithm>
 
-RadioState::RadioState(QObject *parent) : QObject(parent) {}
+RadioState::RadioState(QObject *parent) : QObject(parent) {
+    registerCommandHandlers();
+}
 
 void RadioState::parseCATCommand(const QString &command) {
     QString cmd = command.trimmed();
@@ -14,1542 +17,21 @@ void RadioState::parseCATCommand(const QString &command) {
         cmd.chop(1);
     }
 
-    // Error/Notification messages (ERxx:message) - e.g., ER44:KPA1500 Status: operate.
-    if (cmd.startsWith("ER") && cmd.length() > 2) {
-        // Find the colon that separates error code from message
-        int colonPos = cmd.indexOf(':');
-        if (colonPos > 2) {
-            bool ok;
-            int errorCode = cmd.mid(2, colonPos - 2).toInt(&ok);
-            if (ok) {
-                QString message = cmd.mid(colonPos + 1);
-                emit errorNotificationReceived(errorCode, message);
-            }
-        }
-        // Don't return - let other parsers potentially handle it too
-    }
-
-    // VFO A Frequency (FA)
-    if (cmd.startsWith("FA") && cmd.length() > 2) {
-        bool ok;
-        quint64 freq = cmd.mid(2).toULongLong(&ok);
-        if (ok) {
-            m_vfoA = freq;
-            m_frequency = freq;
-            emit frequencyChanged(freq);
-        }
-    }
-    // VFO B Frequency (FB)
-    else if (cmd.startsWith("FB") && cmd.length() > 2) {
-        bool ok;
-        quint64 freq = cmd.mid(2).toULongLong(&ok);
-        if (ok && m_vfoB != freq) {
-            m_vfoB = freq;
-            emit frequencyBChanged(freq);
-        }
-    }
-    // Mode VFO B (MD$)
-    else if (cmd.startsWith("MD$") && cmd.length() > 3) {
-        bool ok;
-        int modeCode = cmd.mid(3).toInt(&ok);
-        if (ok) {
-            Mode newMode = modeFromCode(modeCode);
-            if (m_modeB != newMode) {
-                m_modeB = newMode;
-                emit modeBChanged(m_modeB);
-            }
-        }
-    }
-    // Mode (MD)
-    else if (cmd.startsWith("MD") && cmd.length() > 2) {
-        bool ok;
-        int modeCode = cmd.mid(2).toInt(&ok);
-        if (ok) {
-            Mode newMode = modeFromCode(modeCode);
-            if (m_mode != newMode) {
-                m_mode = newMode;
-                emit modeChanged(m_mode);
-                // Also emit delay change since delay is mode-specific
-                int currentDelay = delayForCurrentMode();
-                if (currentDelay >= 0) {
-                    emit qskDelayChanged(currentDelay);
-                }
-            }
-        }
-    }
-    // Filter Bandwidth VFO B (BW$) - K4 returns value/10
-    else if (cmd.startsWith("BW$") && cmd.length() > 3) {
-        bool ok;
-        int bw = cmd.mid(3).toInt(&ok);
-        if (ok) {
-            int newBw = bw * 10;
-            if (m_filterBandwidthB != newBw) {
-                m_filterBandwidthB = newBw;
-                emit filterBandwidthBChanged(m_filterBandwidthB);
-            }
-        }
-    }
-    // Filter Bandwidth (BW) - K4 returns value/10
-    else if (cmd.startsWith("BW") && cmd.length() > 2) {
-        bool ok;
-        int bw = cmd.mid(2).toInt(&ok);
-        if (ok) {
-            int newBw = bw * 10;
-            if (m_filterBandwidth != newBw) {
-                m_filterBandwidth = newBw;
-                emit filterBandwidthChanged(m_filterBandwidth);
-            }
-        }
-    }
-    // Mic Gain (MG 0-80)
-    else if (cmd.startsWith("MG") && cmd.length() > 2) {
-        bool ok;
-        int gain = cmd.mid(2).toInt(&ok);
-        if (ok && gain != m_micGain) {
-            m_micGain = gain;
-            emit micGainChanged(m_micGain);
-        }
-    }
-    // Monitor Level (ML mode 0-2, level 0-100)
-    // Format: MLmnnn where m=mode (0=CW, 1=Data, 2=Voice), nnn=000-100
-    else if (cmd.startsWith("ML") && cmd.length() >= 5) {
-        bool ok;
-        int mode = cmd.mid(2, 1).toInt(&ok);
-        if (ok && mode >= 0 && mode <= 2) {
-            int level = cmd.mid(3).toInt(&ok);
-            if (ok && level >= 0 && level <= 100) {
-                int *target = nullptr;
-                switch (mode) {
-                case 0:
-                    target = &m_monitorLevelCW;
-                    break;
-                case 1:
-                    target = &m_monitorLevelData;
-                    break;
-                case 2:
-                    target = &m_monitorLevelVoice;
-                    break;
-                }
-                if (target && *target != level) {
-                    *target = level;
-                    emit monitorLevelChanged(mode, level);
-                }
-            }
-        }
-    }
-    // Speech Compression (CP 0-30) - SSB modes only
-    else if (cmd.startsWith("CP") && cmd.length() > 2) {
-        bool ok;
-        int comp = cmd.mid(2).toInt(&ok);
-        if (ok && comp != m_compression) {
-            m_compression = comp;
-            emit compressionChanged(m_compression);
-        }
-    }
-    // RF Gain Sub RX (RG$)
-    else if (cmd.startsWith("RG$") && cmd.length() > 3) {
-        bool ok;
-        int rg = cmd.mid(3).toInt(&ok);
-        if (ok && m_rfGainB != rg) {
-            m_rfGainB = rg;
-            emit rfGainBChanged(m_rfGainB);
-        }
-    }
-    // RF Gain Main RX (RG)
-    else if (cmd.startsWith("RG") && cmd.length() > 2) {
-        bool ok;
-        int rg = cmd.mid(2).toInt(&ok);
-        if (ok && m_rfGain != rg) {
-            m_rfGain = rg;
-            emit rfGainChanged(m_rfGain);
-        }
-    }
-    // Squelch Sub RX (SQ$)
-    else if (cmd.startsWith("SQ$") && cmd.length() > 3) {
-        bool ok;
-        int sq = cmd.mid(3).toInt(&ok);
-        if (ok && m_squelchLevelB != sq) {
-            m_squelchLevelB = sq;
-            emit squelchBChanged(m_squelchLevelB);
-        }
-    }
-    // Squelch Main RX (SQ)
-    else if (cmd.startsWith("SQ") && cmd.length() > 2) {
-        bool ok;
-        int sq = cmd.mid(2).toInt(&ok);
-        if (ok && m_squelchLevel != sq) {
-            m_squelchLevel = sq;
-            emit squelchChanged(m_squelchLevel);
-        }
-    }
-    // Keyer Speed (KS) - WPM
-    else if (cmd.startsWith("KS") && cmd.length() > 2) {
-        bool ok;
-        int wpm = cmd.mid(2).toInt(&ok);
-        if (ok && m_keyerSpeed != wpm) {
-            m_keyerSpeed = wpm;
-            emit keyerSpeedChanged(m_keyerSpeed);
-        }
-    }
-    // QSK/VOX Delay (SD) - SDxMzzz where x=QSK flag (0/1), M=mode (C/V/D), zzz=delay in 10ms
-    // RDY dump provides: SD0C005;SD0V025;SD0D005; (all three modes)
-    // Query response: SDxyzzz where x=QSK flag, y=mode code, zzz=delay
-    // x=1 means full QSK (delay=0), x=0 means use specified delay
-    else if (cmd.startsWith("SD") && cmd.length() >= 7) {
-        // Extract QSK flag from position 2 (only for CW mode - QSK is CW-specific)
-        QChar qskFlag = cmd.at(2);
-        QChar modeChar = cmd.at(3);
-        bool ok;
-        int delay = cmd.mid(4, 3).toInt(&ok);
-        if (ok) {
-            // Update QSK enabled state (only meaningful for CW mode)
-            if (modeChar == 'C') {
-                bool qskOn = (qskFlag == '1');
-                if (qskOn != m_qskEnabled) {
-                    m_qskEnabled = qskOn;
-                    emit qskEnabledChanged(m_qskEnabled);
-                }
-            }
-
-            bool isCurrentMode = false;
-            if (modeChar == 'C') {
-                if (m_qskDelayCW != delay) {
-                    m_qskDelayCW = delay;
-                    isCurrentMode = (m_mode == CW || m_mode == CW_R);
-                }
-            } else if (modeChar == 'V') {
-                if (m_qskDelayVoice != delay) {
-                    m_qskDelayVoice = delay;
-                    isCurrentMode = (m_mode == LSB || m_mode == USB || m_mode == AM || m_mode == FM);
-                }
-            } else if (modeChar == 'D') {
-                if (m_qskDelayData != delay) {
-                    m_qskDelayData = delay;
-                    isCurrentMode = (m_mode == DATA || m_mode == DATA_R);
-                }
-            }
-            // Only emit if the changed delay is for the current operating mode
-            if (isCurrentMode) {
-                emit qskDelayChanged(delay);
-            }
-        }
-    }
-    // S-Meter VFO B / Sub RX (SM$)
-    else if (cmd.startsWith("SM$") && cmd.length() > 3) {
-        bool ok;
-        int bars = cmd.mid(3).toInt(&ok);
-        if (ok) {
-            if (bars <= 18) {
-                m_sMeterB = bars / 2.0;
-            } else {
-                int dbAboveS9 = (bars - 18) * 3;
-                m_sMeterB = 9.0 + dbAboveS9 / 10.0;
-            }
-            emit sMeterBChanged(m_sMeterB);
-        }
-    }
-    // S-Meter (SM)
-    else if (cmd.startsWith("SM") && cmd.length() > 2) {
-        bool ok;
-        int bars = cmd.mid(2).toInt(&ok);
-        if (ok) {
-            if (bars <= 18) {
-                m_sMeter = bars / 2.0;
-            } else {
-                int dbAboveS9 = (bars - 18) * 3;
-                m_sMeter = 9.0 + dbAboveS9 / 10.0;
-            }
-            emit sMeterChanged(m_sMeter);
-        }
-    }
-    // Power Output (PO)
-    else if (cmd.startsWith("PO") && cmd.length() > 2) {
-        bool ok;
-        int po = cmd.mid(2).toInt(&ok);
-        if (ok) {
-            m_powerMeter = po;
-            emit powerMeterChanged(m_powerMeter);
-        }
-    }
-    // TX/RX state
-    else if (cmd == "TX" || cmd.startsWith("TX1")) {
-        if (!m_isTransmitting) {
-            m_isTransmitting = true;
-            emit transmitStateChanged(true);
-        }
-    } else if (cmd == "RX") {
-        if (m_isTransmitting) {
-            m_isTransmitting = false;
-            emit transmitStateChanged(false);
-        }
-    }
-    // Noise Blanker Sub (NB$) - Format: NB$nnm; or NB$nnmf; where nn=level, m=on/off, f=filter(0/1/2)
-    else if (cmd.startsWith("NB$") && cmd.length() >= 5) {
-        QString nbStr = cmd.mid(3);
-        if (nbStr.length() >= 3) {
-            bool ok1, ok2;
-            int level = nbStr.left(2).toInt(&ok1);
-            int enabled = nbStr.mid(2, 1).toInt(&ok2);
-            if (ok1 && ok2) {
-                m_noiseBlankerLevelB = qMin(level, 15);
-                m_noiseBlankerEnabledB = (enabled == 1);
-                // Filter field is optional (4th char)
-                if (nbStr.length() >= 4) {
-                    bool ok3;
-                    int filter = nbStr.mid(3, 1).toInt(&ok3);
-                    if (ok3) {
-                        m_noiseBlankerFilterWidthB = qMin(filter, 2);
-                    }
-                }
-                emit processingChangedB();
-            }
-        }
-    }
-    // Noise Blanker Main (NB) - Format: NBnnm; or NBnnmf; where nn=level(0-15), m=on/off, f=filter(0/1/2)
-    else if (cmd.startsWith("NB") && cmd.length() >= 4) {
-        QString nbStr = cmd.mid(2);
-        if (nbStr.length() >= 3) {
-            bool ok1, ok2;
-            int level = nbStr.left(2).toInt(&ok1);
-            int enabled = nbStr.mid(2, 1).toInt(&ok2);
-            if (ok1 && ok2) {
-                m_noiseBlankerLevel = qMin(level, 15);
-                m_noiseBlankerEnabled = (enabled == 1);
-                // Filter field is optional (4th char)
-                if (nbStr.length() >= 4) {
-                    bool ok3;
-                    int filter = nbStr.mid(3, 1).toInt(&ok3);
-                    if (ok3) {
-                        m_noiseBlankerFilterWidth = qMin(filter, 2);
-                    }
-                }
-                emit processingChanged();
-            }
-        }
-    }
-    // Noise Reduction Sub (NR$)
-    else if (cmd.startsWith("NR$") && cmd.length() >= 4) {
-        QString nrStr = cmd.mid(3);
-        if (nrStr.length() >= 3) {
-            bool ok1, ok2;
-            int level = nrStr.left(2).toInt(&ok1);
-            int enabled = nrStr.right(1).toInt(&ok2);
-            if (ok1 && ok2) {
-                m_noiseReductionLevelB = level;
-                m_noiseReductionEnabledB = (enabled == 1);
-                emit processingChangedB();
-            }
-        }
-    }
-    // Noise Reduction Main (NR)
-    else if (cmd.startsWith("NR") && cmd.length() >= 3) {
-        QString nrStr = cmd.mid(2);
-        if (nrStr.length() >= 3) {
-            bool ok1, ok2;
-            int level = nrStr.left(2).toInt(&ok1);
-            int enabled = nrStr.right(1).toInt(&ok2);
-            if (ok1 && ok2) {
-                m_noiseReductionLevel = level;
-                m_noiseReductionEnabled = (enabled == 1);
-                emit processingChanged();
-            }
-        }
-    }
-    // Auto Notch Sub (NA$) - NA$n; where n=0/1
-    else if (cmd.startsWith("NA$") && cmd.length() >= 4) {
-        bool enabled = (cmd.at(3) == '1');
-        if (m_autoNotchEnabledB != enabled) {
-            m_autoNotchEnabledB = enabled;
-            emit notchBChanged();
-        }
-    }
-    // Auto Notch (NA) - NAn; where n=0/1
-    else if (cmd.startsWith("NA") && cmd.length() >= 3) {
-        bool enabled = (cmd.at(2) == '1');
-        if (m_autoNotchEnabled != enabled) {
-            m_autoNotchEnabled = enabled;
-            emit notchChanged();
-        }
-    }
-    // Manual Notch Sub (NM$) - NM$nnnnm; or NM$m;
-    else if (cmd.startsWith("NM$") && cmd.length() >= 4) {
-        QString data = cmd.mid(3);
-        if (data.length() >= 5) {
-            // Full format: NM$nnnnm (4-digit pitch + on/off)
-            bool ok;
-            int pitch = data.left(4).toInt(&ok);
-            bool enabled = (data.at(4) == '1');
-            bool changed = false;
-            if (ok && pitch >= 150 && pitch <= 5000 && m_manualNotchPitchB != pitch) {
-                m_manualNotchPitchB = pitch;
-                changed = true;
-            }
-            if (m_manualNotchEnabledB != enabled) {
-                m_manualNotchEnabledB = enabled;
-                changed = true;
-            }
-            if (changed) {
-                emit notchBChanged();
-            }
-        } else if (data.length() >= 1) {
-            // Short format: NM$m (on/off only)
-            bool enabled = (data.at(0) == '1');
-            if (m_manualNotchEnabledB != enabled) {
-                m_manualNotchEnabledB = enabled;
-                emit notchBChanged();
-            }
-        }
-    }
-    // Manual Notch Main (NM) - NMnnnnm; or NMm;
-    else if (cmd.startsWith("NM") && cmd.length() >= 3) {
-        QString data = cmd.mid(2);
-        if (data.length() >= 5) {
-            // Full format: NMnnnnm (4-digit pitch + on/off)
-            bool ok;
-            int pitch = data.left(4).toInt(&ok);
-            bool enabled = (data.at(4) == '1');
-            bool changed = false;
-            if (ok && pitch >= 150 && pitch <= 5000 && m_manualNotchPitch != pitch) {
-                m_manualNotchPitch = pitch;
-                changed = true;
-            }
-            if (m_manualNotchEnabled != enabled) {
-                m_manualNotchEnabled = enabled;
-                changed = true;
-            }
-            if (changed) {
-                emit notchChanged();
-            }
-        } else if (data.length() >= 1) {
-            // Short format: NMm (on/off only)
-            bool enabled = (data.at(0) == '1');
-            if (m_manualNotchEnabled != enabled) {
-                m_manualNotchEnabled = enabled;
-                emit notchChanged();
-            }
-        }
-    }
-    // Preamp Sub (PA$) - PA$nm where n=level(0-3), m=on/off(0/1)
-    else if (cmd.startsWith("PA$") && cmd.length() >= 5) {
-        QString paStr = cmd.mid(3);
-        if (paStr.length() >= 2) {
-            bool ok1, ok2;
-            int level = paStr.left(1).toInt(&ok1);
-            int enabled = paStr.mid(1, 1).toInt(&ok2);
-            if (ok1 && ok2) {
-                m_preampB = level;
-                m_preampEnabledB = (enabled == 1);
-                emit processingChangedB();
-            }
-        }
-    }
-    // Preamp Main (PA) - PAnm where n=level(0-3), m=on/off(0/1)
-    else if (cmd.startsWith("PA") && cmd.length() >= 4) {
-        QString paStr = cmd.mid(2);
-        if (paStr.length() >= 2) {
-            bool ok1, ok2;
-            int level = paStr.left(1).toInt(&ok1);
-            int enabled = paStr.mid(1, 1).toInt(&ok2);
-            if (ok1 && ok2) {
-                m_preamp = level;
-                m_preampEnabled = (enabled == 1);
-                emit processingChanged();
-            }
-        }
-    }
-    // Attenuator Sub (RA$) - RA$nnm where nn=level(0-21), m=on/off
-    else if (cmd.startsWith("RA$") && cmd.length() >= 6) {
-        QString raStr = cmd.mid(3);
-        if (raStr.length() >= 3) {
-            bool ok1, ok2;
-            int level = raStr.left(2).toInt(&ok1);
-            int enabled = raStr.mid(2, 1).toInt(&ok2);
-            if (ok1 && ok2) {
-                m_attenuatorLevelB = level;
-                m_attenuatorEnabledB = (enabled == 1);
-                emit processingChangedB();
-            }
-        }
-    }
-    // Attenuator Main (RA) - RAnnotm where nn=level(0-21), m=on/off
-    else if (cmd.startsWith("RA") && cmd.length() >= 5) {
-        QString raStr = cmd.mid(2);
-        if (raStr.length() >= 3) {
-            bool ok1, ok2;
-            int level = raStr.left(2).toInt(&ok1);
-            int enabled = raStr.mid(2, 1).toInt(&ok2);
-            if (ok1 && ok2) {
-                m_attenuatorLevel = level;
-                m_attenuatorEnabled = (enabled == 1);
-                emit processingChanged();
-            }
-        }
-    }
-    // AGC Speed Sub (GT$) - GT$n where n=0(off)/1(slow)/2(fast)
-    else if (cmd.startsWith("GT$") && cmd.length() >= 4) {
-        bool ok;
-        int gt = cmd.mid(3).toInt(&ok);
-        if (ok) {
-            if (gt == 0)
-                m_agcSpeedB = AGC_Off;
-            else if (gt == 1)
-                m_agcSpeedB = AGC_Slow;
-            else if (gt == 2)
-                m_agcSpeedB = AGC_Fast;
-            emit processingChangedB();
-        }
-    }
-    // AGC Speed Main (GT) - GTn where n=0(off)/1(slow)/2(fast)
-    else if (cmd.startsWith("GT") && cmd.length() > 2) {
-        bool ok;
-        int gt = cmd.mid(2).toInt(&ok);
-        if (ok) {
-            if (gt == 0)
-                m_agcSpeed = AGC_Off;
-            else if (gt == 1)
-                m_agcSpeed = AGC_Slow;
-            else if (gt == 2)
-                m_agcSpeed = AGC_Fast;
-            emit processingChanged();
-        }
-    }
-    // Audio Effects (FX) - FXn where n=0(off)/1(delay)/2(pitch-map)
-    else if (cmd.startsWith("FX") && cmd.length() >= 3) {
-        bool ok;
-        int fx = cmd.mid(2).toInt(&ok);
-        if (ok && fx >= 0 && fx <= 2 && fx != m_afxMode) {
-            m_afxMode = fx;
-            emit afxModeChanged(m_afxMode);
-        }
-    }
-    // Audio Peak Filter - Sub RX (AP$) - AP$mb where m=enabled(0/1), b=bandwidth(0/1/2)
-    // Must check AP$ BEFORE AP to avoid AP$ matching AP prefix
-    else if (cmd.startsWith("AP$") && cmd.length() >= 5) {
-        bool ok;
-        int m = cmd.mid(3, 1).toInt(&ok);
-        if (ok) {
-            int b = cmd.mid(4, 1).toInt(&ok);
-            if (ok) {
-                bool enabled = (m == 1);
-                int bandwidth = qBound(0, b, 2);
-                if (enabled != m_apfEnabledB || bandwidth != m_apfBandwidthB) {
-                    m_apfEnabledB = enabled;
-                    m_apfBandwidthB = bandwidth;
-                    emit apfBChanged(m_apfEnabledB, m_apfBandwidthB);
-                }
-            }
-        }
-    }
-    // Audio Peak Filter - Main RX (AP) - APmb where m=enabled(0/1), b=bandwidth(0/1/2)
-    else if (cmd.startsWith("AP") && cmd.length() >= 4) {
-        bool ok;
-        int m = cmd.mid(2, 1).toInt(&ok);
-        if (ok) {
-            int b = cmd.mid(3, 1).toInt(&ok);
-            if (ok) {
-                bool enabled = (m == 1);
-                int bandwidth = qBound(0, b, 2);
-                if (enabled != m_apfEnabled || bandwidth != m_apfBandwidth) {
-                    m_apfEnabled = enabled;
-                    m_apfBandwidth = bandwidth;
-                    emit apfChanged(m_apfEnabled, m_apfBandwidth);
-                }
-            }
-        }
-    }
-    // VFO Link (LN) - LNn where n=0(not linked)/1(linked)
-    else if (cmd.startsWith("LN") && cmd.length() >= 3) {
-        bool ok;
-        int ln = cmd.mid(2).toInt(&ok);
-        if (ok) {
-            bool linked = (ln == 1);
-            if (linked != m_vfoLink) {
-                m_vfoLink = linked;
-                emit vfoLinkChanged(m_vfoLink);
-            }
-        }
-    }
-    // VFO B Lock (LK$) - LK$n where n=0(unlocked)/1(locked) - must check before LK
-    else if (cmd.startsWith("LK$") && cmd.length() >= 4) {
-        bool ok;
-        int lk = cmd.mid(3).toInt(&ok);
-        if (ok) {
-            bool locked = (lk == 1);
-            if (locked != m_lockB) {
-                m_lockB = locked;
-                emit lockBChanged(m_lockB);
-            }
-        }
-    }
-    // VFO A Lock (LK) - LKn where n=0(unlocked)/1(locked)
-    else if (cmd.startsWith("LK") && cmd.length() >= 3) {
-        bool ok;
-        int lk = cmd.mid(2).toInt(&ok);
-        if (ok) {
-            bool locked = (lk == 1);
-            if (locked != m_lockA) {
-                m_lockA = locked;
-                emit lockAChanged(m_lockA);
-            }
-        }
-    }
-    // LO - Line Out levels
-    // Format: LOlllrrrm where lll=left(000-040), rrr=right(000-040), m=mode(0/1)
-    else if (cmd.startsWith("LO") && cmd.length() >= 9) {
-        bool okL, okR;
-        int left = cmd.mid(2, 3).toInt(&okL);
-        int right = cmd.mid(5, 3).toInt(&okR);
-        int mode = cmd.mid(8, 1).toInt();
-
-        if (okL && okR && left >= 0 && left <= 40 && right >= 0 && right <= 40) {
-            bool changed = false;
-            if (left != m_lineOutLeft) {
-                m_lineOutLeft = left;
-                changed = true;
-            }
-            if (right != m_lineOutRight) {
-                m_lineOutRight = right;
-                changed = true;
-            }
-            if ((mode == 1) != m_lineOutRightEqualsLeft) {
-                m_lineOutRightEqualsLeft = (mode == 1);
-                changed = true;
-            }
-            if (changed)
-                emit lineOutChanged();
-        }
-    }
-    // LI - Line In levels and source
-    // Format: LIuuullls where uuu=soundcard(000-250), lll=linein(000-250), s=source(0/1)
-    else if (cmd.startsWith("LI") && cmd.length() >= 9) {
-        bool okS, okL;
-        int soundCard = cmd.mid(2, 3).toInt(&okS);
-        int lineIn = cmd.mid(5, 3).toInt(&okL);
-        int source = cmd.mid(8, 1).toInt();
-
-        if (okS && okL && soundCard >= 0 && soundCard <= 250 && lineIn >= 0 && lineIn <= 250 &&
-            (source == 0 || source == 1)) {
-            bool changed = false;
-            if (soundCard != m_lineInSoundCard) {
-                m_lineInSoundCard = soundCard;
-                changed = true;
-            }
-            if (lineIn != m_lineInJack) {
-                m_lineInJack = lineIn;
-                changed = true;
-            }
-            if (source != m_lineInSource) {
-                m_lineInSource = source;
-                changed = true;
-            }
-            if (changed)
-                emit lineInChanged();
-        }
-    }
-    // MI - Mic Input Select
-    // Format: MIn where n=0-4 (0=front, 1=rear, 2=line in, 3=front+line, 4=rear+line)
-    else if (cmd.startsWith("MI") && cmd.length() >= 3) {
-        int input = cmd.mid(2, 1).toInt();
-        if (input >= 0 && input <= 4 && input != m_micInput) {
-            m_micInput = input;
-            emit micInputChanged(m_micInput);
-        }
-    }
-    // MS - Mic Setup
-    // Format: MSabcde where a=frontPreamp(0-2), b=frontBias(0-1), c=frontButtons(0-1),
-    //         d=rearPreamp(0-1), e=rearBias(0-1)
-    else if (cmd.startsWith("MS") && cmd.length() >= 7) {
-        int frontPreamp = cmd.mid(2, 1).toInt();
-        int frontBias = cmd.mid(3, 1).toInt();
-        int frontButtons = cmd.mid(4, 1).toInt();
-        int rearPreamp = cmd.mid(5, 1).toInt();
-        int rearBias = cmd.mid(6, 1).toInt();
-
-        bool changed = false;
-        if (frontPreamp >= 0 && frontPreamp <= 2 && frontPreamp != m_micFrontPreamp) {
-            m_micFrontPreamp = frontPreamp;
-            changed = true;
-        }
-        if ((frontBias == 0 || frontBias == 1) && frontBias != m_micFrontBias) {
-            m_micFrontBias = frontBias;
-            changed = true;
-        }
-        if ((frontButtons == 0 || frontButtons == 1) && frontButtons != m_micFrontButtons) {
-            m_micFrontButtons = frontButtons;
-            changed = true;
-        }
-        if ((rearPreamp == 0 || rearPreamp == 1) && rearPreamp != m_micRearPreamp) {
-            m_micRearPreamp = rearPreamp;
-            changed = true;
-        }
-        if ((rearBias == 0 || rearBias == 1) && rearBias != m_micRearBias) {
-            m_micRearBias = rearBias;
-            changed = true;
-        }
-        if (changed)
-            emit micSetupChanged();
-    }
-    // Text Decode Sub RX (TD$) - must check before TD
-    else if (cmd.startsWith("TD$") && cmd.length() >= 6) {
-        int mode = cmd.mid(3, 1).toInt();
-        int threshold = cmd.mid(4, 1).toInt();
-        int lines = cmd.mid(5, 1).toInt();
-
-        bool changed = false;
-        if (mode != m_textDecodeModeB) {
-            m_textDecodeModeB = mode;
-            changed = true;
-        }
-        if (threshold != m_textDecodeThresholdB) {
-            m_textDecodeThresholdB = threshold;
-            changed = true;
-        }
-        if (lines != m_textDecodeLinesB && lines >= 1 && lines <= 9) {
-            m_textDecodeLinesB = lines;
-            changed = true;
-        }
-        if (changed)
-            emit textDecodeBChanged();
-    }
-    // Text Decode Main RX (TD)
-    else if (cmd.startsWith("TD") && cmd.length() >= 5) {
-        int mode = cmd.mid(2, 1).toInt();
-        int threshold = cmd.mid(3, 1).toInt();
-        int lines = cmd.mid(4, 1).toInt();
-        qDebug() << "TD received: mode=" << mode << "threshold=" << threshold << "lines=" << lines;
-
-        bool changed = false;
-        if (mode != m_textDecodeMode) {
-            m_textDecodeMode = mode;
-            changed = true;
-        }
-        if (threshold != m_textDecodeThreshold) {
-            m_textDecodeThreshold = threshold;
-            changed = true;
-        }
-        if (lines != m_textDecodeLines && lines >= 1 && lines <= 9) {
-            m_textDecodeLines = lines;
-            changed = true;
-        }
-        if (changed)
-            emit textDecodeChanged();
-    }
-    // Text Buffer Sub RX (TB$) - must check before TB
-    // Format: TB$trrC; where t=tx queue (1 digit), rr=rx count (2 digits), C=character(s)
-    else if (cmd.startsWith("TB$") && cmd.length() >= 6) {
-        // Extract character(s) after header (TB$ + t + rr = 6 chars)
-        QString text = cmd.mid(6);
-        if (text.endsWith(';'))
-            text.chop(1);
-        if (!text.isEmpty()) {
-            emit textBufferReceived(text, true); // Sub RX
-        }
-    }
-    // Text Buffer Main RX (TB) - decoded text from K4
-    // Format: TBtrrC; where t=tx queue (1 digit), rr=rx count (2 digits), C=character(s)
-    // Example: TB002E ; means t=0, rr=02, char="E "
-    else if (cmd.startsWith("TB") && cmd.length() >= 5) {
-        // Extract character(s) after header (TB + t + rr = 5 chars)
-        QString text = cmd.mid(5);
-        // Remove trailing semicolon if present
-        if (text.endsWith(';'))
-            text.chop(1);
-        if (!text.isEmpty()) {
-            emit textBufferReceived(text, false); // Main RX
-        }
-    }
-    // Filter Position Sub RX (FP$) - must check before FP
-    else if (cmd.startsWith("FP$") && cmd.length() > 3) {
-        bool ok;
-        int fp = cmd.mid(3).toInt(&ok);
-        if (ok && fp >= 1 && fp <= 3 && fp != m_filterPositionB) {
-            m_filterPositionB = fp;
-            emit filterPositionBChanged(m_filterPositionB);
-        }
-    }
-    // Filter Position Main RX (FP)
-    else if (cmd.startsWith("FP") && cmd.length() > 2) {
-        bool ok;
-        int fp = cmd.mid(2).toInt(&ok);
-        if (ok && fp >= 1 && fp <= 3 && fp != m_filterPosition) {
-            m_filterPosition = fp;
-            emit filterPositionChanged(m_filterPosition);
-        }
-    }
-    // Tuning Step SUB (VT$) - check before VT
-    else if (cmd.startsWith("VT$") && cmd.length() > 3) {
-        QString vtStr = cmd.mid(3); // Skip "VT$"
-        if (!vtStr.isEmpty()) {
-            bool ok;
-            int step = vtStr.left(1).toInt(&ok);
-            if (ok) {
-                int newStep = qBound(0, step, 5);
-                if (newStep != m_tuningStepB) {
-                    m_tuningStepB = newStep;
-                    emit tuningStepBChanged(m_tuningStepB);
-                }
-            }
-        }
-    }
-    // Tuning Step MAIN (VT)
-    else if (cmd.startsWith("VT") && cmd.length() > 2) {
-        QString vtStr = cmd.mid(2); // Skip "VT"
-        if (!vtStr.isEmpty()) {
-            bool ok;
-            int step = vtStr.left(1).toInt(&ok);
-            if (ok) {
-                int newStep = qBound(0, step, 5);
-                if (newStep != m_tuningStep) {
-                    m_tuningStep = newStep;
-                    emit tuningStepChanged(m_tuningStep);
-                }
-            }
-        }
-    }
-    // VOX (VX) - VXmn where m=mode (C=CW, V=Voice, D=Data), n=0/1
-    else if (cmd.startsWith("VX") && cmd.length() >= 4) {
-        QChar mode = cmd.at(2);
-        bool enabled = (cmd.at(3) == '1');
-        bool changed = false;
-        if (mode == 'C' && m_voxCW != enabled) {
-            m_voxCW = enabled;
-            changed = true;
-        } else if (mode == 'V' && m_voxVoice != enabled) {
-            m_voxVoice = enabled;
-            changed = true;
-        } else if (mode == 'D' && m_voxData != enabled) {
-            m_voxData = enabled;
-            changed = true;
-        }
-        if (changed) {
-            emit voxChanged(voxEnabled());
-        }
-    }
-    // VOX Gain (VG) - VGmnnn where m=V(voice)/D(data), nnn=000-060
-    else if (cmd.startsWith("VG") && cmd.length() >= 5) {
-        QChar modeChar = cmd.at(2);
-        bool ok;
-        int gain = cmd.mid(3, 3).toInt(&ok);
-        if (ok && gain >= 0 && gain <= 60) {
-            if (modeChar == 'V' && gain != m_voxGainVoice) {
-                m_voxGainVoice = gain;
-                emit voxGainChanged(0, gain);
-            } else if (modeChar == 'D' && gain != m_voxGainData) {
-                m_voxGainData = gain;
-                emit voxGainChanged(1, gain);
-            }
-        }
-    }
-    // Anti-VOX (VI) - VInnn where nnn=000-060
-    else if (cmd.startsWith("VI") && cmd.length() >= 5) {
-        bool ok;
-        int level = cmd.mid(2, 3).toInt(&ok);
-        if (ok && level >= 0 && level <= 60 && level != m_antiVox) {
-            m_antiVox = level;
-            emit antiVoxChanged(level);
-        }
-    }
-    // ESSB/SSB TX Bandwidth (ES) - ESnbb where n=0/1, bb=bandwidth
-    // SSB mode (n=0): bb range is 24-28 (2.4-2.8 kHz)
-    // ESSB mode (n=1): bb range is 30-45 (3.0-4.5 kHz)
-    else if (cmd.startsWith("ES") && cmd.length() >= 4) {
-        bool ok;
-        int modeVal = cmd.mid(2, 1).toInt(&ok);
-        if (ok && (modeVal == 0 || modeVal == 1)) {
-            bool newEssb = (modeVal == 1);
-            int newBw = -1;
-            // Check if bandwidth is included (full format ESnbb)
-            if (cmd.length() >= 5) {
-                newBw = cmd.mid(3, 2).toInt(&ok);
-                // Accept valid range for either mode (24-45 covers both)
-                if (!ok || newBw < 24 || newBw > 45) {
-                    newBw = m_ssbTxBw; // Keep existing if invalid
-                }
-            }
-            bool changed = false;
-            if (newEssb != m_essbEnabled) {
-                m_essbEnabled = newEssb;
-                changed = true;
-            }
-            if (newBw >= 24 && newBw <= 45 && newBw != m_ssbTxBw) {
-                m_ssbTxBw = newBw;
-                changed = true;
-            }
-            if (changed) {
-                emit essbChanged(m_essbEnabled, m_ssbTxBw);
-            }
-        }
-    }
-    // IF Shift Sub RX (IS$) - check BEFORE IS to avoid prefix collision
-    else if (cmd.startsWith("IS$") && cmd.length() > 3) {
-        bool ok;
-        int is = cmd.mid(3).toInt(&ok);
-        if (ok && is != m_ifShiftB) {
-            m_ifShiftB = is;
-            emit ifShiftBChanged(m_ifShiftB);
-        }
-    }
-    // IF Shift (IS) - IS0099 format (0-99, 50=centered)
-    else if (cmd.startsWith("IS") && cmd.length() > 2) {
-        bool ok;
-        int is = cmd.mid(2).toInt(&ok);
-        if (ok && is != m_ifShift) {
-            m_ifShift = is;
-            emit ifShiftChanged(m_ifShift);
-        }
-    }
-    // CW Sidetone Pitch (CW) - CWnn where nn=pitch/10 (25-95, so 50=500Hz)
-    else if (cmd.startsWith("CW") && cmd.length() >= 4 && !cmd.startsWith("CW-")) {
-        bool ok;
-        int pitchCode = cmd.mid(2).toInt(&ok);
-        if (ok && pitchCode >= 25 && pitchCode <= 95) {
-            int pitchHz = pitchCode * 10; // Convert code to Hz
-            if (pitchHz != m_cwPitch) {
-                m_cwPitch = pitchHz;
-                emit cwPitchChanged(m_cwPitch);
-            }
-        }
-    }
-    // Split TX/RX (FT)
-    else if (cmd.startsWith("FT") && cmd.length() > 2) {
-        bool newSplit = (cmd.mid(2) == "1");
-        if (newSplit != m_splitEnabled) {
-            m_splitEnabled = newSplit;
-            emit splitChanged(m_splitEnabled);
-        }
-    }
-    // Sub Receiver (SB)
-    // SB0 = off, SB1 = on (standalone), SB3 = on (for diversity)
-    // Always emit to ensure UI syncs on initial connect (can't use -1 trick for bools)
-    else if (cmd.startsWith("SB") && cmd.length() > 2) {
-        m_subReceiverEnabled = (cmd.mid(2) != "0"); // Any non-zero value means SUB is enabled
-        emit subRxEnabledChanged(m_subReceiverEnabled);
-    }
-    // Diversity (DV)
-    else if (cmd.startsWith("DV") && cmd.length() > 2) {
-        bool newState = (cmd.mid(2) == "1");
-        if (newState != m_diversityEnabled) {
-            m_diversityEnabled = newState;
-            emit diversityChanged(m_diversityEnabled);
-        }
-    }
-    // Antenna (AN) - TX antenna
-    else if (cmd.startsWith("AN") && cmd.length() > 2) {
-        bool ok;
-        int an = cmd.mid(2).toInt(&ok);
-        if (ok && an >= 1 && an <= 6 && an != m_selectedAntenna) {
-            m_selectedAntenna = an;
-            emit antennaChanged(m_selectedAntenna, m_receiveAntenna, m_receiveAntennaSub);
-        }
-    }
-    // RX Antenna Main (AR)
-    // AR values: 0=OFF, 1=EXT XVTR, 2=INT XVTR, 3=RX1, 4=RX2, 5=ANT1, 6=ANT2, 7=ANT3
-    else if (cmd.startsWith("AR") && !cmd.startsWith("AR$") && cmd.length() > 2) {
-        bool ok;
-        int ar = cmd.mid(2).toInt(&ok);
-        if (ok && ar >= 0 && ar <= 7 && ar != m_receiveAntenna) {
-            m_receiveAntenna = ar;
-            emit antennaChanged(m_selectedAntenna, m_receiveAntenna, m_receiveAntennaSub);
-        }
-    }
-    // RX Antenna Sub (AR$)
-    // AR$ values: 0=RX2, 1=RX1, 2=ANT1, 3=ANT2, 4=ANT3, 5==TX, 6==OPP TX
-    else if (cmd.startsWith("AR$") && cmd.length() > 3) {
-        bool ok;
-        int ar = cmd.mid(3).toInt(&ok);
-        if (ok && ar >= 0 && ar <= 7 && ar != m_receiveAntennaSub) {
-            m_receiveAntennaSub = ar;
-            emit antennaChanged(m_selectedAntenna, m_receiveAntenna, m_receiveAntennaSub);
-        }
-    }
-    // ATU Mode (AT) - AT0=not installed, AT1=bypass, AT2=auto
-    else if (cmd.startsWith("AT") && cmd.length() >= 3) {
-        bool ok;
-        int at = cmd.mid(2).toInt(&ok);
-        if (ok && at >= 0 && at <= 2 && at != m_atuMode) {
-            m_atuMode = at;
-            emit atuModeChanged(m_atuMode);
-        }
-    }
-    // TX Test Mode (TS) - TS0=off, TS1=on
-    else if (cmd.startsWith("TS") && cmd.length() >= 3) {
-        bool enabled = (cmd.mid(2, 1) == "1");
-        if (enabled != m_testMode) {
-            m_testMode = enabled;
-            emit testModeChanged(m_testMode);
-        }
-    }
-    // B SET (BS) - BS0=off, BS1=on (controls feature menu VFO targeting)
-    else if (cmd.startsWith("BS") && cmd.length() >= 3) {
-        bool enabled = (cmd.mid(2, 1) == "1");
-        if (enabled != m_bSetEnabled) {
-            m_bSetEnabled = enabled;
-            emit bSetChanged(m_bSetEnabled);
-        }
-    }
-    // Radio ID (ID)
-    else if (cmd.startsWith("ID") && cmd.length() > 2) {
-        m_radioID = cmd.mid(2);
-    }
-    // Option Modules (OM)
-    else if (cmd.startsWith("OM") && cmd.length() > 2) {
-        m_optionModules = cmd.mid(2).trimmed();
-        // Parse radio model
-        if (m_optionModules.length() > 8) {
-            bool hasS = m_optionModules.length() > 3 && m_optionModules[3] == 'S';
-            bool hasH = m_optionModules.length() > 4 && m_optionModules[4] == 'H';
-            bool has4 = m_optionModules.length() > 8 && m_optionModules[8] == '4';
-
-            if (hasH && hasS && has4) {
-                m_radioModel = "K4HD";
-            } else if (hasS && has4) {
-                m_radioModel = "K4D";
-            } else if (has4) {
-                m_radioModel = "K4";
-            }
-        }
-    }
-    // Firmware Version (RV.)
-    else if (cmd.startsWith("RV.") && cmd.length() > 3) {
-        QString versionData = cmd.mid(3);
-        int dashIndex = versionData.indexOf('-');
-        if (dashIndex > 0) {
-            QString component = versionData.left(dashIndex);
-            QString version = versionData.mid(dashIndex + 1);
-            m_firmwareVersions[component] = version;
-        }
-    }
-    // Power Setting (PC) - PCxxxL (QRP 0-10W) or PCxxxH (QRO 11-110W)
-    else if (cmd.startsWith("PC") && cmd.length() >= 5) {
-        QString powerStr = cmd.mid(2);
-        QChar modeChar = powerStr.right(1).at(0);
-        QString valueStr = powerStr.left(powerStr.length() - 1);
-        bool ok;
-        int value = valueStr.toInt(&ok);
-        if (ok) {
-            if (modeChar == 'L') {
-                // QRP mode: value is in tenths of watts (0-100 = 0.0-10.0W)
-                m_rfPower = value / 10.0;
-                m_isQrpMode = true;
-            } else if (modeChar == 'H') {
-                // QRO mode: value is in watts (11-110W)
-                m_rfPower = value;
-                m_isQrpMode = false;
-            }
-            emit rfPowerChanged(m_rfPower, m_isQrpMode);
-        }
-    }
-    // TX Meter Data (TM) - TMaaabbbcccddd; (ALC, CMP, FWD, SWR)
-    else if (cmd.startsWith("TM") && cmd.length() >= 14) {
-        QString data = cmd.mid(2);
-        if (data.length() >= 12) {
-            bool ok1, ok2, ok3, ok4;
-            int alc = data.mid(0, 3).toInt(&ok1);
-            int cmp = data.mid(3, 3).toInt(&ok2);
-            int fwd = data.mid(6, 3).toInt(&ok3);
-            int swrRaw = data.mid(9, 3).toInt(&ok4);
-            if (ok1 && ok2 && ok3 && ok4) {
-                m_alcMeter = alc;
-                m_compressionDb = cmp;
-                // FWD is watts in QRO, tenths in QRP
-                m_forwardPower = m_isQrpMode ? fwd / 10.0 : fwd;
-                m_swrMeter = swrRaw / 10.0; // SWR in 1/10th units
-                emit txMeterChanged(m_alcMeter, m_compressionDb, m_forwardPower, m_swrMeter);
-                emit swrChanged(m_swrMeter);
-            }
-        }
-    }
-    // Power Supply Info (SIFP) - SIFPVS:xx.xx,IS:x.xx,...
-    else if (cmd.startsWith("SIFP")) {
-        QString data = cmd.mid(4);
-        // Parse VS (voltage)
-        int vsIndex = data.indexOf("VS:");
-        if (vsIndex >= 0) {
-            int commaIndex = data.indexOf(',', vsIndex);
-            QString vsStr =
-                (commaIndex > vsIndex) ? data.mid(vsIndex + 3, commaIndex - vsIndex - 3) : data.mid(vsIndex + 3);
-            bool ok;
-            double voltage = vsStr.toDouble(&ok);
-            if (ok && voltage != m_supplyVoltage) {
-                m_supplyVoltage = voltage;
-                emit supplyVoltageChanged(m_supplyVoltage);
-            }
-        }
-        // Parse IS (current)
-        int isIndex = data.indexOf("IS:");
-        if (isIndex >= 0) {
-            int commaIndex = data.indexOf(',', isIndex);
-            QString isStr =
-                (commaIndex > isIndex) ? data.mid(isIndex + 3, commaIndex - isIndex - 3) : data.mid(isIndex + 3);
-            bool ok;
-            double current = isStr.toDouble(&ok);
-            if (ok && current != m_supplyCurrent) {
-                m_supplyCurrent = current;
-                emit supplyCurrentChanged(m_supplyCurrent);
-            }
-        }
-    }
-    // Antenna Name (ACN) - ACNnssssss; where n is 1-5
-    else if (cmd.startsWith("ACN") && cmd.length() >= 4) {
-        bool ok;
-        int antNum = cmd.mid(3, 1).toInt(&ok);
-        if (ok && antNum >= 1 && antNum <= 5) {
-            QString name = cmd.mid(4);
-            if (name != m_antennaNames.value(antNum)) {
-                m_antennaNames[antNum] = name;
-                emit antennaNameChanged(antNum, name);
-            }
-        }
-    }
-    // Main RX Antenna Config (ACM) - ACMzabcdefg where z=displayAll, a-g=antenna enables
-    else if (cmd.startsWith("ACM") && cmd.length() >= 11) {
-        QString data = cmd.mid(3); // Skip "ACM"
-        bool changed = false;
-        bool newDisplayAll = (data[0] == '1');
-        if (newDisplayAll != m_mainRxDisplayAll) {
-            m_mainRxDisplayAll = newDisplayAll;
-            changed = true;
-        }
-        for (int i = 0; i < 7 && i + 1 < data.length(); i++) {
-            bool enabled = (data[i + 1] == '1');
-            if (enabled != m_mainRxAntMask[i]) {
-                m_mainRxAntMask[i] = enabled;
-                changed = true;
-            }
-        }
-        if (changed) {
-            emit mainRxAntCfgChanged();
-        }
-    }
-    // Sub RX Antenna Config (ACS) - ACSzabcdefg where z=displayAll, a-g=antenna enables
-    else if (cmd.startsWith("ACS") && cmd.length() >= 11) {
-        QString data = cmd.mid(3); // Skip "ACS"
-        bool changed = false;
-        bool newDisplayAll = (data[0] == '1');
-        if (newDisplayAll != m_subRxDisplayAll) {
-            m_subRxDisplayAll = newDisplayAll;
-            changed = true;
-        }
-        for (int i = 0; i < 7 && i + 1 < data.length(); i++) {
-            bool enabled = (data[i + 1] == '1');
-            if (enabled != m_subRxAntMask[i]) {
-                m_subRxAntMask[i] = enabled;
-                changed = true;
-            }
-        }
-        if (changed) {
-            emit subRxAntCfgChanged();
-        }
-    }
-    // TX Antenna Config (ACT) - ACTzabc where z=displayAll, a-c=antenna enables
-    else if (cmd.startsWith("ACT") && cmd.length() >= 7) {
-        QString data = cmd.mid(3); // Skip "ACT"
-        bool changed = false;
-        bool newDisplayAll = (data[0] == '1');
-        if (newDisplayAll != m_txDisplayAll) {
-            m_txDisplayAll = newDisplayAll;
-            changed = true;
-        }
-        for (int i = 0; i < 3 && i + 1 < data.length(); i++) {
-            bool enabled = (data[i + 1] == '1');
-            if (enabled != m_txAntMask[i]) {
-                m_txAntMask[i] = enabled;
-                changed = true;
-            }
-        }
-        if (changed) {
-            emit txAntCfgChanged();
-        }
-    }
-    // RIT (RT) - RT0/RT1 (not RT$ which is a different command)
-    else if (cmd.startsWith("RT") && cmd.length() >= 3 && (cmd[2] == '0' || cmd[2] == '1')) {
-        bool newRit = (cmd[2] == '1');
-        if (newRit != m_ritEnabled) {
-            m_ritEnabled = newRit;
-            emit ritXitChanged(m_ritEnabled, m_xitEnabled, m_ritXitOffset);
-        }
-    }
-    // XIT (XT) - XT0/XT1 (not XT$ which is a different command)
-    else if (cmd.startsWith("XT") && cmd.length() >= 3 && (cmd[2] == '0' || cmd[2] == '1')) {
-        bool newXit = (cmd[2] == '1');
-        if (newXit != m_xitEnabled) {
-            m_xitEnabled = newXit;
-            emit ritXitChanged(m_ritEnabled, m_xitEnabled, m_ritXitOffset);
-        }
-    }
-    // RIT/XIT Offset (RO) - RO+/-nnnnn
-    else if (cmd.startsWith("RO") && cmd.length() >= 3) {
-        QString offsetStr = cmd.mid(2);
-        bool ok;
-        int offset = offsetStr.toInt(&ok);
-        if (ok && offset != m_ritXitOffset) {
-            m_ritXitOffset = offset;
-            emit ritXitChanged(m_ritEnabled, m_xitEnabled, m_ritXitOffset);
-        }
-    }
-    // Message Bank (MN) - MN1 or MN2
-    else if (cmd.startsWith("MN") && cmd.length() >= 3) {
-        bool ok;
-        int bank = cmd.mid(2, 1).toInt(&ok);
-        if (ok && (bank == 1 || bank == 2) && bank != m_messageBank) {
-            m_messageBank = bank;
-            emit messageBankChanged(m_messageBank);
-        }
-    }
-    // Panadapter Reference Level (#REF) - #REF-110 (not #REF$ which is Sub RX)
-    else if (cmd.startsWith("#REF") && !cmd.startsWith("#REF$") && cmd.length() > 4) {
-        QString refStr = cmd.mid(4); // Get "-110" from "#REF-110"
-        bool ok;
-        int level = refStr.toInt(&ok);
-        if (ok && level != m_refLevel) {
-            m_refLevel = level;
-            emit refLevelChanged(m_refLevel);
-        }
-    }
-    // Sub RX Panadapter Reference Level (#REF$) - #REF$-110
-    else if (cmd.startsWith("#REF$") && cmd.length() > 5) {
-        QString refStr = cmd.mid(5); // Get "-110" from "#REF$-110"
-        bool ok;
-        int level = refStr.toInt(&ok);
-        if (ok && level != m_refLevelB) {
-            m_refLevelB = level;
-            emit refLevelBChanged(m_refLevelB);
-        }
-    }
-    // Panadapter Scale (#SCL) - #SCL75 (10-150) - GLOBAL setting, applies to both panadapters
-    // Higher values = more compressed display (signals appear weaker)
-    // Lower values = more expanded display (signals appear stronger)
-    // Note: There is NO #SCL$ variant - scale is a global setting
-    else if (cmd.startsWith("#SCL") && cmd.length() > 4) {
-        QString scaleStr = cmd.mid(4); // Get "75" from "#SCL75"
-        bool ok;
-        int scale = scaleStr.toInt(&ok);
-        if (ok && scale >= 10 && scale <= 150 && scale != m_scale) {
-            m_scale = scale;
-            emit scaleChanged(m_scale);
-        }
-    }
-    // Panadapter Span (#SPN) - #SPN10000 (Hz) - not #SPN$ which is Sub RX
-    else if (cmd.startsWith("#SPN") && !cmd.startsWith("#SPN$") && cmd.length() > 4) {
-        QString spanStr = cmd.mid(4); // Get "10000" from "#SPN10000"
-        bool ok;
-        int span = spanStr.toInt(&ok);
-        if (ok && span > 0 && span != m_spanHz) {
-            m_spanHz = span;
-            emit spanChanged(m_spanHz);
-        }
-    }
-    // Sub RX Panadapter Span (#SPN$) - #SPN$10000 (Hz)
-    else if (cmd.startsWith("#SPN$") && cmd.length() > 5) {
-        QString spanStr = cmd.mid(5); // Get "10000" from "#SPN$10000"
-        bool ok;
-        int span = spanStr.toInt(&ok);
-        if (ok && span > 0 && span != m_spanHzB) {
-            m_spanHzB = span;
-            emit spanBChanged(m_spanHzB);
-        }
-    }
-    // Mini-Pan Sub RX (#MP$) - #MP$0 or #MP$1
-    else if (cmd.startsWith("#MP$") && cmd.length() > 4) {
-        bool enabled = (cmd.mid(4, 1) == "1");
-        if (m_miniPanBEnabled != enabled) {
-            m_miniPanBEnabled = enabled;
-            emit miniPanBEnabledChanged(enabled);
-        }
-    }
-    // Mini-Pan Main RX (#MP) - #MP0 or #MP1
-    else if (cmd.startsWith("#MP") && cmd.length() > 3) {
-        bool enabled = (cmd.mid(3, 1) == "1");
-        if (m_miniPanAEnabled != enabled) {
-            m_miniPanAEnabled = enabled;
-            emit miniPanAEnabledChanged(enabled);
-        }
-    }
-    // Dual Panadapter Mode - EXT (#HDPM) - must check before #DPM
-    else if (cmd.startsWith("#HDPM") && cmd.length() > 5) {
-        bool ok;
-        int mode = cmd.mid(5, 1).toInt(&ok);
-        if (ok && mode >= 0 && mode <= 2 && mode != m_dualPanModeExt) {
-            m_dualPanModeExt = mode;
-            emit dualPanModeExtChanged(mode);
-        }
-    }
-    // Dual Panadapter Mode - LCD (#DPM)
-    else if (cmd.startsWith("#DPM") && cmd.length() > 4) {
-        bool ok;
-        int mode = cmd.mid(4, 1).toInt(&ok);
-        if (ok && mode >= 0 && mode <= 2 && mode != m_dualPanModeLcd) {
-            m_dualPanModeLcd = mode;
-            emit dualPanModeLcdChanged(mode);
-        }
-    }
-    // Display Mode - EXT (#HDSM) - must check before #DSM
-    else if (cmd.startsWith("#HDSM") && cmd.length() > 5) {
-        bool ok;
-        int mode = cmd.mid(5, 1).toInt(&ok);
-        if (ok && mode >= 0 && mode <= 1 && mode != m_displayModeExt) {
-            m_displayModeExt = mode;
-            emit displayModeExtChanged(mode);
-        }
-    }
-    // Display Mode - LCD (#DSM)
-    else if (cmd.startsWith("#DSM") && cmd.length() > 4) {
-        bool ok;
-        int mode = cmd.mid(4, 1).toInt(&ok);
-        if (ok && mode >= 0 && mode <= 1 && mode != m_displayModeLcd) {
-            m_displayModeLcd = mode;
-            emit displayModeLcdChanged(mode);
-        }
-    }
-    // Display FPS (#FPS) - #FPS12 to #FPS30
-    else if (cmd.startsWith("#FPS") && cmd.length() > 4) {
-        bool ok;
-        // Parse value after "#FPS" (could be 1 or 2 digits)
-        QString fpsStr = cmd.mid(4);
-        if (fpsStr.endsWith(';')) {
-            fpsStr.chop(1);
-        }
-        int fps = fpsStr.toInt(&ok);
-        if (ok && fps >= 12 && fps <= 30 && fps != m_displayFps) {
-            m_displayFps = fps;
-            emit displayFpsChanged(fps);
-        }
-    }
-    // Waterfall Color (#WFC) - #WFC0-4 or #WFC$0-4 for VFO B
-    else if (cmd.startsWith("#WFC") && cmd.length() > 4) {
-        int offset = cmd.startsWith("#WFC$") ? 5 : 4;
-        if (cmd.length() > offset) {
-            bool ok;
-            int color = cmd.mid(offset, 1).toInt(&ok);
-            if (ok && color >= 0 && color <= 4 && color != m_waterfallColor) {
-                m_waterfallColor = color;
-                emit waterfallColorChanged(color);
-            }
-        }
-    }
-    // Averaging (#AVG) - #AVGnn (1-20)
-    else if (cmd.startsWith("#AVG") && cmd.length() > 4) {
-        bool ok;
-        int avg = cmd.mid(4).toInt(&ok);
-        if (ok && avg >= 1 && avg <= 20 && avg != m_averaging) {
-            m_averaging = avg;
-            emit averagingChanged(avg);
-        }
-    }
-    // Peak Mode (#PKM) - #PKM0/1
-    else if (cmd.startsWith("#PKM") && cmd.length() > 4) {
-        bool enabled = (cmd.mid(4, 1) == "1");
-        if (enabled != m_peakMode) {
-            m_peakMode = enabled;
-            emit peakModeChanged(enabled);
-        }
-    }
-    // Fixed Tune (#FXT) - #FXT0/1 (0=track, 1=fixed)
-    else if (cmd.startsWith("#FXT") && cmd.length() > 4) {
-        bool ok;
-        int fxt = cmd.mid(4, 1).toInt(&ok);
-        if (ok && fxt >= 0 && fxt <= 1 && fxt != m_fixedTune) {
-            m_fixedTune = fxt;
-            emit fixedTuneChanged(m_fixedTune, m_fixedTuneMode);
-        }
-    }
-    // Fixed Tune Mode (#FXA) - #FXA0-4
-    else if (cmd.startsWith("#FXA") && cmd.length() > 4) {
-        bool ok;
-        int fxa = cmd.mid(4, 1).toInt(&ok);
-        if (ok && fxa >= 0 && fxa <= 4 && fxa != m_fixedTuneMode) {
-            m_fixedTuneMode = fxa;
-            emit fixedTuneChanged(m_fixedTune, m_fixedTuneMode);
-        }
-    }
-    // Freeze (#FRZ) - #FRZ0/1
-    else if (cmd.startsWith("#FRZ") && cmd.length() > 4) {
-        bool enabled = (cmd.mid(4, 1) == "1");
-        if (enabled != m_freeze) {
-            m_freeze = enabled;
-            emit freezeChanged(enabled);
-        }
-    }
-    // VFO A Cursor Mode (#VFA) - #VFA0-3
-    else if (cmd.startsWith("#VFA") && cmd.length() > 4) {
-        bool ok;
-        int mode = cmd.mid(4, 1).toInt(&ok);
-        if (ok && mode >= 0 && mode <= 3 && mode != m_vfoACursor) {
-            m_vfoACursor = mode;
-            emit vfoACursorChanged(mode);
-        }
-    }
-    // VFO B Cursor Mode (#VFB) - #VFB0-3
-    else if (cmd.startsWith("#VFB") && cmd.length() > 4) {
-        bool ok;
-        int mode = cmd.mid(4, 1).toInt(&ok);
-        if (ok && mode >= 0 && mode <= 3 && mode != m_vfoBCursor) {
-            m_vfoBCursor = mode;
-            emit vfoBCursorChanged(mode);
-        }
-    }
-    // Auto-Ref Level (#AR) - Format: #ARaadd+oom;
-    // aa=averaging(01-20), dd=debounce(04-09), +oo=offset(-08 to +08), m=mode(1=auto,0=manual)
-    // Example: #AR1203+041; means averaging=12, debounce=03, offset=+04, mode=1 (AUTO)
-    else if (cmd.startsWith("#AR") && cmd.length() >= 12) {
-        QChar modeChar = cmd.at(cmd.length() - 2); // Last char before ';'
-        bool enabled = (modeChar == '1');          // 1=auto, 0=manual
-        int newVal = enabled ? 1 : 0;
-        if (newVal != m_autoRefLevel) {
-            m_autoRefLevel = newVal;
-            emit autoRefLevelChanged(enabled);
-        }
-    }
-    // DDC Noise Blanker Mode (#NB$) - #NB$0/1/2
-    else if (cmd.startsWith("#NB$") && cmd.length() > 4) {
-        bool ok;
-        int mode = cmd.mid(4, 1).toInt(&ok);
-        if (ok && mode >= 0 && mode <= 2 && mode != m_ddcNbMode) {
-            m_ddcNbMode = mode;
-            emit ddcNbModeChanged(mode);
-        }
-    }
-    // DDC Noise Blanker Level (#NBL$) - #NBL$0-14
-    else if (cmd.startsWith("#NBL$") && cmd.length() > 5) {
-        bool ok;
-        int level = cmd.mid(5).chopped(cmd.endsWith(';') ? 1 : 0).toInt(&ok);
-        if (ok && level >= 0 && level <= 14 && level != m_ddcNbLevel) {
-            m_ddcNbLevel = level;
-            emit ddcNbLevelChanged(level);
-        }
-    }
-    // Waterfall Height - EXT (#HWFH) - must check BEFORE #WFH (longer prefix)
-    else if (cmd.startsWith("#HWFH") && cmd.length() > 5) {
-        bool ok;
-        int percent = cmd.mid(5).toInt(&ok);
-        if (ok && percent >= 0 && percent <= 100 && percent != m_waterfallHeightExt) {
-            m_waterfallHeightExt = percent;
-            emit waterfallHeightExtChanged(percent);
-        }
-    }
-    // Waterfall Height - LCD (#WFH)
-    else if (cmd.startsWith("#WFH") && cmd.length() > 4) {
-        bool ok;
-        int percent = cmd.mid(4).toInt(&ok);
-        if (ok && percent >= 0 && percent <= 100 && percent != m_waterfallHeight) {
-            m_waterfallHeight = percent;
-            emit waterfallHeightChanged(percent);
-        }
-    }
-    // Data Sub-Mode Sub RX (DT$) - must check before DT
-    else if (cmd.startsWith("DT$") && cmd.length() >= 4) {
-        bool ok;
-        int subMode = cmd.mid(3, 1).toInt(&ok);
-        if (ok && subMode >= 0 && subMode <= 3) {
-            // Ignore echoes within 500ms of optimistic update (K4 echoes stale values)
-            qint64 now = QDateTime::currentMSecsSinceEpoch();
-            bool inCooldown = (now - m_dataSubModeBOptimisticTime) < 500;
-            if (!inCooldown && subMode != m_dataSubModeB) {
-                m_dataSubModeB = subMode;
-                emit dataSubModeBChanged(subMode);
-            }
-        }
-    }
-    // Data Sub-Mode Main RX (DT) - 0=DATA-A, 1=AFSK-A, 2=FSK-D, 3=PSK-D
-    else if (cmd.startsWith("DT") && cmd.length() >= 3) {
-        bool ok;
-        int subMode = cmd.mid(2, 1).toInt(&ok);
-        if (ok && subMode >= 0 && subMode <= 3) {
-            // Ignore echoes within 500ms of optimistic update (K4 echoes stale values)
-            qint64 now = QDateTime::currentMSecsSinceEpoch();
-            bool inCooldown = (now - m_dataSubModeOptimisticTime) < 500;
-            if (!inCooldown && subMode != m_dataSubMode) {
-                m_dataSubMode = subMode;
-                emit dataSubModeChanged(subMode);
-            }
-        }
-    }
-    // Remote Client Stats (SIRC) - SIRCR:73.88,T:0.03,P:2,C:14,A:74
-    // R=RX kB/s, T=TX kB/s, P=Ping ms, C=Connected time, A=Audio buffer ms
-    // TODO: Wire these stats to UI status bar
-    else if (cmd.startsWith("SIRC") && cmd.length() > 4) {
-        // Currently parsed but not displayed - stats available for future UI integration
-    }
-    // RX Graphic Equalizer (RE) - RE+00+00+00+00+00+00+00+00
-    // 8 bands, each is +XX or -XX (signed, -16 to +16 dB)
-    // Bands: 100, 200, 400, 800, 1200, 1600, 2400, 3200 Hz
-    // Note: Main RX and Sub RX share the same EQ settings
-    else if (cmd.startsWith("RE") && cmd.length() >= 26) {
-        // Format: RE+00+00+00+00+00+00+00+00 (2 + 8*3 = 26 chars minimum)
-        QString data = cmd.mid(2); // Skip "RE"
-        bool changed = false;
-        int newBands[8];
-        bool parseOk = true;
-
-        // Parse each 3-character band value (+XX or -XX)
-        for (int i = 0; i < 8 && parseOk; i++) {
-            if (data.length() >= (i + 1) * 3) {
-                QString bandStr = data.mid(i * 3, 3); // +00, -05, +16, etc.
-                bool ok;
-                int value = bandStr.toInt(&ok);
-                if (ok && value >= -16 && value <= 16) {
-                    newBands[i] = value;
-                } else {
-                    parseOk = false;
-                }
-            } else {
-                parseOk = false;
-            }
-        }
-
-        if (parseOk) {
-            for (int i = 0; i < 8; i++) {
-                if (m_rxEqBands[i] != newBands[i]) {
-                    m_rxEqBands[i] = newBands[i];
-                    changed = true;
-                }
-            }
-            if (changed) {
-                emit rxEqChanged();
-            }
-        }
-    }
-    // TX Graphic Equalizer (TE) - TE+00+00+00+00+00+00+00+00
-    // 8 bands, each is +XX or -XX (signed, -16 to +16 dB)
-    // Bands: 100, 200, 400, 800, 1200, 1600, 2400, 3200 Hz
-    else if (cmd.startsWith("TE") && cmd.length() >= 26) {
-        // Format: TE+00+00+00+00+00+00+00+00 (2 + 8*3 = 26 chars minimum)
-        QString data = cmd.mid(2); // Skip "TE"
-        bool changed = false;
-        int newBands[8];
-        bool parseOk = true;
-
-        // Parse each 3-character band value (+XX or -XX)
-        for (int i = 0; i < 8 && parseOk; i++) {
-            if (data.length() >= (i + 1) * 3) {
-                QString bandStr = data.mid(i * 3, 3); // +00, -05, +16, etc.
-                bool ok;
-                int value = bandStr.toInt(&ok);
-                if (ok && value >= -16 && value <= 16) {
-                    newBands[i] = value;
-                } else {
-                    parseOk = false;
-                }
-            } else {
-                parseOk = false;
-            }
-        }
-
-        if (parseOk) {
-            for (int i = 0; i < 8; i++) {
-                if (m_txEqBands[i] != newBands[i]) {
-                    m_txEqBands[i] = newBands[i];
-                    changed = true;
-                }
-            }
-            if (changed) {
-                emit txEqChanged();
-            }
+    // Dispatch through handler registry (sorted by prefix length, longest first)
+    for (const auto &entry : m_commandHandlers) {
+        if (cmd.startsWith(entry.prefix)) {
+            entry.handler(cmd);
+            emit stateUpdated();
+            return;
         }
     }
 
-    emit stateUpdated();
+    // Unknown command - no handler matched
+    // qDebug() << "Unhandled CAT command:" << cmd;
 }
+
+// Legacy parseCATCommand content removed - now using handler registry above
+// Old implementation was ~1500 lines of if-else chain
 
 RadioState::Mode RadioState::modeFromCode(int code) {
     switch (code) {
@@ -1573,6 +55,7 @@ RadioState::Mode RadioState::modeFromCode(int code) {
         return USB;
     }
 }
+
 
 QString RadioState::modeToString(Mode mode) {
     switch (mode) {
@@ -2159,4 +642,1644 @@ void RadioState::setSsbTxBw(int bw) {
         m_ssbTxBw = bw;
         emit essbChanged(m_essbEnabled, m_ssbTxBw);
     }
+}
+
+// =============================================================================
+// Command Handler Registry
+// =============================================================================
+
+void RadioState::registerCommandHandlers() {
+    // Register handlers in order - will be sorted by prefix length (longest first)
+    // This ensures "MD$" is checked before "MD", "NB$" before "NB", etc.
+
+    // Display commands (# prefix) - register longest first
+    m_commandHandlers.append({"#HWFH", [this](const QString &c) { handleDisplayHWFH(c); }});
+    m_commandHandlers.append({"#HDPM", [this](const QString &c) { handleDisplayHDPM(c); }});
+    m_commandHandlers.append({"#HDSM", [this](const QString &c) { handleDisplayHDSM(c); }});
+    m_commandHandlers.append({"#NBL$", [this](const QString &c) { handleDisplayNBL(c); }});
+    m_commandHandlers.append({"#REF$", [this](const QString &c) { handleDisplayREFSub(c); }});
+    m_commandHandlers.append({"#SPN$", [this](const QString &c) { handleDisplaySPNSub(c); }});
+    m_commandHandlers.append({"#NB$", [this](const QString &c) { handleDisplayNB(c); }});
+    m_commandHandlers.append({"#MP$", [this](const QString &c) { handleDisplayMPSub(c); }});
+    m_commandHandlers.append({"#REF", [this](const QString &c) { handleDisplayREF(c); }});
+    m_commandHandlers.append({"#SPN", [this](const QString &c) { handleDisplaySPN(c); }});
+    m_commandHandlers.append({"#SCL", [this](const QString &c) { handleDisplaySCL(c); }});
+    m_commandHandlers.append({"#DPM", [this](const QString &c) { handleDisplayDPM(c); }});
+    m_commandHandlers.append({"#DSM", [this](const QString &c) { handleDisplayDSM(c); }});
+    m_commandHandlers.append({"#FPS", [this](const QString &c) { handleDisplayFPS(c); }});
+    m_commandHandlers.append({"#WFC", [this](const QString &c) { handleDisplayWFC(c); }});
+    m_commandHandlers.append({"#WFH", [this](const QString &c) { handleDisplayWFH(c); }});
+    m_commandHandlers.append({"#AVG", [this](const QString &c) { handleDisplayAVG(c); }});
+    m_commandHandlers.append({"#PKM", [this](const QString &c) { handleDisplayPKM(c); }});
+    m_commandHandlers.append({"#FXT", [this](const QString &c) { handleDisplayFXT(c); }});
+    m_commandHandlers.append({"#FXA", [this](const QString &c) { handleDisplayFXA(c); }});
+    m_commandHandlers.append({"#FRZ", [this](const QString &c) { handleDisplayFRZ(c); }});
+    m_commandHandlers.append({"#VFA", [this](const QString &c) { handleDisplayVFA(c); }});
+    m_commandHandlers.append({"#VFB", [this](const QString &c) { handleDisplayVFB(c); }});
+    m_commandHandlers.append({"#MP", [this](const QString &c) { handleDisplayMP(c); }});
+    m_commandHandlers.append({"#AR", [this](const QString &c) { handleDisplayAR(c); }});
+
+    // Multi-char commands with $ suffix (must come before their base commands)
+    m_commandHandlers.append({"SIFP", [this](const QString &c) { handleSIFP(c); }});
+    m_commandHandlers.append({"SIRC", [this](const QString &c) { handleSIRC(c); }});
+    m_commandHandlers.append({"TD$", [this](const QString &c) { handleTDSub(c); }});
+    m_commandHandlers.append({"TB$", [this](const QString &c) { handleTBSub(c); }});
+    m_commandHandlers.append({"DT$", [this](const QString &c) { handleDTSub(c); }});
+    m_commandHandlers.append({"MD$", [this](const QString &c) { handleMDSub(c); }});
+    m_commandHandlers.append({"BW$", [this](const QString &c) { handleBWSub(c); }});
+    m_commandHandlers.append({"IS$", [this](const QString &c) { handleISSub(c); }});
+    m_commandHandlers.append({"FP$", [this](const QString &c) { handleFPSub(c); }});
+    m_commandHandlers.append({"RG$", [this](const QString &c) { handleRGSub(c); }});
+    m_commandHandlers.append({"SQ$", [this](const QString &c) { handleSQSub(c); }});
+    m_commandHandlers.append({"SM$", [this](const QString &c) { handleSMSub(c); }});
+    m_commandHandlers.append({"NB$", [this](const QString &c) { handleNBSub(c); }});
+    m_commandHandlers.append({"NR$", [this](const QString &c) { handleNRSub(c); }});
+    m_commandHandlers.append({"PA$", [this](const QString &c) { handlePASub(c); }});
+    m_commandHandlers.append({"RA$", [this](const QString &c) { handleRASub(c); }});
+    m_commandHandlers.append({"GT$", [this](const QString &c) { handleGTSub(c); }});
+    m_commandHandlers.append({"NA$", [this](const QString &c) { handleNASub(c); }});
+    m_commandHandlers.append({"NM$", [this](const QString &c) { handleNMSub(c); }});
+    m_commandHandlers.append({"AP$", [this](const QString &c) { handleAPSub(c); }});
+    m_commandHandlers.append({"LK$", [this](const QString &c) { handleLKSub(c); }});
+    m_commandHandlers.append({"VT$", [this](const QString &c) { handleVTSub(c); }});
+    m_commandHandlers.append({"AR$", [this](const QString &c) { handleARSub(c); }});
+
+    // 3-char commands
+    m_commandHandlers.append({"ACN", [this](const QString &c) { handleACN(c); }});
+    m_commandHandlers.append({"ACM", [this](const QString &c) { handleACM(c); }});
+    m_commandHandlers.append({"ACS", [this](const QString &c) { handleACS(c); }});
+    m_commandHandlers.append({"ACT", [this](const QString &c) { handleACT(c); }});
+    m_commandHandlers.append({"RV.", [this](const QString &c) { handleRV(c); }});
+
+    // 2-char base commands
+    m_commandHandlers.append({"FA", [this](const QString &c) { handleFA(c); }});
+    m_commandHandlers.append({"FB", [this](const QString &c) { handleFB(c); }});
+    m_commandHandlers.append({"FT", [this](const QString &c) { handleFT(c); }});
+    m_commandHandlers.append({"FP", [this](const QString &c) { handleFP(c); }});
+    m_commandHandlers.append({"FX", [this](const QString &c) { handleFX(c); }});
+    m_commandHandlers.append({"MD", [this](const QString &c) { handleMD(c); }});
+    m_commandHandlers.append({"BW", [this](const QString &c) { handleBW(c); }});
+    m_commandHandlers.append({"IS", [this](const QString &c) { handleIS(c); }});
+    m_commandHandlers.append({"CW", [this](const QString &c) { handleCW(c); }});
+    m_commandHandlers.append({"RG", [this](const QString &c) { handleRG(c); }});
+    m_commandHandlers.append({"SQ", [this](const QString &c) { handleSQ(c); }});
+    m_commandHandlers.append({"MG", [this](const QString &c) { handleMG(c); }});
+    m_commandHandlers.append({"ML", [this](const QString &c) { handleML(c); }});
+    m_commandHandlers.append({"CP", [this](const QString &c) { handleCP(c); }});
+    m_commandHandlers.append({"PC", [this](const QString &c) { handlePC(c); }});
+    m_commandHandlers.append({"KS", [this](const QString &c) { handleKS(c); }});
+    m_commandHandlers.append({"SM", [this](const QString &c) { handleSM(c); }});
+    m_commandHandlers.append({"PO", [this](const QString &c) { handlePO(c); }});
+    m_commandHandlers.append({"TM", [this](const QString &c) { handleTM(c); }});
+    m_commandHandlers.append({"TX", [this](const QString &c) { handleTX(c); }});
+    m_commandHandlers.append({"RX", [this](const QString &c) { handleRX(c); }});
+    m_commandHandlers.append({"NB", [this](const QString &c) { handleNB(c); }});
+    m_commandHandlers.append({"NR", [this](const QString &c) { handleNR(c); }});
+    m_commandHandlers.append({"NA", [this](const QString &c) { handleNA(c); }});
+    m_commandHandlers.append({"NM", [this](const QString &c) { handleNM(c); }});
+    m_commandHandlers.append({"PA", [this](const QString &c) { handlePA(c); }});
+    m_commandHandlers.append({"RA", [this](const QString &c) { handleRA(c); }});
+    m_commandHandlers.append({"GT", [this](const QString &c) { handleGT(c); }});
+    m_commandHandlers.append({"AP", [this](const QString &c) { handleAP(c); }});
+    m_commandHandlers.append({"LN", [this](const QString &c) { handleLN(c); }});
+    m_commandHandlers.append({"LK", [this](const QString &c) { handleLK(c); }});
+    m_commandHandlers.append({"LO", [this](const QString &c) { handleLO(c); }});
+    m_commandHandlers.append({"LI", [this](const QString &c) { handleLI(c); }});
+    m_commandHandlers.append({"VT", [this](const QString &c) { handleVT(c); }});
+    m_commandHandlers.append({"VX", [this](const QString &c) { handleVX(c); }});
+    m_commandHandlers.append({"VG", [this](const QString &c) { handleVG(c); }});
+    m_commandHandlers.append({"VI", [this](const QString &c) { handleVI(c); }});
+    m_commandHandlers.append({"MI", [this](const QString &c) { handleMI(c); }});
+    m_commandHandlers.append({"MS", [this](const QString &c) { handleMS(c); }});
+    m_commandHandlers.append({"MN", [this](const QString &c) { handleMN(c); }});
+    m_commandHandlers.append({"ES", [this](const QString &c) { handleES(c); }});
+    m_commandHandlers.append({"SD", [this](const QString &c) { handleSD(c); }});
+    m_commandHandlers.append({"SB", [this](const QString &c) { handleSB(c); }});
+    m_commandHandlers.append({"DV", [this](const QString &c) { handleDV(c); }});
+    m_commandHandlers.append({"DT", [this](const QString &c) { handleDT(c); }});
+    m_commandHandlers.append({"TS", [this](const QString &c) { handleTS(c); }});
+    m_commandHandlers.append({"TB", [this](const QString &c) { handleTB(c); }});
+    m_commandHandlers.append({"TD", [this](const QString &c) { handleTD(c); }});
+    m_commandHandlers.append({"TE", [this](const QString &c) { handleTE(c); }});
+    m_commandHandlers.append({"BS", [this](const QString &c) { handleBS(c); }});
+    m_commandHandlers.append({"AN", [this](const QString &c) { handleAN(c); }});
+    m_commandHandlers.append({"AR", [this](const QString &c) { handleAR(c); }});
+    m_commandHandlers.append({"AT", [this](const QString &c) { handleAT(c); }});
+    m_commandHandlers.append({"RT", [this](const QString &c) { handleRT(c); }});
+    m_commandHandlers.append({"XT", [this](const QString &c) { handleXT(c); }});
+    m_commandHandlers.append({"RO", [this](const QString &c) { handleRO(c); }});
+    m_commandHandlers.append({"RE", [this](const QString &c) { handleRE(c); }});
+    m_commandHandlers.append({"ID", [this](const QString &c) { handleID(c); }});
+    m_commandHandlers.append({"OM", [this](const QString &c) { handleOM(c); }});
+    m_commandHandlers.append({"ER", [this](const QString &c) { handleER(c); }});
+
+    // Sort by prefix length (longest first) for correct matching
+    std::sort(m_commandHandlers.begin(), m_commandHandlers.end(),
+              [](const CommandEntry &a, const CommandEntry &b) { return a.prefix.length() > b.prefix.length(); });
+}
+
+// =============================================================================
+// Individual Command Handlers - VFO/Frequency
+// =============================================================================
+
+void RadioState::handleFA(const QString &cmd) {
+    if (cmd.length() <= 2) return;
+    bool ok;
+    quint64 freq = cmd.mid(2).toULongLong(&ok);
+    if (ok) {
+        m_vfoA = freq;
+        m_frequency = freq;
+        emit frequencyChanged(freq);
+    }
+}
+
+void RadioState::handleFB(const QString &cmd) {
+    if (cmd.length() <= 2) return;
+    bool ok;
+    quint64 freq = cmd.mid(2).toULongLong(&ok);
+    if (ok && m_vfoB != freq) {
+        m_vfoB = freq;
+        emit frequencyBChanged(freq);
+    }
+}
+
+void RadioState::handleFT(const QString &cmd) {
+    if (cmd.length() <= 2) return;
+    bool newSplit = (cmd.mid(2) == "1");
+    if (newSplit != m_splitEnabled) {
+        m_splitEnabled = newSplit;
+        emit splitChanged(m_splitEnabled);
+    }
+}
+
+// =============================================================================
+// Individual Command Handlers - Mode
+// =============================================================================
+
+void RadioState::handleMD(const QString &cmd) {
+    if (cmd.length() <= 2) return;
+    bool ok;
+    int modeCode = cmd.mid(2).toInt(&ok);
+    if (ok) {
+        Mode newMode = modeFromCode(modeCode);
+        if (m_mode != newMode) {
+            m_mode = newMode;
+            emit modeChanged(m_mode);
+            int currentDelay = delayForCurrentMode();
+            if (currentDelay >= 0) {
+                emit qskDelayChanged(currentDelay);
+            }
+        }
+    }
+}
+
+void RadioState::handleMDSub(const QString &cmd) {
+    if (cmd.length() <= 3) return;
+    bool ok;
+    int modeCode = cmd.mid(3).toInt(&ok);
+    if (ok) {
+        Mode newMode = modeFromCode(modeCode);
+        if (m_modeB != newMode) {
+            m_modeB = newMode;
+            emit modeBChanged(m_modeB);
+        }
+    }
+}
+
+// =============================================================================
+// Individual Command Handlers - Bandwidth/Filter
+// =============================================================================
+
+void RadioState::handleBW(const QString &cmd) {
+    if (cmd.length() <= 2) return;
+    bool ok;
+    int bw = cmd.mid(2).toInt(&ok);
+    if (ok) {
+        int newBw = bw * 10;
+        if (m_filterBandwidth != newBw) {
+            m_filterBandwidth = newBw;
+            emit filterBandwidthChanged(m_filterBandwidth);
+        }
+    }
+}
+
+void RadioState::handleBWSub(const QString &cmd) {
+    if (cmd.length() <= 3) return;
+    bool ok;
+    int bw = cmd.mid(3).toInt(&ok);
+    if (ok) {
+        int newBw = bw * 10;
+        if (m_filterBandwidthB != newBw) {
+            m_filterBandwidthB = newBw;
+            emit filterBandwidthBChanged(m_filterBandwidthB);
+        }
+    }
+}
+
+void RadioState::handleIS(const QString &cmd) {
+    if (cmd.length() <= 2) return;
+    bool ok;
+    int is = cmd.mid(2).toInt(&ok);
+    if (ok && is != m_ifShift) {
+        m_ifShift = is;
+        emit ifShiftChanged(m_ifShift);
+    }
+}
+
+void RadioState::handleISSub(const QString &cmd) {
+    if (cmd.length() <= 3) return;
+    bool ok;
+    int is = cmd.mid(3).toInt(&ok);
+    if (ok && is != m_ifShiftB) {
+        m_ifShiftB = is;
+        emit ifShiftBChanged(m_ifShiftB);
+    }
+}
+
+void RadioState::handleCW(const QString &cmd) {
+    // CW pitch - but skip CW-R mode strings
+    if (cmd.length() < 4 || cmd.startsWith("CW-")) return;
+    bool ok;
+    int pitchCode = cmd.mid(2).toInt(&ok);
+    if (ok && pitchCode >= 25 && pitchCode <= 95) {
+        int pitchHz = pitchCode * 10;
+        if (pitchHz != m_cwPitch) {
+            m_cwPitch = pitchHz;
+            emit cwPitchChanged(m_cwPitch);
+        }
+    }
+}
+
+void RadioState::handleFP(const QString &cmd) {
+    if (cmd.length() <= 2) return;
+    bool ok;
+    int fp = cmd.mid(2).toInt(&ok);
+    if (ok && fp >= 1 && fp <= 3 && fp != m_filterPosition) {
+        m_filterPosition = fp;
+        emit filterPositionChanged(m_filterPosition);
+    }
+}
+
+void RadioState::handleFPSub(const QString &cmd) {
+    if (cmd.length() <= 3) return;
+    bool ok;
+    int fp = cmd.mid(3).toInt(&ok);
+    if (ok && fp >= 1 && fp <= 3 && fp != m_filterPositionB) {
+        m_filterPositionB = fp;
+        emit filterPositionBChanged(m_filterPositionB);
+    }
+}
+
+// =============================================================================
+// Individual Command Handlers - Gain/Level
+// =============================================================================
+
+void RadioState::handleRG(const QString &cmd) {
+    if (cmd.length() <= 2) return;
+    bool ok;
+    int rg = cmd.mid(2).toInt(&ok);
+    if (ok && m_rfGain != rg) {
+        m_rfGain = rg;
+        emit rfGainChanged(m_rfGain);
+    }
+}
+
+void RadioState::handleRGSub(const QString &cmd) {
+    if (cmd.length() <= 3) return;
+    bool ok;
+    int rg = cmd.mid(3).toInt(&ok);
+    if (ok && m_rfGainB != rg) {
+        m_rfGainB = rg;
+        emit rfGainBChanged(m_rfGainB);
+    }
+}
+
+void RadioState::handleSQ(const QString &cmd) {
+    if (cmd.length() <= 2) return;
+    bool ok;
+    int sq = cmd.mid(2).toInt(&ok);
+    if (ok && m_squelchLevel != sq) {
+        m_squelchLevel = sq;
+        emit squelchChanged(m_squelchLevel);
+    }
+}
+
+void RadioState::handleSQSub(const QString &cmd) {
+    if (cmd.length() <= 3) return;
+    bool ok;
+    int sq = cmd.mid(3).toInt(&ok);
+    if (ok && m_squelchLevelB != sq) {
+        m_squelchLevelB = sq;
+        emit squelchBChanged(m_squelchLevelB);
+    }
+}
+
+void RadioState::handleMG(const QString &cmd) {
+    if (cmd.length() <= 2) return;
+    bool ok;
+    int gain = cmd.mid(2).toInt(&ok);
+    if (ok && gain != m_micGain) {
+        m_micGain = gain;
+        emit micGainChanged(m_micGain);
+    }
+}
+
+void RadioState::handleCP(const QString &cmd) {
+    if (cmd.length() <= 2) return;
+    bool ok;
+    int comp = cmd.mid(2).toInt(&ok);
+    if (ok && comp != m_compression) {
+        m_compression = comp;
+        emit compressionChanged(m_compression);
+    }
+}
+
+void RadioState::handleML(const QString &cmd) {
+    // Monitor Level - MLmnnn where m=mode (0=CW, 1=Data, 2=Voice), nnn=000-100
+    if (cmd.length() < 5) return;
+    bool ok;
+    int mode = cmd.mid(2, 1).toInt(&ok);
+    if (!ok || mode < 0 || mode > 2) return;
+
+    int level = cmd.mid(3).toInt(&ok);
+    if (!ok || level < 0 || level > 100) return;
+
+    int *target = nullptr;
+    switch (mode) {
+    case 0:
+        target = &m_monitorLevelCW;
+        break;
+    case 1:
+        target = &m_monitorLevelData;
+        break;
+    case 2:
+        target = &m_monitorLevelVoice;
+        break;
+    }
+    if (target && *target != level) {
+        *target = level;
+        emit monitorLevelChanged(mode, level);
+    }
+}
+
+void RadioState::handlePC(const QString &cmd) {
+    // Power Control - PCnnnmm where nnn=watts*10, mm=00(normal)/01(QRP)
+    if (cmd.length() < 5) return;
+    bool ok;
+    int powerRaw = cmd.mid(2, 3).toInt(&ok);
+    if (!ok) return;
+
+    double watts = powerRaw / 10.0;
+    bool qrp = (cmd.length() >= 7 && cmd.mid(5, 2) == "01");
+
+    bool changed = false;
+    if (watts != m_rfPower) {
+        m_rfPower = watts;
+        changed = true;
+    }
+    if (qrp != m_isQrpMode) {
+        m_isQrpMode = qrp;
+        changed = true;
+    }
+    if (changed) {
+        emit rfPowerChanged(m_rfPower, m_isQrpMode);
+    }
+}
+
+void RadioState::handleKS(const QString &cmd) {
+    if (cmd.length() <= 2) return;
+    bool ok;
+    int wpm = cmd.mid(2).toInt(&ok);
+    if (ok && m_keyerSpeed != wpm) {
+        m_keyerSpeed = wpm;
+        emit keyerSpeedChanged(m_keyerSpeed);
+    }
+}
+
+// =============================================================================
+// Individual Command Handlers - Meters
+// =============================================================================
+
+void RadioState::handleSM(const QString &cmd) {
+    if (cmd.length() <= 2) return;
+    bool ok;
+    int bars = cmd.mid(2).toInt(&ok);
+    if (ok) {
+        if (bars <= 18) {
+            m_sMeter = bars / 2.0;
+        } else {
+            int dbAboveS9 = (bars - 18) * 3;
+            m_sMeter = 9.0 + dbAboveS9 / 10.0;
+        }
+        emit sMeterChanged(m_sMeter);
+    }
+}
+
+void RadioState::handleSMSub(const QString &cmd) {
+    if (cmd.length() <= 3) return;
+    bool ok;
+    int bars = cmd.mid(3).toInt(&ok);
+    if (ok) {
+        if (bars <= 18) {
+            m_sMeterB = bars / 2.0;
+        } else {
+            int dbAboveS9 = (bars - 18) * 3;
+            m_sMeterB = 9.0 + dbAboveS9 / 10.0;
+        }
+        emit sMeterBChanged(m_sMeterB);
+    }
+}
+
+void RadioState::handlePO(const QString &cmd) {
+    if (cmd.length() <= 2) return;
+    bool ok;
+    int po = cmd.mid(2).toInt(&ok);
+    if (ok) {
+        m_powerMeter = po;
+        emit powerMeterChanged(m_powerMeter);
+    }
+}
+
+void RadioState::handleTM(const QString &cmd) {
+    // TX Meter - TMaaaaccccppppssss where a=ALC, c=comp, p=power*10, s=SWR*10
+    if (cmd.length() < 14) return;
+    bool okA, okC, okP, okS;
+    int alc = cmd.mid(2, 4).toInt(&okA);
+    int comp = cmd.mid(6, 4).toInt(&okC);
+    int powerRaw = cmd.mid(10, 4).toInt(&okP);
+
+    if (!okA || !okC || !okP) return;
+
+    m_alcMeter = alc;
+    m_compressionDb = comp;
+    m_forwardPower = powerRaw / 10.0;
+
+    // SWR is optional (position 14-17)
+    if (cmd.length() >= 18) {
+        int swrRaw = cmd.mid(14, 4).toInt(&okS);
+        if (okS) {
+            m_swrMeter = swrRaw / 10.0;
+        }
+    }
+
+    emit txMeterChanged(m_alcMeter, m_compressionDb, m_forwardPower, m_swrMeter);
+}
+
+// =============================================================================
+// Individual Command Handlers - TX/RX State
+// =============================================================================
+
+void RadioState::handleTX(const QString &cmd) {
+    Q_UNUSED(cmd)
+    if (!m_isTransmitting) {
+        m_isTransmitting = true;
+        emit transmitStateChanged(true);
+    }
+}
+
+void RadioState::handleRX(const QString &cmd) {
+    Q_UNUSED(cmd)
+    if (m_isTransmitting) {
+        m_isTransmitting = false;
+        emit transmitStateChanged(false);
+    }
+}
+
+// =============================================================================
+// Individual Command Handlers - Processing (NB, NR, PA, RA, GT, NA, NM)
+// =============================================================================
+
+void RadioState::handleNB(const QString &cmd) {
+    // NB - Noise Blanker Main: NBnnm or NBnnmf where nn=level, m=on/off, f=filter
+    if (cmd.length() < 4) return;
+    QString nbStr = cmd.mid(2);
+    if (nbStr.length() < 3) return;
+
+    bool ok1, ok2;
+    int level = nbStr.left(2).toInt(&ok1);
+    int enabled = nbStr.mid(2, 1).toInt(&ok2);
+    if (!ok1 || !ok2) return;
+
+    m_noiseBlankerLevel = qMin(level, 15);
+    m_noiseBlankerEnabled = (enabled == 1);
+
+    if (nbStr.length() >= 4) {
+        bool ok3;
+        int filter = nbStr.mid(3, 1).toInt(&ok3);
+        if (ok3) {
+            m_noiseBlankerFilterWidth = qMin(filter, 2);
+        }
+    }
+    emit processingChanged();
+}
+
+void RadioState::handleNBSub(const QString &cmd) {
+    // NB$ - Noise Blanker Sub
+    if (cmd.length() < 5) return;
+    QString nbStr = cmd.mid(3);
+    if (nbStr.length() < 3) return;
+
+    bool ok1, ok2;
+    int level = nbStr.left(2).toInt(&ok1);
+    int enabled = nbStr.mid(2, 1).toInt(&ok2);
+    if (!ok1 || !ok2) return;
+
+    m_noiseBlankerLevelB = qMin(level, 15);
+    m_noiseBlankerEnabledB = (enabled == 1);
+
+    if (nbStr.length() >= 4) {
+        bool ok3;
+        int filter = nbStr.mid(3, 1).toInt(&ok3);
+        if (ok3) {
+            m_noiseBlankerFilterWidthB = qMin(filter, 2);
+        }
+    }
+    emit processingChangedB();
+}
+
+void RadioState::handleNR(const QString &cmd) {
+    // NR - Noise Reduction Main
+    if (cmd.length() < 3) return;
+    QString nrStr = cmd.mid(2);
+    if (nrStr.length() < 3) return;
+
+    bool ok1, ok2;
+    int level = nrStr.left(2).toInt(&ok1);
+    int enabled = nrStr.right(1).toInt(&ok2);
+    if (ok1 && ok2) {
+        m_noiseReductionLevel = level;
+        m_noiseReductionEnabled = (enabled == 1);
+        emit processingChanged();
+    }
+}
+
+void RadioState::handleNRSub(const QString &cmd) {
+    // NR$ - Noise Reduction Sub
+    if (cmd.length() < 4) return;
+    QString nrStr = cmd.mid(3);
+    if (nrStr.length() < 3) return;
+
+    bool ok1, ok2;
+    int level = nrStr.left(2).toInt(&ok1);
+    int enabled = nrStr.right(1).toInt(&ok2);
+    if (ok1 && ok2) {
+        m_noiseReductionLevelB = level;
+        m_noiseReductionEnabledB = (enabled == 1);
+        emit processingChangedB();
+    }
+}
+
+void RadioState::handlePA(const QString &cmd) {
+    // PA - Preamp Main: PAnm where n=level, m=on/off
+    if (cmd.length() < 4) return;
+    QString paStr = cmd.mid(2);
+    if (paStr.length() < 2) return;
+
+    bool ok1, ok2;
+    int level = paStr.left(1).toInt(&ok1);
+    int enabled = paStr.mid(1, 1).toInt(&ok2);
+    if (ok1 && ok2) {
+        m_preamp = level;
+        m_preampEnabled = (enabled == 1);
+        emit processingChanged();
+    }
+}
+
+void RadioState::handlePASub(const QString &cmd) {
+    // PA$ - Preamp Sub
+    if (cmd.length() < 5) return;
+    QString paStr = cmd.mid(3);
+    if (paStr.length() < 2) return;
+
+    bool ok1, ok2;
+    int level = paStr.left(1).toInt(&ok1);
+    int enabled = paStr.mid(1, 1).toInt(&ok2);
+    if (ok1 && ok2) {
+        m_preampB = level;
+        m_preampEnabledB = (enabled == 1);
+        emit processingChangedB();
+    }
+}
+
+void RadioState::handleRA(const QString &cmd) {
+    // RA - Attenuator Main: RAnnotm where nn=level, m=on/off
+    if (cmd.length() < 5) return;
+    QString raStr = cmd.mid(2);
+    if (raStr.length() < 3) return;
+
+    bool ok1, ok2;
+    int level = raStr.left(2).toInt(&ok1);
+    int enabled = raStr.mid(2, 1).toInt(&ok2);
+    if (ok1 && ok2) {
+        m_attenuatorLevel = level;
+        m_attenuatorEnabled = (enabled == 1);
+        emit processingChanged();
+    }
+}
+
+void RadioState::handleRASub(const QString &cmd) {
+    // RA$ - Attenuator Sub
+    if (cmd.length() < 6) return;
+    QString raStr = cmd.mid(3);
+    if (raStr.length() < 3) return;
+
+    bool ok1, ok2;
+    int level = raStr.left(2).toInt(&ok1);
+    int enabled = raStr.mid(2, 1).toInt(&ok2);
+    if (ok1 && ok2) {
+        m_attenuatorLevelB = level;
+        m_attenuatorEnabledB = (enabled == 1);
+        emit processingChangedB();
+    }
+}
+
+void RadioState::handleGT(const QString &cmd) {
+    // GT - AGC Speed Main: GTn where n=0(off)/1(slow)/2(fast)
+    if (cmd.length() <= 2) return;
+    bool ok;
+    int gt = cmd.mid(2).toInt(&ok);
+    if (ok) {
+        if (gt == 0)
+            m_agcSpeed = AGC_Off;
+        else if (gt == 1)
+            m_agcSpeed = AGC_Slow;
+        else if (gt == 2)
+            m_agcSpeed = AGC_Fast;
+        emit processingChanged();
+    }
+}
+
+void RadioState::handleGTSub(const QString &cmd) {
+    // GT$ - AGC Speed Sub
+    if (cmd.length() < 4) return;
+    bool ok;
+    int gt = cmd.mid(3).toInt(&ok);
+    if (ok) {
+        if (gt == 0)
+            m_agcSpeedB = AGC_Off;
+        else if (gt == 1)
+            m_agcSpeedB = AGC_Slow;
+        else if (gt == 2)
+            m_agcSpeedB = AGC_Fast;
+        emit processingChangedB();
+    }
+}
+
+void RadioState::handleNA(const QString &cmd) {
+    // NA - Auto Notch Main
+    if (cmd.length() < 3) return;
+    bool enabled = (cmd.at(2) == '1');
+    if (m_autoNotchEnabled != enabled) {
+        m_autoNotchEnabled = enabled;
+        emit notchChanged();
+    }
+}
+
+void RadioState::handleNASub(const QString &cmd) {
+    // NA$ - Auto Notch Sub
+    if (cmd.length() < 4) return;
+    bool enabled = (cmd.at(3) == '1');
+    if (m_autoNotchEnabledB != enabled) {
+        m_autoNotchEnabledB = enabled;
+        emit notchBChanged();
+    }
+}
+
+void RadioState::handleNM(const QString &cmd) {
+    // NM - Manual Notch Main: NMnnnnm or NMm
+    if (cmd.length() < 3) return;
+    QString data = cmd.mid(2);
+    if (data.length() >= 5) {
+        bool ok;
+        int pitch = data.left(4).toInt(&ok);
+        bool enabled = (data.at(4) == '1');
+        bool changed = false;
+        if (ok && pitch >= 150 && pitch <= 5000 && m_manualNotchPitch != pitch) {
+            m_manualNotchPitch = pitch;
+            changed = true;
+        }
+        if (m_manualNotchEnabled != enabled) {
+            m_manualNotchEnabled = enabled;
+            changed = true;
+        }
+        if (changed) {
+            emit notchChanged();
+        }
+    } else if (data.length() >= 1) {
+        bool enabled = (data.at(0) == '1');
+        if (m_manualNotchEnabled != enabled) {
+            m_manualNotchEnabled = enabled;
+            emit notchChanged();
+        }
+    }
+}
+
+void RadioState::handleNMSub(const QString &cmd) {
+    // NM$ - Manual Notch Sub
+    if (cmd.length() < 4) return;
+    QString data = cmd.mid(3);
+    if (data.length() >= 5) {
+        bool ok;
+        int pitch = data.left(4).toInt(&ok);
+        bool enabled = (data.at(4) == '1');
+        bool changed = false;
+        if (ok && pitch >= 150 && pitch <= 5000 && m_manualNotchPitchB != pitch) {
+            m_manualNotchPitchB = pitch;
+            changed = true;
+        }
+        if (m_manualNotchEnabledB != enabled) {
+            m_manualNotchEnabledB = enabled;
+            changed = true;
+        }
+        if (changed) {
+            emit notchBChanged();
+        }
+    } else if (data.length() >= 1) {
+        bool enabled = (data.at(0) == '1');
+        if (m_manualNotchEnabledB != enabled) {
+            m_manualNotchEnabledB = enabled;
+            emit notchBChanged();
+        }
+    }
+}
+
+// =============================================================================
+// Individual Command Handlers - Audio/Effects
+// =============================================================================
+
+void RadioState::handleFX(const QString &cmd) {
+    // FX - Audio Effects: FXn where n=0(off)/1(delay)/2(pitch-map)
+    if (cmd.length() < 3) return;
+    bool ok;
+    int fx = cmd.mid(2).toInt(&ok);
+    if (ok && fx >= 0 && fx <= 2 && fx != m_afxMode) {
+        m_afxMode = fx;
+        emit afxModeChanged(m_afxMode);
+    }
+}
+
+void RadioState::handleAP(const QString &cmd) {
+    // AP - Audio Peak Filter Main: APmb where m=enabled, b=bandwidth
+    if (cmd.length() < 4) return;
+    bool ok;
+    int m = cmd.mid(2, 1).toInt(&ok);
+    if (!ok) return;
+    int b = cmd.mid(3, 1).toInt(&ok);
+    if (!ok) return;
+
+    bool enabled = (m == 1);
+    int bandwidth = qBound(0, b, 2);
+    if (enabled != m_apfEnabled || bandwidth != m_apfBandwidth) {
+        m_apfEnabled = enabled;
+        m_apfBandwidth = bandwidth;
+        emit apfChanged(m_apfEnabled, m_apfBandwidth);
+    }
+}
+
+void RadioState::handleAPSub(const QString &cmd) {
+    // AP$ - Audio Peak Filter Sub
+    if (cmd.length() < 5) return;
+    bool ok;
+    int m = cmd.mid(3, 1).toInt(&ok);
+    if (!ok) return;
+    int b = cmd.mid(4, 1).toInt(&ok);
+    if (!ok) return;
+
+    bool enabled = (m == 1);
+    int bandwidth = qBound(0, b, 2);
+    if (enabled != m_apfEnabledB || bandwidth != m_apfBandwidthB) {
+        m_apfEnabledB = enabled;
+        m_apfBandwidthB = bandwidth;
+        emit apfBChanged(m_apfEnabledB, m_apfBandwidthB);
+    }
+}
+
+// =============================================================================
+// Individual Command Handlers - VFO Control
+// =============================================================================
+
+void RadioState::handleLN(const QString &cmd) {
+    // LN - VFO Link
+    if (cmd.length() < 3) return;
+    bool ok;
+    int ln = cmd.mid(2).toInt(&ok);
+    if (ok) {
+        bool linked = (ln == 1);
+        if (linked != m_vfoLink) {
+            m_vfoLink = linked;
+            emit vfoLinkChanged(m_vfoLink);
+        }
+    }
+}
+
+void RadioState::handleLK(const QString &cmd) {
+    // LK - VFO A Lock
+    if (cmd.length() < 3) return;
+    bool ok;
+    int lk = cmd.mid(2).toInt(&ok);
+    if (ok) {
+        bool locked = (lk == 1);
+        if (locked != m_lockA) {
+            m_lockA = locked;
+            emit lockAChanged(m_lockA);
+        }
+    }
+}
+
+void RadioState::handleLKSub(const QString &cmd) {
+    // LK$ - VFO B Lock
+    if (cmd.length() < 4) return;
+    bool ok;
+    int lk = cmd.mid(3).toInt(&ok);
+    if (ok) {
+        bool locked = (lk == 1);
+        if (locked != m_lockB) {
+            m_lockB = locked;
+            emit lockBChanged(m_lockB);
+        }
+    }
+}
+
+void RadioState::handleVT(const QString &cmd) {
+    // VT - Tuning Step Main
+    if (cmd.length() <= 2) return;
+    QString vtStr = cmd.mid(2);
+    if (vtStr.isEmpty()) return;
+
+    bool ok;
+    int step = vtStr.left(1).toInt(&ok);
+    if (ok) {
+        int newStep = qBound(0, step, 5);
+        if (newStep != m_tuningStep) {
+            m_tuningStep = newStep;
+            emit tuningStepChanged(m_tuningStep);
+        }
+    }
+}
+
+void RadioState::handleVTSub(const QString &cmd) {
+    // VT$ - Tuning Step Sub
+    if (cmd.length() <= 3) return;
+    QString vtStr = cmd.mid(3);
+    if (vtStr.isEmpty()) return;
+
+    bool ok;
+    int step = vtStr.left(1).toInt(&ok);
+    if (ok) {
+        int newStep = qBound(0, step, 5);
+        if (newStep != m_tuningStepB) {
+            m_tuningStepB = newStep;
+            emit tuningStepBChanged(m_tuningStepB);
+        }
+    }
+}
+
+// =============================================================================
+// Individual Command Handlers - VOX
+// =============================================================================
+
+void RadioState::handleVX(const QString &cmd) {
+    // VX - VOX Enable: VXmn where m=mode (C/V/D), n=0/1
+    if (cmd.length() < 4) return;
+    QChar mode = cmd.at(2);
+    bool enabled = (cmd.at(3) == '1');
+    bool changed = false;
+    if (mode == 'C' && m_voxCW != enabled) {
+        m_voxCW = enabled;
+        changed = true;
+    } else if (mode == 'V' && m_voxVoice != enabled) {
+        m_voxVoice = enabled;
+        changed = true;
+    } else if (mode == 'D' && m_voxData != enabled) {
+        m_voxData = enabled;
+        changed = true;
+    }
+    if (changed) {
+        emit voxChanged(voxEnabled());
+    }
+}
+
+void RadioState::handleVG(const QString &cmd) {
+    // VG - VOX Gain: VGmnnn where m=V(voice)/D(data), nnn=000-060
+    if (cmd.length() < 5) return;
+    QChar modeChar = cmd.at(2);
+    bool ok;
+    int gain = cmd.mid(3, 3).toInt(&ok);
+    if (ok && gain >= 0 && gain <= 60) {
+        if (modeChar == 'V' && gain != m_voxGainVoice) {
+            m_voxGainVoice = gain;
+            emit voxGainChanged(0, gain);
+        } else if (modeChar == 'D' && gain != m_voxGainData) {
+            m_voxGainData = gain;
+            emit voxGainChanged(1, gain);
+        }
+    }
+}
+
+void RadioState::handleVI(const QString &cmd) {
+    // VI - Anti-VOX: VInnn where nnn=000-060
+    if (cmd.length() < 5) return;
+    bool ok;
+    int level = cmd.mid(2, 3).toInt(&ok);
+    if (ok && level >= 0 && level <= 60 && level != m_antiVox) {
+        m_antiVox = level;
+        emit antiVoxChanged(level);
+    }
+}
+
+// =============================================================================
+// Individual Command Handlers - Audio I/O
+// =============================================================================
+
+void RadioState::handleLO(const QString &cmd) {
+    // LO - Line Out: LOlllrrrm where lll=left, rrr=right, m=mode
+    if (cmd.length() < 9) return;
+    bool okL, okR;
+    int left = cmd.mid(2, 3).toInt(&okL);
+    int right = cmd.mid(5, 3).toInt(&okR);
+    int mode = cmd.mid(8, 1).toInt();
+
+    if (okL && okR && left >= 0 && left <= 40 && right >= 0 && right <= 40) {
+        bool changed = false;
+        if (left != m_lineOutLeft) {
+            m_lineOutLeft = left;
+            changed = true;
+        }
+        if (right != m_lineOutRight) {
+            m_lineOutRight = right;
+            changed = true;
+        }
+        if ((mode == 1) != m_lineOutRightEqualsLeft) {
+            m_lineOutRightEqualsLeft = (mode == 1);
+            changed = true;
+        }
+        if (changed)
+            emit lineOutChanged();
+    }
+}
+
+void RadioState::handleLI(const QString &cmd) {
+    // LI - Line In: LIuuullls where uuu=soundcard, lll=linein, s=source
+    if (cmd.length() < 9) return;
+    bool okS, okL;
+    int soundCard = cmd.mid(2, 3).toInt(&okS);
+    int lineIn = cmd.mid(5, 3).toInt(&okL);
+    int source = cmd.mid(8, 1).toInt();
+
+    if (okS && okL && soundCard >= 0 && soundCard <= 250 && lineIn >= 0 && lineIn <= 250 &&
+        (source == 0 || source == 1)) {
+        bool changed = false;
+        if (soundCard != m_lineInSoundCard) {
+            m_lineInSoundCard = soundCard;
+            changed = true;
+        }
+        if (lineIn != m_lineInJack) {
+            m_lineInJack = lineIn;
+            changed = true;
+        }
+        if (source != m_lineInSource) {
+            m_lineInSource = source;
+            changed = true;
+        }
+        if (changed)
+            emit lineInChanged();
+    }
+}
+
+void RadioState::handleMI(const QString &cmd) {
+    // MI - Mic Input Select
+    if (cmd.length() < 3) return;
+    int input = cmd.mid(2, 1).toInt();
+    if (input >= 0 && input <= 4 && input != m_micInput) {
+        m_micInput = input;
+        emit micInputChanged(m_micInput);
+    }
+}
+
+void RadioState::handleMS(const QString &cmd) {
+    // MS - Mic Setup: MSabcde
+    if (cmd.length() < 7) return;
+    int frontPreamp = cmd.mid(2, 1).toInt();
+    int frontBias = cmd.mid(3, 1).toInt();
+    int frontButtons = cmd.mid(4, 1).toInt();
+    int rearPreamp = cmd.mid(5, 1).toInt();
+    int rearBias = cmd.mid(6, 1).toInt();
+
+    bool changed = false;
+    if (frontPreamp >= 0 && frontPreamp <= 2 && frontPreamp != m_micFrontPreamp) {
+        m_micFrontPreamp = frontPreamp;
+        changed = true;
+    }
+    if ((frontBias == 0 || frontBias == 1) && frontBias != m_micFrontBias) {
+        m_micFrontBias = frontBias;
+        changed = true;
+    }
+    if ((frontButtons == 0 || frontButtons == 1) && frontButtons != m_micFrontButtons) {
+        m_micFrontButtons = frontButtons;
+        changed = true;
+    }
+    if ((rearPreamp == 0 || rearPreamp == 1) && rearPreamp != m_micRearPreamp) {
+        m_micRearPreamp = rearPreamp;
+        changed = true;
+    }
+    if ((rearBias == 0 || rearBias == 1) && rearBias != m_micRearBias) {
+        m_micRearBias = rearBias;
+        changed = true;
+    }
+    if (changed)
+        emit micSetupChanged();
+}
+
+void RadioState::handleES(const QString &cmd) {
+    // ES - ESSB: ESnbb where n=0/1, bb=bandwidth
+    if (cmd.length() < 4) return;
+    bool ok;
+    int modeVal = cmd.mid(2, 1).toInt(&ok);
+    if (!ok || (modeVal != 0 && modeVal != 1)) return;
+
+    bool newEssb = (modeVal == 1);
+    int newBw = m_ssbTxBw;
+
+    if (cmd.length() >= 5) {
+        newBw = cmd.mid(3, 2).toInt(&ok);
+        if (!ok || newBw < 24 || newBw > 45) {
+            newBw = m_ssbTxBw;
+        }
+    }
+
+    bool changed = false;
+    if (newEssb != m_essbEnabled) {
+        m_essbEnabled = newEssb;
+        changed = true;
+    }
+    if (newBw >= 24 && newBw <= 45 && newBw != m_ssbTxBw) {
+        m_ssbTxBw = newBw;
+        changed = true;
+    }
+    if (changed) {
+        emit essbChanged(m_essbEnabled, m_ssbTxBw);
+    }
+}
+
+// =============================================================================
+// Individual Command Handlers - QSK/Delay
+// =============================================================================
+
+void RadioState::handleSD(const QString &cmd) {
+    // SD - QSK/VOX Delay: SDxMzzz where x=QSK flag, M=mode, zzz=delay
+    if (cmd.length() < 7) return;
+    QChar qskFlag = cmd.at(2);
+    QChar modeChar = cmd.at(3);
+    bool ok;
+    int delay = cmd.mid(4, 3).toInt(&ok);
+    if (!ok) return;
+
+    // Update QSK enabled state (only meaningful for CW mode)
+    if (modeChar == 'C') {
+        bool qskOn = (qskFlag == '1');
+        if (qskOn != m_qskEnabled) {
+            m_qskEnabled = qskOn;
+            emit qskEnabledChanged(m_qskEnabled);
+        }
+    }
+
+    bool isCurrentMode = false;
+    if (modeChar == 'C') {
+        if (m_qskDelayCW != delay) {
+            m_qskDelayCW = delay;
+            isCurrentMode = (m_mode == CW || m_mode == CW_R);
+        }
+    } else if (modeChar == 'V') {
+        if (m_qskDelayVoice != delay) {
+            m_qskDelayVoice = delay;
+            isCurrentMode = (m_mode == LSB || m_mode == USB || m_mode == AM || m_mode == FM);
+        }
+    } else if (modeChar == 'D') {
+        if (m_qskDelayData != delay) {
+            m_qskDelayData = delay;
+            isCurrentMode = (m_mode == DATA || m_mode == DATA_R);
+        }
+    }
+    if (isCurrentMode) {
+        emit qskDelayChanged(delay);
+    }
+}
+
+// =============================================================================
+// Individual Command Handlers - Control State
+// =============================================================================
+
+void RadioState::handleSB(const QString &cmd) {
+    // SB - Sub Receiver: SB0=off, SB1=on, SB3=on (diversity)
+    if (cmd.length() <= 2) return;
+    m_subReceiverEnabled = (cmd.mid(2) != "0");
+    emit subRxEnabledChanged(m_subReceiverEnabled);
+}
+
+void RadioState::handleDV(const QString &cmd) {
+    // DV - Diversity
+    if (cmd.length() <= 2) return;
+    bool newState = (cmd.mid(2) == "1");
+    if (newState != m_diversityEnabled) {
+        m_diversityEnabled = newState;
+        emit diversityChanged(m_diversityEnabled);
+    }
+}
+
+void RadioState::handleTS(const QString &cmd) {
+    // TS - Test Mode
+    if (cmd.length() < 3) return;
+    bool enabled = (cmd.mid(2, 1) == "1");
+    if (enabled != m_testMode) {
+        m_testMode = enabled;
+        emit testModeChanged(m_testMode);
+    }
+}
+
+void RadioState::handleBS(const QString &cmd) {
+    // BS - B SET
+    if (cmd.length() < 3) return;
+    bool enabled = (cmd.mid(2, 1) == "1");
+    if (enabled != m_bSetEnabled) {
+        m_bSetEnabled = enabled;
+        emit bSetChanged(m_bSetEnabled);
+    }
+}
+
+// =============================================================================
+// Individual Command Handlers - Antenna
+// =============================================================================
+
+void RadioState::handleAN(const QString &cmd) {
+    if (cmd.length() <= 2) return;
+    bool ok;
+    int an = cmd.mid(2).toInt(&ok);
+    if (ok && an >= 1 && an <= 6 && an != m_selectedAntenna) {
+        m_selectedAntenna = an;
+        emit antennaChanged(m_selectedAntenna, m_receiveAntenna, m_receiveAntennaSub);
+    }
+}
+
+void RadioState::handleAR(const QString &cmd) {
+    if (cmd.startsWith("AR$")) return;
+    if (cmd.length() <= 2) return;
+    bool ok;
+    int ar = cmd.mid(2).toInt(&ok);
+    if (ok && ar >= 0 && ar <= 7 && ar != m_receiveAntenna) {
+        m_receiveAntenna = ar;
+        emit antennaChanged(m_selectedAntenna, m_receiveAntenna, m_receiveAntennaSub);
+    }
+}
+
+void RadioState::handleARSub(const QString &cmd) {
+    if (cmd.length() <= 3) return;
+    bool ok;
+    int ar = cmd.mid(3).toInt(&ok);
+    if (ok && ar >= 0 && ar <= 7 && ar != m_receiveAntennaSub) {
+        m_receiveAntennaSub = ar;
+        emit antennaChanged(m_selectedAntenna, m_receiveAntenna, m_receiveAntennaSub);
+    }
+}
+
+void RadioState::handleAT(const QString &cmd) {
+    if (cmd.length() < 3) return;
+    bool ok;
+    int at = cmd.mid(2).toInt(&ok);
+    if (ok && at >= 0 && at <= 2 && at != m_atuMode) {
+        m_atuMode = at;
+        emit atuModeChanged(m_atuMode);
+    }
+}
+
+void RadioState::handleACN(const QString &cmd) {
+    if (cmd.length() < 4) return;
+    bool ok;
+    int index = cmd.mid(3, 1).toInt(&ok);
+    if (ok && index >= 1 && index <= 7) {
+        QString name = cmd.mid(4).trimmed();
+        if (!name.isEmpty() && name != m_antennaNames.value(index)) {
+            m_antennaNames[index] = name;
+            emit antennaNameChanged(index, name);
+        }
+    }
+}
+
+void RadioState::handleACM(const QString &cmd) {
+    if (cmd.length() < 11) return;
+    bool displayAll = (cmd.at(3) == '1');
+    bool changed = (displayAll != m_mainRxDisplayAll);
+    m_mainRxDisplayAll = displayAll;
+    for (int i = 0; i < 7; i++) {
+        bool enabled = (cmd.at(4 + i) == '1');
+        if (enabled != m_mainRxAntMask[i]) {
+            m_mainRxAntMask[i] = enabled;
+            changed = true;
+        }
+    }
+    if (changed) emit mainRxAntCfgChanged();
+}
+
+void RadioState::handleACS(const QString &cmd) {
+    if (cmd.length() < 11) return;
+    bool displayAll = (cmd.at(3) == '1');
+    bool changed = (displayAll != m_subRxDisplayAll);
+    m_subRxDisplayAll = displayAll;
+    for (int i = 0; i < 7; i++) {
+        bool enabled = (cmd.at(4 + i) == '1');
+        if (enabled != m_subRxAntMask[i]) {
+            m_subRxAntMask[i] = enabled;
+            changed = true;
+        }
+    }
+    if (changed) emit subRxAntCfgChanged();
+}
+
+void RadioState::handleACT(const QString &cmd) {
+    if (cmd.length() < 7) return;
+    bool displayAll = (cmd.at(3) == '1');
+    bool changed = (displayAll != m_txDisplayAll);
+    m_txDisplayAll = displayAll;
+    for (int i = 0; i < 3; i++) {
+        bool enabled = (cmd.at(4 + i) == '1');
+        if (enabled != m_txAntMask[i]) {
+            m_txAntMask[i] = enabled;
+            changed = true;
+        }
+    }
+    if (changed) emit txAntCfgChanged();
+}
+
+// =============================================================================
+// Individual Command Handlers - RIT/XIT
+// =============================================================================
+
+void RadioState::handleRT(const QString &cmd) {
+    if (cmd.length() < 3 || (cmd.at(2) != '0' && cmd.at(2) != '1')) return;
+    bool enabled = (cmd.at(2) == '1');
+    if (enabled != m_ritEnabled) {
+        m_ritEnabled = enabled;
+        emit ritXitChanged(m_ritEnabled, m_xitEnabled, m_ritXitOffset);
+    }
+}
+
+void RadioState::handleXT(const QString &cmd) {
+    if (cmd.length() < 3 || (cmd.at(2) != '0' && cmd.at(2) != '1')) return;
+    bool enabled = (cmd.at(2) == '1');
+    if (enabled != m_xitEnabled) {
+        m_xitEnabled = enabled;
+        emit ritXitChanged(m_ritEnabled, m_xitEnabled, m_ritXitOffset);
+    }
+}
+
+void RadioState::handleRO(const QString &cmd) {
+    if (cmd.length() < 3) return;
+    bool ok;
+    int offset = cmd.mid(2).toInt(&ok);
+    if (ok && offset != m_ritXitOffset) {
+        m_ritXitOffset = offset;
+        emit ritXitChanged(m_ritEnabled, m_xitEnabled, m_ritXitOffset);
+    }
+}
+
+// =============================================================================
+// Individual Command Handlers - Text Decode
+// =============================================================================
+
+void RadioState::handleTD(const QString &cmd) {
+    if (cmd.length() < 5) return;
+    int mode = cmd.mid(2, 1).toInt();
+    int threshold = cmd.mid(3, 1).toInt();
+    int lines = cmd.mid(4, 1).toInt();
+    bool changed = false;
+    if (mode != m_textDecodeMode) { m_textDecodeMode = mode; changed = true; }
+    if (threshold != m_textDecodeThreshold) { m_textDecodeThreshold = threshold; changed = true; }
+    if (lines != m_textDecodeLines && lines >= 1 && lines <= 9) { m_textDecodeLines = lines; changed = true; }
+    if (changed) emit textDecodeChanged();
+}
+
+void RadioState::handleTDSub(const QString &cmd) {
+    if (cmd.length() < 6) return;
+    int mode = cmd.mid(3, 1).toInt();
+    int threshold = cmd.mid(4, 1).toInt();
+    int lines = cmd.mid(5, 1).toInt();
+    bool changed = false;
+    if (mode != m_textDecodeModeB) { m_textDecodeModeB = mode; changed = true; }
+    if (threshold != m_textDecodeThresholdB) { m_textDecodeThresholdB = threshold; changed = true; }
+    if (lines != m_textDecodeLinesB && lines >= 1 && lines <= 9) { m_textDecodeLinesB = lines; changed = true; }
+    if (changed) emit textDecodeBChanged();
+}
+
+void RadioState::handleTB(const QString &cmd) {
+    if (cmd.length() < 5) return;
+    QString text = cmd.mid(5);
+    if (text.endsWith(';')) text.chop(1);
+    if (!text.isEmpty()) emit textBufferReceived(text, false);
+}
+
+void RadioState::handleTBSub(const QString &cmd) {
+    if (cmd.length() < 6) return;
+    QString text = cmd.mid(6);
+    if (text.endsWith(';')) text.chop(1);
+    if (!text.isEmpty()) emit textBufferReceived(text, true);
+}
+
+// =============================================================================
+// Individual Command Handlers - Data Mode
+// =============================================================================
+
+void RadioState::handleDT(const QString &cmd) {
+    if (cmd.length() < 3) return;
+    bool ok;
+    int subMode = cmd.mid(2).toInt(&ok);
+    if (!ok || subMode < 0 || subMode > 3) return;
+    qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (now - m_dataSubModeOptimisticTime < 500) return;
+    if (subMode != m_dataSubMode) {
+        m_dataSubMode = subMode;
+        emit dataSubModeChanged(m_dataSubMode);
+    }
+}
+
+void RadioState::handleDTSub(const QString &cmd) {
+    if (cmd.length() < 4) return;
+    bool ok;
+    int subMode = cmd.mid(3).toInt(&ok);
+    if (!ok || subMode < 0 || subMode > 3) return;
+    qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (now - m_dataSubModeBOptimisticTime < 500) return;
+    if (subMode != m_dataSubModeB) {
+        m_dataSubModeB = subMode;
+        emit dataSubModeBChanged(m_dataSubModeB);
+    }
+}
+
+// =============================================================================
+// Individual Command Handlers - Equalizer
+// =============================================================================
+
+void RadioState::handleRE(const QString &cmd) {
+    if (cmd.length() < 26) return;
+    bool changed = false;
+    for (int i = 0; i < 8; i++) {
+        bool ok;
+        int val = cmd.mid(2 + i * 3, 3).toInt(&ok);
+        if (ok && val >= -16 && val <= 16 && val != m_rxEqBands[i]) {
+            m_rxEqBands[i] = val;
+            changed = true;
+            emit rxEqBandChanged(i, val);
+        }
+    }
+    if (changed) emit rxEqChanged();
+}
+
+void RadioState::handleTE(const QString &cmd) {
+    if (cmd.length() < 26) return;
+    bool changed = false;
+    for (int i = 0; i < 8; i++) {
+        bool ok;
+        int val = cmd.mid(2 + i * 3, 3).toInt(&ok);
+        if (ok && val >= -16 && val <= 16 && val != m_txEqBands[i]) {
+            m_txEqBands[i] = val;
+            changed = true;
+            emit txEqBandChanged(i, val);
+        }
+    }
+    if (changed) emit txEqChanged();
+}
+
+// =============================================================================
+// Individual Command Handlers - Radio Info
+// =============================================================================
+
+void RadioState::handleID(const QString &cmd) {
+    if (cmd.length() > 2) m_radioID = cmd.mid(2);
+}
+
+void RadioState::handleOM(const QString &cmd) {
+    if (cmd.length() <= 2) return;
+    m_optionModules = cmd.mid(2).trimmed();
+    if (m_optionModules.length() > 8) {
+        bool hasS = m_optionModules.length() > 3 && m_optionModules[3] == 'S';
+        bool hasD = m_optionModules.length() > 8 && m_optionModules[8] == 'D';
+        m_radioModel = hasS && hasD ? "K4D-S" : hasS ? "K4-S" : hasD ? "K4D" : "K4";
+    }
+}
+
+void RadioState::handleRV(const QString &cmd) {
+    if (cmd.length() <= 3) return;
+    int colonPos = cmd.indexOf(':');
+    if (colonPos > 3) {
+        m_firmwareVersions[cmd.mid(3, colonPos - 3)] = cmd.mid(colonPos + 1);
+    }
+}
+
+void RadioState::handleSIFP(const QString &cmd) {
+    if (cmd.length() < 12) return;
+    bool okV, okC;
+    int voltRaw = cmd.mid(4, 4).toInt(&okV);
+    int currRaw = cmd.mid(8, 4).toInt(&okC);
+    if (okV && okC) {
+        double newVolts = voltRaw / 10.0;
+        double newCurrent = currRaw / 100.0;
+        if (newVolts != m_supplyVoltage) { m_supplyVoltage = newVolts; emit supplyVoltageChanged(m_supplyVoltage); }
+        if (newCurrent != m_supplyCurrent) { m_supplyCurrent = newCurrent; emit supplyCurrentChanged(m_supplyCurrent); }
+    }
+}
+
+void RadioState::handleSIRC(const QString &cmd) { Q_UNUSED(cmd) }
+
+void RadioState::handleMN(const QString &cmd) {
+    if (cmd.length() < 3) return;
+    bool ok;
+    int bank = cmd.mid(2).toInt(&ok);
+    if (ok && bank >= 1 && bank <= 4 && bank != m_messageBank) {
+        m_messageBank = bank;
+        emit messageBankChanged(m_messageBank);
+    }
+}
+
+void RadioState::handleER(const QString &cmd) {
+    int colonPos = cmd.indexOf(':');
+    if (colonPos > 2) {
+        bool ok;
+        int errorCode = cmd.mid(2, colonPos - 2).toInt(&ok);
+        if (ok) emit errorNotificationReceived(errorCode, cmd.mid(colonPos + 1));
+    }
+}
+
+// =============================================================================
+// Individual Command Handlers - Display (# prefix)
+// =============================================================================
+
+void RadioState::handleDisplayREF(const QString &cmd) {
+    if (cmd.startsWith("#REF$") || cmd.length() <= 4) return;
+    bool ok;
+    int level = cmd.mid(4).toInt(&ok);
+    if (ok && level != m_refLevel) { m_refLevel = level; emit refLevelChanged(m_refLevel); }
+}
+
+void RadioState::handleDisplayREFSub(const QString &cmd) {
+    if (cmd.length() <= 5) return;
+    bool ok;
+    int level = cmd.mid(5).toInt(&ok);
+    if (ok && level != m_refLevelB) { m_refLevelB = level; emit refLevelBChanged(m_refLevelB); }
+}
+
+void RadioState::handleDisplaySCL(const QString &cmd) {
+    if (cmd.length() <= 4) return;
+    bool ok;
+    int scale = cmd.mid(4).toInt(&ok);
+    if (ok && scale >= 10 && scale <= 150 && scale != m_scale) { m_scale = scale; emit scaleChanged(m_scale); }
+}
+
+void RadioState::handleDisplaySPN(const QString &cmd) {
+    if (cmd.startsWith("#SPN$") || cmd.length() <= 4) return;
+    bool ok;
+    int span = cmd.mid(4).toInt(&ok);
+    if (ok && span > 0 && span != m_spanHz) { m_spanHz = span; emit spanChanged(m_spanHz); }
+}
+
+void RadioState::handleDisplaySPNSub(const QString &cmd) {
+    if (cmd.length() <= 5) return;
+    bool ok;
+    int span = cmd.mid(5).toInt(&ok);
+    if (ok && span > 0 && span != m_spanHzB) { m_spanHzB = span; emit spanBChanged(m_spanHzB); }
+}
+
+void RadioState::handleDisplayMP(const QString &cmd) {
+    if (cmd.startsWith("#MP$") || cmd.length() <= 3) return;
+    bool enabled = (cmd.at(3) == '1');
+    if (enabled != m_miniPanAEnabled) { m_miniPanAEnabled = enabled; emit miniPanAEnabledChanged(m_miniPanAEnabled); }
+}
+
+void RadioState::handleDisplayMPSub(const QString &cmd) {
+    if (cmd.length() <= 4) return;
+    bool enabled = (cmd.at(4) == '1');
+    if (enabled != m_miniPanBEnabled) { m_miniPanBEnabled = enabled; emit miniPanBEnabledChanged(m_miniPanBEnabled); }
+}
+
+void RadioState::handleDisplayDPM(const QString &cmd) {
+    if (cmd.length() <= 4) return;
+    bool ok;
+    int mode = cmd.mid(4).toInt(&ok);
+    if (ok && mode >= 0 && mode <= 2 && mode != m_dualPanModeLcd) { m_dualPanModeLcd = mode; emit dualPanModeLcdChanged(m_dualPanModeLcd); }
+}
+
+void RadioState::handleDisplayHDPM(const QString &cmd) {
+    if (cmd.length() <= 5) return;
+    bool ok;
+    int mode = cmd.mid(5).toInt(&ok);
+    if (ok && mode >= 0 && mode <= 2 && mode != m_dualPanModeExt) { m_dualPanModeExt = mode; emit dualPanModeExtChanged(m_dualPanModeExt); }
+}
+
+void RadioState::handleDisplayDSM(const QString &cmd) {
+    if (cmd.length() <= 4) return;
+    bool ok;
+    int mode = cmd.mid(4).toInt(&ok);
+    if (ok && (mode == 0 || mode == 1) && mode != m_displayModeLcd) { m_displayModeLcd = mode; emit displayModeLcdChanged(m_displayModeLcd); }
+}
+
+void RadioState::handleDisplayHDSM(const QString &cmd) {
+    if (cmd.length() <= 5) return;
+    bool ok;
+    int mode = cmd.mid(5).toInt(&ok);
+    if (ok && (mode == 0 || mode == 1) && mode != m_displayModeExt) { m_displayModeExt = mode; emit displayModeExtChanged(m_displayModeExt); }
+}
+
+void RadioState::handleDisplayFPS(const QString &cmd) {
+    if (cmd.length() <= 4) return;
+    bool ok;
+    int fps = cmd.mid(4).toInt(&ok);
+    if (ok && fps >= 12 && fps <= 30 && fps != m_displayFps) { m_displayFps = fps; emit displayFpsChanged(m_displayFps); }
+}
+
+void RadioState::handleDisplayWFC(const QString &cmd) {
+    if (cmd.length() <= 4) return;
+    bool ok;
+    int color = cmd.mid(4).toInt(&ok);
+    if (ok && color >= 0 && color <= 4 && color != m_waterfallColor) { m_waterfallColor = color; emit waterfallColorChanged(m_waterfallColor); }
+}
+
+void RadioState::handleDisplayWFH(const QString &cmd) {
+    if (cmd.length() <= 4) return;
+    bool ok;
+    int height = cmd.mid(4).toInt(&ok);
+    if (ok && height >= 0 && height <= 100 && height != m_waterfallHeight) { m_waterfallHeight = height; emit waterfallHeightChanged(m_waterfallHeight); }
+}
+
+void RadioState::handleDisplayHWFH(const QString &cmd) {
+    if (cmd.length() <= 5) return;
+    bool ok;
+    int height = cmd.mid(5).toInt(&ok);
+    if (ok && height >= 0 && height <= 100 && height != m_waterfallHeightExt) { m_waterfallHeightExt = height; emit waterfallHeightExtChanged(m_waterfallHeightExt); }
+}
+
+void RadioState::handleDisplayAVG(const QString &cmd) {
+    if (cmd.length() <= 4) return;
+    bool ok;
+    int avg = cmd.mid(4).toInt(&ok);
+    if (ok && avg >= 1 && avg <= 20 && avg != m_averaging) { m_averaging = avg; emit averagingChanged(m_averaging); }
+}
+
+void RadioState::handleDisplayPKM(const QString &cmd) {
+    if (cmd.length() <= 4) return;
+    bool ok;
+    int pkm = cmd.mid(4).toInt(&ok);
+    if (ok && (pkm == 0 || pkm == 1) && pkm != m_peakMode) { m_peakMode = pkm; emit peakModeChanged(m_peakMode > 0); }
+}
+
+void RadioState::handleDisplayFXT(const QString &cmd) {
+    if (cmd.length() <= 4) return;
+    bool ok;
+    int fxt = cmd.mid(4).toInt(&ok);
+    if (ok && (fxt == 0 || fxt == 1) && fxt != m_fixedTune) { m_fixedTune = fxt; emit fixedTuneChanged(m_fixedTune, m_fixedTuneMode); }
+}
+
+void RadioState::handleDisplayFXA(const QString &cmd) {
+    if (cmd.length() <= 4) return;
+    bool ok;
+    int fxa = cmd.mid(4).toInt(&ok);
+    if (ok && fxa >= 0 && fxa <= 4 && fxa != m_fixedTuneMode) { m_fixedTuneMode = fxa; emit fixedTuneChanged(m_fixedTune, m_fixedTuneMode); }
+}
+
+void RadioState::handleDisplayFRZ(const QString &cmd) {
+    if (cmd.length() <= 4) return;
+    bool ok;
+    int frz = cmd.mid(4).toInt(&ok);
+    if (ok && (frz == 0 || frz == 1) && frz != m_freeze) { m_freeze = frz; emit freezeChanged(m_freeze > 0); }
+}
+
+void RadioState::handleDisplayVFA(const QString &cmd) {
+    if (cmd.length() <= 4) return;
+    bool ok;
+    int vfa = cmd.mid(4).toInt(&ok);
+    if (ok && vfa >= 0 && vfa <= 3 && vfa != m_vfoACursor) { m_vfoACursor = vfa; emit vfoACursorChanged(m_vfoACursor); }
+}
+
+void RadioState::handleDisplayVFB(const QString &cmd) {
+    if (cmd.length() <= 4) return;
+    bool ok;
+    int vfb = cmd.mid(4).toInt(&ok);
+    if (ok && vfb >= 0 && vfb <= 3 && vfb != m_vfoBCursor) { m_vfoBCursor = vfb; emit vfoBCursorChanged(m_vfoBCursor); }
+}
+
+void RadioState::handleDisplayAR(const QString &cmd) {
+    if (cmd.length() < 12) return;
+    QChar mode = cmd.at(cmd.length() - 1);
+    int newValue = (mode == 'A') ? 1 : 0;
+    if (newValue != m_autoRefLevel) { m_autoRefLevel = newValue; emit autoRefLevelChanged(m_autoRefLevel > 0); }
+}
+
+void RadioState::handleDisplayNB(const QString &cmd) {
+    if (cmd.length() <= 4) return;
+    bool ok;
+    int mode = cmd.mid(4).toInt(&ok);
+    if (ok && mode >= 0 && mode <= 2 && mode != m_ddcNbMode) { m_ddcNbMode = mode; emit ddcNbModeChanged(m_ddcNbMode); }
+}
+
+void RadioState::handleDisplayNBL(const QString &cmd) {
+    if (cmd.length() <= 5) return;
+    bool ok;
+    int level = cmd.mid(5).toInt(&ok);
+    if (ok && level >= 0 && level <= 14 && level != m_ddcNbLevel) { m_ddcNbLevel = level; emit ddcNbLevelChanged(m_ddcNbLevel); }
 }

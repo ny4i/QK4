@@ -1,9 +1,11 @@
 #ifndef RADIOSTATE_H
 #define RADIOSTATE_H
 
+#include <QMap>
 #include <QObject>
 #include <QString>
-#include <QMap>
+#include <QVector>
+#include <functional>
 
 class RadioState : public QObject {
     Q_OBJECT
@@ -899,6 +901,181 @@ private:
     int m_textDecodeModeB = -1;
     int m_textDecodeThresholdB = -1;
     int m_textDecodeLinesB = -1;
+
+    // =========================================================================
+    // Command Handler Registry
+    // =========================================================================
+    // Handler function type: takes command string (already trimmed, no trailing ;)
+    using CommandHandler = std::function<void(const QString &)>;
+
+    // Registry entry: prefix to match and handler function
+    struct CommandEntry {
+        QString prefix;
+        CommandHandler handler;
+    };
+
+    // Sorted list of command handlers (longest prefix first for correct matching)
+    QVector<CommandEntry> m_commandHandlers;
+
+    // Initialize command handler registry (called from constructor)
+    void registerCommandHandlers();
+
+    // =========================================================================
+    // Individual Command Handlers (grouped by function)
+    // =========================================================================
+
+    // VFO/Frequency commands
+    void handleFA(const QString &cmd);  // VFO A frequency
+    void handleFB(const QString &cmd);  // VFO B frequency
+    void handleFT(const QString &cmd);  // Split TX/RX
+
+    // Mode commands
+    void handleMD(const QString &cmd);   // Mode VFO A
+    void handleMDSub(const QString &cmd); // Mode VFO B (MD$)
+
+    // Bandwidth/Filter commands
+    void handleBW(const QString &cmd);    // Bandwidth VFO A
+    void handleBWSub(const QString &cmd); // Bandwidth VFO B (BW$)
+    void handleIS(const QString &cmd);    // IF Shift VFO A
+    void handleISSub(const QString &cmd); // IF Shift VFO B (IS$)
+    void handleCW(const QString &cmd);    // CW pitch
+    void handleFP(const QString &cmd);    // Filter position VFO A
+    void handleFPSub(const QString &cmd); // Filter position VFO B (FP$)
+
+    // Gain/Level commands
+    void handleRG(const QString &cmd);    // RF Gain Main
+    void handleRGSub(const QString &cmd); // RF Gain Sub (RG$)
+    void handleSQ(const QString &cmd);    // Squelch Main
+    void handleSQSub(const QString &cmd); // Squelch Sub (SQ$)
+    void handleMG(const QString &cmd);    // Mic Gain
+    void handleCP(const QString &cmd);    // Compression
+    void handleML(const QString &cmd);    // Monitor Level
+    void handlePC(const QString &cmd);    // Power Control
+    void handleKS(const QString &cmd);    // Keyer Speed
+
+    // Meter commands
+    void handleSM(const QString &cmd);    // S-Meter Main
+    void handleSMSub(const QString &cmd); // S-Meter Sub (SM$)
+    void handlePO(const QString &cmd);    // Power Output
+    void handleTM(const QString &cmd);    // TX Meter
+
+    // TX/RX state
+    void handleTX(const QString &cmd); // Transmit
+    void handleRX(const QString &cmd); // Receive
+
+    // Processing commands (NB, NR, PA, RA, GT, NA, NM)
+    void handleNB(const QString &cmd);    // Noise Blanker Main
+    void handleNBSub(const QString &cmd); // Noise Blanker Sub (NB$)
+    void handleNR(const QString &cmd);    // Noise Reduction Main
+    void handleNRSub(const QString &cmd); // Noise Reduction Sub (NR$)
+    void handlePA(const QString &cmd);    // Preamp Main
+    void handlePASub(const QString &cmd); // Preamp Sub (PA$)
+    void handleRA(const QString &cmd);    // Attenuator Main
+    void handleRASub(const QString &cmd); // Attenuator Sub (RA$)
+    void handleGT(const QString &cmd);    // AGC Speed Main
+    void handleGTSub(const QString &cmd); // AGC Speed Sub (GT$)
+    void handleNA(const QString &cmd);    // Auto Notch Main
+    void handleNASub(const QString &cmd); // Auto Notch Sub (NA$)
+    void handleNM(const QString &cmd);    // Manual Notch Main
+    void handleNMSub(const QString &cmd); // Manual Notch Sub (NM$)
+
+    // Audio/Effects commands
+    void handleFX(const QString &cmd);    // Audio Effects
+    void handleAP(const QString &cmd);    // Audio Peak Filter Main
+    void handleAPSub(const QString &cmd); // Audio Peak Filter Sub (AP$)
+
+    // VFO control commands
+    void handleLN(const QString &cmd);    // VFO Link
+    void handleLK(const QString &cmd);    // VFO A Lock
+    void handleLKSub(const QString &cmd); // VFO B Lock (LK$)
+    void handleVT(const QString &cmd);    // Tuning Step Main
+    void handleVTSub(const QString &cmd); // Tuning Step Sub (VT$)
+
+    // VOX commands
+    void handleVX(const QString &cmd); // VOX enable
+    void handleVG(const QString &cmd); // VOX Gain
+    void handleVI(const QString &cmd); // Anti-VOX
+
+    // Audio I/O commands
+    void handleLO(const QString &cmd); // Line Out
+    void handleLI(const QString &cmd); // Line In
+    void handleMI(const QString &cmd); // Mic Input
+    void handleMS(const QString &cmd); // Mic Setup
+    void handleES(const QString &cmd); // ESSB
+
+    // QSK/Delay commands
+    void handleSD(const QString &cmd); // QSK/VOX Delay
+
+    // Control state commands
+    void handleSB(const QString &cmd); // Sub Receiver
+    void handleDV(const QString &cmd); // Diversity
+    void handleTS(const QString &cmd); // Test Mode
+    void handleBS(const QString &cmd); // B SET
+
+    // Antenna commands
+    void handleAN(const QString &cmd);    // TX Antenna
+    void handleAR(const QString &cmd);    // RX Antenna Main
+    void handleARSub(const QString &cmd); // RX Antenna Sub (AR$)
+    void handleAT(const QString &cmd);    // ATU Mode
+    void handleACN(const QString &cmd);   // Antenna Names
+    void handleACM(const QString &cmd);   // Main RX Antenna Config
+    void handleACS(const QString &cmd);   // Sub RX Antenna Config
+    void handleACT(const QString &cmd);   // TX Antenna Config
+
+    // RIT/XIT commands
+    void handleRT(const QString &cmd); // RIT
+    void handleXT(const QString &cmd); // XIT
+    void handleRO(const QString &cmd); // RIT/XIT Offset
+
+    // Text decode commands
+    void handleTD(const QString &cmd);    // Text Decode Main
+    void handleTDSub(const QString &cmd); // Text Decode Sub (TD$)
+    void handleTB(const QString &cmd);    // Text Buffer Main
+    void handleTBSub(const QString &cmd); // Text Buffer Sub (TB$)
+
+    // Data mode commands
+    void handleDT(const QString &cmd);    // Data Sub-Mode Main
+    void handleDTSub(const QString &cmd); // Data Sub-Mode Sub (DT$)
+
+    // Equalizer commands
+    void handleRE(const QString &cmd); // RX EQ
+    void handleTE(const QString &cmd); // TX EQ
+
+    // Radio info commands
+    void handleID(const QString &cmd);   // Radio ID
+    void handleOM(const QString &cmd);   // Option Modules
+    void handleRV(const QString &cmd);   // Firmware Version (RV.)
+    void handleSIFP(const QString &cmd); // Power Supply Info
+    void handleSIRC(const QString &cmd); // SIRC status
+    void handleMN(const QString &cmd);   // Message Bank
+    void handleER(const QString &cmd);   // Error notifications
+
+    // Display commands (# prefix)
+    void handleDisplayREF(const QString &cmd);     // #REF - Ref Level Main
+    void handleDisplayREFSub(const QString &cmd);  // #REF$ - Ref Level Sub
+    void handleDisplaySCL(const QString &cmd);     // #SCL - Scale
+    void handleDisplaySPN(const QString &cmd);     // #SPN - Span Main
+    void handleDisplaySPNSub(const QString &cmd);  // #SPN$ - Span Sub
+    void handleDisplayMP(const QString &cmd);      // #MP - Mini-Pan Main
+    void handleDisplayMPSub(const QString &cmd);   // #MP$ - Mini-Pan Sub
+    void handleDisplayDPM(const QString &cmd);     // #DPM - Dual Pan Mode LCD
+    void handleDisplayHDPM(const QString &cmd);    // #HDPM - Dual Pan Mode EXT
+    void handleDisplayDSM(const QString &cmd);     // #DSM - Display Mode LCD
+    void handleDisplayHDSM(const QString &cmd);    // #HDSM - Display Mode EXT
+    void handleDisplayFPS(const QString &cmd);     // #FPS - Frame Rate
+    void handleDisplayWFC(const QString &cmd);     // #WFC - Waterfall Color
+    void handleDisplayWFH(const QString &cmd);     // #WFH - Waterfall Height LCD
+    void handleDisplayHWFH(const QString &cmd);    // #HWFH - Waterfall Height EXT
+    void handleDisplayAVG(const QString &cmd);     // #AVG - Averaging
+    void handleDisplayPKM(const QString &cmd);     // #PKM - Peak Mode
+    void handleDisplayFXT(const QString &cmd);     // #FXT - Fixed Tune
+    void handleDisplayFXA(const QString &cmd);     // #FXA - Fixed Tune Mode
+    void handleDisplayFRZ(const QString &cmd);     // #FRZ - Freeze
+    void handleDisplayVFA(const QString &cmd);     // #VFA - VFO A Cursor
+    void handleDisplayVFB(const QString &cmd);     // #VFB - VFO B Cursor
+    void handleDisplayAR(const QString &cmd);      // #AR - Auto Ref Level
+    void handleDisplayNB(const QString &cmd);      // #NB$ - DDC NB Mode
+    void handleDisplayNBL(const QString &cmd);     // #NBL$ - DDC NB Level
 };
 
 #endif // RADIOSTATE_H
