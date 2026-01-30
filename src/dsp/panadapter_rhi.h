@@ -229,7 +229,6 @@ private:
     QColor m_spectrumBaseColor{20, 60, 20, 128};    // Visible dark lime (gradient stop 0.0)
     QColor m_spectrumPeakColor{255, 255, 255, 255}; // Pure white peak (gradient stop 1.0)
     QColor m_spectrumLineColor{50, 255, 50};        // Lime green line on top
-    QColor m_peakTrailColor{60, 140, 60};           // Dim lime green for peak trail
     QColor m_gridColor{160, 160, 160, 77};          // Light gray with 30% alpha
     QColor m_peakHoldColor{255, 255, 255, 102};     // White with 40% alpha
     QColor m_passbandColor{0, 191, 255, 64};        // Cyan with 25% alpha (VFO A default)

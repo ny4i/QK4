@@ -24,12 +24,6 @@ public:
     // Show a message for the specified duration (ms)
     void showMessage(const QString &message, int durationMs = 2000);
 
-    // Set whether to show the error code prefix
-    void setShowErrorCode(bool show) { m_showErrorCode = show; }
-
-signals:
-    void dismissed();
-
 protected:
     void paintEvent(QPaintEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
@@ -42,7 +36,6 @@ private:
 
     QLabel *m_label;
     QTimer *m_timer;
-    bool m_showErrorCode = true;
 };
 
 #endif // NOTIFICATIONWIDGET_H

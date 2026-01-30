@@ -5,29 +5,6 @@
 #include <QTimer>
 #include <QtMath>
 
-// === ToneIODevice Implementation (kept for compatibility) ===
-
-ToneIODevice::ToneIODevice(QObject *parent) : QIODevice(parent) {}
-
-void ToneIODevice::setFrequency(int hz) {
-    m_frequency = hz;
-}
-void ToneIODevice::setVolume(float volume) {
-    m_volume = qBound(0.0f, volume, 1.0f);
-}
-void ToneIODevice::start() {
-    m_playing = true;
-    m_phase = 0.0;
-}
-void ToneIODevice::stop() {
-    m_playing = false;
-}
-qint64 ToneIODevice::readData(char *, qint64) {
-    return 0;
-}
-
-// === SidetoneGenerator Implementation ===
-
 SidetoneGenerator::SidetoneGenerator(QObject *parent) : QObject(parent) {
     initAudio();
 
@@ -64,8 +41,6 @@ void SidetoneGenerator::initAudio() {
     if (!m_pushDevice) {
         qWarning() << "SidetoneGenerator: Failed to start audio sink:" << m_audioSink->error();
     }
-
-    m_toneDevice = new ToneIODevice(this);
 }
 
 void SidetoneGenerator::setFrequency(int hz) {
@@ -124,15 +99,6 @@ int SidetoneGenerator::dahDurationMs() const {
     return ditDurationMs() * 3;
 }
 
-void SidetoneGenerator::resetAudio() {
-    // Stop and restart audio sink to clear buffer
-    if (m_audioSink) {
-        m_audioSink->stop();
-        m_pushDevice = m_audioSink->start();
-    }
-    m_phase = 0.0; // Reset phase for clean start
-}
-
 void SidetoneGenerator::playElement(int durationMs) {
     if (!m_pushDevice) {
         // Try to restart audio sink if it stopped
@@ -179,16 +145,3 @@ void SidetoneGenerator::playElement(int durationMs) {
 
     m_pushDevice->write(buffer);
 }
-
-// Legacy methods
-void SidetoneGenerator::playDit() {
-    startDit();
-}
-void SidetoneGenerator::playDah() {
-    startDah();
-}
-void SidetoneGenerator::start() {}
-void SidetoneGenerator::stop() {
-    stopElement();
-}
-void SidetoneGenerator::pushSamples() {}

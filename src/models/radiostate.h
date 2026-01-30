@@ -105,7 +105,6 @@ public:
     int noiseBlankerFilterWidth() const { return m_noiseBlankerFilterWidth; } // 0=NONE, 1=NARROW, 2=WIDE
     int noiseReductionLevel() const { return m_noiseReductionLevel; }
     bool noiseReductionEnabled() const { return m_noiseReductionEnabled; }
-    bool autoNotchFilter() const { return m_autoNotchFilter; }
 
     // Notch filter - Main RX
     bool autoNotchEnabled() const { return m_autoNotchEnabled; }
@@ -700,7 +699,6 @@ private:
     int m_noiseBlankerFilterWidth = 0;
     int m_noiseReductionLevel = 0;
     bool m_noiseReductionEnabled = false;
-    bool m_autoNotchFilter = false;
 
     // Notch filter
     bool m_autoNotchEnabled = false;

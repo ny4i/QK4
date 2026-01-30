@@ -105,5 +105,4 @@ bool NotificationWidget::eventFilter(QObject *obj, QEvent *event) {
 
 void NotificationWidget::onTimeout() {
     hide();
-    emit dismissed();
 }

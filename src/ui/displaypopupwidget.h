@@ -102,7 +102,6 @@ signals:
 
 protected:
     QSize contentSize() const override;
-    void focusOutEvent(QFocusEvent *event) override;
 
 private:
     void setupUi();
@@ -177,9 +176,6 @@ private:
 
     // Helper to update span control group based on A/B selection
     void updateSpanControlGroup();
-
-    // Legacy ref level (replaced by A/B below)
-    int m_currentRefLevel = -108;
 
     // Ref level state
     // Values are per-VFO (A and B can have different levels)

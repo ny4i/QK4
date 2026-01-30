@@ -59,7 +59,6 @@ void BandPopupWidget::setupUi() {
     row1Layout->setSpacing(ButtonSpacing);
     for (const QString &band : row1Bands) {
         QPushButton *btn = createBandButton(band);
-        m_row1Buttons.append(btn);
         m_buttonMap[band] = btn;
         row1Layout->addWidget(btn);
     }
@@ -71,7 +70,6 @@ void BandPopupWidget::setupUi() {
     row2Layout->setSpacing(ButtonSpacing);
     for (const QString &band : row2Bands) {
         QPushButton *btn = createBandButton(band);
-        m_row2Buttons.append(btn);
         m_buttonMap[band] = btn;
         row2Layout->addWidget(btn);
     }
@@ -121,11 +119,6 @@ void BandPopupWidget::onBandButtonClicked() {
         emit bandSelected(bandName);
         hidePopup();
     }
-}
-
-void BandPopupWidget::focusOutEvent(QFocusEvent *event) {
-    Q_UNUSED(event)
-    // Don't auto-close on focus out - let popup behavior handle it
 }
 
 int BandPopupWidget::getBandNumber(const QString &bandName) const {

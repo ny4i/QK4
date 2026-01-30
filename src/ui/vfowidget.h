@@ -79,7 +79,6 @@ private:
 
     VFOType m_type;
     QString m_primaryColor;
-    QString m_inactiveColor;
 
     // Tuning rate indicator (0-5: 1Hz to 100kHz)
     int m_tuningRate = 3; // Default 1kHz

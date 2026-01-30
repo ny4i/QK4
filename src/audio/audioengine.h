@@ -6,7 +6,6 @@
 #include <QAudioSource>
 #include <QAudioFormat>
 #include <QIODevice>
-#include <QBuffer>
 #include <QTimer>
 
 class AudioEngine : public QObject {

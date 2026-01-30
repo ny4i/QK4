@@ -133,7 +133,6 @@ private:
     // Display settings
     float m_minDb = -1.0f;
     float m_maxDb = 4.0f;
-    float m_smoothingAlpha = 0.3f;
     float m_smoothedBaseline = 0.0f;
     float m_heightBoost = 1.5f;
     float m_spectrumRatio = 0.40f; // 40% spectrum, 60% waterfall

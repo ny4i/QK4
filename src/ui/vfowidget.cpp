@@ -10,8 +10,7 @@
 
 VFOWidget::VFOWidget(VFOType type, QWidget *parent)
     : QWidget(parent), m_type(type),
-      m_primaryColor(type == VFO_A ? K4Styles::Colors::VfoACyan : K4Styles::Colors::VfoBGreen),
-      m_inactiveColor(K4Styles::Colors::InactiveGray) {
+      m_primaryColor(type == VFO_A ? K4Styles::Colors::VfoACyan : K4Styles::Colors::VfoBGreen) {
     setupUi();
 }
 

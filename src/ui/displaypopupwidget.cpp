@@ -990,11 +990,6 @@ void DisplayPopupWidget::updateMenuButtonStyles() {
     }
 }
 
-void DisplayPopupWidget::focusOutEvent(QFocusEvent *event) {
-    Q_UNUSED(event)
-    // Qt::Popup handles auto-close on focus loss
-}
-
 void DisplayPopupWidget::setSpanValueA(double spanKHz) {
     m_spanA = spanKHz;
     updateSpanControlGroup();
@@ -1027,7 +1022,6 @@ void DisplayPopupWidget::setAutoRefLevel(bool enabled) {
 
 void DisplayPopupWidget::setRefLevelValueA(int dB) {
     m_refLevelA = dB;
-    m_currentRefLevel = dB; // Keep legacy in sync
     updateRefLevelControlGroup();
 }
 

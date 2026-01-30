@@ -33,7 +33,6 @@ signals:
 
 protected:
     QSize contentSize() const override;
-    void focusOutEvent(QFocusEvent *event) override;
 
 private:
     void setupUi();
@@ -41,9 +40,6 @@ private:
     void updateButtonStyles();
     void onBandButtonClicked();
 
-    // Band buttons organized by row
-    QList<QPushButton *> m_row1Buttons; // 1.8, 3.5, 7, 14, 21, 28, MEM
-    QList<QPushButton *> m_row2Buttons; // GEN, 5, 10, 18, 24, 50, XVTR
     QMap<QString, QPushButton *> m_buttonMap;
 
     QString m_selectedBand;

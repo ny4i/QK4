@@ -355,10 +355,6 @@ void RadioState::parseCATCommand(const QString &command) {
             }
         }
     }
-    // Auto Notch (NT) - legacy
-    else if (cmd.startsWith("NT") && !cmd.startsWith("NT$") && cmd.length() > 2) {
-        m_autoNotchFilter = (cmd.mid(2) == "1");
-    }
     // Auto Notch Sub (NA$) - NA$n; where n=0/1
     else if (cmd.startsWith("NA$") && cmd.length() >= 4) {
         bool enabled = (cmd.at(3) == '1');

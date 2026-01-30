@@ -66,7 +66,6 @@ signals:
     void paTemperatureChanged(double tempC);
     void operatingStateChanged(OperatingState state);
     void faultStatusChanged(FaultStatus status, const QString &faultCode);
-    void atuPresentChanged(bool present);
     void atuInlineChanged(bool inline_);
     void antennaChanged(int antenna);
 
