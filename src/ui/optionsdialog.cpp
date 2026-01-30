@@ -162,12 +162,13 @@ QWidget *OptionsDialog::createAboutPage() {
     auto *layout = new QVBoxLayout(page);
     layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin,
                                K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
-    layout->setSpacing(15);
+    layout->setSpacing(K4Styles::Dimensions::PaddingLarge);
 
     // Title
     auto *titleLabel = new QLabel("Connected Radio", page);
-    titleLabel->setStyleSheet(
-        QString("color: %1; font-size: 16px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
+    titleLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                  .arg(K4Styles::Colors::AccentAmber)
+                                  .arg(K4Styles::Dimensions::FontSizeTitle));
     layout->addWidget(titleLabel);
 
     // Separator line
@@ -179,13 +180,13 @@ QWidget *OptionsDialog::createAboutPage() {
 
     // Two-column layout for Radio Info and Installed Options
     auto *infoRow = new QHBoxLayout();
-    infoRow->setSpacing(20);
+    infoRow->setSpacing(K4Styles::Dimensions::DialogMargin);
 
     // Left column widget: Radio ID and Model
     auto *leftWidget = new QWidget(page);
     auto *leftColumn = new QVBoxLayout(leftWidget);
     leftColumn->setContentsMargins(0, 0, 0, 0);
-    leftColumn->setSpacing(8);
+    leftColumn->setSpacing(K4Styles::Dimensions::PopupButtonSpacing);
 
     // Radio ID
     auto *idLayout = new QHBoxLayout();
@@ -237,7 +238,7 @@ QWidget *OptionsDialog::createAboutPage() {
     auto *rightWidget = new QWidget(page);
     auto *rightColumn = new QVBoxLayout(rightWidget);
     rightColumn->setContentsMargins(0, 0, 0, 0);
-    rightColumn->setSpacing(6);
+    rightColumn->setSpacing(K4Styles::Dimensions::PaddingSmall);
 
     auto *optionsTitle = new QLabel("Installed Options", rightWidget);
     optionsTitle->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
@@ -249,20 +250,24 @@ QWidget *OptionsDialog::createAboutPage() {
         QStringList options = decodeOptionModules(m_radioState->optionModules());
         if (options.isEmpty()) {
             auto *noOptionsLabel = new QLabel("No additional options", rightWidget);
-            noOptionsLabel->setStyleSheet(
-                QString("color: %1; font-size: 12px; font-style: italic;").arg(K4Styles::Colors::TextGray));
+            noOptionsLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-style: italic;")
+                                              .arg(K4Styles::Colors::TextGray)
+                                              .arg(K4Styles::Dimensions::FontSizeButton));
             rightColumn->addWidget(noOptionsLabel);
         } else {
             for (const QString &opt : options) {
                 auto *optLabel = new QLabel(QString::fromUtf8("\u2022 ") + opt, rightWidget);
-                optLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::TextWhite));
+                optLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
+                                            .arg(K4Styles::Colors::TextWhite)
+                                            .arg(K4Styles::Dimensions::FontSizeButton));
                 rightColumn->addWidget(optLabel);
             }
         }
     } else {
         auto *noDataLabel = new QLabel("Not connected", rightWidget);
-        noDataLabel->setStyleSheet(
-            QString("color: %1; font-size: 12px; font-style: italic;").arg(K4Styles::Colors::TextGray));
+        noDataLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-style: italic;")
+                                       .arg(K4Styles::Colors::TextGray)
+                                       .arg(K4Styles::Dimensions::FontSizeButton));
         rightColumn->addWidget(noDataLabel);
     }
     rightColumn->addStretch();
@@ -275,11 +280,12 @@ QWidget *OptionsDialog::createAboutPage() {
     layout->addLayout(infoRow);
 
     // Software Versions section
-    layout->addSpacing(10);
+    layout->addSpacing(K4Styles::Dimensions::PaddingMedium);
 
     auto *versionsTitle = new QLabel("Software Versions", page);
-    versionsTitle->setStyleSheet(
-        QString("color: %1; font-size: 14px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
+    versionsTitle->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                     .arg(K4Styles::Colors::AccentAmber)
+                                     .arg(K4Styles::Dimensions::FontSizePopup));
     layout->addWidget(versionsTitle);
 
     auto *line2 = new QFrame(page);
@@ -303,11 +309,15 @@ QWidget *OptionsDialog::createAboutPage() {
 
             QString displayName = componentNames.value(it.key(), it.key());
             auto *nameLabel = new QLabel(displayName + ":", page);
-            nameLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::TextGray));
+            nameLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
+                                         .arg(K4Styles::Colors::TextGray)
+                                         .arg(K4Styles::Dimensions::FontSizeButton));
             nameLabel->setFixedWidth(K4Styles::Dimensions::InputFieldWidthMedium);
 
             auto *valueLabel = new QLabel(it.value(), page);
-            valueLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::TextWhite));
+            valueLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
+                                          .arg(K4Styles::Colors::TextWhite)
+                                          .arg(K4Styles::Dimensions::FontSizeButton));
 
             versionLayout->addWidget(nameLabel);
             versionLayout->addWidget(valueLabel);
@@ -316,8 +326,9 @@ QWidget *OptionsDialog::createAboutPage() {
         }
     } else {
         auto *noDataLabel = new QLabel("Connect to a radio to view version information", page);
-        noDataLabel->setStyleSheet(
-            QString("color: %1; font-size: 12px; font-style: italic;").arg(K4Styles::Colors::TextGray));
+        noDataLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-style: italic;")
+                                       .arg(K4Styles::Colors::TextGray)
+                                       .arg(K4Styles::Dimensions::FontSizeButton));
         layout->addWidget(noDataLabel);
     }
 
@@ -332,7 +343,7 @@ QWidget *OptionsDialog::createKpodPage() {
     auto *layout = new QVBoxLayout(page);
     layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin,
                                K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
-    layout->setSpacing(15);
+    layout->setSpacing(K4Styles::Dimensions::PaddingLarge);
 
     // Status indicator
     auto *statusLayout = new QHBoxLayout();
@@ -357,16 +368,17 @@ QWidget *OptionsDialog::createKpodPage() {
 
     // Device Summary title
     auto *titleLabel = new QLabel("Device Summary", page);
-    titleLabel->setStyleSheet(
-        QString("color: %1; font-size: 16px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
+    titleLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                  .arg(K4Styles::Colors::AccentAmber)
+                                  .arg(K4Styles::Dimensions::FontSizeTitle));
     layout->addWidget(titleLabel);
 
     // Device info table using grid layout
     auto *tableWidget = new QWidget(page);
     auto *tableLayout = new QGridLayout(tableWidget);
-    tableLayout->setContentsMargins(0, 10, 0, 10);
-    tableLayout->setHorizontalSpacing(20);
-    tableLayout->setVerticalSpacing(8);
+    tableLayout->setContentsMargins(0, K4Styles::Dimensions::PaddingMedium, 0, K4Styles::Dimensions::PaddingMedium);
+    tableLayout->setHorizontalSpacing(K4Styles::Dimensions::DialogMargin);
+    tableLayout->setVerticalSpacing(K4Styles::Dimensions::PopupButtonSpacing);
 
     // Table styling
     QString headerStyle =
@@ -410,8 +422,9 @@ QWidget *OptionsDialog::createKpodPage() {
 
     // Help text
     m_kpodHelpLabel = new QLabel("Connect a K-Pod device to enable this feature.", page);
-    m_kpodHelpLabel->setStyleSheet(
-        QString("color: %1; font-size: 11px; font-style: italic;").arg(K4Styles::Colors::TextGray));
+    m_kpodHelpLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-style: italic;")
+                                       .arg(K4Styles::Colors::TextGray)
+                                       .arg(K4Styles::Dimensions::FontSizeLarge));
     m_kpodHelpLabel->setWordWrap(true);
     layout->addWidget(m_kpodHelpLabel);
 
@@ -431,9 +444,12 @@ void OptionsDialog::updateKpodStatus() {
     bool detected = info.detected;
 
     // Styling
-    QString valueStyle = QString("color: %1; font-size: 12px; padding: 5px;").arg(K4Styles::Colors::TextWhite);
-    QString notDetectedStyle =
-        QString("color: %1; font-size: 12px; font-style: italic; padding: 5px;").arg(K4Styles::Colors::TextGray);
+    QString valueStyle = QString("color: %1; font-size: %2px; padding: 5px;")
+                             .arg(K4Styles::Colors::TextWhite)
+                             .arg(K4Styles::Dimensions::FontSizeButton);
+    QString notDetectedStyle = QString("color: %1; font-size: %2px; font-style: italic; padding: 5px;")
+                                   .arg(K4Styles::Colors::TextGray)
+                                   .arg(K4Styles::Dimensions::FontSizeButton);
 
     // Update status label
     QString statusText = detected ? "Detected" : "Not Detected";
@@ -490,12 +506,13 @@ QWidget *OptionsDialog::createKpa1500Page() {
     auto *layout = new QVBoxLayout(page);
     layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin,
                                K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
-    layout->setSpacing(15);
+    layout->setSpacing(K4Styles::Dimensions::PaddingLarge);
 
     // Title
     auto *titleLabel = new QLabel("KPA1500 Amplifier", page);
-    titleLabel->setStyleSheet(
-        QString("color: %1; font-size: 16px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
+    titleLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                  .arg(K4Styles::Colors::AccentAmber)
+                                  .arg(K4Styles::Dimensions::FontSizeTitle));
     layout->addWidget(titleLabel);
 
     // Status indicator
@@ -523,8 +540,9 @@ QWidget *OptionsDialog::createKpa1500Page() {
 
     // Connection Settings section
     auto *sectionLabel = new QLabel("Connection Settings", page);
-    sectionLabel->setStyleSheet(
-        QString("color: %1; font-size: 14px; font-weight: bold;").arg(K4Styles::Colors::TextWhite));
+    sectionLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                    .arg(K4Styles::Colors::TextWhite)
+                                    .arg(K4Styles::Dimensions::FontSizePopup));
     layout->addWidget(sectionLabel);
 
     // IP Address input
@@ -573,7 +591,9 @@ QWidget *OptionsDialog::createKpa1500Page() {
     m_kpa1500PortEdit->setText(QString::number(RadioSettings::instance()->kpa1500Port()));
 
     auto *portHint = new QLabel("(default: 1500)", page);
-    portHint->setStyleSheet(QString("color: %1; font-size: 11px;").arg(K4Styles::Colors::TextGray));
+    portHint->setStyleSheet(QString("color: %1; font-size: %2px;")
+                                .arg(K4Styles::Colors::TextGray)
+                                .arg(K4Styles::Dimensions::FontSizeLarge));
 
     portLayout->addWidget(portLabel);
     portLayout->addWidget(m_kpa1500PortEdit);
@@ -609,12 +629,14 @@ QWidget *OptionsDialog::createKpa1500Page() {
                                      .arg(K4Styles::Dimensions::FontSizePopup));
 
     auto *pollHint = new QLabel("(100-5000, default: 800)", page);
-    pollHint->setStyleSheet(QString("color: %1; font-size: 11px;").arg(K4Styles::Colors::TextGray));
+    pollHint->setStyleSheet(QString("color: %1; font-size: %2px;")
+                                .arg(K4Styles::Colors::TextGray)
+                                .arg(K4Styles::Dimensions::FontSizeLarge));
 
     pollLayout->addWidget(pollLabel);
     pollLayout->addWidget(m_kpa1500PollIntervalEdit);
     pollLayout->addWidget(pollUnitLabel);
-    pollLayout->addSpacing(10);
+    pollLayout->addSpacing(K4Styles::Dimensions::PaddingMedium);
     pollLayout->addWidget(pollHint);
     pollLayout->addStretch();
     layout->addLayout(pollLayout);
@@ -640,8 +662,9 @@ QWidget *OptionsDialog::createKpa1500Page() {
     // Help text
     auto *kpa1500HelpLabel =
         new QLabel("When enabled, K4Controller will connect to the KPA1500 amplifier for status monitoring.", page);
-    kpa1500HelpLabel->setStyleSheet(
-        QString("color: %1; font-size: 11px; font-style: italic;").arg(K4Styles::Colors::TextGray));
+    kpa1500HelpLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-style: italic;")
+                                        .arg(K4Styles::Colors::TextGray)
+                                        .arg(K4Styles::Dimensions::FontSizeLarge));
     kpa1500HelpLabel->setWordWrap(true);
     layout->addWidget(kpa1500HelpLabel);
 
@@ -706,12 +729,13 @@ QWidget *OptionsDialog::createAudioInputPage() {
     auto *layout = new QVBoxLayout(page);
     layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin,
                                K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
-    layout->setSpacing(15);
+    layout->setSpacing(K4Styles::Dimensions::PaddingLarge);
 
     // Title
     auto *titleLabel = new QLabel("Audio Input", page);
-    titleLabel->setStyleSheet(
-        QString("color: %1; font-size: 16px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
+    titleLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                  .arg(K4Styles::Colors::AccentAmber)
+                                  .arg(K4Styles::Dimensions::FontSizeTitle));
     layout->addWidget(titleLabel);
 
     // Separator line
@@ -747,7 +771,7 @@ QWidget *OptionsDialog::createAudioInputPage() {
             &OptionsDialog::onMicDeviceChanged);
     layout->addWidget(m_micDeviceCombo);
 
-    layout->addSpacing(10);
+    layout->addSpacing(K4Styles::Dimensions::PaddingMedium);
 
     // === Microphone Gain ===
     auto *gainLayout = new QHBoxLayout();
@@ -782,7 +806,7 @@ QWidget *OptionsDialog::createAudioInputPage() {
                                      .arg(K4Styles::Dimensions::FontSizeLarge));
     layout->addWidget(gainHelpLabel);
 
-    layout->addSpacing(15);
+    layout->addSpacing(K4Styles::Dimensions::PaddingLarge);
 
     // === Microphone Test Section ===
     auto *line2 = new QFrame(page);
@@ -792,17 +816,20 @@ QWidget *OptionsDialog::createAudioInputPage() {
     layout->addWidget(line2);
 
     auto *testSectionLabel = new QLabel("Microphone Test", page);
-    testSectionLabel->setStyleSheet(
-        QString("color: %1; font-size: 14px; font-weight: bold;").arg(K4Styles::Colors::TextWhite));
+    testSectionLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                        .arg(K4Styles::Colors::TextWhite)
+                                        .arg(K4Styles::Dimensions::FontSizePopup));
     layout->addWidget(testSectionLabel);
 
     auto *testHelpLabel =
         new QLabel("Click the Test button to activate the microphone and check the input level.", page);
-    testHelpLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::TextGray));
+    testHelpLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
+                                     .arg(K4Styles::Colors::TextGray)
+                                     .arg(K4Styles::Dimensions::FontSizeButton));
     testHelpLabel->setWordWrap(true);
     layout->addWidget(testHelpLabel);
 
-    layout->addSpacing(5);
+    layout->addSpacing(5); // Small gap before meter
 
     // Mic Level Meter
     auto *meterLayout = new QHBoxLayout();
@@ -818,7 +845,7 @@ QWidget *OptionsDialog::createAudioInputPage() {
 
     layout->addLayout(meterLayout);
 
-    layout->addSpacing(10);
+    layout->addSpacing(K4Styles::Dimensions::PaddingMedium);
 
     // Test Button
     m_micTestBtn = new QPushButton("Test Microphone", page);
@@ -917,12 +944,13 @@ QWidget *OptionsDialog::createAudioOutputPage() {
     auto *layout = new QVBoxLayout(page);
     layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin,
                                K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
-    layout->setSpacing(15);
+    layout->setSpacing(K4Styles::Dimensions::PaddingLarge);
 
     // Title
     auto *titleLabel = new QLabel("Audio Output", page);
-    titleLabel->setStyleSheet(
-        QString("color: %1; font-size: 16px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
+    titleLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                  .arg(K4Styles::Colors::AccentAmber)
+                                  .arg(K4Styles::Dimensions::FontSizeTitle));
     layout->addWidget(titleLabel);
 
     // Separator line
@@ -958,14 +986,15 @@ QWidget *OptionsDialog::createAudioOutputPage() {
             &OptionsDialog::onSpeakerDeviceChanged);
     layout->addWidget(m_speakerDeviceCombo);
 
-    layout->addSpacing(10);
+    layout->addSpacing(K4Styles::Dimensions::PaddingMedium);
 
     // Help text
     auto *helpLabel = new QLabel("Select the audio output device for radio receive audio. "
                                  "Volume is controlled by the MAIN and SUB sliders on the side panel.",
                                  page);
-    helpLabel->setStyleSheet(
-        QString("color: %1; font-size: 11px; font-style: italic;").arg(K4Styles::Colors::TextGray));
+    helpLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-style: italic;")
+                                 .arg(K4Styles::Colors::TextGray)
+                                 .arg(K4Styles::Dimensions::FontSizeLarge));
     helpLabel->setWordWrap(true);
     layout->addWidget(helpLabel);
 
@@ -1015,12 +1044,13 @@ QWidget *OptionsDialog::createNetworkPage() {
     auto *layout = new QVBoxLayout(page);
     layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin,
                                K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
-    layout->setSpacing(15);
+    layout->setSpacing(K4Styles::Dimensions::PaddingLarge);
 
     // Title
     auto *titleLabel = new QLabel("Network", page);
-    titleLabel->setStyleSheet(
-        QString("color: %1; font-size: 16px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
+    titleLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                  .arg(K4Styles::Colors::AccentAmber)
+                                  .arg(K4Styles::Dimensions::FontSizeTitle));
     layout->addWidget(titleLabel);
 
     // Separator line
@@ -1049,19 +1079,22 @@ QWidget *OptionsDialog::createRigControlPage() {
     auto *layout = new QVBoxLayout(page);
     layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin,
                                K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
-    layout->setSpacing(15);
+    layout->setSpacing(K4Styles::Dimensions::PaddingLarge);
 
     // Title
     auto *titleLabel = new QLabel("CAT Server", page);
-    titleLabel->setStyleSheet(
-        QString("color: %1; font-size: 16px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
+    titleLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                  .arg(K4Styles::Colors::AccentAmber)
+                                  .arg(K4Styles::Dimensions::FontSizeTitle));
     layout->addWidget(titleLabel);
 
     // Description
     auto *descLabel = new QLabel("Enable the CAT server to allow external applications (WSJT-X, MacLoggerDX, fldigi) "
                                  "to connect using their native Elecraft K4 support. No protocol translation needed.",
                                  page);
-    descLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::TextGray));
+    descLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
+                                 .arg(K4Styles::Colors::TextGray)
+                                 .arg(K4Styles::Dimensions::FontSizeButton));
     descLabel->setWordWrap(true);
     layout->addWidget(descLabel);
 
@@ -1117,8 +1150,9 @@ QWidget *OptionsDialog::createRigControlPage() {
 
     // Connection Settings section
     auto *sectionLabel = new QLabel("Settings", page);
-    sectionLabel->setStyleSheet(
-        QString("color: %1; font-size: 14px; font-weight: bold;").arg(K4Styles::Colors::TextWhite));
+    sectionLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                    .arg(K4Styles::Colors::TextWhite)
+                                    .arg(K4Styles::Dimensions::FontSizePopup));
     layout->addWidget(sectionLabel);
 
     // Port input
@@ -1143,7 +1177,9 @@ QWidget *OptionsDialog::createRigControlPage() {
     m_catServerPortEdit->setText(QString::number(RadioSettings::instance()->catServerPort()));
 
     auto *portHint = new QLabel("(default: 9299)", page);
-    portHint->setStyleSheet(QString("color: %1; font-size: 11px;").arg(K4Styles::Colors::TextGray));
+    portHint->setStyleSheet(QString("color: %1; font-size: %2px;")
+                                .arg(K4Styles::Colors::TextGray)
+                                .arg(K4Styles::Dimensions::FontSizeLarge));
 
     portLayout->addWidget(portLabel);
     portLayout->addWidget(m_catServerPortEdit);
@@ -1173,8 +1209,9 @@ QWidget *OptionsDialog::createRigControlPage() {
     auto *helpLabel = new QLabel("Configure external apps to use Elecraft K4, host 127.0.0.1, and the port above. "
                                  "Commands are forwarded to the real K4.",
                                  page);
-    helpLabel->setStyleSheet(
-        QString("color: %1; font-size: 11px; font-style: italic;").arg(K4Styles::Colors::TextGray));
+    helpLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-style: italic;")
+                                 .arg(K4Styles::Colors::TextGray)
+                                 .arg(K4Styles::Dimensions::FontSizeLarge));
     helpLabel->setWordWrap(true);
     layout->addWidget(helpLabel);
 
@@ -1231,19 +1268,22 @@ QWidget *OptionsDialog::createCwKeyerPage() {
     auto *layout = new QVBoxLayout(page);
     layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin,
                                K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
-    layout->setSpacing(15);
+    layout->setSpacing(K4Styles::Dimensions::PaddingLarge);
 
     // Title
     auto *titleLabel = new QLabel("CW Keyer", page);
-    titleLabel->setStyleSheet(
-        QString("color: %1; font-size: 16px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
+    titleLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                  .arg(K4Styles::Colors::AccentAmber)
+                                  .arg(K4Styles::Dimensions::FontSizeTitle));
     layout->addWidget(titleLabel);
 
     // Description
     auto *descLabel = new QLabel("Connect a HaliKey paddle interface to send CW via the K4's keyer. "
                                  "The HaliKey uses serial port flow control signals to detect paddle inputs.",
                                  page);
-    descLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::TextGray));
+    descLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
+                                 .arg(K4Styles::Colors::TextGray)
+                                 .arg(K4Styles::Dimensions::FontSizeButton));
     descLabel->setWordWrap(true);
     layout->addWidget(descLabel);
 
@@ -1281,8 +1321,9 @@ QWidget *OptionsDialog::createCwKeyerPage() {
 
     // Connection Settings section
     auto *sectionLabel = new QLabel("Connection Settings", page);
-    sectionLabel->setStyleSheet(
-        QString("color: %1; font-size: 14px; font-weight: bold;").arg(K4Styles::Colors::TextWhite));
+    sectionLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                    .arg(K4Styles::Colors::TextWhite)
+                                    .arg(K4Styles::Dimensions::FontSizePopup));
     layout->addWidget(sectionLabel);
 
     // Port selection
@@ -1347,19 +1388,22 @@ QWidget *OptionsDialog::createCwKeyerPage() {
 
     // Paddle Test section
     auto *testSectionLabel = new QLabel("Paddle Test", page);
-    testSectionLabel->setStyleSheet(
-        QString("color: %1; font-size: 14px; font-weight: bold;").arg(K4Styles::Colors::TextWhite));
+    testSectionLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                        .arg(K4Styles::Colors::TextWhite)
+                                        .arg(K4Styles::Dimensions::FontSizePopup));
     layout->addWidget(testSectionLabel);
 
     auto *testHelpLabel =
         new QLabel("Press the paddle contacts to test. Indicators light up when contacts close.", page);
-    testHelpLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(K4Styles::Colors::TextGray));
+    testHelpLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
+                                     .arg(K4Styles::Colors::TextGray)
+                                     .arg(K4Styles::Dimensions::FontSizeButton));
     testHelpLabel->setWordWrap(true);
     layout->addWidget(testHelpLabel);
 
     // Paddle indicators
     auto *indicatorLayout = new QHBoxLayout();
-    indicatorLayout->setSpacing(30);
+    indicatorLayout->setSpacing(K4Styles::Dimensions::IndicatorSpacing);
 
     // Dit indicator
     auto *ditLayout = new QVBoxLayout();
@@ -1370,7 +1414,9 @@ QWidget *OptionsDialog::createCwKeyerPage() {
                                              .arg(K4Styles::Dimensions::BorderWidth)
                                              .arg(K4Styles::Dimensions::IndicatorSize / 2));
     auto *ditLabel = new QLabel("DIT", page);
-    ditLabel->setStyleSheet(QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
+    ditLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                .arg(K4Styles::Colors::TextGray)
+                                .arg(K4Styles::Dimensions::FontSizeButton));
     ditLabel->setAlignment(Qt::AlignCenter);
     ditLayout->addWidget(m_cwKeyerDitIndicator, 0, Qt::AlignCenter);
     ditLayout->addWidget(ditLabel);
@@ -1384,7 +1430,9 @@ QWidget *OptionsDialog::createCwKeyerPage() {
                                              .arg(K4Styles::Dimensions::BorderWidth)
                                              .arg(K4Styles::Dimensions::IndicatorSize / 2));
     auto *dahLabel = new QLabel("DAH", page);
-    dahLabel->setStyleSheet(QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
+    dahLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                .arg(K4Styles::Colors::TextGray)
+                                .arg(K4Styles::Dimensions::FontSizeButton));
     dahLabel->setAlignment(Qt::AlignCenter);
     dahLayout->addWidget(m_cwKeyerDahIndicator, 0, Qt::AlignCenter);
     dahLayout->addWidget(dahLabel);
@@ -1417,8 +1465,9 @@ QWidget *OptionsDialog::createCwKeyerPage() {
 
     // Help text
     auto *helpLabel = new QLabel("When enabled, the CW Keyer will automatically connect on application startup.", page);
-    helpLabel->setStyleSheet(
-        QString("color: %1; font-size: 11px; font-style: italic;").arg(K4Styles::Colors::TextGray));
+    helpLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-style: italic;")
+                                 .arg(K4Styles::Colors::TextGray)
+                                 .arg(K4Styles::Dimensions::FontSizeLarge));
     helpLabel->setWordWrap(true);
     layout->addWidget(helpLabel);
 
@@ -1583,12 +1632,13 @@ QWidget *OptionsDialog::createDxClusterPage() {
     auto *layout = new QVBoxLayout(page);
     layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin,
                                K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
-    layout->setSpacing(15);
+    layout->setSpacing(K4Styles::Dimensions::PaddingLarge);
 
     // Title
     auto *titleLabel = new QLabel("DX Cluster", page);
-    titleLabel->setStyleSheet(
-        QString("color: %1; font-size: 16px; font-weight: bold;").arg(K4Styles::Colors::AccentAmber));
+    titleLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                  .arg(K4Styles::Colors::AccentAmber)
+                                  .arg(K4Styles::Dimensions::FontSizeTitle));
     layout->addWidget(titleLabel);
 
     // Separator line

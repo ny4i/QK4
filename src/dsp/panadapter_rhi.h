@@ -212,7 +212,7 @@ private:
     // Mouse drag state
     bool m_isDragging = false;
     bool m_isRightDragging = false;
-    QElapsedTimer m_edgeScrollTimer;  // Rate limiting for edge drag scrolling
+    QElapsedTimer m_edgeScrollTimer; // Rate limiting for edge drag scrolling
 
     // Secondary VFO (other receiver's passband)
     qint64 m_secondaryTunedFreq = 0;

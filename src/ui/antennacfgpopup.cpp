@@ -43,7 +43,7 @@ void AntennaCfgPopupWidget::setupUi() {
 
     // Mode selection row
     auto *modeLayout = new QHBoxLayout();
-    modeLayout->setSpacing(8);
+    modeLayout->setSpacing(K4Styles::Dimensions::PopupButtonSpacing);
 
     // DISPLAY ALL radio button - smaller
     m_displayAllBtn = new QPushButton("DISPLAY ALL", this);

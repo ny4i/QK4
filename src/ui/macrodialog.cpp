@@ -314,8 +314,10 @@ void MacroDialog::setupUi() {
     navPanel->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::OverlayHeaderBg));
 
     QVBoxLayout *navOuterLayout = new QVBoxLayout(navPanel);
-    navOuterLayout->setContentsMargins(8, 12, 8, 12);
-    navOuterLayout->setSpacing(8);
+    navOuterLayout->setContentsMargins(
+        K4Styles::Dimensions::PopupButtonSpacing, K4Styles::Dimensions::PopupContentMargin,
+        K4Styles::Dimensions::PopupButtonSpacing, K4Styles::Dimensions::PopupContentMargin);
+    navOuterLayout->setSpacing(K4Styles::Dimensions::PopupButtonSpacing);
 
     QString buttonStyle = QString("QPushButton { background-color: %1; color: %2; border: none; "
                                   "border-radius: %3px; font-size: %4px; font-weight: bold; }"
@@ -328,7 +330,7 @@ void MacroDialog::setupUi() {
 
     // Row 1: Up and Down buttons
     QHBoxLayout *row1 = new QHBoxLayout();
-    row1->setSpacing(8);
+    row1->setSpacing(K4Styles::Dimensions::PopupButtonSpacing);
 
     m_upBtn = new QPushButton("\xE2\x96\xB2", navPanel); // Up arrow
     m_upBtn->setFixedSize(K4Styles::Dimensions::NavButtonWidth, K4Styles::Dimensions::PopupButtonHeight);
@@ -347,7 +349,7 @@ void MacroDialog::setupUi() {
 
     // Row 2: EDIT and Back buttons
     QHBoxLayout *row2 = new QHBoxLayout();
-    row2->setSpacing(8);
+    row2->setSpacing(K4Styles::Dimensions::PopupButtonSpacing);
 
     m_editBtn = new QPushButton("EDIT", navPanel);
     m_editBtn->setFixedSize(K4Styles::Dimensions::NavButtonWidth, K4Styles::Dimensions::PopupButtonHeight);

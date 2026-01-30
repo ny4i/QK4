@@ -278,6 +278,7 @@ constexpr int TabListWidth = 150;          // Options dialog tab list width
 constexpr int InputFieldWidthSmall = 100;  // Port number, small inputs
 constexpr int InputFieldWidthMedium = 120; // Version labels, medium fields
 constexpr int IndicatorSize = 40;          // Dit/dah paddle indicators
+constexpr int IndicatorSpacing = 30;       // Spacing between dit/dah indicators
 constexpr int CheckboxSize = 18;           // Checkbox indicator dimensions
 constexpr int PaddingSmall = 6;            // Small padding (inputs)
 constexpr int PaddingMedium = 10;          // Medium padding (buttons)

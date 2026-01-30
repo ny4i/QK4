@@ -472,7 +472,7 @@ void DisplayPopupWidget::setupUi() {
 
 void DisplayPopupWidget::setupTopRow() {
     auto *topRow = new QHBoxLayout();
-    topRow->setSpacing(8);
+    topRow->setSpacing(K4Styles::Dimensions::PopupButtonSpacing);
 
     // === Target Toggle Groups (left side) ===
 
