@@ -3,6 +3,10 @@
 CLAUDE.md
 **/CLAUDE.md
 
+# Python cache
+__pycache__/
+*.pyc
+
 # Build artifacts
 /build/
 *.o
