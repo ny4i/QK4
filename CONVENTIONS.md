@@ -37,7 +37,7 @@ Code style, naming conventions, and development rules for K4Controller.
 
 | Element | Convention | Example |
 |---------|------------|---------|
-| Classes | PascalCase | `PanadapterWidget`, `RadioState` |
+| Classes | PascalCase | `PanadapterRhiWidget`, `RadioState` |
 | Methods | camelCase | `updateSpectrum()`, `setRefLevel()` |
 | Member Variables | m_camelCase | `m_frequencyALabel`, `m_tcpClient` |
 | Signals | camelCase | `frequencyChanged`, `clicked` |
