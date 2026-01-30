@@ -2766,11 +2766,12 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     m_bSetLabel->setAlignment(Qt::AlignCenter);
     m_bSetLabel->setStyleSheet(QString("background-color: %1;"
                                        "color: black;"
-                                       "font-size: 12px;"
+                                       "font-size: %2px;"
                                        "font-weight: bold;"
                                        "border-radius: 4px;"
                                        "padding: 2px 8px;")
-                                   .arg(K4Styles::Colors::AgcGreen));
+                                   .arg(K4Styles::Colors::AgcGreen)
+                                   .arg(K4Styles::Dimensions::FontSizeButton));
     m_bSetLabel->setVisible(false);
     centerLayout->addWidget(m_bSetLabel, 0, Qt::AlignHCenter);
 
@@ -2821,8 +2822,9 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     m_ritXitValueLabel = new QLabel("+0.00", m_ritXitBox);
     m_ritXitValueLabel->setAlignment(Qt::AlignCenter);
     m_ritXitValueLabel->setStyleSheet(
-        QString("color: %1; font-size: 14px; font-weight: bold; border: none; padding: 0 11px;")
-            .arg(K4Styles::Colors::InactiveGray)); // Grey until RIT/XIT is enabled
+        QString("color: %1; font-size: %2px; font-weight: bold; border: none; padding: 0 11px;")
+            .arg(K4Styles::Colors::InactiveGray)
+            .arg(K4Styles::Dimensions::FontSizePopup)); // Grey until RIT/XIT is enabled
     ritXitLayout->addWidget(m_ritXitValueLabel);
 
     // Create filter/RIT/XIT row - filter indicators flanking the RIT/XIT box

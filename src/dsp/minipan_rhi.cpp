@@ -1,4 +1,5 @@
 #include "minipan_rhi.h"
+#include "ui/k4styles.h"
 #include <QFile>
 #include <QMouseEvent>
 #include <QResizeEvent>
@@ -926,14 +927,15 @@ void MiniPanRhiWidget::resizeEvent(QResizeEvent *event) {
 
 void MiniPanRhiWidget::createFrequencyLabels() {
     // Style for the frequency labels - small, semi-transparent background
-    QString labelStyle = "QLabel {"
-                         "  color: #CCCCCC;"
-                         "  background-color: rgba(0, 0, 0, 160);"
-                         "  padding: 1px 3px;"
-                         "  font-size: 9px;"
-                         "  font-weight: bold;"
-                         "  border-radius: 2px;"
-                         "}";
+    QString labelStyle = QString("QLabel {"
+                                 "  color: #CCCCCC;"
+                                 "  background-color: rgba(0, 0, 0, 160);"
+                                 "  padding: 1px 3px;"
+                                 "  font-size: %1px;"
+                                 "  font-weight: bold;"
+                                 "  border-radius: 2px;"
+                                 "}")
+                             .arg(K4Styles::Dimensions::FontSizeNormal);
 
     // Left label (negative frequency offset)
     m_leftFreqLabel = new QLabel(this);

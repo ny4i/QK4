@@ -18,8 +18,9 @@ MenuItemWidget::MenuItemWidget(MenuItem *item, QWidget *parent) : QWidget(parent
 
     // Name label
     m_nameLabel = new QLabel(item->name, this);
-    m_nameLabel->setStyleSheet(
-        QString("color: %1; font-size: 14px;").arg(K4Styles::Colors::TextGray)); // Initial unselected state
+    m_nameLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
+                                   .arg(K4Styles::Colors::TextGray)
+                                   .arg(K4Styles::Dimensions::FontSizePopup)); // Initial unselected state
     layout->addWidget(m_nameLabel, 1);
 
     // Lock icon (for read-only items)
@@ -32,8 +33,9 @@ MenuItemWidget::MenuItemWidget(MenuItem *item, QWidget *parent) : QWidget(parent
 
     // Value label
     m_valueLabel = new QLabel(item->displayValue(), this);
-    m_valueLabel->setStyleSheet(QString("color: %1; font-size: 14px; font-weight: bold;")
-                                    .arg(K4Styles::Colors::TextFaded)); // Initial unselected state
+    m_valueLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                    .arg(K4Styles::Colors::TextFaded)
+                                    .arg(K4Styles::Dimensions::FontSizePopup)); // Initial unselected state
     m_valueLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
     m_valueLabel->setMinimumWidth(80);
     layout->addWidget(m_valueLabel);
@@ -56,20 +58,26 @@ void MenuItemWidget::updateLabelColors() {
             m_nameLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
                                            .arg(K4Styles::Colors::SelectionLight)
                                            .arg(K4Styles::Dimensions::FontSizePopup)); // Light text on grey
-            m_valueLabel->setStyleSheet(QString("color: %1; font-size: 14px; font-weight: bold;")
-                                            .arg(K4Styles::Colors::TextDark)); // Dark text on off-white
+            m_valueLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                            .arg(K4Styles::Colors::TextDark)
+                                            .arg(K4Styles::Dimensions::FontSizePopup)); // Dark text on off-white
         } else {
             // BROWSE MODE: name on off-white, value on grey
-            m_nameLabel->setStyleSheet(
-                QString("color: %1; font-size: 14px;").arg(K4Styles::Colors::TextDark)); // Dark text on off-white
-            m_valueLabel->setStyleSheet(QString("color: %1; font-size: 14px; font-weight: bold;")
-                                            .arg(K4Styles::Colors::TextWhite)); // White text on grey
+            m_nameLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
+                                           .arg(K4Styles::Colors::TextDark)
+                                           .arg(K4Styles::Dimensions::FontSizePopup)); // Dark text on off-white
+            m_valueLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                            .arg(K4Styles::Colors::TextWhite)
+                                            .arg(K4Styles::Dimensions::FontSizePopup)); // White text on grey
         }
     } else {
         // Unselected: grey text on dark background
-        m_nameLabel->setStyleSheet(QString("color: %1; font-size: 14px;").arg(K4Styles::Colors::TextGray));
-        m_valueLabel->setStyleSheet(
-            QString("color: %1; font-size: 14px; font-weight: bold;").arg(K4Styles::Colors::TextFaded));
+        m_nameLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
+                                       .arg(K4Styles::Colors::TextGray)
+                                       .arg(K4Styles::Dimensions::FontSizePopup));
+        m_valueLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
+                                        .arg(K4Styles::Colors::TextFaded)
+                                        .arg(K4Styles::Dimensions::FontSizePopup));
     }
 }
 

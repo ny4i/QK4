@@ -288,7 +288,7 @@ void KPA1500Panel::paintEvent(QPaintEvent *event) {
 
     // Title
     QFont titleFont = font();
-    titleFont.setPointSize(10);
+    titleFont.setPointSize(K4Styles::Dimensions::FontSizeMedium);
     titleFont.setBold(true);
     painter.setFont(titleFont);
     painter.setPen(QColor(K4Styles::Colors::AccentAmber));

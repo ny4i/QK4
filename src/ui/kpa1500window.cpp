@@ -49,7 +49,7 @@ void KPA1500Window::setupUi() {
                                       "  background-color: transparent; "
                                       "  color: %1; "
                                       "  border: none; "
-                                      "  font-size: 14px; "
+                                      "  font-size: %3px; "
                                       "  font-weight: bold; "
                                       "} "
                                       "QPushButton:hover { "
@@ -57,7 +57,8 @@ void KPA1500Window::setupUi() {
                                       "  border-radius: 3px; "
                                       "}")
                                   .arg(K4Styles::Colors::TextGray)
-                                  .arg(K4Styles::Colors::BorderNormal));
+                                  .arg(K4Styles::Colors::BorderNormal)
+                                  .arg(K4Styles::Dimensions::FontSizePopup));
     m_closeBtn->setText(QString::fromUtf8("\u00D7")); // × symbol
 
     connect(m_closeBtn, &QPushButton::clicked, this, [this]() {

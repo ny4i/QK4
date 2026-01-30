@@ -94,14 +94,15 @@ void TextDecodeWindow::setupUi() {
                                       "  background: transparent;"
                                       "  color: %1;"
                                       "  border: none;"
-                                      "  font-size: 14px;"
+                                      "  font-size: %2px;"
                                       "  font-weight: bold;"
                                       "}"
                                       "QPushButton:hover {"
                                       "  background: rgba(0, 0, 0, 0.2);"
                                       "  border-radius: 4px;"
                                       "}")
-                                  .arg(K4Styles::Colors::DarkBackground));
+                                  .arg(K4Styles::Colors::DarkBackground)
+                                  .arg(K4Styles::Dimensions::FontSizePopup));
 
     // Layout: [ON][WPM][AUTO][-][5][+] <stretch> TITLE [X]
     titleLayout->addWidget(m_onOffBtn);
