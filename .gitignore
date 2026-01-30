@@ -1,3 +1,8 @@
+# Proprietary/Internal Documents - NEVER COMMIT
+*.pdf
+CLAUDE.md
+**/CLAUDE.md
+
 # Build artifacts
 /build/
 *.o
