@@ -453,7 +453,7 @@ void OptionsDialog::updateKpodStatus() {
 
     // Update status label
     QString statusText = detected ? "Detected" : "Not Detected";
-    QString statusColor = detected ? K4Styles::Colors::AgcGreen : K4Styles::Colors::ErrorRed;
+    QString statusColor = detected ? K4Styles::Colors::StatusGreen : K4Styles::Colors::ErrorRed;
     m_kpodStatusLabel->setText(statusText);
     m_kpodStatusLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
                                          .arg(statusColor)
@@ -708,7 +708,7 @@ void OptionsDialog::updateKpa1500Status() {
     if (isConnected) {
         m_kpa1500StatusLabel->setText("Connected");
         m_kpa1500StatusLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
-                                                .arg(K4Styles::Colors::AgcGreen)
+                                                .arg(K4Styles::Colors::StatusGreen)
                                                 .arg(K4Styles::Dimensions::FontSizePopup));
     } else {
         m_kpa1500StatusLabel->setText("Not Connected");
@@ -1248,7 +1248,7 @@ void OptionsDialog::updateCatServerStatus() {
     if (isListening) {
         m_catServerStatusLabel->setText(QString("Listening on port %1").arg(m_catServer->port()));
         m_catServerStatusLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
-                                                  .arg(K4Styles::Colors::AgcGreen)
+                                                  .arg(K4Styles::Colors::StatusGreen)
                                                   .arg(K4Styles::Dimensions::FontSizePopup));
     } else {
         m_catServerStatusLabel->setText("Not running");
@@ -1593,7 +1593,7 @@ void OptionsDialog::updateCwKeyerStatus() {
     if (isConnected) {
         m_cwKeyerStatusLabel->setText(QString("Connected to %1").arg(m_halikeyDevice->portName()));
         m_cwKeyerStatusLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
-                                                .arg(K4Styles::Colors::AgcGreen)
+                                                .arg(K4Styles::Colors::StatusGreen)
                                                 .arg(K4Styles::Dimensions::FontSizePopup));
         m_cwKeyerConnectBtn->setText("Disconnect");
     } else {

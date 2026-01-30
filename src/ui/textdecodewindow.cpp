@@ -351,71 +351,7 @@ void TextDecodeWindow::wheelEvent(QWheelEvent *event) {
 }
 
 QString TextDecodeWindow::controlButtonStyle(bool selected) const {
-    if (selected) {
-        return QString("QPushButton {"
-                       "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-                       "    stop:0 %1, stop:0.4 %2, stop:0.6 %3, stop:1 %4);"
-                       "  color: %5;"
-                       "  border: 1px solid %6;"
-                       "  border-radius: 4px;"
-                       "  font-size: 9px;"
-                       "  font-weight: bold;"
-                       "  padding: 2px 4px;"
-                       "}"
-                       "QPushButton:hover {"
-                       "  border: 1px solid %7;"
-                       "}"
-                       "QPushButton:pressed {"
-                       "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-                       "    stop:0 %4, stop:1 %1);"
-                       "}")
-            .arg(K4Styles::Colors::SelectedTop)
-            .arg(K4Styles::Colors::SelectedMid1)
-            .arg(K4Styles::Colors::SelectedMid2)
-            .arg(K4Styles::Colors::SelectedBottom)
-            .arg(K4Styles::Colors::TextDark)
-            .arg(K4Styles::Colors::BorderSelected)
-            .arg(K4Styles::Colors::BorderHover);
-    } else {
-        return QString("QPushButton {"
-                       "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-                       "    stop:0 %1, stop:0.4 %2, stop:0.6 %3, stop:1 %4);"
-                       "  color: %5;"
-                       "  border: 1px solid %6;"
-                       "  border-radius: 4px;"
-                       "  font-size: 9px;"
-                       "  font-weight: bold;"
-                       "  padding: 2px 4px;"
-                       "}"
-                       "QPushButton:hover {"
-                       "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-                       "    stop:0 %7, stop:0.4 %8, stop:0.6 %9, stop:1 %10);"
-                       "  border: 1px solid %11;"
-                       "}"
-                       "QPushButton:pressed {"
-                       "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-                       "    stop:0 %4, stop:1 %1);"
-                       "}"
-                       "QPushButton:disabled {"
-                       "  background: %12;"
-                       "  color: %13;"
-                       "  border: 1px solid %14;"
-                       "}")
-            .arg(K4Styles::Colors::GradientTop)
-            .arg(K4Styles::Colors::GradientMid1)
-            .arg(K4Styles::Colors::GradientMid2)
-            .arg(K4Styles::Colors::GradientBottom)
-            .arg(K4Styles::Colors::TextWhite)
-            .arg(K4Styles::Colors::BorderNormal)
-            .arg(K4Styles::Colors::HoverTop)
-            .arg(K4Styles::Colors::HoverMid1)
-            .arg(K4Styles::Colors::HoverMid2)
-            .arg(K4Styles::Colors::HoverBottom)
-            .arg(K4Styles::Colors::BorderHover)
-            .arg(K4Styles::Colors::DisabledBackground)
-            .arg(K4Styles::Colors::InactiveGray)
-            .arg(K4Styles::Colors::BorderNormal);
-    }
+    return K4Styles::controlButton(selected);
 }
 
 void TextDecodeWindow::updateButtonStates() {

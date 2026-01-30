@@ -21,63 +21,19 @@ void KPA1500Panel::setupUi() {
     buttonLayout->setContentsMargins(8, 0, 8, 8);
     buttonLayout->setSpacing(4);
 
-    // Button stylesheet - matches K4Styles right side panel buttons
-    QString btnStyle = QString(R"(
-        QPushButton {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 %1, stop:0.4 %2,
-                stop:0.6 %3, stop:1 %4);
-            color: %5;
-            border: %6px solid %7;
-            border-radius: %8px;
-            font-size: %9px;
-            font-weight: bold;
-            padding: 2px 4px;
-        }
-        QPushButton:hover {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 %10, stop:0.4 %11,
-                stop:0.6 %12, stop:1 %13);
-            border-color: %14;
-        }
-        QPushButton:pressed {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 %4, stop:0.4 %3,
-                stop:0.6 %2, stop:1 %1);
-        }
-        QPushButton:disabled {
-            color: %15;
-        }
-    )")
-                           .arg(K4Styles::Colors::GradientTop)        // %1
-                           .arg(K4Styles::Colors::GradientMid1)       // %2
-                           .arg(K4Styles::Colors::GradientMid2)       // %3
-                           .arg(K4Styles::Colors::GradientBottom)     // %4
-                           .arg(K4Styles::Colors::TextWhite)          // %5
-                           .arg(K4Styles::Dimensions::BorderWidth)    // %6
-                           .arg(K4Styles::Colors::BorderNormal)       // %7
-                           .arg(K4Styles::Dimensions::BorderRadius)   // %8
-                           .arg(K4Styles::Dimensions::FontSizeNormal) // %9
-                           .arg(K4Styles::Colors::HoverTop)           // %10
-                           .arg(K4Styles::Colors::HoverMid1)          // %11
-                           .arg(K4Styles::Colors::HoverMid2)          // %12
-                           .arg(K4Styles::Colors::HoverBottom)        // %13
-                           .arg(K4Styles::Colors::AccentAmber)        // %14
-                           .arg(K4Styles::Colors::InactiveGray);      // %15
-
     m_modeBtn = new QPushButton("STANDBY", this);
     m_modeBtn->setFixedHeight(K4Styles::Dimensions::ButtonHeightSmall);
-    m_modeBtn->setStyleSheet(btnStyle);
+    m_modeBtn->setStyleSheet(K4Styles::panelButtonWithDisabled());
     connect(m_modeBtn, &QPushButton::clicked, this, [this]() { emit modeToggled(!m_operate); });
 
     m_atuBtn = new QPushButton("ATU", this);
     m_atuBtn->setFixedHeight(K4Styles::Dimensions::ButtonHeightSmall);
-    m_atuBtn->setStyleSheet(btnStyle);
+    m_atuBtn->setStyleSheet(K4Styles::panelButtonWithDisabled());
     connect(m_atuBtn, &QPushButton::clicked, this, [this]() { emit atuModeToggled(!m_atuIn); });
 
     m_antBtn = new QPushButton("ANT1", this);
     m_antBtn->setFixedHeight(K4Styles::Dimensions::ButtonHeightSmall);
-    m_antBtn->setStyleSheet(btnStyle);
+    m_antBtn->setStyleSheet(K4Styles::panelButtonWithDisabled());
     connect(m_antBtn, &QPushButton::clicked, this, [this]() {
         int nextAnt = (m_antenna % 3) + 1; // 1→2→3→1
         emit antennaChanged(nextAnt);
@@ -85,7 +41,7 @@ void KPA1500Panel::setupUi() {
 
     m_tuneBtn = new QPushButton("TUNE", this);
     m_tuneBtn->setFixedHeight(K4Styles::Dimensions::ButtonHeightSmall);
-    m_tuneBtn->setStyleSheet(btnStyle);
+    m_tuneBtn->setStyleSheet(K4Styles::panelButtonWithDisabled());
     connect(m_tuneBtn, &QPushButton::clicked, this, &KPA1500Panel::atuTuneRequested);
 
     buttonLayout->addWidget(m_modeBtn);
@@ -342,13 +298,13 @@ void KPA1500Panel::drawStatusLabels(QPainter &painter, int y, int height) {
 
     // OPERATE/STANDBY label (after title, left side)
     QString modeText = m_operate ? "OPERATE" : "STANDBY";
-    QColor modeColor = m_operate ? QColor(K4Styles::Colors::AgcGreen) : QColor(K4Styles::Colors::InactiveGray);
+    QColor modeColor = m_operate ? QColor(K4Styles::Colors::StatusGreen) : QColor(K4Styles::Colors::InactiveGray);
     painter.setPen(modeColor);
     painter.drawText(80, y, 60, height, Qt::AlignLeft | Qt::AlignVCenter, modeText);
 
     // ATU IN/BYP label (right of center)
     QString atuText = m_atuIn ? "ATU IN" : "ATU BYP";
-    QColor atuColor = m_atuIn ? QColor(K4Styles::Colors::AgcGreen) : QColor(K4Styles::Colors::InactiveGray);
+    QColor atuColor = m_atuIn ? QColor(K4Styles::Colors::StatusGreen) : QColor(K4Styles::Colors::InactiveGray);
     painter.setPen(atuColor);
     painter.drawText(w / 2 + 15, y, 55, height, Qt::AlignCenter | Qt::AlignVCenter, atuText);
 

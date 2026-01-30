@@ -1066,7 +1066,7 @@ MainWindow::MainWindow(QWidget *parent)
                                               "font-size: 9px;"
                                               "font-weight: bold;"
                                               "border-radius: 2px;")
-                                          .arg(K4Styles::Colors::AgcGreen));
+                                          .arg(K4Styles::Colors::StatusGreen));
             // If DIV is also on, light up the DIV indicator (handles timing when SB3 comes after DV1)
             if (m_radioState->diversityEnabled()) {
                 m_divLabel->setStyleSheet(QString("background-color: %1;"
@@ -1074,7 +1074,7 @@ MainWindow::MainWindow(QWidget *parent)
                                                   "font-size: 9px;"
                                                   "font-weight: bold;"
                                                   "border-radius: 2px;")
-                                              .arg(K4Styles::Colors::AgcGreen));
+                                              .arg(K4Styles::Colors::StatusGreen));
             }
             // Restore VFO B frequency and mode to normal white
             m_vfoB->frequencyDisplay()->setNormalColor(QColor(K4Styles::Colors::TextWhite));
@@ -1117,7 +1117,7 @@ MainWindow::MainWindow(QWidget *parent)
                                               "font-size: 9px;"
                                               "font-weight: bold;"
                                               "border-radius: 2px;")
-                                          .arg(K4Styles::Colors::AgcGreen));
+                                          .arg(K4Styles::Colors::StatusGreen));
         } else {
             m_divLabel->setStyleSheet(
                 QString("background-color: %1;"
@@ -2770,7 +2770,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
                                        "font-weight: bold;"
                                        "border-radius: 4px;"
                                        "padding: 2px 8px;")
-                                   .arg(K4Styles::Colors::AgcGreen)
+                                   .arg(K4Styles::Colors::StatusGreen)
                                    .arg(K4Styles::Dimensions::FontSizeButton));
     m_bSetLabel->setVisible(false);
     centerLayout->addWidget(m_bSetLabel, 0, Qt::AlignHCenter);
@@ -3923,7 +3923,7 @@ void MainWindow::updateConnectionState(TcpClient::ConnectionState state) {
     case TcpClient::Connected:
         m_connectionStatusLabel->setText("K4");
         m_connectionStatusLabel->setStyleSheet(
-            QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Styles::Colors::AgcGreen));
+            QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Styles::Colors::StatusGreen));
         break;
     }
 }
@@ -3967,7 +3967,7 @@ void MainWindow::onSplitChanged(bool enabled) {
     if (enabled) {
         m_splitLabel->setText("SPLIT ON");
         m_splitLabel->setStyleSheet(
-            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::AgcGreen));
+            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::StatusGreen));
         // When split is on, TX goes to VFO B - clear left triangle, show right triangle
         m_txTriangle->setText("");
         m_txTriangleB->setText("▶");
@@ -4882,7 +4882,7 @@ void MainWindow::updateKpa1500Status() {
         if (connected) {
             m_kpa1500StatusLabel->setText("KPA1500");
             m_kpa1500StatusLabel->setStyleSheet(
-                QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Styles::Colors::AgcGreen));
+                QString("color: %1; font-size: 12px; font-weight: bold;").arg(K4Styles::Colors::StatusGreen));
         } else {
             m_kpa1500StatusLabel->setText("KPA1500");
             m_kpa1500StatusLabel->setStyleSheet(

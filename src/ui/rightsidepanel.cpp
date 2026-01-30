@@ -148,80 +148,9 @@ QWidget *RightSidePanel::createFunctionButton(const QString &mainText, const QSt
     btn->setCursor(Qt::PointingHandCursor);
 
     if (isLighter) {
-        // Lighter grey gradient for PF buttons (B SET, CLR, RIT, XIT)
-        btn->setStyleSheet(QString(R"(
-            QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 %1, stop:0.4 %2,
-                    stop:0.6 %3, stop:1 %4);
-                color: %5;
-                border: %6px solid %7;
-                border-radius: %8px;
-                font-size: %9px;
-                font-weight: bold;
-                padding: 2px 4px;
-            }
-            QPushButton:hover {
-                border: %6px solid %10;
-            }
-            QPushButton:pressed {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 %4, stop:0.4 %3,
-                    stop:0.6 %2, stop:1 %1);
-            }
-        )")
-                               .arg(K4Styles::Colors::LightGradientTop)    // %1
-                               .arg(K4Styles::Colors::LightGradientMid1)   // %2
-                               .arg(K4Styles::Colors::LightGradientMid2)   // %3
-                               .arg(K4Styles::Colors::LightGradientBottom) // %4
-                               .arg(K4Styles::Colors::TextWhite)           // %5
-                               .arg(K4Styles::Dimensions::BorderWidth)     // %6
-                               .arg(K4Styles::Colors::BorderPressed)       // %7
-                               .arg(K4Styles::Dimensions::BorderRadius)    // %8
-                               .arg(K4Styles::Dimensions::FontSizeNormal)  // %9
-                               .arg(K4Styles::Colors::BorderSelected));    // %10
+        btn->setStyleSheet(K4Styles::sidePanelButtonLight());
     } else {
-        // Standard dark grey gradient
-        btn->setStyleSheet(QString(R"(
-            QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 %1, stop:0.4 %2,
-                    stop:0.6 %3, stop:1 %4);
-                color: %5;
-                border: %6px solid %7;
-                border-radius: %8px;
-                font-size: %9px;
-                font-weight: bold;
-                padding: 2px 4px;
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 %10, stop:0.4 %11,
-                    stop:0.6 %12, stop:1 %13);
-                border: %6px solid %14;
-            }
-            QPushButton:pressed {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 %4, stop:0.4 %3,
-                    stop:0.6 %2, stop:1 %1);
-                border: %6px solid %15;
-            }
-        )")
-                               .arg(K4Styles::Colors::GradientTop)        // %1
-                               .arg(K4Styles::Colors::GradientMid1)       // %2
-                               .arg(K4Styles::Colors::GradientMid2)       // %3
-                               .arg(K4Styles::Colors::GradientBottom)     // %4
-                               .arg(K4Styles::Colors::TextWhite)          // %5
-                               .arg(K4Styles::Dimensions::BorderWidth)    // %6
-                               .arg(K4Styles::Colors::BorderNormal)       // %7
-                               .arg(K4Styles::Dimensions::BorderRadius)   // %8
-                               .arg(K4Styles::Dimensions::FontSizeNormal) // %9
-                               .arg(K4Styles::Colors::HoverTop)           // %10
-                               .arg(K4Styles::Colors::HoverMid1)          // %11
-                               .arg(K4Styles::Colors::HoverMid2)          // %12
-                               .arg(K4Styles::Colors::HoverBottom)        // %13
-                               .arg(K4Styles::Colors::BorderHover)        // %14
-                               .arg(K4Styles::Colors::BorderPressed));    // %15
+        btn->setStyleSheet(K4Styles::sidePanelButton());
     }
     btnOut = btn;
     layout->addWidget(btn);

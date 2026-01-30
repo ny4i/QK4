@@ -145,7 +145,7 @@ void VfoRowWidget::setupWidgets() {
     vfoBColumn->setContentsMargins(0, 0, 0, 0);
     vfoBColumn->setSpacing(2);
 
-    m_vfoBSquare = new VfoSquareWidget("B", QColor(K4Styles::Colors::AgcGreen), m_vfoBContainer);
+    m_vfoBSquare = new VfoSquareWidget("B", QColor(K4Styles::Colors::VfoBGreen), m_vfoBContainer);
     vfoBColumn->addWidget(m_vfoBSquare, 0, Qt::AlignHCenter);
 
     m_modeBLabel = new QLabel("USB", m_vfoBContainer);

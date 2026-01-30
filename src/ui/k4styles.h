@@ -88,6 +88,55 @@ QString checkboxButton(int size = 32);
 QString radioButton();
 
 // =============================================================================
+// Side Panel Button Styles
+// =============================================================================
+
+/**
+ * @brief Compact button for small controls (MON, NORM, BAL).
+ * Dark gradient with 1px border and 4px radius.
+ */
+QString compactButton();
+
+/**
+ * @brief Dark gradient button for side panel icons (?, globe).
+ * Includes normal, hover, and pressed states.
+ */
+QString sidePanelButton();
+
+/**
+ * @brief Light gradient button for TX/PF function buttons.
+ * Uses lighter grey gradient with hover border change only (no hover gradient).
+ */
+QString sidePanelButtonLight();
+
+/**
+ * @brief Panel button with disabled state support.
+ * Used for KPA1500 panel buttons (STANDBY, ATU, ANT, TUNE).
+ */
+QString panelButtonWithDisabled();
+
+// =============================================================================
+// Dialog Button Styles
+// =============================================================================
+
+/**
+ * @brief Standard dialog button style with all states.
+ * Includes normal, hover, pressed, and disabled states.
+ * Used for dialog action buttons (Connect, Save, Delete, etc.).
+ */
+QString dialogButton();
+
+// =============================================================================
+// Control Button Styles
+// =============================================================================
+
+/**
+ * @brief Control button for decode windows.
+ * @param selected If true, uses light/selected gradient. If false, uses dark gradient with disabled state.
+ */
+QString controlButton(bool selected = false);
+
+// =============================================================================
 // Common Style Constants
 // =============================================================================
 
@@ -111,9 +160,7 @@ constexpr const char *VfoBGreen = "#00FF00"; // VFO B: green theme
 
 // Status Colors
 constexpr const char *TxRed = "#FF0000";
-constexpr const char *AgcGreen = "#00FF00";
-constexpr const char *RitCyan = "#00CED1";
-
+constexpr const char *StatusGreen = "#00FF00"; // Active/on/connected status indicators
 // Meter Gradient Colors (green → yellow → red progression)
 constexpr const char *MeterGreenDark = "#00CC00";
 constexpr const char *MeterGreen = "#00FF00";

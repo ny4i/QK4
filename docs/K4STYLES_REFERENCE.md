@@ -35,8 +35,7 @@ Complete reference for all `K4Styles::Colors` and `K4Styles::Dimensions` constan
 | Constant | Value | Usage |
 |----------|-------|-------|
 | `TxRed` | `#FF0000` | TX indicator, transmit state |
-| `AgcGreen` | `#00FF00` | AGC indicator |
-| `RitCyan` | `#00CED1` | RIT/XIT indicator |
+| `StatusGreen` | `#00FF00` | AGC indicator |
 
 ### Text Colors
 
@@ -308,8 +307,7 @@ Accent & VFO Colors:
 
 Status:
   #FF0000 ████ TxRed
-  #00FF00 ████ AgcGreen
-  #00CED1 ████ RitCyan
+  #00FF00 ████ StatusGreen
 
 Text:
   #FFFFFF ████ TextWhite

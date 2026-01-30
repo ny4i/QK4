@@ -165,8 +165,7 @@ K4Styles::Colors::InactiveGray   // "#666666"
 
 // Status
 K4Styles::Colors::TxRed          // "#FF0000"
-K4Styles::Colors::AgcGreen       // "#00FF00"
-K4Styles::Colors::RitCyan        // "#00CED1"
+K4Styles::Colors::StatusGreen       // "#00FF00"
 ```
 
 ### Spectrum Colors

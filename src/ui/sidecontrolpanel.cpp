@@ -138,48 +138,18 @@ void SideControlPanel::setupUi() {
     swBtnRow->setContentsMargins(0, 0, 0, 0);
     swBtnRow->setSpacing(2);
 
-    // Button style - dark gradient matching TX function buttons
-    QString swBtnStyle = QString("QPushButton {"
-                                 "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-                                 "    stop:0 %1, stop:0.4 %2, stop:0.6 %3, stop:1 %4);"
-                                 "  border: 1px solid %5;"
-                                 "  border-radius: 4px;"
-                                 "  color: %6;"
-                                 "  font-size: 9px;"
-                                 "  font-weight: bold;"
-                                 "  padding: 4px 2px;"
-                                 "}"
-                                 "QPushButton:hover {"
-                                 "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-                                 "    stop:0 %7, stop:0.4 %8, stop:0.6 %9, stop:1 %10);"
-                                 "}"
-                                 "QPushButton:pressed {"
-                                 "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-                                 "    stop:0 %4, stop:1 %1);"
-                                 "}")
-                             .arg(K4Styles::Colors::GradientTop)
-                             .arg(K4Styles::Colors::GradientMid1)
-                             .arg(K4Styles::Colors::GradientMid2)
-                             .arg(K4Styles::Colors::GradientBottom)
-                             .arg(K4Styles::Colors::BorderNormal)
-                             .arg(K4Styles::Colors::TextWhite)
-                             .arg(K4Styles::Colors::HoverTop)
-                             .arg(K4Styles::Colors::HoverMid1)
-                             .arg(K4Styles::Colors::HoverMid2)
-                             .arg(K4Styles::Colors::HoverBottom);
-
     m_monBtn = new QPushButton("MON", swBtnContainer);
-    m_monBtn->setStyleSheet(swBtnStyle);
+    m_monBtn->setStyleSheet(K4Styles::compactButton());
     m_monBtn->setFixedHeight(K4Styles::Dimensions::ButtonHeightMini);
     swBtnRow->addWidget(m_monBtn);
 
     m_normBtn = new QPushButton("NORM", swBtnContainer);
-    m_normBtn->setStyleSheet(swBtnStyle);
+    m_normBtn->setStyleSheet(K4Styles::compactButton());
     m_normBtn->setFixedHeight(K4Styles::Dimensions::ButtonHeightMini);
     swBtnRow->addWidget(m_normBtn);
 
     m_balBtn = new QPushButton("BAL", swBtnContainer);
-    m_balBtn->setStyleSheet(swBtnStyle);
+    m_balBtn->setStyleSheet(K4Styles::compactButton());
     m_balBtn->setFixedHeight(K4Styles::Dimensions::ButtonHeightMini);
     swBtnRow->addWidget(m_balBtn);
 
@@ -638,45 +608,7 @@ QPushButton *SideControlPanel::createIconButton(const QString &text) {
     auto *btn = new QPushButton(text, this);
     btn->setFixedSize(32, 32); // Small square buttons
     btn->setCursor(Qt::PointingHandCursor);
-    btn->setStyleSheet(QString(R"(
-        QPushButton {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 %1, stop:0.4 %2,
-                stop:0.6 %3, stop:1 %4);
-            color: %5;
-            border: %6px solid %7;
-            border-radius: %8px;
-            font-size: %9px;
-            font-weight: bold;
-        }
-        QPushButton:hover {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 %10, stop:0.4 %11,
-                stop:0.6 %12, stop:1 %13);
-            border: %6px solid %14;
-        }
-        QPushButton:pressed {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 %4, stop:0.4 %3,
-                stop:0.6 %2, stop:1 %1);
-            border: %6px solid %15;
-        }
-    )")
-                           .arg(K4Styles::Colors::GradientTop)        // %1
-                           .arg(K4Styles::Colors::GradientMid1)       // %2
-                           .arg(K4Styles::Colors::GradientMid2)       // %3
-                           .arg(K4Styles::Colors::GradientBottom)     // %4
-                           .arg(K4Styles::Colors::TextWhite)          // %5
-                           .arg(K4Styles::Dimensions::BorderWidth)    // %6
-                           .arg(K4Styles::Colors::BorderNormal)       // %7
-                           .arg(K4Styles::Dimensions::BorderRadius)   // %8
-                           .arg(K4Styles::Dimensions::FontSizeButton) // %9
-                           .arg(K4Styles::Colors::HoverTop)           // %10
-                           .arg(K4Styles::Colors::HoverMid1)          // %11
-                           .arg(K4Styles::Colors::HoverMid2)          // %12
-                           .arg(K4Styles::Colors::HoverBottom)        // %13
-                           .arg(K4Styles::Colors::BorderHover)        // %14
-                           .arg(K4Styles::Colors::BorderPressed));    // %15
+    btn->setStyleSheet(K4Styles::sidePanelButton());
     return btn;
 }
 
@@ -692,38 +624,7 @@ QWidget *SideControlPanel::createTxFunctionButton(const QString &mainText, const
     auto *btn = new QPushButton(mainText, container);
     btn->setFixedHeight(K4Styles::Dimensions::ButtonHeightSmall);
     btn->setCursor(Qt::PointingHandCursor);
-    // Lighter grey gradient for TX function buttons
-    btn->setStyleSheet(QString(R"(
-        QPushButton {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 %1, stop:0.4 %2,
-                stop:0.6 %3, stop:1 %4);
-            color: %5;
-            border: %6px solid %7;
-            border-radius: %8px;
-            font-size: %9px;
-            font-weight: bold;
-            padding: 2px 4px;
-        }
-        QPushButton:hover {
-            border: %6px solid %10;
-        }
-        QPushButton:pressed {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 %4, stop:0.4 %3,
-                stop:0.6 %2, stop:1 %1);
-        }
-    )")
-                           .arg(K4Styles::Colors::LightGradientTop)    // %1
-                           .arg(K4Styles::Colors::LightGradientMid1)   // %2
-                           .arg(K4Styles::Colors::LightGradientMid2)   // %3
-                           .arg(K4Styles::Colors::LightGradientBottom) // %4
-                           .arg(K4Styles::Colors::TextWhite)           // %5
-                           .arg(K4Styles::Dimensions::BorderWidth)     // %6
-                           .arg(K4Styles::Colors::BorderPressed)       // %7
-                           .arg(K4Styles::Dimensions::BorderRadius)    // %8
-                           .arg(K4Styles::Dimensions::FontSizeNormal)  // %9
-                           .arg(K4Styles::Colors::BorderSelected));
+    btn->setStyleSheet(K4Styles::sidePanelButtonLight());
     btnOut = btn;
     layout->addWidget(btn);
 

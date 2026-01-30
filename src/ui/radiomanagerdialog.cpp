@@ -219,94 +219,25 @@ void RadioManagerDialog::setupUi() {
     auto *buttonLayout = new QHBoxLayout();
     buttonLayout->setSpacing(16); // More spacing between buttons
 
-    QString buttonStyle =
-        QString("QPushButton { "
-                "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-                "    stop:0 %1, stop:0.4 %2, "
-                "    stop:0.6 %3, stop:1 %4); "
-                "  color: %5; "
-                "  border: 1px solid %6; "
-                "  border-radius: 5px; "
-                "  padding: %13px 20px; "
-                "  font-size: %14px; "
-                "  font-weight: bold; "
-                "  min-width: 70px; "
-                "} "
-                "QPushButton:hover { "
-                "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-                "    stop:0 %7, stop:0.4 %8, "
-                "    stop:0.6 %9, stop:1 %10); "
-                "  border: 1px solid %11; "
-                "} "
-                "QPushButton:pressed { "
-                "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-                "    stop:0 %4, stop:0.4 %3, "
-                "    stop:0.6 %2, stop:1 %1); "
-                "  border: 1px solid %12; "
-                "} "
-                "QPushButton:disabled { "
-                "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-                "    stop:0 %2, stop:1 %4); "
-                "  color: %15; "
-                "  border: 1px solid %16; "
-                "}")
-            .arg(K4Styles::Colors::GradientTop, K4Styles::Colors::GradientMid1, K4Styles::Colors::GradientMid2,
-                 K4Styles::Colors::GradientBottom, K4Styles::Colors::TextWhite, K4Styles::Colors::BorderNormal,
-                 K4Styles::Colors::HoverTop, K4Styles::Colors::HoverMid1, K4Styles::Colors::HoverMid2)
-            .arg(K4Styles::Colors::HoverBottom, K4Styles::Colors::BorderHover, K4Styles::Colors::BorderPressed)
-            .arg(K4Styles::Dimensions::PaddingMedium)
-            .arg(K4Styles::Dimensions::FontSizeButton)
-            .arg(K4Styles::Colors::TextGray, K4Styles::Colors::DialogBorder);
-
     m_connectButton = new QPushButton("Connect", this);
-    m_connectButton->setStyleSheet(buttonStyle);
+    m_connectButton->setStyleSheet(K4Styles::dialogButton());
     buttonLayout->addWidget(m_connectButton);
 
     m_newButton = new QPushButton("New", this);
-    m_newButton->setStyleSheet(buttonStyle);
+    m_newButton->setStyleSheet(K4Styles::dialogButton());
     buttonLayout->addWidget(m_newButton);
 
     m_saveButton = new QPushButton("Save", this);
-    m_saveButton->setStyleSheet(buttonStyle);
+    m_saveButton->setStyleSheet(K4Styles::dialogButton());
     buttonLayout->addWidget(m_saveButton);
 
     m_deleteButton = new QPushButton("Delete", this);
-    m_deleteButton->setStyleSheet(buttonStyle);
+    m_deleteButton->setStyleSheet(K4Styles::dialogButton());
     buttonLayout->addWidget(m_deleteButton);
 
     // Back button - smaller with curved arrow
-    QString backButtonStyle =
-        QString("QPushButton { "
-                "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-                "    stop:0 %1, stop:0.4 %2, "
-                "    stop:0.6 %3, stop:1 %4); "
-                "  color: %5; "
-                "  border: 1px solid %6; "
-                "  border-radius: 4px; "
-                "  padding: 4px; "
-                "  font-size: %12px; "
-                "} "
-                "QPushButton:hover { "
-                "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-                "    stop:0 %7, stop:0.4 %8, "
-                "    stop:0.6 %9, stop:1 %10); "
-                "  border: 1px solid %11; "
-                "} "
-                "QPushButton:pressed { "
-                "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-                "    stop:0 %4, stop:0.4 %3, "
-                "    stop:0.6 %2, stop:1 %1); "
-                "  border: 1px solid %13; "
-                "}")
-            .arg(K4Styles::Colors::GradientTop, K4Styles::Colors::GradientMid1, K4Styles::Colors::GradientMid2,
-                 K4Styles::Colors::GradientBottom, K4Styles::Colors::TextWhite, K4Styles::Colors::BorderNormal,
-                 K4Styles::Colors::HoverTop, K4Styles::Colors::HoverMid1, K4Styles::Colors::HoverMid2)
-            .arg(K4Styles::Colors::HoverBottom, K4Styles::Colors::BorderHover)
-            .arg(K4Styles::Dimensions::FontSizePopup)
-            .arg(K4Styles::Colors::BorderPressed);
-
     m_backButton = new QPushButton(QString::fromUtf8("\xE2\x86\xA9"), this); // ↩ Curved arrow
-    m_backButton->setStyleSheet(backButtonStyle);
+    m_backButton->setStyleSheet(K4Styles::dialogButton());
     m_backButton->setFixedSize(K4Styles::Dimensions::ButtonHeightMedium, K4Styles::Dimensions::ButtonHeightMedium);
     m_backButton->setToolTip("Back / Exit");
     buttonLayout->addWidget(m_backButton);

@@ -1,5 +1,21 @@
 #include "k4styles.h"
 
+namespace {
+// Internal helper to generate CSS linear-gradient strings
+QString gradientCss(const char *top, const char *mid1, const char *mid2, const char *bottom) {
+    return QString("qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+                   "stop:0 %1, stop:0.4 %2, stop:0.6 %3, stop:1 %4)")
+        .arg(top, mid1, mid2, bottom);
+}
+
+// Reversed gradient for pressed states
+QString gradientCssReversed(const char *top, const char *mid1, const char *mid2, const char *bottom) {
+    return QString("qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+                   "stop:0 %1, stop:0.4 %2, stop:0.6 %3, stop:1 %4)")
+        .arg(bottom, mid2, mid1, top);
+}
+} // anonymous namespace
+
 namespace K4Styles {
 
 QString popupButtonNormal() {
@@ -332,6 +348,235 @@ QString radioButton() {
             border: 2px solid #AAAAAA;
         }
     )";
+}
+
+QString compactButton() {
+    return QString(R"(
+        QPushButton {
+            background: %1;
+            border: 1px solid %2;
+            border-radius: 4px;
+            color: %3;
+            font-size: %4px;
+            font-weight: bold;
+            padding: 4px 2px;
+        }
+        QPushButton:hover {
+            background: %5;
+        }
+        QPushButton:pressed {
+            background: %6;
+        }
+    )")
+        .arg(gradientCss(Colors::GradientTop, Colors::GradientMid1, Colors::GradientMid2, Colors::GradientBottom))
+        .arg(Colors::BorderNormal)
+        .arg(Colors::TextWhite)
+        .arg(Dimensions::FontSizeNormal)
+        .arg(gradientCss(Colors::HoverTop, Colors::HoverMid1, Colors::HoverMid2, Colors::HoverBottom))
+        .arg(gradientCssReversed(Colors::GradientTop, Colors::GradientMid1, Colors::GradientMid2,
+                                 Colors::GradientBottom));
+}
+
+QString sidePanelButton() {
+    return QString(R"(
+        QPushButton {
+            background: %1;
+            color: %2;
+            border: %3px solid %4;
+            border-radius: %5px;
+            font-size: %6px;
+            font-weight: bold;
+            padding: 2px 4px;
+        }
+        QPushButton:hover {
+            background: %7;
+            border: %3px solid %8;
+        }
+        QPushButton:pressed {
+            background: %9;
+            border: %3px solid %10;
+        }
+    )")
+        .arg(gradientCss(Colors::GradientTop, Colors::GradientMid1, Colors::GradientMid2, Colors::GradientBottom))
+        .arg(Colors::TextWhite)
+        .arg(Dimensions::BorderWidth)
+        .arg(Colors::BorderNormal)
+        .arg(Dimensions::BorderRadius)
+        .arg(Dimensions::FontSizeNormal)
+        .arg(gradientCss(Colors::HoverTop, Colors::HoverMid1, Colors::HoverMid2, Colors::HoverBottom))
+        .arg(Colors::BorderHover)
+        .arg(gradientCssReversed(Colors::GradientTop, Colors::GradientMid1, Colors::GradientMid2,
+                                 Colors::GradientBottom))
+        .arg(Colors::BorderPressed);
+}
+
+QString sidePanelButtonLight() {
+    return QString(R"(
+        QPushButton {
+            background: %1;
+            color: %2;
+            border: %3px solid %4;
+            border-radius: %5px;
+            font-size: %6px;
+            font-weight: bold;
+            padding: 2px 4px;
+        }
+        QPushButton:hover {
+            border: %3px solid %7;
+        }
+        QPushButton:pressed {
+            background: %8;
+        }
+    )")
+        .arg(gradientCss(Colors::LightGradientTop, Colors::LightGradientMid1, Colors::LightGradientMid2,
+                         Colors::LightGradientBottom))
+        .arg(Colors::TextWhite)
+        .arg(Dimensions::BorderWidth)
+        .arg(Colors::BorderPressed)
+        .arg(Dimensions::BorderRadius)
+        .arg(Dimensions::FontSizeNormal)
+        .arg(Colors::BorderSelected)
+        .arg(gradientCssReversed(Colors::LightGradientTop, Colors::LightGradientMid1, Colors::LightGradientMid2,
+                                 Colors::LightGradientBottom));
+}
+
+QString panelButtonWithDisabled() {
+    return QString(R"(
+        QPushButton {
+            background: %1;
+            color: %2;
+            border: %3px solid %4;
+            border-radius: %5px;
+            font-size: %6px;
+            font-weight: bold;
+            padding: 2px 4px;
+        }
+        QPushButton:hover {
+            background: %7;
+            border-color: %8;
+        }
+        QPushButton:pressed {
+            background: %9;
+        }
+        QPushButton:disabled {
+            color: %10;
+        }
+    )")
+        .arg(gradientCss(Colors::GradientTop, Colors::GradientMid1, Colors::GradientMid2, Colors::GradientBottom))
+        .arg(Colors::TextWhite)
+        .arg(Dimensions::BorderWidth)
+        .arg(Colors::BorderNormal)
+        .arg(Dimensions::BorderRadius)
+        .arg(Dimensions::FontSizeNormal)
+        .arg(gradientCss(Colors::HoverTop, Colors::HoverMid1, Colors::HoverMid2, Colors::HoverBottom))
+        .arg(Colors::AccentAmber)
+        .arg(gradientCssReversed(Colors::GradientTop, Colors::GradientMid1, Colors::GradientMid2,
+                                 Colors::GradientBottom))
+        .arg(Colors::InactiveGray);
+}
+
+QString dialogButton() {
+    return QString(R"(
+        QPushButton {
+            background: %1;
+            color: %2;
+            border: 1px solid %3;
+            border-radius: 5px;
+            padding: %4px 20px;
+            font-size: %5px;
+            font-weight: bold;
+            min-width: 70px;
+        }
+        QPushButton:hover {
+            background: %6;
+            border: 1px solid %7;
+        }
+        QPushButton:pressed {
+            background: %8;
+            border: 1px solid %9;
+        }
+        QPushButton:disabled {
+            background: %10;
+            color: %11;
+            border: 1px solid %12;
+        }
+    )")
+        .arg(gradientCss(Colors::GradientTop, Colors::GradientMid1, Colors::GradientMid2, Colors::GradientBottom))
+        .arg(Colors::TextWhite)
+        .arg(Colors::BorderNormal)
+        .arg(Dimensions::PaddingMedium)
+        .arg(Dimensions::FontSizeButton)
+        .arg(gradientCss(Colors::HoverTop, Colors::HoverMid1, Colors::HoverMid2, Colors::HoverBottom))
+        .arg(Colors::BorderHover)
+        .arg(gradientCssReversed(Colors::GradientTop, Colors::GradientMid1, Colors::GradientMid2,
+                                 Colors::GradientBottom))
+        .arg(Colors::BorderPressed)
+        .arg(gradientCss(Colors::GradientMid1, Colors::GradientMid1, Colors::GradientBottom, Colors::GradientBottom))
+        .arg(Colors::TextGray)
+        .arg(Colors::DialogBorder);
+}
+
+QString controlButton(bool selected) {
+    if (selected) {
+        return QString(R"(
+            QPushButton {
+                background: %1;
+                color: %2;
+                border: 1px solid %3;
+                border-radius: 4px;
+                font-size: %4px;
+                font-weight: bold;
+                padding: 2px 4px;
+            }
+            QPushButton:hover {
+                border: 1px solid %5;
+            }
+            QPushButton:pressed {
+                background: %6;
+            }
+        )")
+            .arg(gradientCss(Colors::SelectedTop, Colors::SelectedMid1, Colors::SelectedMid2, Colors::SelectedBottom))
+            .arg(Colors::TextDark)
+            .arg(Colors::BorderSelected)
+            .arg(Dimensions::FontSizeNormal)
+            .arg(Colors::BorderHover)
+            .arg(gradientCssReversed(Colors::SelectedTop, Colors::SelectedMid1, Colors::SelectedMid2,
+                                     Colors::SelectedBottom));
+    } else {
+        return QString(R"(
+            QPushButton {
+                background: %1;
+                color: %2;
+                border: 1px solid %3;
+                border-radius: 4px;
+                font-size: %4px;
+                font-weight: bold;
+                padding: 2px 4px;
+            }
+            QPushButton:hover {
+                background: %5;
+                border: 1px solid %6;
+            }
+            QPushButton:pressed {
+                background: %7;
+            }
+            QPushButton:disabled {
+                background: %8;
+                color: %9;
+                border: 1px solid %3;
+            }
+        )")
+            .arg(gradientCss(Colors::GradientTop, Colors::GradientMid1, Colors::GradientMid2, Colors::GradientBottom))
+            .arg(Colors::TextWhite)
+            .arg(Colors::BorderNormal)
+            .arg(Dimensions::FontSizeNormal)
+            .arg(gradientCss(Colors::HoverTop, Colors::HoverMid1, Colors::HoverMid2, Colors::HoverBottom))
+            .arg(Colors::BorderHover)
+            .arg(gradientCssReversed(Colors::GradientTop, Colors::GradientMid1, Colors::GradientMid2,
+                                     Colors::GradientBottom))
+            .arg(Colors::DisabledBackground)
+            .arg(Colors::InactiveGray);
+    }
 }
 
 } // namespace K4Styles
