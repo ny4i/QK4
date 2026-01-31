@@ -925,12 +925,12 @@ private:
     // =========================================================================
 
     // VFO/Frequency commands
-    void handleFA(const QString &cmd);  // VFO A frequency
-    void handleFB(const QString &cmd);  // VFO B frequency
-    void handleFT(const QString &cmd);  // Split TX/RX
+    void handleFA(const QString &cmd); // VFO A frequency
+    void handleFB(const QString &cmd); // VFO B frequency
+    void handleFT(const QString &cmd); // Split TX/RX
 
     // Mode commands
-    void handleMD(const QString &cmd);   // Mode VFO A
+    void handleMD(const QString &cmd);    // Mode VFO A
     void handleMDSub(const QString &cmd); // Mode VFO B (MD$)
 
     // Bandwidth/Filter commands
@@ -1051,31 +1051,31 @@ private:
     void handleER(const QString &cmd);   // Error notifications
 
     // Display commands (# prefix)
-    void handleDisplayREF(const QString &cmd);     // #REF - Ref Level Main
-    void handleDisplayREFSub(const QString &cmd);  // #REF$ - Ref Level Sub
-    void handleDisplaySCL(const QString &cmd);     // #SCL - Scale
-    void handleDisplaySPN(const QString &cmd);     // #SPN - Span Main
-    void handleDisplaySPNSub(const QString &cmd);  // #SPN$ - Span Sub
-    void handleDisplayMP(const QString &cmd);      // #MP - Mini-Pan Main
-    void handleDisplayMPSub(const QString &cmd);   // #MP$ - Mini-Pan Sub
-    void handleDisplayDPM(const QString &cmd);     // #DPM - Dual Pan Mode LCD
-    void handleDisplayHDPM(const QString &cmd);    // #HDPM - Dual Pan Mode EXT
-    void handleDisplayDSM(const QString &cmd);     // #DSM - Display Mode LCD
-    void handleDisplayHDSM(const QString &cmd);    // #HDSM - Display Mode EXT
-    void handleDisplayFPS(const QString &cmd);     // #FPS - Frame Rate
-    void handleDisplayWFC(const QString &cmd);     // #WFC - Waterfall Color
-    void handleDisplayWFH(const QString &cmd);     // #WFH - Waterfall Height LCD
-    void handleDisplayHWFH(const QString &cmd);    // #HWFH - Waterfall Height EXT
-    void handleDisplayAVG(const QString &cmd);     // #AVG - Averaging
-    void handleDisplayPKM(const QString &cmd);     // #PKM - Peak Mode
-    void handleDisplayFXT(const QString &cmd);     // #FXT - Fixed Tune
-    void handleDisplayFXA(const QString &cmd);     // #FXA - Fixed Tune Mode
-    void handleDisplayFRZ(const QString &cmd);     // #FRZ - Freeze
-    void handleDisplayVFA(const QString &cmd);     // #VFA - VFO A Cursor
-    void handleDisplayVFB(const QString &cmd);     // #VFB - VFO B Cursor
-    void handleDisplayAR(const QString &cmd);      // #AR - Auto Ref Level
-    void handleDisplayNB(const QString &cmd);      // #NB$ - DDC NB Mode
-    void handleDisplayNBL(const QString &cmd);     // #NBL$ - DDC NB Level
+    void handleDisplayREF(const QString &cmd);    // #REF - Ref Level Main
+    void handleDisplayREFSub(const QString &cmd); // #REF$ - Ref Level Sub
+    void handleDisplaySCL(const QString &cmd);    // #SCL - Scale
+    void handleDisplaySPN(const QString &cmd);    // #SPN - Span Main
+    void handleDisplaySPNSub(const QString &cmd); // #SPN$ - Span Sub
+    void handleDisplayMP(const QString &cmd);     // #MP - Mini-Pan Main
+    void handleDisplayMPSub(const QString &cmd);  // #MP$ - Mini-Pan Sub
+    void handleDisplayDPM(const QString &cmd);    // #DPM - Dual Pan Mode LCD
+    void handleDisplayHDPM(const QString &cmd);   // #HDPM - Dual Pan Mode EXT
+    void handleDisplayDSM(const QString &cmd);    // #DSM - Display Mode LCD
+    void handleDisplayHDSM(const QString &cmd);   // #HDSM - Display Mode EXT
+    void handleDisplayFPS(const QString &cmd);    // #FPS - Frame Rate
+    void handleDisplayWFC(const QString &cmd);    // #WFC - Waterfall Color
+    void handleDisplayWFH(const QString &cmd);    // #WFH - Waterfall Height LCD
+    void handleDisplayHWFH(const QString &cmd);   // #HWFH - Waterfall Height EXT
+    void handleDisplayAVG(const QString &cmd);    // #AVG - Averaging
+    void handleDisplayPKM(const QString &cmd);    // #PKM - Peak Mode
+    void handleDisplayFXT(const QString &cmd);    // #FXT - Fixed Tune
+    void handleDisplayFXA(const QString &cmd);    // #FXA - Fixed Tune Mode
+    void handleDisplayFRZ(const QString &cmd);    // #FRZ - Freeze
+    void handleDisplayVFA(const QString &cmd);    // #VFA - VFO A Cursor
+    void handleDisplayVFB(const QString &cmd);    // #VFB - VFO B Cursor
+    void handleDisplayAR(const QString &cmd);     // #AR - Auto Ref Level
+    void handleDisplayNB(const QString &cmd);     // #NB$ - DDC NB Mode
+    void handleDisplayNBL(const QString &cmd);    // #NBL$ - DDC NB Level
 };
 
 #endif // RADIOSTATE_H
