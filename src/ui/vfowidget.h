@@ -71,11 +71,9 @@ signals:
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
-    void paintEvent(QPaintEvent *event) override;
 
 private:
     void setupUi();
-    void drawTuningRateIndicator(QPainter &painter);
 
     VFOType m_type;
     QString m_primaryColor;

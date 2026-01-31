@@ -55,6 +55,13 @@ void FrequencyDisplayWidget::setNormalColor(const QColor &color) {
     }
 }
 
+void FrequencyDisplayWidget::setTuningRateDigit(int digitFromRight) {
+    if (m_tuningRateDigit != digitFromRight) {
+        m_tuningRateDigit = digitFromRight;
+        update();
+    }
+}
+
 bool FrequencyDisplayWidget::isEditing() const {
     return m_cursorPosition >= 0;
 }
@@ -225,10 +232,6 @@ void FrequencyDisplayWidget::paintEvent(QPaintEvent *) {
     p.setRenderHint(QPainter::Antialiasing);
     p.setFont(m_font);
 
-    // Determine text color based on edit mode
-    QColor textColor = (m_cursorPosition >= 0) ? m_editColor : m_normalColor;
-    p.setPen(textColor);
-
     QString display = formatWithDots();
 
     // Draw each character
@@ -239,11 +242,32 @@ void FrequencyDisplayWidget::paintEvent(QPaintEvent *) {
         QChar c = display[i];
         int charW = (c == '.') ? m_dotWidth : m_charWidth;
 
+        // Determine color for this character
+        QColor charColor;
+        if (m_cursorPosition >= 0) {
+            // Edit mode: all characters in edit color
+            charColor = m_editColor;
+        } else if (c == '.') {
+            // Dots always in normal color
+            charColor = m_normalColor;
+        } else {
+            // Normal mode: check if this digit should be grayed (tuning rate indicator)
+            // digitIdx is 0-7 from left, convert to position from right: 7 - digitIdx
+            int posFromRight = 7 - digitIdx;
+            if (m_tuningRateDigit >= 0 && posFromRight <= m_tuningRateDigit) {
+                // This digit is at or below tuning rate - show in gray
+                charColor = QColor(K4Styles::Colors::TextGray);
+            } else {
+                charColor = m_normalColor;
+            }
+        }
+        p.setPen(charColor);
+
         // Draw the character
         QRect charRect(x, 0, charW, height());
         p.drawText(charRect, Qt::AlignCenter, c);
 
-        // Draw cursor underline if this is the selected digit
+        // Draw cursor underline if this is the selected digit (edit mode)
         if (c != '.' && digitIdx == m_cursorPosition) {
             int underlineY = height() - 4;
             p.fillRect(x + 2, underlineY, charW - 4, 2, m_editColor);

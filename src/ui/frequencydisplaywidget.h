@@ -44,6 +44,11 @@ public:
     // Set the color used when NOT in edit mode (normally white, gray when dimmed)
     void setNormalColor(const QColor &color);
 
+    // Set tuning rate indicator - digits at this position and below show in gray
+    // digitFromRight: 0=1Hz, 1=10Hz, 2=100Hz, 3=1kHz, 4=10kHz, -1=none
+    // e.g., rate 2 (100Hz) grays out digits 0,1,2 (1s, 10s, 100s places)
+    void setTuningRateDigit(int digitFromRight);
+
     // Check if currently in edit mode
     bool isEditing() const;
 
@@ -92,6 +97,9 @@ private:
     QColor m_normalColor; // White - normal display color
     QColor m_editColor;   // Cyan/Green - edit mode color
     QFont m_font;         // Inter with tabular figures, 32px bold
+
+    // Tuning rate indicator: digits from this position to 0 show in gray
+    int m_tuningRateDigit = -1; // -1 = no indicator, 0-4 = position from right
 
     // Cached character metrics for click detection
     int m_charWidth = 0;

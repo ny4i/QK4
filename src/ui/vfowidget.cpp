@@ -5,8 +5,6 @@
 #include "../dsp/minipan_rhi.h"
 #include <QMouseEvent>
 #include <QKeyEvent>
-#include <QPainter>
-#include <QFontMetrics>
 
 VFOWidget::VFOWidget(VFOType type, QWidget *parent)
     : QWidget(parent), m_type(type),
@@ -27,6 +25,7 @@ void VFOWidget::setupUi() {
     m_frequencyDisplay = new FrequencyDisplayWidget(this);
     m_frequencyDisplay->setEditModeColor(QColor(m_primaryColor)); // Cyan for A, Green for B
     m_frequencyDisplay->setFixedHeight(K4Styles::Dimensions::MenuItemHeight);
+    m_frequencyDisplay->setTuningRateDigit(m_tuningRate); // Initialize tuning rate indicator
 
     // Forward frequency entry signal
     connect(m_frequencyDisplay, &FrequencyDisplayWidget::frequencyEntered, this, &VFOWidget::frequencyEntered);
@@ -158,83 +157,18 @@ bool VFOWidget::eventFilter(QObject *watched, QEvent *event) {
 
 void VFOWidget::setFrequency(const QString &formatted) {
     m_frequencyDisplay->setFrequency(formatted);
-    update(); // Repaint to update tuning rate indicator position
 }
 
 void VFOWidget::setTuningRate(int rate) {
     if (rate >= 0 && rate <= 5 && rate != m_tuningRate) {
         m_tuningRate = rate;
-        update(); // Repaint to show new indicator position
+        // VT rate maps to digit position from right:
+        // Rate 0 = 1Hz (pos 0), Rate 1 = 10Hz (pos 1), Rate 2 = 100Hz (pos 2)
+        // Rate 3 = 1kHz (pos 3), Rate 4 = 10kHz (pos 4)
+        // Rate 5 = 100Hz (pos 2) - special case: KHZ button tunes at 100Hz
+        int digitPosition = (rate == 5) ? 2 : rate;
+        m_frequencyDisplay->setTuningRateDigit(digitPosition);
     }
-}
-
-void VFOWidget::paintEvent(QPaintEvent *event) {
-    QWidget::paintEvent(event);
-
-    // Draw tuning rate indicator after base paint
-    QPainter painter(this);
-    drawTuningRateIndicator(painter);
-}
-
-void VFOWidget::drawTuningRateIndicator(QPainter &painter) {
-    QString freqText = m_frequencyDisplay->displayText();
-    if (freqText.isEmpty() || freqText.startsWith("-"))
-        return; // No frequency set yet
-
-    // Get frequency display geometry in widget coordinates
-    QPoint displayPos = m_frequencyDisplay->mapTo(this, QPoint(0, 0));
-    QRect displayRect(displayPos, m_frequencyDisplay->size());
-
-    // Get font metrics for the frequency display font
-    QFont font = K4Styles::Fonts::dataFont(K4Styles::Dimensions::FontSizeFrequency);
-    QFontMetrics fm(font);
-
-    // VT rate maps to digit position from right:
-    // Rate 0 = 1Hz (pos 0), Rate 1 = 10Hz (pos 1), Rate 2 = 100Hz (pos 2)
-    // Rate 3 = 1kHz (pos 3), Rate 4 = 10kHz (pos 4)
-    // Rate 5 = 100Hz (pos 2) - special case: KHZ button tunes at 100Hz
-    int digitPosition = (m_tuningRate == 5) ? 2 : m_tuningRate;
-
-    // Find the character index for the digit at digitPosition from right
-    // Frequency format: "7.204.000" or "14.225.350"
-    // We need to skip decimal separators when counting digits from right
-    int digitCount = 0;
-    int charIndex = -1;
-    for (int i = freqText.length() - 1; i >= 0 && charIndex < 0; --i) {
-        if (freqText[i].isDigit()) {
-            if (digitCount == digitPosition) {
-                charIndex = i;
-                break;
-            }
-            digitCount++;
-        }
-    }
-
-    if (charIndex < 0)
-        return; // Digit position not found
-
-    // Calculate X position of the target character
-    // Using monospace font, so each character has same width
-    int charWidth = fm.horizontalAdvance('0');
-
-    // Calculate position from left edge of label
-    // For monospace, character at index i starts at i * charWidth
-    int charX = 0;
-    for (int i = 0; i < charIndex; ++i) {
-        charX += fm.horizontalAdvance(freqText[i]);
-    }
-
-    // Underline properties
-    const int spacing = 2;   // pixels below digit baseline
-    const int thickness = 4; // underline height
-
-    // Calculate underline position in widget coordinates
-    int underlineX = displayRect.left() + charX;
-    int underlineY = displayRect.bottom() + spacing;
-    int underlineWidth = charWidth;
-
-    // Draw underline in frequency text color (white)
-    painter.fillRect(underlineX, underlineY, underlineWidth, thickness, QColor(K4Styles::Colors::TextWhite));
 }
 
 void VFOWidget::setSMeterValue(double value) {
