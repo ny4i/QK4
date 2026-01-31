@@ -126,16 +126,30 @@ void DualControlButton::paintEvent(QPaintEvent *event) {
     int textLeft = buttonLeft + 6;
     int textRight = w - 6;
 
+    // Calculate vertical positions using font metrics for cross-platform consistency
+    // Button height is divided into upper (primary) and lower (alt) regions
+    QFontMetrics fmLabel(labelFont);
+    QFontMetrics fmValue(valueFont);
+    QFontMetrics fmAlt(altFont);
+
+    int topMargin = 4;
+    int bottomMargin = 4;
+
+    // Primary baseline: top margin + ascent (vertically centered in upper half)
+    int primaryBaseline = topMargin + qMax(fmLabel.ascent(), fmValue.ascent());
+
+    // Alt baseline: button height - bottom margin - descent
+    int altBaseline = h - bottomMargin - fmAlt.descent();
+
     // Primary label (left side, white) - e.g., "WPM"
     painter.setFont(labelFont);
     painter.setPen(QColor(K4Styles::Colors::TextWhite));
-    painter.drawText(textLeft, 18, m_primaryLabel);
+    painter.drawText(textLeft, primaryBaseline, m_primaryLabel);
 
     // Primary value (right side, white) - e.g., "15"
     painter.setFont(valueFont);
-    QFontMetrics fm(valueFont);
-    int valueWidth = fm.horizontalAdvance(m_primaryValue);
-    painter.drawText(textRight - valueWidth, 18, m_primaryValue);
+    int valueWidth = fmValue.horizontalAdvance(m_primaryValue);
+    painter.drawText(textRight - valueWidth, primaryBaseline, m_primaryValue);
 
     // Alternate label and value (bottom, yellow/amber) - e.g., "PTCH 600"
     painter.setFont(altFont);
@@ -145,7 +159,7 @@ void DualControlButton::paintEvent(QPaintEvent *event) {
     if (!m_alternateValue.isEmpty()) {
         altText += " " + m_alternateValue;
     }
-    painter.drawText(textLeft, h - 10, altText);
+    painter.drawText(textLeft, altBaseline, altText);
 }
 
 void DualControlButton::mousePressEvent(QMouseEvent *event) {
