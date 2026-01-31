@@ -292,12 +292,12 @@ constexpr int MemoryButtonWidth = 42; // M1-M4, REC, STORE, RCL buttons
 // =============================================================================
 // Font Sizes (in points) - use with QFont::setPointSize()
 // =============================================================================
-constexpr int FontSizeTiny = 7;    // Sub-labels (BANK, AF REC, MESSAGE)
-constexpr int FontSizeSmall = 8;   // Scale fonts, secondary text
-constexpr int FontSizeNormal = 9;  // Alt/secondary button text
-constexpr int FontSizeMedium = 10; // Labels, descriptions
-constexpr int FontSizeLarge = 11;  // Feature labels, primary labels
-constexpr int FontSizeButton = 12; // Button text, value displays
+constexpr int FontSizeTiny = 7;       // Sub-labels (BANK, AF REC, MESSAGE)
+constexpr int FontSizeSmall = 8;      // Scale fonts, secondary text
+constexpr int FontSizeNormal = 9;     // Alt/secondary button text
+constexpr int FontSizeMedium = 10;    // Labels, descriptions
+constexpr int FontSizeLarge = 11;     // Feature labels, primary labels
+constexpr int FontSizeButton = 12;    // Button text, value displays
 constexpr int FontSizePopup = 14;     // Notifications, popup titles
 constexpr int FontSizeTitle = 16;     // Large control buttons (+/-)
 constexpr int FontSizeFrequency = 32; // VFO frequency displays (FrequencyDisplayWidget, VfoWidget)
@@ -327,8 +327,6 @@ constexpr int DialogMargin = 20;           // Dialog content margins
 constexpr int TabListWidth = 150;          // Options dialog tab list width
 constexpr int InputFieldWidthSmall = 100;  // Port number, small inputs
 constexpr int InputFieldWidthMedium = 120; // Version labels, medium fields
-constexpr int IndicatorSize = 40;          // Dit/dah paddle indicators
-constexpr int IndicatorSpacing = 30;       // Spacing between dit/dah indicators
 constexpr int CheckboxSize = 18;           // Checkbox indicator dimensions
 constexpr int PaddingSmall = 6;            // Small padding (inputs)
 constexpr int PaddingMedium = 10;          // Medium padding (buttons)
@@ -339,8 +337,8 @@ namespace Fonts {
 // =============================================================================
 // Font Family Names - centralized for easy maintenance
 // =============================================================================
-constexpr const char *Primary = "Inter";  // UI text, labels, buttons, menus
-constexpr const char *Data = "Inter";     // Frequencies, numeric data (uses tabular figures)
+constexpr const char *Primary = "Inter"; // UI text, labels, buttons, menus
+constexpr const char *Data = "Inter";    // Frequencies, numeric data (uses tabular figures)
 
 /**
  * @brief Create a data display font with tabular figures enabled.

@@ -56,7 +56,6 @@ RadioState::Mode RadioState::modeFromCode(int code) {
     }
 }
 
-
 QString RadioState::modeToString(Mode mode) {
     switch (mode) {
     case LSB:
@@ -783,7 +782,8 @@ void RadioState::registerCommandHandlers() {
 // =============================================================================
 
 void RadioState::handleFA(const QString &cmd) {
-    if (cmd.length() <= 2) return;
+    if (cmd.length() <= 2)
+        return;
     bool ok;
     quint64 freq = cmd.mid(2).toULongLong(&ok);
     if (ok) {
@@ -794,7 +794,8 @@ void RadioState::handleFA(const QString &cmd) {
 }
 
 void RadioState::handleFB(const QString &cmd) {
-    if (cmd.length() <= 2) return;
+    if (cmd.length() <= 2)
+        return;
     bool ok;
     quint64 freq = cmd.mid(2).toULongLong(&ok);
     if (ok && m_vfoB != freq) {
@@ -804,7 +805,8 @@ void RadioState::handleFB(const QString &cmd) {
 }
 
 void RadioState::handleFT(const QString &cmd) {
-    if (cmd.length() <= 2) return;
+    if (cmd.length() <= 2)
+        return;
     bool newSplit = (cmd.mid(2) == "1");
     if (newSplit != m_splitEnabled) {
         m_splitEnabled = newSplit;
@@ -817,7 +819,8 @@ void RadioState::handleFT(const QString &cmd) {
 // =============================================================================
 
 void RadioState::handleMD(const QString &cmd) {
-    if (cmd.length() <= 2) return;
+    if (cmd.length() <= 2)
+        return;
     bool ok;
     int modeCode = cmd.mid(2).toInt(&ok);
     if (ok) {
@@ -834,7 +837,8 @@ void RadioState::handleMD(const QString &cmd) {
 }
 
 void RadioState::handleMDSub(const QString &cmd) {
-    if (cmd.length() <= 3) return;
+    if (cmd.length() <= 3)
+        return;
     bool ok;
     int modeCode = cmd.mid(3).toInt(&ok);
     if (ok) {
@@ -851,7 +855,8 @@ void RadioState::handleMDSub(const QString &cmd) {
 // =============================================================================
 
 void RadioState::handleBW(const QString &cmd) {
-    if (cmd.length() <= 2) return;
+    if (cmd.length() <= 2)
+        return;
     bool ok;
     int bw = cmd.mid(2).toInt(&ok);
     if (ok) {
@@ -864,7 +869,8 @@ void RadioState::handleBW(const QString &cmd) {
 }
 
 void RadioState::handleBWSub(const QString &cmd) {
-    if (cmd.length() <= 3) return;
+    if (cmd.length() <= 3)
+        return;
     bool ok;
     int bw = cmd.mid(3).toInt(&ok);
     if (ok) {
@@ -877,7 +883,8 @@ void RadioState::handleBWSub(const QString &cmd) {
 }
 
 void RadioState::handleIS(const QString &cmd) {
-    if (cmd.length() <= 2) return;
+    if (cmd.length() <= 2)
+        return;
     bool ok;
     int is = cmd.mid(2).toInt(&ok);
     if (ok && is != m_ifShift) {
@@ -887,7 +894,8 @@ void RadioState::handleIS(const QString &cmd) {
 }
 
 void RadioState::handleISSub(const QString &cmd) {
-    if (cmd.length() <= 3) return;
+    if (cmd.length() <= 3)
+        return;
     bool ok;
     int is = cmd.mid(3).toInt(&ok);
     if (ok && is != m_ifShiftB) {
@@ -898,7 +906,8 @@ void RadioState::handleISSub(const QString &cmd) {
 
 void RadioState::handleCW(const QString &cmd) {
     // CW pitch - but skip CW-R mode strings
-    if (cmd.length() < 4 || cmd.startsWith("CW-")) return;
+    if (cmd.length() < 4 || cmd.startsWith("CW-"))
+        return;
     bool ok;
     int pitchCode = cmd.mid(2).toInt(&ok);
     if (ok && pitchCode >= 25 && pitchCode <= 95) {
@@ -911,7 +920,8 @@ void RadioState::handleCW(const QString &cmd) {
 }
 
 void RadioState::handleFP(const QString &cmd) {
-    if (cmd.length() <= 2) return;
+    if (cmd.length() <= 2)
+        return;
     bool ok;
     int fp = cmd.mid(2).toInt(&ok);
     if (ok && fp >= 1 && fp <= 3 && fp != m_filterPosition) {
@@ -921,7 +931,8 @@ void RadioState::handleFP(const QString &cmd) {
 }
 
 void RadioState::handleFPSub(const QString &cmd) {
-    if (cmd.length() <= 3) return;
+    if (cmd.length() <= 3)
+        return;
     bool ok;
     int fp = cmd.mid(3).toInt(&ok);
     if (ok && fp >= 1 && fp <= 3 && fp != m_filterPositionB) {
@@ -935,7 +946,8 @@ void RadioState::handleFPSub(const QString &cmd) {
 // =============================================================================
 
 void RadioState::handleRG(const QString &cmd) {
-    if (cmd.length() <= 2) return;
+    if (cmd.length() <= 2)
+        return;
     bool ok;
     int rg = cmd.mid(2).toInt(&ok);
     if (ok && m_rfGain != rg) {
@@ -945,7 +957,8 @@ void RadioState::handleRG(const QString &cmd) {
 }
 
 void RadioState::handleRGSub(const QString &cmd) {
-    if (cmd.length() <= 3) return;
+    if (cmd.length() <= 3)
+        return;
     bool ok;
     int rg = cmd.mid(3).toInt(&ok);
     if (ok && m_rfGainB != rg) {
@@ -955,7 +968,8 @@ void RadioState::handleRGSub(const QString &cmd) {
 }
 
 void RadioState::handleSQ(const QString &cmd) {
-    if (cmd.length() <= 2) return;
+    if (cmd.length() <= 2)
+        return;
     bool ok;
     int sq = cmd.mid(2).toInt(&ok);
     if (ok && m_squelchLevel != sq) {
@@ -965,7 +979,8 @@ void RadioState::handleSQ(const QString &cmd) {
 }
 
 void RadioState::handleSQSub(const QString &cmd) {
-    if (cmd.length() <= 3) return;
+    if (cmd.length() <= 3)
+        return;
     bool ok;
     int sq = cmd.mid(3).toInt(&ok);
     if (ok && m_squelchLevelB != sq) {
@@ -975,7 +990,8 @@ void RadioState::handleSQSub(const QString &cmd) {
 }
 
 void RadioState::handleMG(const QString &cmd) {
-    if (cmd.length() <= 2) return;
+    if (cmd.length() <= 2)
+        return;
     bool ok;
     int gain = cmd.mid(2).toInt(&ok);
     if (ok && gain != m_micGain) {
@@ -985,7 +1001,8 @@ void RadioState::handleMG(const QString &cmd) {
 }
 
 void RadioState::handleCP(const QString &cmd) {
-    if (cmd.length() <= 2) return;
+    if (cmd.length() <= 2)
+        return;
     bool ok;
     int comp = cmd.mid(2).toInt(&ok);
     if (ok && comp != m_compression) {
@@ -996,13 +1013,16 @@ void RadioState::handleCP(const QString &cmd) {
 
 void RadioState::handleML(const QString &cmd) {
     // Monitor Level - MLmnnn where m=mode (0=CW, 1=Data, 2=Voice), nnn=000-100
-    if (cmd.length() < 5) return;
+    if (cmd.length() < 5)
+        return;
     bool ok;
     int mode = cmd.mid(2, 1).toInt(&ok);
-    if (!ok || mode < 0 || mode > 2) return;
+    if (!ok || mode < 0 || mode > 2)
+        return;
 
     int level = cmd.mid(3).toInt(&ok);
-    if (!ok || level < 0 || level > 100) return;
+    if (!ok || level < 0 || level > 100)
+        return;
 
     int *target = nullptr;
     switch (mode) {
@@ -1024,10 +1044,12 @@ void RadioState::handleML(const QString &cmd) {
 
 void RadioState::handlePC(const QString &cmd) {
     // Power Control - PCnnnmm where nnn=watts*10, mm=00(normal)/01(QRP)
-    if (cmd.length() < 5) return;
+    if (cmd.length() < 5)
+        return;
     bool ok;
     int powerRaw = cmd.mid(2, 3).toInt(&ok);
-    if (!ok) return;
+    if (!ok)
+        return;
 
     double watts = powerRaw / 10.0;
     bool qrp = (cmd.length() >= 7 && cmd.mid(5, 2) == "01");
@@ -1047,7 +1069,8 @@ void RadioState::handlePC(const QString &cmd) {
 }
 
 void RadioState::handleKS(const QString &cmd) {
-    if (cmd.length() <= 2) return;
+    if (cmd.length() <= 2)
+        return;
     bool ok;
     int wpm = cmd.mid(2).toInt(&ok);
     if (ok && m_keyerSpeed != wpm) {
@@ -1061,7 +1084,8 @@ void RadioState::handleKS(const QString &cmd) {
 // =============================================================================
 
 void RadioState::handleSM(const QString &cmd) {
-    if (cmd.length() <= 2) return;
+    if (cmd.length() <= 2)
+        return;
     bool ok;
     int bars = cmd.mid(2).toInt(&ok);
     if (ok) {
@@ -1076,7 +1100,8 @@ void RadioState::handleSM(const QString &cmd) {
 }
 
 void RadioState::handleSMSub(const QString &cmd) {
-    if (cmd.length() <= 3) return;
+    if (cmd.length() <= 3)
+        return;
     bool ok;
     int bars = cmd.mid(3).toInt(&ok);
     if (ok) {
@@ -1091,7 +1116,8 @@ void RadioState::handleSMSub(const QString &cmd) {
 }
 
 void RadioState::handlePO(const QString &cmd) {
-    if (cmd.length() <= 2) return;
+    if (cmd.length() <= 2)
+        return;
     bool ok;
     int po = cmd.mid(2).toInt(&ok);
     if (ok) {
@@ -1102,9 +1128,11 @@ void RadioState::handlePO(const QString &cmd) {
 
 void RadioState::handleTM(const QString &cmd) {
     // TX Meter Data (TM) - TMaaabbbcccddd; (ALC, CMP, FWD, SWR) - 3-digit fields
-    if (cmd.length() < 14) return;
+    if (cmd.length() < 14)
+        return;
     QString data = cmd.mid(2);
-    if (data.length() < 12) return;
+    if (data.length() < 12)
+        return;
 
     bool ok1, ok2, ok3, ok4;
     int alc = data.mid(0, 3).toInt(&ok1);
@@ -1112,13 +1140,14 @@ void RadioState::handleTM(const QString &cmd) {
     int fwd = data.mid(6, 3).toInt(&ok3);
     int swrRaw = data.mid(9, 3).toInt(&ok4);
 
-    if (!ok1 || !ok2 || !ok3 || !ok4) return;
+    if (!ok1 || !ok2 || !ok3 || !ok4)
+        return;
 
     m_alcMeter = alc;
     m_compressionDb = cmp;
     // FWD is watts in QRO, tenths in QRP
     m_forwardPower = m_isQrpMode ? fwd / 10.0 : fwd;
-    m_swrMeter = swrRaw / 10.0;  // SWR in 1/10th units
+    m_swrMeter = swrRaw / 10.0; // SWR in 1/10th units
 
     emit txMeterChanged(m_alcMeter, m_compressionDb, m_forwardPower, m_swrMeter);
     emit swrChanged(m_swrMeter);
@@ -1150,14 +1179,17 @@ void RadioState::handleRX(const QString &cmd) {
 
 void RadioState::handleNB(const QString &cmd) {
     // NB - Noise Blanker Main: NBnnm or NBnnmf where nn=level, m=on/off, f=filter
-    if (cmd.length() < 4) return;
+    if (cmd.length() < 4)
+        return;
     QString nbStr = cmd.mid(2);
-    if (nbStr.length() < 3) return;
+    if (nbStr.length() < 3)
+        return;
 
     bool ok1, ok2;
     int level = nbStr.left(2).toInt(&ok1);
     int enabled = nbStr.mid(2, 1).toInt(&ok2);
-    if (!ok1 || !ok2) return;
+    if (!ok1 || !ok2)
+        return;
 
     m_noiseBlankerLevel = qMin(level, 15);
     m_noiseBlankerEnabled = (enabled == 1);
@@ -1174,14 +1206,17 @@ void RadioState::handleNB(const QString &cmd) {
 
 void RadioState::handleNBSub(const QString &cmd) {
     // NB$ - Noise Blanker Sub
-    if (cmd.length() < 5) return;
+    if (cmd.length() < 5)
+        return;
     QString nbStr = cmd.mid(3);
-    if (nbStr.length() < 3) return;
+    if (nbStr.length() < 3)
+        return;
 
     bool ok1, ok2;
     int level = nbStr.left(2).toInt(&ok1);
     int enabled = nbStr.mid(2, 1).toInt(&ok2);
-    if (!ok1 || !ok2) return;
+    if (!ok1 || !ok2)
+        return;
 
     m_noiseBlankerLevelB = qMin(level, 15);
     m_noiseBlankerEnabledB = (enabled == 1);
@@ -1198,9 +1233,11 @@ void RadioState::handleNBSub(const QString &cmd) {
 
 void RadioState::handleNR(const QString &cmd) {
     // NR - Noise Reduction Main
-    if (cmd.length() < 3) return;
+    if (cmd.length() < 3)
+        return;
     QString nrStr = cmd.mid(2);
-    if (nrStr.length() < 3) return;
+    if (nrStr.length() < 3)
+        return;
 
     bool ok1, ok2;
     int level = nrStr.left(2).toInt(&ok1);
@@ -1214,9 +1251,11 @@ void RadioState::handleNR(const QString &cmd) {
 
 void RadioState::handleNRSub(const QString &cmd) {
     // NR$ - Noise Reduction Sub
-    if (cmd.length() < 4) return;
+    if (cmd.length() < 4)
+        return;
     QString nrStr = cmd.mid(3);
-    if (nrStr.length() < 3) return;
+    if (nrStr.length() < 3)
+        return;
 
     bool ok1, ok2;
     int level = nrStr.left(2).toInt(&ok1);
@@ -1230,9 +1269,11 @@ void RadioState::handleNRSub(const QString &cmd) {
 
 void RadioState::handlePA(const QString &cmd) {
     // PA - Preamp Main: PAnm where n=level, m=on/off
-    if (cmd.length() < 4) return;
+    if (cmd.length() < 4)
+        return;
     QString paStr = cmd.mid(2);
-    if (paStr.length() < 2) return;
+    if (paStr.length() < 2)
+        return;
 
     bool ok1, ok2;
     int level = paStr.left(1).toInt(&ok1);
@@ -1246,9 +1287,11 @@ void RadioState::handlePA(const QString &cmd) {
 
 void RadioState::handlePASub(const QString &cmd) {
     // PA$ - Preamp Sub
-    if (cmd.length() < 5) return;
+    if (cmd.length() < 5)
+        return;
     QString paStr = cmd.mid(3);
-    if (paStr.length() < 2) return;
+    if (paStr.length() < 2)
+        return;
 
     bool ok1, ok2;
     int level = paStr.left(1).toInt(&ok1);
@@ -1262,9 +1305,11 @@ void RadioState::handlePASub(const QString &cmd) {
 
 void RadioState::handleRA(const QString &cmd) {
     // RA - Attenuator Main: RAnnotm where nn=level, m=on/off
-    if (cmd.length() < 5) return;
+    if (cmd.length() < 5)
+        return;
     QString raStr = cmd.mid(2);
-    if (raStr.length() < 3) return;
+    if (raStr.length() < 3)
+        return;
 
     bool ok1, ok2;
     int level = raStr.left(2).toInt(&ok1);
@@ -1278,9 +1323,11 @@ void RadioState::handleRA(const QString &cmd) {
 
 void RadioState::handleRASub(const QString &cmd) {
     // RA$ - Attenuator Sub
-    if (cmd.length() < 6) return;
+    if (cmd.length() < 6)
+        return;
     QString raStr = cmd.mid(3);
-    if (raStr.length() < 3) return;
+    if (raStr.length() < 3)
+        return;
 
     bool ok1, ok2;
     int level = raStr.left(2).toInt(&ok1);
@@ -1294,7 +1341,8 @@ void RadioState::handleRASub(const QString &cmd) {
 
 void RadioState::handleGT(const QString &cmd) {
     // GT - AGC Speed Main: GTn where n=0(off)/1(slow)/2(fast)
-    if (cmd.length() <= 2) return;
+    if (cmd.length() <= 2)
+        return;
     bool ok;
     int gt = cmd.mid(2).toInt(&ok);
     if (ok) {
@@ -1310,7 +1358,8 @@ void RadioState::handleGT(const QString &cmd) {
 
 void RadioState::handleGTSub(const QString &cmd) {
     // GT$ - AGC Speed Sub
-    if (cmd.length() < 4) return;
+    if (cmd.length() < 4)
+        return;
     bool ok;
     int gt = cmd.mid(3).toInt(&ok);
     if (ok) {
@@ -1326,7 +1375,8 @@ void RadioState::handleGTSub(const QString &cmd) {
 
 void RadioState::handleNA(const QString &cmd) {
     // NA - Auto Notch Main
-    if (cmd.length() < 3) return;
+    if (cmd.length() < 3)
+        return;
     bool enabled = (cmd.at(2) == '1');
     if (m_autoNotchEnabled != enabled) {
         m_autoNotchEnabled = enabled;
@@ -1336,7 +1386,8 @@ void RadioState::handleNA(const QString &cmd) {
 
 void RadioState::handleNASub(const QString &cmd) {
     // NA$ - Auto Notch Sub
-    if (cmd.length() < 4) return;
+    if (cmd.length() < 4)
+        return;
     bool enabled = (cmd.at(3) == '1');
     if (m_autoNotchEnabledB != enabled) {
         m_autoNotchEnabledB = enabled;
@@ -1346,7 +1397,8 @@ void RadioState::handleNASub(const QString &cmd) {
 
 void RadioState::handleNM(const QString &cmd) {
     // NM - Manual Notch Main: NMnnnnm or NMm
-    if (cmd.length() < 3) return;
+    if (cmd.length() < 3)
+        return;
     QString data = cmd.mid(2);
     if (data.length() >= 5) {
         bool ok;
@@ -1375,7 +1427,8 @@ void RadioState::handleNM(const QString &cmd) {
 
 void RadioState::handleNMSub(const QString &cmd) {
     // NM$ - Manual Notch Sub
-    if (cmd.length() < 4) return;
+    if (cmd.length() < 4)
+        return;
     QString data = cmd.mid(3);
     if (data.length() >= 5) {
         bool ok;
@@ -1408,7 +1461,8 @@ void RadioState::handleNMSub(const QString &cmd) {
 
 void RadioState::handleFX(const QString &cmd) {
     // FX - Audio Effects: FXn where n=0(off)/1(delay)/2(pitch-map)
-    if (cmd.length() < 3) return;
+    if (cmd.length() < 3)
+        return;
     bool ok;
     int fx = cmd.mid(2).toInt(&ok);
     if (ok && fx >= 0 && fx <= 2 && fx != m_afxMode) {
@@ -1419,12 +1473,15 @@ void RadioState::handleFX(const QString &cmd) {
 
 void RadioState::handleAP(const QString &cmd) {
     // AP - Audio Peak Filter Main: APmb where m=enabled, b=bandwidth
-    if (cmd.length() < 4) return;
+    if (cmd.length() < 4)
+        return;
     bool ok;
     int m = cmd.mid(2, 1).toInt(&ok);
-    if (!ok) return;
+    if (!ok)
+        return;
     int b = cmd.mid(3, 1).toInt(&ok);
-    if (!ok) return;
+    if (!ok)
+        return;
 
     bool enabled = (m == 1);
     int bandwidth = qBound(0, b, 2);
@@ -1437,12 +1494,15 @@ void RadioState::handleAP(const QString &cmd) {
 
 void RadioState::handleAPSub(const QString &cmd) {
     // AP$ - Audio Peak Filter Sub
-    if (cmd.length() < 5) return;
+    if (cmd.length() < 5)
+        return;
     bool ok;
     int m = cmd.mid(3, 1).toInt(&ok);
-    if (!ok) return;
+    if (!ok)
+        return;
     int b = cmd.mid(4, 1).toInt(&ok);
-    if (!ok) return;
+    if (!ok)
+        return;
 
     bool enabled = (m == 1);
     int bandwidth = qBound(0, b, 2);
@@ -1459,7 +1519,8 @@ void RadioState::handleAPSub(const QString &cmd) {
 
 void RadioState::handleLN(const QString &cmd) {
     // LN - VFO Link
-    if (cmd.length() < 3) return;
+    if (cmd.length() < 3)
+        return;
     bool ok;
     int ln = cmd.mid(2).toInt(&ok);
     if (ok) {
@@ -1473,7 +1534,8 @@ void RadioState::handleLN(const QString &cmd) {
 
 void RadioState::handleLK(const QString &cmd) {
     // LK - VFO A Lock
-    if (cmd.length() < 3) return;
+    if (cmd.length() < 3)
+        return;
     bool ok;
     int lk = cmd.mid(2).toInt(&ok);
     if (ok) {
@@ -1487,7 +1549,8 @@ void RadioState::handleLK(const QString &cmd) {
 
 void RadioState::handleLKSub(const QString &cmd) {
     // LK$ - VFO B Lock
-    if (cmd.length() < 4) return;
+    if (cmd.length() < 4)
+        return;
     bool ok;
     int lk = cmd.mid(3).toInt(&ok);
     if (ok) {
@@ -1501,9 +1564,11 @@ void RadioState::handleLKSub(const QString &cmd) {
 
 void RadioState::handleVT(const QString &cmd) {
     // VT - Tuning Step Main
-    if (cmd.length() <= 2) return;
+    if (cmd.length() <= 2)
+        return;
     QString vtStr = cmd.mid(2);
-    if (vtStr.isEmpty()) return;
+    if (vtStr.isEmpty())
+        return;
 
     bool ok;
     int step = vtStr.left(1).toInt(&ok);
@@ -1518,9 +1583,11 @@ void RadioState::handleVT(const QString &cmd) {
 
 void RadioState::handleVTSub(const QString &cmd) {
     // VT$ - Tuning Step Sub
-    if (cmd.length() <= 3) return;
+    if (cmd.length() <= 3)
+        return;
     QString vtStr = cmd.mid(3);
-    if (vtStr.isEmpty()) return;
+    if (vtStr.isEmpty())
+        return;
 
     bool ok;
     int step = vtStr.left(1).toInt(&ok);
@@ -1539,7 +1606,8 @@ void RadioState::handleVTSub(const QString &cmd) {
 
 void RadioState::handleVX(const QString &cmd) {
     // VX - VOX Enable: VXmn where m=mode (C/V/D), n=0/1
-    if (cmd.length() < 4) return;
+    if (cmd.length() < 4)
+        return;
     QChar mode = cmd.at(2);
     bool enabled = (cmd.at(3) == '1');
     bool changed = false;
@@ -1560,7 +1628,8 @@ void RadioState::handleVX(const QString &cmd) {
 
 void RadioState::handleVG(const QString &cmd) {
     // VG - VOX Gain: VGmnnn where m=V(voice)/D(data), nnn=000-060
-    if (cmd.length() < 5) return;
+    if (cmd.length() < 5)
+        return;
     QChar modeChar = cmd.at(2);
     bool ok;
     int gain = cmd.mid(3, 3).toInt(&ok);
@@ -1577,7 +1646,8 @@ void RadioState::handleVG(const QString &cmd) {
 
 void RadioState::handleVI(const QString &cmd) {
     // VI - Anti-VOX: VInnn where nnn=000-060
-    if (cmd.length() < 5) return;
+    if (cmd.length() < 5)
+        return;
     bool ok;
     int level = cmd.mid(2, 3).toInt(&ok);
     if (ok && level >= 0 && level <= 60 && level != m_antiVox) {
@@ -1592,7 +1662,8 @@ void RadioState::handleVI(const QString &cmd) {
 
 void RadioState::handleLO(const QString &cmd) {
     // LO - Line Out: LOlllrrrm where lll=left, rrr=right, m=mode
-    if (cmd.length() < 9) return;
+    if (cmd.length() < 9)
+        return;
     bool okL, okR;
     int left = cmd.mid(2, 3).toInt(&okL);
     int right = cmd.mid(5, 3).toInt(&okR);
@@ -1619,7 +1690,8 @@ void RadioState::handleLO(const QString &cmd) {
 
 void RadioState::handleLI(const QString &cmd) {
     // LI - Line In: LIuuullls where uuu=soundcard, lll=linein, s=source
-    if (cmd.length() < 9) return;
+    if (cmd.length() < 9)
+        return;
     bool okS, okL;
     int soundCard = cmd.mid(2, 3).toInt(&okS);
     int lineIn = cmd.mid(5, 3).toInt(&okL);
@@ -1647,7 +1719,8 @@ void RadioState::handleLI(const QString &cmd) {
 
 void RadioState::handleMI(const QString &cmd) {
     // MI - Mic Input Select
-    if (cmd.length() < 3) return;
+    if (cmd.length() < 3)
+        return;
     int input = cmd.mid(2, 1).toInt();
     if (input >= 0 && input <= 4 && input != m_micInput) {
         m_micInput = input;
@@ -1657,7 +1730,8 @@ void RadioState::handleMI(const QString &cmd) {
 
 void RadioState::handleMS(const QString &cmd) {
     // MS - Mic Setup: MSabcde
-    if (cmd.length() < 7) return;
+    if (cmd.length() < 7)
+        return;
     int frontPreamp = cmd.mid(2, 1).toInt();
     int frontBias = cmd.mid(3, 1).toInt();
     int frontButtons = cmd.mid(4, 1).toInt();
@@ -1691,10 +1765,12 @@ void RadioState::handleMS(const QString &cmd) {
 
 void RadioState::handleES(const QString &cmd) {
     // ES - ESSB: ESnbb where n=0/1, bb=bandwidth
-    if (cmd.length() < 4) return;
+    if (cmd.length() < 4)
+        return;
     bool ok;
     int modeVal = cmd.mid(2, 1).toInt(&ok);
-    if (!ok || (modeVal != 0 && modeVal != 1)) return;
+    if (!ok || (modeVal != 0 && modeVal != 1))
+        return;
 
     bool newEssb = (modeVal == 1);
     int newBw = m_ssbTxBw;
@@ -1726,12 +1802,14 @@ void RadioState::handleES(const QString &cmd) {
 
 void RadioState::handleSD(const QString &cmd) {
     // SD - QSK/VOX Delay: SDxMzzz where x=QSK flag, M=mode, zzz=delay
-    if (cmd.length() < 7) return;
+    if (cmd.length() < 7)
+        return;
     QChar qskFlag = cmd.at(2);
     QChar modeChar = cmd.at(3);
     bool ok;
     int delay = cmd.mid(4, 3).toInt(&ok);
-    if (!ok) return;
+    if (!ok)
+        return;
 
     // Update QSK enabled state (only meaningful for CW mode)
     if (modeChar == 'C') {
@@ -1770,14 +1848,16 @@ void RadioState::handleSD(const QString &cmd) {
 
 void RadioState::handleSB(const QString &cmd) {
     // SB - Sub Receiver: SB0=off, SB1=on, SB3=on (diversity)
-    if (cmd.length() <= 2) return;
+    if (cmd.length() <= 2)
+        return;
     m_subReceiverEnabled = (cmd.mid(2) != "0");
     emit subRxEnabledChanged(m_subReceiverEnabled);
 }
 
 void RadioState::handleDV(const QString &cmd) {
     // DV - Diversity
-    if (cmd.length() <= 2) return;
+    if (cmd.length() <= 2)
+        return;
     bool newState = (cmd.mid(2) == "1");
     if (newState != m_diversityEnabled) {
         m_diversityEnabled = newState;
@@ -1787,7 +1867,8 @@ void RadioState::handleDV(const QString &cmd) {
 
 void RadioState::handleTS(const QString &cmd) {
     // TS - Test Mode
-    if (cmd.length() < 3) return;
+    if (cmd.length() < 3)
+        return;
     bool enabled = (cmd.mid(2, 1) == "1");
     if (enabled != m_testMode) {
         m_testMode = enabled;
@@ -1797,7 +1878,8 @@ void RadioState::handleTS(const QString &cmd) {
 
 void RadioState::handleBS(const QString &cmd) {
     // BS - B SET
-    if (cmd.length() < 3) return;
+    if (cmd.length() < 3)
+        return;
     bool enabled = (cmd.mid(2, 1) == "1");
     if (enabled != m_bSetEnabled) {
         m_bSetEnabled = enabled;
@@ -1810,7 +1892,8 @@ void RadioState::handleBS(const QString &cmd) {
 // =============================================================================
 
 void RadioState::handleAN(const QString &cmd) {
-    if (cmd.length() <= 2) return;
+    if (cmd.length() <= 2)
+        return;
     bool ok;
     int an = cmd.mid(2).toInt(&ok);
     if (ok && an >= 1 && an <= 6 && an != m_selectedAntenna) {
@@ -1820,8 +1903,10 @@ void RadioState::handleAN(const QString &cmd) {
 }
 
 void RadioState::handleAR(const QString &cmd) {
-    if (cmd.startsWith("AR$")) return;
-    if (cmd.length() <= 2) return;
+    if (cmd.startsWith("AR$"))
+        return;
+    if (cmd.length() <= 2)
+        return;
     bool ok;
     int ar = cmd.mid(2).toInt(&ok);
     if (ok && ar >= 0 && ar <= 7 && ar != m_receiveAntenna) {
@@ -1831,7 +1916,8 @@ void RadioState::handleAR(const QString &cmd) {
 }
 
 void RadioState::handleARSub(const QString &cmd) {
-    if (cmd.length() <= 3) return;
+    if (cmd.length() <= 3)
+        return;
     bool ok;
     int ar = cmd.mid(3).toInt(&ok);
     if (ok && ar >= 0 && ar <= 7 && ar != m_receiveAntennaSub) {
@@ -1841,7 +1927,8 @@ void RadioState::handleARSub(const QString &cmd) {
 }
 
 void RadioState::handleAT(const QString &cmd) {
-    if (cmd.length() < 3) return;
+    if (cmd.length() < 3)
+        return;
     bool ok;
     int at = cmd.mid(2).toInt(&ok);
     if (ok && at >= 0 && at <= 2 && at != m_atuMode) {
@@ -1851,7 +1938,8 @@ void RadioState::handleAT(const QString &cmd) {
 }
 
 void RadioState::handleACN(const QString &cmd) {
-    if (cmd.length() < 4) return;
+    if (cmd.length() < 4)
+        return;
     bool ok;
     int index = cmd.mid(3, 1).toInt(&ok);
     if (ok && index >= 1 && index <= 7) {
@@ -1864,7 +1952,8 @@ void RadioState::handleACN(const QString &cmd) {
 }
 
 void RadioState::handleACM(const QString &cmd) {
-    if (cmd.length() < 11) return;
+    if (cmd.length() < 11)
+        return;
     bool displayAll = (cmd.at(3) == '1');
     bool changed = (displayAll != m_mainRxDisplayAll);
     m_mainRxDisplayAll = displayAll;
@@ -1875,11 +1964,13 @@ void RadioState::handleACM(const QString &cmd) {
             changed = true;
         }
     }
-    if (changed) emit mainRxAntCfgChanged();
+    if (changed)
+        emit mainRxAntCfgChanged();
 }
 
 void RadioState::handleACS(const QString &cmd) {
-    if (cmd.length() < 11) return;
+    if (cmd.length() < 11)
+        return;
     bool displayAll = (cmd.at(3) == '1');
     bool changed = (displayAll != m_subRxDisplayAll);
     m_subRxDisplayAll = displayAll;
@@ -1890,11 +1981,13 @@ void RadioState::handleACS(const QString &cmd) {
             changed = true;
         }
     }
-    if (changed) emit subRxAntCfgChanged();
+    if (changed)
+        emit subRxAntCfgChanged();
 }
 
 void RadioState::handleACT(const QString &cmd) {
-    if (cmd.length() < 7) return;
+    if (cmd.length() < 7)
+        return;
     bool displayAll = (cmd.at(3) == '1');
     bool changed = (displayAll != m_txDisplayAll);
     m_txDisplayAll = displayAll;
@@ -1905,7 +1998,8 @@ void RadioState::handleACT(const QString &cmd) {
             changed = true;
         }
     }
-    if (changed) emit txAntCfgChanged();
+    if (changed)
+        emit txAntCfgChanged();
 }
 
 // =============================================================================
@@ -1913,7 +2007,8 @@ void RadioState::handleACT(const QString &cmd) {
 // =============================================================================
 
 void RadioState::handleRT(const QString &cmd) {
-    if (cmd.length() < 3 || (cmd.at(2) != '0' && cmd.at(2) != '1')) return;
+    if (cmd.length() < 3 || (cmd.at(2) != '0' && cmd.at(2) != '1'))
+        return;
     bool enabled = (cmd.at(2) == '1');
     if (enabled != m_ritEnabled) {
         m_ritEnabled = enabled;
@@ -1922,7 +2017,8 @@ void RadioState::handleRT(const QString &cmd) {
 }
 
 void RadioState::handleXT(const QString &cmd) {
-    if (cmd.length() < 3 || (cmd.at(2) != '0' && cmd.at(2) != '1')) return;
+    if (cmd.length() < 3 || (cmd.at(2) != '0' && cmd.at(2) != '1'))
+        return;
     bool enabled = (cmd.at(2) == '1');
     if (enabled != m_xitEnabled) {
         m_xitEnabled = enabled;
@@ -1931,7 +2027,8 @@ void RadioState::handleXT(const QString &cmd) {
 }
 
 void RadioState::handleRO(const QString &cmd) {
-    if (cmd.length() < 3) return;
+    if (cmd.length() < 3)
+        return;
     bool ok;
     int offset = cmd.mid(2).toInt(&ok);
     if (ok && offset != m_ritXitOffset) {
@@ -1945,41 +2042,69 @@ void RadioState::handleRO(const QString &cmd) {
 // =============================================================================
 
 void RadioState::handleTD(const QString &cmd) {
-    if (cmd.length() < 5) return;
+    if (cmd.length() < 5)
+        return;
     int mode = cmd.mid(2, 1).toInt();
     int threshold = cmd.mid(3, 1).toInt();
     int lines = cmd.mid(4, 1).toInt();
     bool changed = false;
-    if (mode != m_textDecodeMode) { m_textDecodeMode = mode; changed = true; }
-    if (threshold != m_textDecodeThreshold) { m_textDecodeThreshold = threshold; changed = true; }
-    if (lines != m_textDecodeLines && lines >= 1 && lines <= 9) { m_textDecodeLines = lines; changed = true; }
-    if (changed) emit textDecodeChanged();
+    if (mode != m_textDecodeMode) {
+        m_textDecodeMode = mode;
+        changed = true;
+    }
+    if (threshold != m_textDecodeThreshold) {
+        m_textDecodeThreshold = threshold;
+        changed = true;
+    }
+    if (lines != m_textDecodeLines && lines >= 1 && lines <= 9) {
+        m_textDecodeLines = lines;
+        changed = true;
+    }
+    if (changed)
+        emit textDecodeChanged();
 }
 
 void RadioState::handleTDSub(const QString &cmd) {
-    if (cmd.length() < 6) return;
+    if (cmd.length() < 6)
+        return;
     int mode = cmd.mid(3, 1).toInt();
     int threshold = cmd.mid(4, 1).toInt();
     int lines = cmd.mid(5, 1).toInt();
     bool changed = false;
-    if (mode != m_textDecodeModeB) { m_textDecodeModeB = mode; changed = true; }
-    if (threshold != m_textDecodeThresholdB) { m_textDecodeThresholdB = threshold; changed = true; }
-    if (lines != m_textDecodeLinesB && lines >= 1 && lines <= 9) { m_textDecodeLinesB = lines; changed = true; }
-    if (changed) emit textDecodeBChanged();
+    if (mode != m_textDecodeModeB) {
+        m_textDecodeModeB = mode;
+        changed = true;
+    }
+    if (threshold != m_textDecodeThresholdB) {
+        m_textDecodeThresholdB = threshold;
+        changed = true;
+    }
+    if (lines != m_textDecodeLinesB && lines >= 1 && lines <= 9) {
+        m_textDecodeLinesB = lines;
+        changed = true;
+    }
+    if (changed)
+        emit textDecodeBChanged();
 }
 
 void RadioState::handleTB(const QString &cmd) {
-    if (cmd.length() < 5) return;
+    if (cmd.length() < 5)
+        return;
     QString text = cmd.mid(5);
-    if (text.endsWith(';')) text.chop(1);
-    if (!text.isEmpty()) emit textBufferReceived(text, false);
+    if (text.endsWith(';'))
+        text.chop(1);
+    if (!text.isEmpty())
+        emit textBufferReceived(text, false);
 }
 
 void RadioState::handleTBSub(const QString &cmd) {
-    if (cmd.length() < 6) return;
+    if (cmd.length() < 6)
+        return;
     QString text = cmd.mid(6);
-    if (text.endsWith(';')) text.chop(1);
-    if (!text.isEmpty()) emit textBufferReceived(text, true);
+    if (text.endsWith(';'))
+        text.chop(1);
+    if (!text.isEmpty())
+        emit textBufferReceived(text, true);
 }
 
 // =============================================================================
@@ -1987,12 +2112,15 @@ void RadioState::handleTBSub(const QString &cmd) {
 // =============================================================================
 
 void RadioState::handleDT(const QString &cmd) {
-    if (cmd.length() < 3) return;
+    if (cmd.length() < 3)
+        return;
     bool ok;
     int subMode = cmd.mid(2).toInt(&ok);
-    if (!ok || subMode < 0 || subMode > 3) return;
+    if (!ok || subMode < 0 || subMode > 3)
+        return;
     qint64 now = QDateTime::currentMSecsSinceEpoch();
-    if (now - m_dataSubModeOptimisticTime < 500) return;
+    if (now - m_dataSubModeOptimisticTime < 500)
+        return;
     if (subMode != m_dataSubMode) {
         m_dataSubMode = subMode;
         emit dataSubModeChanged(m_dataSubMode);
@@ -2000,12 +2128,15 @@ void RadioState::handleDT(const QString &cmd) {
 }
 
 void RadioState::handleDTSub(const QString &cmd) {
-    if (cmd.length() < 4) return;
+    if (cmd.length() < 4)
+        return;
     bool ok;
     int subMode = cmd.mid(3).toInt(&ok);
-    if (!ok || subMode < 0 || subMode > 3) return;
+    if (!ok || subMode < 0 || subMode > 3)
+        return;
     qint64 now = QDateTime::currentMSecsSinceEpoch();
-    if (now - m_dataSubModeBOptimisticTime < 500) return;
+    if (now - m_dataSubModeBOptimisticTime < 500)
+        return;
     if (subMode != m_dataSubModeB) {
         m_dataSubModeB = subMode;
         emit dataSubModeBChanged(m_dataSubModeB);
@@ -2017,7 +2148,8 @@ void RadioState::handleDTSub(const QString &cmd) {
 // =============================================================================
 
 void RadioState::handleRE(const QString &cmd) {
-    if (cmd.length() < 26) return;
+    if (cmd.length() < 26)
+        return;
     bool changed = false;
     for (int i = 0; i < 8; i++) {
         bool ok;
@@ -2028,11 +2160,13 @@ void RadioState::handleRE(const QString &cmd) {
             emit rxEqBandChanged(i, val);
         }
     }
-    if (changed) emit rxEqChanged();
+    if (changed)
+        emit rxEqChanged();
 }
 
 void RadioState::handleTE(const QString &cmd) {
-    if (cmd.length() < 26) return;
+    if (cmd.length() < 26)
+        return;
     bool changed = false;
     for (int i = 0; i < 8; i++) {
         bool ok;
@@ -2043,7 +2177,8 @@ void RadioState::handleTE(const QString &cmd) {
             emit txEqBandChanged(i, val);
         }
     }
-    if (changed) emit txEqChanged();
+    if (changed)
+        emit txEqChanged();
 }
 
 // =============================================================================
@@ -2051,24 +2186,41 @@ void RadioState::handleTE(const QString &cmd) {
 // =============================================================================
 
 void RadioState::handleID(const QString &cmd) {
-    if (cmd.length() > 2) m_radioID = cmd.mid(2);
+    if (cmd.length() > 2)
+        m_radioID = cmd.mid(2);
 }
 
 void RadioState::handleOM(const QString &cmd) {
-    if (cmd.length() <= 2) return;
+    // OM format: 12-char string where each position indicates an option
+    // Positions: 0=ATU, 1=PA, 2=XVTR, 3=SubRX, 4=HD, 5=Mini, 6=Linear, 7=KPA1500, 8=model marker
+    if (cmd.length() <= 2)
+        return;
     m_optionModules = cmd.mid(2).trimmed();
     if (m_optionModules.length() > 8) {
         bool hasS = m_optionModules.length() > 3 && m_optionModules[3] == 'S';
-        bool hasD = m_optionModules.length() > 8 && m_optionModules[8] == 'D';
-        m_radioModel = hasS && hasD ? "K4D-S" : hasS ? "K4-S" : hasD ? "K4D" : "K4";
+        bool hasH = m_optionModules.length() > 4 && m_optionModules[4] == 'H';
+        bool has4 = m_optionModules.length() > 8 && m_optionModules[8] == '4';
+
+        if (hasH && hasS && has4) {
+            m_radioModel = "K4HD";
+        } else if (hasS && has4) {
+            m_radioModel = "K4D";
+        } else if (has4) {
+            m_radioModel = "K4";
+        }
     }
 }
 
 void RadioState::handleRV(const QString &cmd) {
-    if (cmd.length() <= 3) return;
-    int colonPos = cmd.indexOf(':');
-    if (colonPos > 3) {
-        m_firmwareVersions[cmd.mid(3, colonPos - 3)] = cmd.mid(colonPos + 1);
+    // RV.COMPONENT-VERSION format (e.g., "RV.DDC0-00.65 (0:35)")
+    if (cmd.length() <= 3)
+        return;
+    QString versionData = cmd.mid(3);
+    int dashIndex = versionData.indexOf('-');
+    if (dashIndex > 0) {
+        QString component = versionData.left(dashIndex);
+        QString version = versionData.mid(dashIndex + 1);
+        m_firmwareVersions[component] = version;
     }
 }
 
@@ -2102,10 +2254,13 @@ void RadioState::handleSIFP(const QString &cmd) {
     }
 }
 
-void RadioState::handleSIRC(const QString &cmd) { Q_UNUSED(cmd) }
+void RadioState::handleSIRC(const QString &cmd) {
+    Q_UNUSED(cmd)
+}
 
 void RadioState::handleMN(const QString &cmd) {
-    if (cmd.length() < 3) return;
+    if (cmd.length() < 3)
+        return;
     bool ok;
     int bank = cmd.mid(2).toInt(&ok);
     if (ok && bank >= 1 && bank <= 4 && bank != m_messageBank) {
@@ -2119,7 +2274,8 @@ void RadioState::handleER(const QString &cmd) {
     if (colonPos > 2) {
         bool ok;
         int errorCode = cmd.mid(2, colonPos - 2).toInt(&ok);
-        if (ok) emit errorNotificationReceived(errorCode, cmd.mid(colonPos + 1));
+        if (ok)
+            emit errorNotificationReceived(errorCode, cmd.mid(colonPos + 1));
     }
 }
 
@@ -2128,174 +2284,274 @@ void RadioState::handleER(const QString &cmd) {
 // =============================================================================
 
 void RadioState::handleDisplayREF(const QString &cmd) {
-    if (cmd.startsWith("#REF$") || cmd.length() <= 4) return;
+    if (cmd.startsWith("#REF$") || cmd.length() <= 4)
+        return;
     bool ok;
     int level = cmd.mid(4).toInt(&ok);
-    if (ok && level != m_refLevel) { m_refLevel = level; emit refLevelChanged(m_refLevel); }
+    if (ok && level != m_refLevel) {
+        m_refLevel = level;
+        emit refLevelChanged(m_refLevel);
+    }
 }
 
 void RadioState::handleDisplayREFSub(const QString &cmd) {
-    if (cmd.length() <= 5) return;
+    if (cmd.length() <= 5)
+        return;
     bool ok;
     int level = cmd.mid(5).toInt(&ok);
-    if (ok && level != m_refLevelB) { m_refLevelB = level; emit refLevelBChanged(m_refLevelB); }
+    if (ok && level != m_refLevelB) {
+        m_refLevelB = level;
+        emit refLevelBChanged(m_refLevelB);
+    }
 }
 
 void RadioState::handleDisplaySCL(const QString &cmd) {
-    if (cmd.length() <= 4) return;
+    if (cmd.length() <= 4)
+        return;
     bool ok;
     int scale = cmd.mid(4).toInt(&ok);
-    if (ok && scale >= 10 && scale <= 150 && scale != m_scale) { m_scale = scale; emit scaleChanged(m_scale); }
+    if (ok && scale >= 10 && scale <= 150 && scale != m_scale) {
+        m_scale = scale;
+        emit scaleChanged(m_scale);
+    }
 }
 
 void RadioState::handleDisplaySPN(const QString &cmd) {
-    if (cmd.startsWith("#SPN$") || cmd.length() <= 4) return;
+    if (cmd.startsWith("#SPN$") || cmd.length() <= 4)
+        return;
     bool ok;
     int span = cmd.mid(4).toInt(&ok);
-    if (ok && span > 0 && span != m_spanHz) { m_spanHz = span; emit spanChanged(m_spanHz); }
+    if (ok && span > 0 && span != m_spanHz) {
+        m_spanHz = span;
+        emit spanChanged(m_spanHz);
+    }
 }
 
 void RadioState::handleDisplaySPNSub(const QString &cmd) {
-    if (cmd.length() <= 5) return;
+    if (cmd.length() <= 5)
+        return;
     bool ok;
     int span = cmd.mid(5).toInt(&ok);
-    if (ok && span > 0 && span != m_spanHzB) { m_spanHzB = span; emit spanBChanged(m_spanHzB); }
+    if (ok && span > 0 && span != m_spanHzB) {
+        m_spanHzB = span;
+        emit spanBChanged(m_spanHzB);
+    }
 }
 
 void RadioState::handleDisplayMP(const QString &cmd) {
-    if (cmd.startsWith("#MP$") || cmd.length() <= 3) return;
+    if (cmd.startsWith("#MP$") || cmd.length() <= 3)
+        return;
     bool enabled = (cmd.at(3) == '1');
-    if (enabled != m_miniPanAEnabled) { m_miniPanAEnabled = enabled; emit miniPanAEnabledChanged(m_miniPanAEnabled); }
+    if (enabled != m_miniPanAEnabled) {
+        m_miniPanAEnabled = enabled;
+        emit miniPanAEnabledChanged(m_miniPanAEnabled);
+    }
 }
 
 void RadioState::handleDisplayMPSub(const QString &cmd) {
-    if (cmd.length() <= 4) return;
+    if (cmd.length() <= 4)
+        return;
     bool enabled = (cmd.at(4) == '1');
-    if (enabled != m_miniPanBEnabled) { m_miniPanBEnabled = enabled; emit miniPanBEnabledChanged(m_miniPanBEnabled); }
+    if (enabled != m_miniPanBEnabled) {
+        m_miniPanBEnabled = enabled;
+        emit miniPanBEnabledChanged(m_miniPanBEnabled);
+    }
 }
 
 void RadioState::handleDisplayDPM(const QString &cmd) {
-    if (cmd.length() <= 4) return;
+    if (cmd.length() <= 4)
+        return;
     bool ok;
     int mode = cmd.mid(4).toInt(&ok);
-    if (ok && mode >= 0 && mode <= 2 && mode != m_dualPanModeLcd) { m_dualPanModeLcd = mode; emit dualPanModeLcdChanged(m_dualPanModeLcd); }
+    if (ok && mode >= 0 && mode <= 2 && mode != m_dualPanModeLcd) {
+        m_dualPanModeLcd = mode;
+        emit dualPanModeLcdChanged(m_dualPanModeLcd);
+    }
 }
 
 void RadioState::handleDisplayHDPM(const QString &cmd) {
-    if (cmd.length() <= 5) return;
+    if (cmd.length() <= 5)
+        return;
     bool ok;
     int mode = cmd.mid(5).toInt(&ok);
-    if (ok && mode >= 0 && mode <= 2 && mode != m_dualPanModeExt) { m_dualPanModeExt = mode; emit dualPanModeExtChanged(m_dualPanModeExt); }
+    if (ok && mode >= 0 && mode <= 2 && mode != m_dualPanModeExt) {
+        m_dualPanModeExt = mode;
+        emit dualPanModeExtChanged(m_dualPanModeExt);
+    }
 }
 
 void RadioState::handleDisplayDSM(const QString &cmd) {
-    if (cmd.length() <= 4) return;
+    if (cmd.length() <= 4)
+        return;
     bool ok;
     int mode = cmd.mid(4).toInt(&ok);
-    if (ok && (mode == 0 || mode == 1) && mode != m_displayModeLcd) { m_displayModeLcd = mode; emit displayModeLcdChanged(m_displayModeLcd); }
+    if (ok && (mode == 0 || mode == 1) && mode != m_displayModeLcd) {
+        m_displayModeLcd = mode;
+        emit displayModeLcdChanged(m_displayModeLcd);
+    }
 }
 
 void RadioState::handleDisplayHDSM(const QString &cmd) {
-    if (cmd.length() <= 5) return;
+    if (cmd.length() <= 5)
+        return;
     bool ok;
     int mode = cmd.mid(5).toInt(&ok);
-    if (ok && (mode == 0 || mode == 1) && mode != m_displayModeExt) { m_displayModeExt = mode; emit displayModeExtChanged(m_displayModeExt); }
+    if (ok && (mode == 0 || mode == 1) && mode != m_displayModeExt) {
+        m_displayModeExt = mode;
+        emit displayModeExtChanged(m_displayModeExt);
+    }
 }
 
 void RadioState::handleDisplayFPS(const QString &cmd) {
-    if (cmd.length() <= 4) return;
+    if (cmd.length() <= 4)
+        return;
     bool ok;
     int fps = cmd.mid(4).toInt(&ok);
-    if (ok && fps >= 12 && fps <= 30 && fps != m_displayFps) { m_displayFps = fps; emit displayFpsChanged(m_displayFps); }
+    if (ok && fps >= 12 && fps <= 30 && fps != m_displayFps) {
+        m_displayFps = fps;
+        emit displayFpsChanged(m_displayFps);
+    }
 }
 
 void RadioState::handleDisplayWFC(const QString &cmd) {
-    if (cmd.length() <= 4) return;
+    if (cmd.length() <= 4)
+        return;
     bool ok;
     int color = cmd.mid(4).toInt(&ok);
-    if (ok && color >= 0 && color <= 4 && color != m_waterfallColor) { m_waterfallColor = color; emit waterfallColorChanged(m_waterfallColor); }
+    if (ok && color >= 0 && color <= 4 && color != m_waterfallColor) {
+        m_waterfallColor = color;
+        emit waterfallColorChanged(m_waterfallColor);
+    }
 }
 
 void RadioState::handleDisplayWFH(const QString &cmd) {
-    if (cmd.length() <= 4) return;
+    if (cmd.length() <= 4)
+        return;
     bool ok;
     int height = cmd.mid(4).toInt(&ok);
-    if (ok && height >= 0 && height <= 100 && height != m_waterfallHeight) { m_waterfallHeight = height; emit waterfallHeightChanged(m_waterfallHeight); }
+    if (ok && height >= 0 && height <= 100 && height != m_waterfallHeight) {
+        m_waterfallHeight = height;
+        emit waterfallHeightChanged(m_waterfallHeight);
+    }
 }
 
 void RadioState::handleDisplayHWFH(const QString &cmd) {
-    if (cmd.length() <= 5) return;
+    if (cmd.length() <= 5)
+        return;
     bool ok;
     int height = cmd.mid(5).toInt(&ok);
-    if (ok && height >= 0 && height <= 100 && height != m_waterfallHeightExt) { m_waterfallHeightExt = height; emit waterfallHeightExtChanged(m_waterfallHeightExt); }
+    if (ok && height >= 0 && height <= 100 && height != m_waterfallHeightExt) {
+        m_waterfallHeightExt = height;
+        emit waterfallHeightExtChanged(m_waterfallHeightExt);
+    }
 }
 
 void RadioState::handleDisplayAVG(const QString &cmd) {
-    if (cmd.length() <= 4) return;
+    if (cmd.length() <= 4)
+        return;
     bool ok;
     int avg = cmd.mid(4).toInt(&ok);
-    if (ok && avg >= 1 && avg <= 20 && avg != m_averaging) { m_averaging = avg; emit averagingChanged(m_averaging); }
+    if (ok && avg >= 1 && avg <= 20 && avg != m_averaging) {
+        m_averaging = avg;
+        emit averagingChanged(m_averaging);
+    }
 }
 
 void RadioState::handleDisplayPKM(const QString &cmd) {
-    if (cmd.length() <= 4) return;
+    if (cmd.length() <= 4)
+        return;
     bool ok;
     int pkm = cmd.mid(4).toInt(&ok);
-    if (ok && (pkm == 0 || pkm == 1) && pkm != m_peakMode) { m_peakMode = pkm; emit peakModeChanged(m_peakMode > 0); }
+    if (ok && (pkm == 0 || pkm == 1) && pkm != m_peakMode) {
+        m_peakMode = pkm;
+        emit peakModeChanged(m_peakMode > 0);
+    }
 }
 
 void RadioState::handleDisplayFXT(const QString &cmd) {
-    if (cmd.length() <= 4) return;
+    if (cmd.length() <= 4)
+        return;
     bool ok;
     int fxt = cmd.mid(4).toInt(&ok);
-    if (ok && (fxt == 0 || fxt == 1) && fxt != m_fixedTune) { m_fixedTune = fxt; emit fixedTuneChanged(m_fixedTune, m_fixedTuneMode); }
+    if (ok && (fxt == 0 || fxt == 1) && fxt != m_fixedTune) {
+        m_fixedTune = fxt;
+        emit fixedTuneChanged(m_fixedTune, m_fixedTuneMode);
+    }
 }
 
 void RadioState::handleDisplayFXA(const QString &cmd) {
-    if (cmd.length() <= 4) return;
+    if (cmd.length() <= 4)
+        return;
     bool ok;
     int fxa = cmd.mid(4).toInt(&ok);
-    if (ok && fxa >= 0 && fxa <= 4 && fxa != m_fixedTuneMode) { m_fixedTuneMode = fxa; emit fixedTuneChanged(m_fixedTune, m_fixedTuneMode); }
+    if (ok && fxa >= 0 && fxa <= 4 && fxa != m_fixedTuneMode) {
+        m_fixedTuneMode = fxa;
+        emit fixedTuneChanged(m_fixedTune, m_fixedTuneMode);
+    }
 }
 
 void RadioState::handleDisplayFRZ(const QString &cmd) {
-    if (cmd.length() <= 4) return;
+    if (cmd.length() <= 4)
+        return;
     bool ok;
     int frz = cmd.mid(4).toInt(&ok);
-    if (ok && (frz == 0 || frz == 1) && frz != m_freeze) { m_freeze = frz; emit freezeChanged(m_freeze > 0); }
+    if (ok && (frz == 0 || frz == 1) && frz != m_freeze) {
+        m_freeze = frz;
+        emit freezeChanged(m_freeze > 0);
+    }
 }
 
 void RadioState::handleDisplayVFA(const QString &cmd) {
-    if (cmd.length() <= 4) return;
+    if (cmd.length() <= 4)
+        return;
     bool ok;
     int vfa = cmd.mid(4).toInt(&ok);
-    if (ok && vfa >= 0 && vfa <= 3 && vfa != m_vfoACursor) { m_vfoACursor = vfa; emit vfoACursorChanged(m_vfoACursor); }
+    if (ok && vfa >= 0 && vfa <= 3 && vfa != m_vfoACursor) {
+        m_vfoACursor = vfa;
+        emit vfoACursorChanged(m_vfoACursor);
+    }
 }
 
 void RadioState::handleDisplayVFB(const QString &cmd) {
-    if (cmd.length() <= 4) return;
+    if (cmd.length() <= 4)
+        return;
     bool ok;
     int vfb = cmd.mid(4).toInt(&ok);
-    if (ok && vfb >= 0 && vfb <= 3 && vfb != m_vfoBCursor) { m_vfoBCursor = vfb; emit vfoBCursorChanged(m_vfoBCursor); }
+    if (ok && vfb >= 0 && vfb <= 3 && vfb != m_vfoBCursor) {
+        m_vfoBCursor = vfb;
+        emit vfoBCursorChanged(m_vfoBCursor);
+    }
 }
 
 void RadioState::handleDisplayAR(const QString &cmd) {
-    if (cmd.length() < 12) return;
+    if (cmd.length() < 12)
+        return;
     QChar mode = cmd.at(cmd.length() - 1);
     int newValue = (mode == 'A') ? 1 : 0;
-    if (newValue != m_autoRefLevel) { m_autoRefLevel = newValue; emit autoRefLevelChanged(m_autoRefLevel > 0); }
+    if (newValue != m_autoRefLevel) {
+        m_autoRefLevel = newValue;
+        emit autoRefLevelChanged(m_autoRefLevel > 0);
+    }
 }
 
 void RadioState::handleDisplayNB(const QString &cmd) {
-    if (cmd.length() <= 4) return;
+    if (cmd.length() <= 4)
+        return;
     bool ok;
     int mode = cmd.mid(4).toInt(&ok);
-    if (ok && mode >= 0 && mode <= 2 && mode != m_ddcNbMode) { m_ddcNbMode = mode; emit ddcNbModeChanged(m_ddcNbMode); }
+    if (ok && mode >= 0 && mode <= 2 && mode != m_ddcNbMode) {
+        m_ddcNbMode = mode;
+        emit ddcNbModeChanged(m_ddcNbMode);
+    }
 }
 
 void RadioState::handleDisplayNBL(const QString &cmd) {
-    if (cmd.length() <= 5) return;
+    if (cmd.length() <= 5)
+        return;
     bool ok;
     int level = cmd.mid(5).toInt(&ok);
-    if (ok && level >= 0 && level <= 14 && level != m_ddcNbLevel) { m_ddcNbLevel = level; emit ddcNbLevelChanged(m_ddcNbLevel); }
+    if (ok && level >= 0 && level <= 14 && level != m_ddcNbLevel) {
+        m_ddcNbLevel = level;
+        emit ddcNbLevelChanged(m_ddcNbLevel);
+    }
 }

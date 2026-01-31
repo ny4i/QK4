@@ -31,8 +31,7 @@ OptionsDialog::OptionsDialog(RadioState *radioState, KPA1500Client *kpa1500Clien
       m_micMeter(nullptr), m_speakerDeviceCombo(nullptr), m_catServerEnableCheckbox(nullptr),
       m_catServerPortEdit(nullptr), m_catServerStatusLabel(nullptr), m_catServerClientsLabel(nullptr),
       m_cwKeyerPortCombo(nullptr), m_cwKeyerRefreshBtn(nullptr), m_cwKeyerConnectBtn(nullptr),
-      m_cwKeyerStatusLabel(nullptr), m_cwKeyerEnableCheckbox(nullptr), m_cwKeyerDitIndicator(nullptr),
-      m_cwKeyerDahIndicator(nullptr) {
+      m_cwKeyerStatusLabel(nullptr), m_cwKeyerEnableCheckbox(nullptr) {
     setupUi();
 
     // Connect to KPA1500 client signals for status updates
@@ -65,8 +64,6 @@ OptionsDialog::OptionsDialog(RadioState *radioState, KPA1500Client *kpa1500Clien
     if (m_halikeyDevice) {
         connect(m_halikeyDevice, &HalikeyDevice::connected, this, &OptionsDialog::updateCwKeyerStatus);
         connect(m_halikeyDevice, &HalikeyDevice::disconnected, this, &OptionsDialog::updateCwKeyerStatus);
-        connect(m_halikeyDevice, &HalikeyDevice::ditStateChanged, this, &OptionsDialog::updateCwKeyerStatus);
-        connect(m_halikeyDevice, &HalikeyDevice::dahStateChanged, this, &OptionsDialog::updateCwKeyerStatus);
     }
 }
 
@@ -1386,70 +1383,6 @@ QWidget *OptionsDialog::createCwKeyerPage() {
     line3->setFixedHeight(K4Styles::Dimensions::SeparatorHeight);
     layout->addWidget(line3);
 
-    // Paddle Test section
-    auto *testSectionLabel = new QLabel("Paddle Test", page);
-    testSectionLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
-                                        .arg(K4Styles::Colors::TextWhite)
-                                        .arg(K4Styles::Dimensions::FontSizePopup));
-    layout->addWidget(testSectionLabel);
-
-    auto *testHelpLabel =
-        new QLabel("Press the paddle contacts to test. Indicators light up when contacts close.", page);
-    testHelpLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
-                                     .arg(K4Styles::Colors::TextGray)
-                                     .arg(K4Styles::Dimensions::FontSizeButton));
-    testHelpLabel->setWordWrap(true);
-    layout->addWidget(testHelpLabel);
-
-    // Paddle indicators
-    auto *indicatorLayout = new QHBoxLayout();
-    indicatorLayout->setSpacing(K4Styles::Dimensions::IndicatorSpacing);
-
-    // Dit indicator
-    auto *ditLayout = new QVBoxLayout();
-    m_cwKeyerDitIndicator = new QLabel(page);
-    m_cwKeyerDitIndicator->setFixedSize(K4Styles::Dimensions::IndicatorSize, K4Styles::Dimensions::IndicatorSize);
-    m_cwKeyerDitIndicator->setStyleSheet(QString("background-color: %1; border: %3px solid %2; border-radius: %4px;")
-                                             .arg(K4Styles::Colors::DarkBackground, K4Styles::Colors::DialogBorder)
-                                             .arg(K4Styles::Dimensions::BorderWidth)
-                                             .arg(K4Styles::Dimensions::IndicatorSize / 2));
-    auto *ditLabel = new QLabel("DIT", page);
-    ditLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
-                                .arg(K4Styles::Colors::TextGray)
-                                .arg(K4Styles::Dimensions::FontSizeButton));
-    ditLabel->setAlignment(Qt::AlignCenter);
-    ditLayout->addWidget(m_cwKeyerDitIndicator, 0, Qt::AlignCenter);
-    ditLayout->addWidget(ditLabel);
-
-    // Dah indicator
-    auto *dahLayout = new QVBoxLayout();
-    m_cwKeyerDahIndicator = new QLabel(page);
-    m_cwKeyerDahIndicator->setFixedSize(K4Styles::Dimensions::IndicatorSize, K4Styles::Dimensions::IndicatorSize);
-    m_cwKeyerDahIndicator->setStyleSheet(QString("background-color: %1; border: %3px solid %2; border-radius: %4px;")
-                                             .arg(K4Styles::Colors::DarkBackground, K4Styles::Colors::DialogBorder)
-                                             .arg(K4Styles::Dimensions::BorderWidth)
-                                             .arg(K4Styles::Dimensions::IndicatorSize / 2));
-    auto *dahLabel = new QLabel("DAH", page);
-    dahLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
-                                .arg(K4Styles::Colors::TextGray)
-                                .arg(K4Styles::Dimensions::FontSizeButton));
-    dahLabel->setAlignment(Qt::AlignCenter);
-    dahLayout->addWidget(m_cwKeyerDahIndicator, 0, Qt::AlignCenter);
-    dahLayout->addWidget(dahLabel);
-
-    indicatorLayout->addStretch();
-    indicatorLayout->addLayout(ditLayout);
-    indicatorLayout->addLayout(dahLayout);
-    indicatorLayout->addStretch();
-    layout->addLayout(indicatorLayout);
-
-    // Separator line
-    auto *line4 = new QFrame(page);
-    line4->setFrameShape(QFrame::HLine);
-    line4->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::DialogBorder));
-    line4->setFixedHeight(K4Styles::Dimensions::SeparatorHeight);
-    layout->addWidget(line4);
-
     // Enable checkbox
     m_cwKeyerEnableCheckbox = new QCheckBox("Enable CW Keyer on startup", page);
     m_cwKeyerEnableCheckbox->setStyleSheet(QString("QCheckBox { color: %1; font-size: %2px; spacing: %3px; }"
@@ -1602,26 +1535,6 @@ void OptionsDialog::updateCwKeyerStatus() {
                                                 .arg(K4Styles::Colors::ErrorRed)
                                                 .arg(K4Styles::Dimensions::FontSizePopup));
         m_cwKeyerConnectBtn->setText("Connect");
-    }
-
-    // Update paddle indicators
-    if (m_cwKeyerDitIndicator && m_cwKeyerDahIndicator) {
-        bool ditPressed = m_halikeyDevice && m_halikeyDevice->ditPressed();
-        bool dahPressed = m_halikeyDevice && m_halikeyDevice->dahPressed();
-
-        m_cwKeyerDitIndicator->setStyleSheet(
-            QString("background-color: %1; border: %3px solid %2; border-radius: %4px;")
-                .arg(ditPressed ? K4Styles::Colors::VfoACyan : K4Styles::Colors::DarkBackground,
-                     K4Styles::Colors::DialogBorder)
-                .arg(K4Styles::Dimensions::BorderWidth)
-                .arg(K4Styles::Dimensions::IndicatorSize / 2));
-
-        m_cwKeyerDahIndicator->setStyleSheet(
-            QString("background-color: %1; border: %3px solid %2; border-radius: %4px;")
-                .arg(dahPressed ? K4Styles::Colors::VfoBGreen : K4Styles::Colors::DarkBackground,
-                     K4Styles::Colors::DialogBorder)
-                .arg(K4Styles::Dimensions::BorderWidth)
-                .arg(K4Styles::Dimensions::IndicatorSize / 2));
     }
 }
 
