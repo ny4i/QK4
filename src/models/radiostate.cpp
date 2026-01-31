@@ -1101,28 +1101,27 @@ void RadioState::handlePO(const QString &cmd) {
 }
 
 void RadioState::handleTM(const QString &cmd) {
-    // TX Meter - TMaaaaccccppppssss where a=ALC, c=comp, p=power*10, s=SWR*10
+    // TX Meter Data (TM) - TMaaabbbcccddd; (ALC, CMP, FWD, SWR) - 3-digit fields
     if (cmd.length() < 14) return;
-    bool okA, okC, okP, okS;
-    int alc = cmd.mid(2, 4).toInt(&okA);
-    int comp = cmd.mid(6, 4).toInt(&okC);
-    int powerRaw = cmd.mid(10, 4).toInt(&okP);
+    QString data = cmd.mid(2);
+    if (data.length() < 12) return;
 
-    if (!okA || !okC || !okP) return;
+    bool ok1, ok2, ok3, ok4;
+    int alc = data.mid(0, 3).toInt(&ok1);
+    int cmp = data.mid(3, 3).toInt(&ok2);
+    int fwd = data.mid(6, 3).toInt(&ok3);
+    int swrRaw = data.mid(9, 3).toInt(&ok4);
+
+    if (!ok1 || !ok2 || !ok3 || !ok4) return;
 
     m_alcMeter = alc;
-    m_compressionDb = comp;
-    m_forwardPower = powerRaw / 10.0;
-
-    // SWR is optional (position 14-17)
-    if (cmd.length() >= 18) {
-        int swrRaw = cmd.mid(14, 4).toInt(&okS);
-        if (okS) {
-            m_swrMeter = swrRaw / 10.0;
-        }
-    }
+    m_compressionDb = cmp;
+    // FWD is watts in QRO, tenths in QRP
+    m_forwardPower = m_isQrpMode ? fwd / 10.0 : fwd;
+    m_swrMeter = swrRaw / 10.0;  // SWR in 1/10th units
 
     emit txMeterChanged(m_alcMeter, m_compressionDb, m_forwardPower, m_swrMeter);
+    emit swrChanged(m_swrMeter);
 }
 
 // =============================================================================
@@ -2074,15 +2073,32 @@ void RadioState::handleRV(const QString &cmd) {
 }
 
 void RadioState::handleSIFP(const QString &cmd) {
-    if (cmd.length() < 12) return;
-    bool okV, okC;
-    int voltRaw = cmd.mid(4, 4).toInt(&okV);
-    int currRaw = cmd.mid(8, 4).toInt(&okC);
-    if (okV && okC) {
-        double newVolts = voltRaw / 10.0;
-        double newCurrent = currRaw / 100.0;
-        if (newVolts != m_supplyVoltage) { m_supplyVoltage = newVolts; emit supplyVoltageChanged(m_supplyVoltage); }
-        if (newCurrent != m_supplyCurrent) { m_supplyCurrent = newCurrent; emit supplyCurrentChanged(m_supplyCurrent); }
+    QString data = cmd.mid(4);
+    // Parse VS (voltage)
+    int vsIndex = data.indexOf("VS:");
+    if (vsIndex >= 0) {
+        int commaIndex = data.indexOf(',', vsIndex);
+        QString vsStr =
+            (commaIndex > vsIndex) ? data.mid(vsIndex + 3, commaIndex - vsIndex - 3) : data.mid(vsIndex + 3);
+        bool ok;
+        double voltage = vsStr.toDouble(&ok);
+        if (ok && voltage != m_supplyVoltage) {
+            m_supplyVoltage = voltage;
+            emit supplyVoltageChanged(m_supplyVoltage);
+        }
+    }
+    // Parse IS (current)
+    int isIndex = data.indexOf("IS:");
+    if (isIndex >= 0) {
+        int commaIndex = data.indexOf(',', isIndex);
+        QString isStr =
+            (commaIndex > isIndex) ? data.mid(isIndex + 3, commaIndex - isIndex - 3) : data.mid(isIndex + 3);
+        bool ok;
+        double current = isStr.toDouble(&ok);
+        if (ok && current != m_supplyCurrent) {
+            m_supplyCurrent = current;
+            emit supplyCurrentChanged(m_supplyCurrent);
+        }
     }
 }
 
