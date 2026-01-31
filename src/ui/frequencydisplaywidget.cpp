@@ -9,9 +9,8 @@ FrequencyDisplayWidget::FrequencyDisplayWidget(QWidget *parent)
     : QWidget(parent), m_digits("00000000"), m_normalColor(K4Styles::Colors::TextWhite),
       m_editColor(K4Styles::Colors::VfoACyan) {
 
-    // Set up font
-    m_font = QFont("JetBrains Mono", 32, QFont::Bold);
-    m_font.setStyleHint(QFont::Monospace);
+    // Set up font with tabular figures for consistent digit widths
+    m_font = K4Styles::Fonts::dataFont(K4Styles::Dimensions::FontSizeFrequency);
 
     // Calculate character widths for click detection
     QFontMetrics fm(m_font);

@@ -185,9 +185,8 @@ void VFOWidget::drawTuningRateIndicator(QPainter &painter) {
     QPoint displayPos = m_frequencyDisplay->mapTo(this, QPoint(0, 0));
     QRect displayRect(displayPos, m_frequencyDisplay->size());
 
-    // Get font metrics for the frequency display font (32px JetBrains Mono Bold)
-    QFont font("JetBrains Mono", 32, QFont::Bold);
-    font.setStyleHint(QFont::Monospace);
+    // Get font metrics for the frequency display font
+    QFont font = K4Styles::Fonts::dataFont(K4Styles::Dimensions::FontSizeFrequency);
     QFontMetrics fm(font);
 
     // VT rate maps to digit position from right:

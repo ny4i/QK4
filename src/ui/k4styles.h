@@ -1,6 +1,7 @@
 #ifndef K4STYLES_H
 #define K4STYLES_H
 
+#include <QFont>
 #include <QLinearGradient>
 #include <QPainter>
 #include <QString>
@@ -282,10 +283,11 @@ constexpr int MenuBarHeight = 52;  // Bottom menu bar container height
 // =============================================================================
 // Common UI Widths
 // =============================================================================
-constexpr int FormLabelWidth = 80;  // Form field labels in dialogs
-constexpr int VfoSquareSize = 45;   // VFO A/B indicator squares and mode labels
-constexpr int NavButtonWidth = 54;  // Navigation buttons in overlays
-constexpr int SidePanelWidth = 105; // Left and right side panels
+constexpr int FormLabelWidth = 80;    // Form field labels in dialogs
+constexpr int VfoSquareSize = 45;     // VFO A/B indicator squares and mode labels
+constexpr int NavButtonWidth = 54;    // Navigation buttons in overlays
+constexpr int SidePanelWidth = 105;   // Left and right side panels
+constexpr int MemoryButtonWidth = 42; // M1-M4, REC, STORE, RCL buttons
 
 // =============================================================================
 // Font Sizes (in points) - use with QFont::setPointSize()
@@ -296,8 +298,9 @@ constexpr int FontSizeNormal = 9;  // Alt/secondary button text
 constexpr int FontSizeMedium = 10; // Labels, descriptions
 constexpr int FontSizeLarge = 11;  // Feature labels, primary labels
 constexpr int FontSizeButton = 12; // Button text, value displays
-constexpr int FontSizePopup = 14;  // Notifications, popup titles
-constexpr int FontSizeTitle = 16;  // Large control buttons (+/-)
+constexpr int FontSizePopup = 14;     // Notifications, popup titles
+constexpr int FontSizeTitle = 16;     // Large control buttons (+/-)
+constexpr int FontSizeFrequency = 32; // VFO frequency displays (FrequencyDisplayWidget, VfoWidget)
 
 // =============================================================================
 // Popup Menu Font Sizes (standardized for horizontal control bar popups)
@@ -331,6 +334,36 @@ constexpr int PaddingSmall = 6;            // Small padding (inputs)
 constexpr int PaddingMedium = 10;          // Medium padding (buttons)
 constexpr int PaddingLarge = 15;           // Large padding (list items)
 } // namespace Dimensions
+
+namespace Fonts {
+// =============================================================================
+// Font Family Names - centralized for easy maintenance
+// =============================================================================
+constexpr const char *Primary = "Inter";  // UI text, labels, buttons, menus
+constexpr const char *Data = "Inter";     // Frequencies, numeric data (uses tabular figures)
+
+/**
+ * @brief Create a data display font with tabular figures enabled.
+ *
+ * Tabular figures ensure all digits have equal width, preventing visual
+ * shifting when numeric values change (e.g., frequency displays).
+ *
+ * @param pointSize Font size in points
+ * @param weight Font weight (default: Bold)
+ * @return QFont configured with tabular figures
+ */
+QFont dataFont(int pointSize, QFont::Weight weight = QFont::Bold);
+
+/**
+ * @brief Get CSS font-family string for data displays in stylesheets.
+ *
+ * Returns a font-family declaration with tabular figures enabled.
+ * Use in stylesheets for numeric/data displays.
+ *
+ * @return QString like "font-family: 'Inter'; font-feature-settings: 'tnum';"
+ */
+QString dataFontStylesheet();
+} // namespace Fonts
 
 // =============================================================================
 // Utility Functions

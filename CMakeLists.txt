@@ -265,7 +265,7 @@ qt6_add_shaders(${PROJECT_NAME} "panadapter_shaders"
         src/dsp/shaders/overlay.frag
 )
 
-# Embed fonts for crisp HD rendering (Inter + JetBrains Mono)
+# Embed Inter font family for crisp HD rendering
 qt_add_resources(${PROJECT_NAME} "fonts"
     PREFIX "/"
     BASE "resources"
@@ -274,9 +274,6 @@ qt_add_resources(${PROJECT_NAME} "fonts"
         resources/fonts/Inter-Medium.ttf
         resources/fonts/Inter-SemiBold.ttf
         resources/fonts/Inter-Bold.ttf
-        resources/fonts/JetBrainsMono-Regular.ttf
-        resources/fonts/JetBrainsMono-Medium.ttf
-        resources/fonts/JetBrainsMono-Bold.ttf
 )
 
 # =============================================================================

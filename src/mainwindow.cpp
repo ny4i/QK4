@@ -2726,7 +2726,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
 
     // ===== Center Section =====
     auto *centerWidget = new QWidget(parent);
-    centerWidget->setFixedWidth(310);
+    centerWidget->setFixedWidth(330);
     centerWidget->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::Background));
     auto *centerLayout = new QVBoxLayout(centerWidget);
     centerLayout->setContentsMargins(4, 4, 4, 4);
@@ -2888,6 +2888,10 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     centerLayout->addStretch(); // Push buttons to vertical center
 
     // Helper lambda to create memory button with optional sub-label
+    // Uses sidePanelButton/sidePanelButtonLight styles for consistency
+    // Container: VBox with 2px spacing, button centered, sub-label below
+    // Button: MemoryButtonWidth x ButtonHeightSmall (42x28)
+    // Sub-label: FontSizeSmall (8px), AccentAmber color
     auto createMemoryButton = [centerWidget](const QString &label, const QString &subLabel,
                                              bool isLighter) -> QWidget * {
         auto *container = new QWidget(centerWidget);
@@ -2896,85 +2900,17 @@ void MainWindow::setupVfoSection(QWidget *parent) {
         layout->setSpacing(2);
 
         auto *btn = new QPushButton(label, container);
-        btn->setFixedSize(K4Styles::Dimensions::ButtonHeightMedium, K4Styles::Dimensions::ButtonHeightMini);
+        btn->setFixedSize(K4Styles::Dimensions::MemoryButtonWidth, K4Styles::Dimensions::ButtonHeightSmall);
         btn->setCursor(Qt::PointingHandCursor);
-
-        if (isLighter) {
-            // Lighter grey for REC, STORE, RCL
-            btn->setStyleSheet(QString(R"(
-                QPushButton {
-                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                        stop:0 %1, stop:0.4 %2,
-                        stop:0.6 %3, stop:1 %4);
-                    color: %5;
-                    border: 1px solid %6;
-                    border-radius: 3px;
-                    font-size: %7px;
-                    font-weight: bold;
-                }
-                QPushButton:hover {
-                    border: 1px solid %8;
-                }
-                QPushButton:pressed {
-                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                        stop:0 %4, stop:0.4 %3,
-                        stop:0.6 %2, stop:1 %1);
-                }
-            )")
-                                   .arg(K4Styles::Colors::LightGradientTop)
-                                   .arg(K4Styles::Colors::LightGradientMid1)
-                                   .arg(K4Styles::Colors::LightGradientMid2)
-                                   .arg(K4Styles::Colors::LightGradientBottom)
-                                   .arg(K4Styles::Colors::TextWhite)
-                                   .arg(K4Styles::Colors::BorderPressed)
-                                   .arg(K4Styles::Dimensions::FontSizeNormal)
-                                   .arg(K4Styles::Colors::BorderSelected));
-        } else {
-            // Standard dark grey for M1-M4, REC
-            btn->setStyleSheet(QString(R"(
-                QPushButton {
-                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                        stop:0 %1, stop:0.4 %2,
-                        stop:0.6 %3, stop:1 %4);
-                    color: %5;
-                    border: 1px solid %6;
-                    border-radius: 3px;
-                    font-size: %7px;
-                    font-weight: bold;
-                }
-                QPushButton:hover {
-                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                        stop:0 %8, stop:0.4 %9,
-                        stop:0.6 %10, stop:1 %11);
-                    border: 1px solid %12;
-                }
-                QPushButton:pressed {
-                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                        stop:0 %4, stop:0.4 %3,
-                        stop:0.6 %2, stop:1 %1);
-                    border: 1px solid %13;
-                }
-            )")
-                                   .arg(K4Styles::Colors::GradientTop)
-                                   .arg(K4Styles::Colors::GradientMid1)
-                                   .arg(K4Styles::Colors::GradientMid2)
-                                   .arg(K4Styles::Colors::GradientBottom)
-                                   .arg(K4Styles::Colors::TextWhite)
-                                   .arg(K4Styles::Colors::BorderNormal)
-                                   .arg(K4Styles::Dimensions::FontSizeNormal)
-                                   .arg(K4Styles::Colors::HoverTop)
-                                   .arg(K4Styles::Colors::HoverMid1)
-                                   .arg(K4Styles::Colors::HoverMid2)
-                                   .arg(K4Styles::Colors::HoverBottom)
-                                   .arg(K4Styles::Colors::BorderHover)
-                                   .arg(K4Styles::Colors::BorderPressed));
-        }
+        btn->setStyleSheet(isLighter ? K4Styles::sidePanelButtonLight() : K4Styles::sidePanelButton());
         layout->addWidget(btn, 0, Qt::AlignHCenter);
 
         // Add sub-label if provided
         if (!subLabel.isEmpty()) {
             auto *sub = new QLabel(subLabel, container);
-            sub->setStyleSheet(QString("color: %1; font-size: 7px;").arg(K4Styles::Colors::AccentAmber));
+            sub->setStyleSheet(QString("color: %1; font-size: %2px;")
+                                   .arg(K4Styles::Colors::AccentAmber)
+                                   .arg(K4Styles::Dimensions::FontSizeSmall));
             sub->setAlignment(Qt::AlignCenter);
             layout->addWidget(sub);
         }
@@ -3001,47 +2937,12 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     m1m4Row->setSpacing(4);
 
     // Helper to create just a button (no sub-label container)
+    // Button: MemoryButtonWidth x ButtonHeightSmall (42x28), dark sidePanelButton style
     auto createSimpleButton = [centerWidget](const QString &label) -> QPushButton * {
         auto *btn = new QPushButton(label, centerWidget);
-        btn->setFixedSize(K4Styles::Dimensions::ButtonHeightMedium, K4Styles::Dimensions::ButtonHeightMini);
+        btn->setFixedSize(K4Styles::Dimensions::MemoryButtonWidth, K4Styles::Dimensions::ButtonHeightSmall);
         btn->setCursor(Qt::PointingHandCursor);
-        btn->setStyleSheet(QString(R"(
-            QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 %1, stop:0.4 %2,
-                    stop:0.6 %3, stop:1 %4);
-                color: %5;
-                border: 1px solid %6;
-                border-radius: 3px;
-                font-size: %7px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 %8, stop:0.4 %9,
-                    stop:0.6 %10, stop:1 %11);
-                border: 1px solid %12;
-            }
-            QPushButton:pressed {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 %4, stop:0.4 %3,
-                    stop:0.6 %2, stop:1 %1);
-                border: 1px solid %13;
-            }
-        )")
-                               .arg(K4Styles::Colors::GradientTop)
-                               .arg(K4Styles::Colors::GradientMid1)
-                               .arg(K4Styles::Colors::GradientMid2)
-                               .arg(K4Styles::Colors::GradientBottom)
-                               .arg(K4Styles::Colors::TextWhite)
-                               .arg(K4Styles::Colors::BorderNormal)
-                               .arg(K4Styles::Dimensions::FontSizeNormal)
-                               .arg(K4Styles::Colors::HoverTop)
-                               .arg(K4Styles::Colors::HoverMid1)
-                               .arg(K4Styles::Colors::HoverMid2)
-                               .arg(K4Styles::Colors::HoverBottom)
-                               .arg(K4Styles::Colors::BorderHover)
-                               .arg(K4Styles::Colors::BorderPressed));
+        btn->setStyleSheet(K4Styles::sidePanelButton());
         return btn;
     };
 
@@ -3071,7 +2972,9 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     leftLine->setFixedHeight(K4Styles::Dimensions::SeparatorHeight);
 
     auto *msgText = new QLabel("MESSAGE", messageLabel);
-    msgText->setStyleSheet(QString("color: %1; font-size: 7px;").arg(K4Styles::Colors::BorderSelected));
+    msgText->setStyleSheet(QString("color: %1; font-size: %2px;")
+                               .arg(K4Styles::Colors::BorderSelected)
+                               .arg(K4Styles::Dimensions::FontSizeSmall));
     msgText->setAlignment(Qt::AlignCenter);
 
     auto *rightLine = new QFrame(messageLabel);

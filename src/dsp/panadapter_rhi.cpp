@@ -35,9 +35,7 @@ protected:
         QPainter painter(this);
         painter.setRenderHint(QPainter::Antialiasing);
 
-        QFont scaleFont("JetBrains Mono");
-        scaleFont.setStyleHint(QFont::Monospace);
-        scaleFont.setPointSize(K4Styles::Dimensions::FontSizeNormal);
+        QFont scaleFont = K4Styles::Fonts::dataFont(K4Styles::Dimensions::FontSizeNormal, QFont::Normal);
         painter.setFont(scaleFont);
         painter.setPen(Qt::white);
 
@@ -127,9 +125,7 @@ protected:
         painter.setRenderHint(QPainter::Antialiasing);
         painter.setRenderHint(QPainter::TextAntialiasing);
 
-        QFont scaleFont("JetBrains Mono");
-        scaleFont.setStyleHint(QFont::Monospace);
-        scaleFont.setPointSize(K4Styles::Dimensions::FontSizeNormal);
+        QFont scaleFont = K4Styles::Fonts::dataFont(K4Styles::Dimensions::FontSizeNormal, QFont::Normal);
         painter.setFont(scaleFont);
         painter.setPen(Qt::white);
 

@@ -180,28 +180,43 @@ Embedded HD fonts for crisp rendering on Retina/4K displays.
 
 | Font | Type | Usage |
 |------|------|-------|
-| **Inter** | Sans-serif | Default UI font (Medium weight, 11pt) |
-| **JetBrains Mono** | Monospace | Frequency display, CAT commands |
+| **Inter** | Sans-serif | All UI text, labels, and data displays |
 
-### Font Sizes
+Inter is used everywhere with tabular figures (`font-feature-settings: 'tnum'`) for numeric displays to ensure consistent digit widths.
 
-| Size | Usage |
-|------|-------|
-| 32px | VFO frequency display |
-| 18px | TX indicator |
-| 14px | Title, RIT/XIT value |
-| 12px | Status bar labels |
-| 11px | Mode labels, indicators |
-| 9-10px | Small indicators, mini-pan |
+### Font Constants (K4Styles::Fonts)
 
-### Stylesheet Usage
+| Constant | Value | Usage |
+|----------|-------|-------|
+| `Fonts::Primary` | "Inter" | UI text, labels, buttons |
+| `Fonts::Data` | "Inter" | Frequencies, numeric data (with tabular figures) |
+
+### Font Size Constants (K4Styles::Dimensions)
+
+| Constant | Size | Usage |
+|----------|------|-------|
+| `FontSizeFrequency` | 32px | VFO frequency display |
+| `FontSizeTitle` | 16px | Large control buttons (+/-) |
+| `FontSizePopup` | 14px | Notifications, popup titles |
+| `FontSizeButton` | 12px | Button text, value displays |
+| `FontSizeLarge` | 11px | Feature labels, primary labels |
+| `FontSizeMedium` | 10px | Labels, descriptions |
+| `FontSizeNormal` | 9px | Alt/secondary button text |
+| `FontSizeSmall` | 8px | Scale fonts, secondary text |
+| `FontSizeTiny` | 7px | Sub-labels (BANK, AF REC) |
+
+### Font Usage
 
 ```cpp
 // UI text (uses Inter automatically via QApplication::setFont)
 label->setStyleSheet("font-size: 12px; font-weight: bold;");
 
-// Frequency/data display (explicit JetBrains Mono)
-label->setStyleSheet("font-family: 'JetBrains Mono', monospace; font-size: 32px;");
+// Frequency/data display (use K4Styles helper for tabular figures)
+QFont font = K4Styles::Fonts::dataFont(K4Styles::Dimensions::FontSizeFrequency);
+
+// In stylesheets, use font constants with tnum for numeric displays
+QString style = QString("font-family: '%1'; font-feature-settings: 'tnum';")
+    .arg(K4Styles::Fonts::Data);
 ```
 
 ## Popup & Button Styling (K4Styles)
@@ -243,5 +258,27 @@ K4Styles::drawDropShadow(painter, contentRect, cornerRadius)
 | `PopupButtonHeight` | 44 | Standard popup button |
 | `BorderWidth` | 2 | Button border width |
 | `BorderRadius` | 6 | Standard corner radius |
+
+### Side Panel & Memory Button Styles
+
+**Side Panel Function Buttons** (PRE/ATTN, TUNE/XMIT, etc.):
+- Height: `ButtonHeightSmall` (28px)
+- Width: Fills container (in 2-column grid)
+- Dark style: `sidePanelButton()` - standard dark gradient
+- Light style: `sidePanelButtonLight()` - lighter gradient for PF/TX buttons
+- Sub-label: `FontSizeSmall` (8px), `AccentAmber` color
+
+**Memory Buttons** (M1-M4, REC, STORE, RCL):
+- Width: `MemoryButtonWidth` (42px)
+- Height: `ButtonHeightSmall` (28px)
+- M1-M4, REC: `sidePanelButton()` (dark)
+- STORE, RCL: `sidePanelButtonLight()` (light)
+- Sub-labels (BANK, AF REC, AF PLAY, MESSAGE): `FontSizeSmall` (8px)
+- Sub-label colors: `AccentAmber` (BANK, AF REC, AF PLAY), `BorderSelected` (MESSAGE)
+
+**Compact Buttons** (MON, NORM, BAL):
+- Height: `ButtonHeightMini` (24px)
+- Style: `compactButton()`
+- Used for small toggle buttons in horizontal rows
 
 **Creating popups:** See `PATTERNS.md` → "Adding a Popup Menu" and `src/ui/CLAUDE.md` → K4PopupBase section.

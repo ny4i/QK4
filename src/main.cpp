@@ -12,6 +12,7 @@
 #include <QFileInfo>
 #endif
 #include "mainwindow.h"
+#include "ui/k4styles.h"
 
 // Filter out known benign Qt warnings on macOS
 // QSocketNotifier::Exception is not supported by kqueue (macOS's event system)
@@ -30,27 +31,19 @@ void messageFilter(QtMsgType type, const QMessageLogContext &context, const QStr
 
 // Load embedded fonts and set application defaults
 void setupFonts() {
-    // Load Inter font family (screen-optimized sans-serif)
+    // Load Inter font family (screen-optimized sans-serif for all UI)
     int interRegular = QFontDatabase::addApplicationFont(":/fonts/Inter-Regular.ttf");
     int interMedium = QFontDatabase::addApplicationFont(":/fonts/Inter-Medium.ttf");
     int interSemiBold = QFontDatabase::addApplicationFont(":/fonts/Inter-SemiBold.ttf");
     int interBold = QFontDatabase::addApplicationFont(":/fonts/Inter-Bold.ttf");
 
-    // Load JetBrains Mono (crisp monospace for frequency/data display)
-    int monoRegular = QFontDatabase::addApplicationFont(":/fonts/JetBrainsMono-Regular.ttf");
-    int monoMedium = QFontDatabase::addApplicationFont(":/fonts/JetBrainsMono-Medium.ttf");
-    int monoBold = QFontDatabase::addApplicationFont(":/fonts/JetBrainsMono-Bold.ttf");
-
     // Verify fonts loaded (only warn on failure)
     if (interRegular < 0 || interMedium < 0) {
         qWarning() << "Failed to load Inter font - using system default";
     }
-    if (monoRegular < 0) {
-        qWarning() << "Failed to load JetBrains Mono - using system monospace";
-    }
 
     // Set Inter Medium as the default application font (crisper than Regular)
-    QFont defaultFont("Inter", 11);
+    QFont defaultFont(K4Styles::Fonts::Primary, K4Styles::Dimensions::FontSizeLarge);
     defaultFont.setWeight(QFont::Medium);
     defaultFont.setHintingPreference(QFont::PreferFullHinting);
     defaultFont.setStyleStrategy(QFont::PreferAntialias);
@@ -108,7 +101,7 @@ int main(int argc, char *argv[]) {
     app.setOrganizationName("AI5QK");
     app.setOrganizationDomain("ai5qk.com");
 
-    // Load embedded fonts (Inter + JetBrains Mono)
+    // Load embedded Inter font family
     setupFonts();
 
     MainWindow window;

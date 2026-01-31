@@ -91,7 +91,7 @@ private:
 
     QColor m_normalColor; // White - normal display color
     QColor m_editColor;   // Cyan/Green - edit mode color
-    QFont m_font;         // JetBrains Mono, 32px bold
+    QFont m_font;         // Inter with tabular figures, 32px bold
 
     // Cached character metrics for click detection
     int m_charWidth = 0;

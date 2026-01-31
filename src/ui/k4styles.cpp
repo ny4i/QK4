@@ -579,4 +579,22 @@ QString controlButton(bool selected) {
     }
 }
 
+namespace Fonts {
+
+QFont dataFont(int pointSize, QFont::Weight weight) {
+    QFont font(Data, pointSize, weight);
+    font.setStyleHint(QFont::SansSerif);
+    font.setHintingPreference(QFont::PreferFullHinting);
+    font.setStyleStrategy(QFont::PreferAntialias);
+    // Enable tabular figures for consistent digit widths
+    // This is handled via stylesheet for CSS-based styling
+    return font;
+}
+
+QString dataFontStylesheet() {
+    return QString("font-family: '%1'; font-feature-settings: 'tnum';").arg(Data);
+}
+
+} // namespace Fonts
+
 } // namespace K4Styles

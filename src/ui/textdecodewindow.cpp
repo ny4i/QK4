@@ -123,7 +123,8 @@ void TextDecodeWindow::setupUi() {
                                          "  background: %1;"
                                          "  color: %2;"
                                          "  border: none;"
-                                         "  font-family: 'JetBrains Mono', monospace;"
+                                         "  font-family: '%6';"
+                                         "  font-feature-settings: 'tnum';"
                                          "  font-size: %3px;"
                                          "  padding: 8px;"
                                          "}"
@@ -144,7 +145,8 @@ void TextDecodeWindow::setupUi() {
                                      .arg(K4Styles::Colors::TextWhite)
                                      .arg(K4Styles::Dimensions::FontSizeNormal)
                                      .arg(K4Styles::Colors::Background)
-                                     .arg(K4Styles::Colors::BorderNormal));
+                                     .arg(K4Styles::Colors::BorderNormal)
+                                     .arg(K4Styles::Fonts::Data));
 
     mainLayout->addWidget(titleBar);
     mainLayout->addWidget(m_textDisplay, 1);
