@@ -1043,16 +1043,34 @@ void RadioState::handleML(const QString &cmd) {
 }
 
 void RadioState::handlePC(const QString &cmd) {
-    // Power Control - PCnnnmm where nnn=watts*10, mm=00(normal)/01(QRP)
-    if (cmd.length() < 5)
+    // Power Control - PCnnnr; where nnn=power value, r=L/H/X
+    // L = QRP (0.1-10W): nnn is watts*10 (e.g., 099 = 9.9W)
+    // H = QRO (1-110W): nnn is watts directly (e.g., 050 = 50W)
+    // X = XVTR (0.1-10mW): nnn is mW*10
+    if (cmd.length() < 6)
         return;
+
     bool ok;
     int powerRaw = cmd.mid(2, 3).toInt(&ok);
     if (!ok)
         return;
 
-    double watts = powerRaw / 10.0;
-    bool qrp = (cmd.length() >= 7 && cmd.mid(5, 2) == "01");
+    QChar mode = cmd.at(5);
+    double watts;
+    bool qrp;
+
+    if (mode == 'L') {
+        // QRP mode: value is watts * 10
+        watts = powerRaw / 10.0;
+        qrp = true;
+    } else if (mode == 'H') {
+        // QRO mode: value is watts directly
+        watts = powerRaw;
+        qrp = false;
+    } else {
+        // Unknown mode (X for XVTR, etc.) - skip
+        return;
+    }
 
     bool changed = false;
     if (watts != m_rfPower) {
