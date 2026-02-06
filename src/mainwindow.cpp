@@ -144,6 +144,11 @@ MainWindow::MainWindow(QWidget *parent)
                 m_panadapterB->setAmplitudeUnits(useSUnits);
             }
         }
+        if (item && item->name == "Mouse L/R Button QSY") {
+            m_mouseQsyMenuId = item->id;
+            m_mouseQsyMode = item->currentValue;
+            qDebug() << "Mouse L/R Button QSY: menuId=" << m_mouseQsyMenuId << "mode=" << m_mouseQsyMode;
+        }
     });
 
     // Create band selection popup
@@ -3353,8 +3358,10 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
         m_panadapterA->setRefLevel(newRef);
     });
 
-    // Right-click on panadapter A tunes VFO B (opposite VFO)
+    // Right-click on panadapter A tunes VFO B (L=A R=B mode)
     connect(m_panadapterA, &PanadapterRhiWidget::frequencyRightClicked, this, [this](qint64 freq) {
+        if (m_mouseQsyMode == 0) // Left Only — right-click disabled
+            return;
         if (!m_tcpClient->isConnected() || freq <= 0)
             return;
         QString cmd = QString("FB%1;").arg(freq, 11, 10, QChar('0'));
@@ -3363,6 +3370,8 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     });
 
     connect(m_panadapterA, &PanadapterRhiWidget::frequencyRightDragged, this, [this](qint64 freq) {
+        if (m_mouseQsyMode == 0) // Left Only — right-drag disabled
+            return;
         if (!m_tcpClient->isConnected() || freq <= 0)
             return;
         QString cmd = QString("FB%1;").arg(freq, 11, 10, QChar('0'));
@@ -3429,10 +3438,11 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
         // Guard: only send if connected and frequency is valid
         if (!m_tcpClient->isConnected() || freq <= 0)
             return;
-        QString cmd = QString("FB%1;").arg(freq, 11, 10, QChar('0'));
+        // L=A R=B mode: left-click on Pan B tunes VFO A
+        QString vfo = (m_mouseQsyMode == 1) ? "FA" : "FB";
+        QString cmd = QString("%1%2;").arg(vfo).arg(freq, 11, 10, QChar('0'));
         m_tcpClient->sendCAT(cmd);
-        // Request frequency back to update UI (K4 doesn't echo SET commands)
-        m_tcpClient->sendCAT("FB;");
+        m_tcpClient->sendCAT(vfo + ";");
     });
 
     // Mouse control for VFO B: drag to tune (continuous frequency change while dragging)
@@ -3440,9 +3450,10 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
         // Guard: only send if connected and frequency is valid
         if (!m_tcpClient->isConnected() || freq <= 0)
             return;
-        QString cmd = QString("FB%1;").arg(freq, 11, 10, QChar('0'));
+        // L=A R=B mode: left-drag on Pan B tunes VFO A
+        QString vfo = (m_mouseQsyMode == 1) ? "FA" : "FB";
+        QString cmd = QString("%1%2;").arg(vfo).arg(freq, 11, 10, QChar('0'));
         m_tcpClient->sendCAT(cmd);
-        // Update local state immediately for responsive UI (K4 doesn't echo SET commands)
         m_radioState->parseCATCommand(cmd);
     });
 
@@ -3487,19 +3498,25 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
         m_panadapterB->setRefLevel(newRef);
     });
 
-    // Right-click on panadapter B tunes VFO A (opposite VFO)
+    // Right-click on panadapter B
     connect(m_panadapterB, &PanadapterRhiWidget::frequencyRightClicked, this, [this](qint64 freq) {
+        if (m_mouseQsyMode == 0) // Left Only — right-click disabled
+            return;
         if (!m_tcpClient->isConnected() || freq <= 0)
             return;
-        QString cmd = QString("FA%1;").arg(freq, 11, 10, QChar('0'));
+        // L=A R=B mode: right-click always tunes VFO B
+        QString cmd = QString("FB%1;").arg(freq, 11, 10, QChar('0'));
         m_tcpClient->sendCAT(cmd);
-        m_tcpClient->sendCAT("FA;");
+        m_tcpClient->sendCAT("FB;");
     });
 
     connect(m_panadapterB, &PanadapterRhiWidget::frequencyRightDragged, this, [this](qint64 freq) {
+        if (m_mouseQsyMode == 0) // Left Only — right-drag disabled
+            return;
         if (!m_tcpClient->isConnected() || freq <= 0)
             return;
-        QString cmd = QString("FA%1;").arg(freq, 11, 10, QChar('0'));
+        // L=A R=B mode: right-drag always tunes VFO B
+        QString cmd = QString("FB%1;").arg(freq, 11, 10, QChar('0'));
         m_tcpClient->sendCAT(cmd);
         m_radioState->parseCATCommand(cmd);
     });
@@ -4468,6 +4485,12 @@ void MainWindow::onMenuModelValueChanged(int menuId, int newValue) {
         if (m_panadapterB) {
             m_panadapterB->setAmplitudeUnits(useSUnits);
         }
+    }
+
+    // Track "Mouse L/R Button QSY" setting changes (from radio or menu overlay)
+    if (menuId == m_mouseQsyMenuId) {
+        m_mouseQsyMode = newValue;
+        qDebug() << "Mouse L/R Button QSY changed to:" << m_mouseQsyMode;
     }
 }
 

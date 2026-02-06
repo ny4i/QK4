@@ -1,5 +1,24 @@
 # K4Controller Development Log
 
+## February 6, 2026
+
+### Feature: Honor K4 "Mouse L/R Button QSY" Menu Setting
+
+**Summary:** Panadapter click/drag handlers now respect the K4's "Mouse L/R Button QSY" menu setting instead of using hardcoded VFO mapping.
+
+**Modes:**
+- **Left Only (value 0):** Only left-click/left-drag QSYs. Right-click/right-drag are ignored on both panadapters.
+- **L=A R=B (value 1):** Left button always tunes VFO A, right button always tunes VFO B, regardless of which panadapter is clicked.
+
+**Implementation:**
+- Discovers menu item ID dynamically via MEDF on connect (`menuItemAdded` signal)
+- Tracks live changes via `menuValueChanged` signal (updates in real-time if changed on radio or menu overlay)
+- Modified 6 panadapter handlers: Pan A right-click/drag, Pan B left-click/drag, Pan B right-click/drag
+
+**Files Modified:** `mainwindow.h`, `mainwindow.cpp`
+
+---
+
 ## January 30, 2026
 
 ### Refactor: Comprehensive Code Quality Review
