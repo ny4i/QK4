@@ -89,7 +89,7 @@ QByteArray OpusDecoder::decodeK4Packet(const QByteArray &packet) {
             normalized[i] = static_cast<float>(stereoSamples[i]) * NORMALIZE_16BIT;
         }
 
-        return mixStereoToMono(normalized.constData(), sampleCount, 1.0f);  // No boost for RAW
+        return mixStereoToMono(normalized.constData(), sampleCount, 1.0f); // No boost for RAW
     }
 
     case 0x02: // EM2 - Opus encoded, decode with opus_decode() (returns S16LE)
@@ -144,8 +144,8 @@ QByteArray OpusDecoder::mixStereoToMono(const float *stereoFloats, int sampleCou
     float *monoFloats = reinterpret_cast<float *>(monoPcm.data());
 
     for (int i = 0; i < sampleCount; i++) {
-        float mainSample = stereoFloats[i * 2];     // Left channel (Main RX / VFO A)
-        float subSample = stereoFloats[i * 2 + 1];  // Right channel (Sub RX / VFO B)
+        float mainSample = stereoFloats[i * 2];    // Left channel (Main RX / VFO A)
+        float subSample = stereoFloats[i * 2 + 1]; // Right channel (Sub RX / VFO B)
 
         float mainWithVolume = mainSample * m_mainVolume * gainBoost;
         float subWithVolume = subSample * m_subVolume * gainBoost;

@@ -11,7 +11,7 @@ public:
     // Frame size: 20ms at 12kHz = 240 samples
     static constexpr int FRAME_SAMPLES = 240;
     static constexpr int FRAME_BYTES = FRAME_SAMPLES * sizeof(opus_int16); // 480 bytes
-    static constexpr int MAX_PACKET_SIZE = 4000; // Max Opus packet size
+    static constexpr int MAX_PACKET_SIZE = 4000;                           // Max Opus packet size
 
     explicit OpusEncoder(QObject *parent = nullptr);
     ~OpusEncoder();
