@@ -429,3 +429,94 @@ jobs:
             K4Controller-raspberry-pi-arm64.tar.gz
           generate_release_notes: true
           prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') }}
+
+  publish:
+    needs: [release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: K4Controller-macos
+          path: artifacts/macos
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: K4Controller-windows
+          path: artifacts/windows
+
+      - name: Download Raspberry Pi artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: K4Controller-raspberry-pi
+          path: artifacts/raspberry-pi
+
+      - name: Update downloads and releases.json
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          DATE=$(date -u +%Y-%m-%d)
+
+          # Remove old downloads, add new
+          rm -rf downloads/
+          mkdir -p "downloads/$TAG"
+          cp artifacts/macos/K4Controller-macos.dmg "downloads/$TAG/"
+          cp artifacts/windows/K4Controller-windows.zip "downloads/$TAG/"
+          cp artifacts/raspberry-pi/K4Controller-raspberry-pi-arm64.tar.gz "downloads/$TAG/"
+
+          # Compute human-readable sizes
+          SZ_MAC=$(du -h "downloads/$TAG/K4Controller-macos.dmg" | cut -f1 | xargs)
+          SZ_WIN=$(du -h "downloads/$TAG/K4Controller-windows.zip" | cut -f1 | xargs)
+          SZ_PI=$(du -h "downloads/$TAG/K4Controller-raspberry-pi-arm64.tar.gz" | cut -f1 | xargs)
+
+          # Detect prerelease
+          if echo "$TAG" | grep -qE 'alpha|beta'; then
+            PRERELEASE=true
+          else
+            PRERELEASE=false
+          fi
+
+          # Build releases.json
+          cat > releases.json <<EOF
+          {
+            "tag": "$TAG",
+            "version": "$VERSION",
+            "date": "$DATE",
+            "prerelease": $PRERELEASE,
+            "assets": {
+              "macos": {
+                "name": "K4Controller-macos.dmg",
+                "url": "./downloads/$TAG/K4Controller-macos.dmg",
+                "size": "$SZ_MAC"
+              },
+              "windows": {
+                "name": "K4Controller-windows.zip",
+                "url": "./downloads/$TAG/K4Controller-windows.zip",
+                "size": "$SZ_WIN"
+              },
+              "raspberry-pi": {
+                "name": "K4Controller-raspberry-pi-arm64.tar.gz",
+                "url": "./downloads/$TAG/K4Controller-raspberry-pi-arm64.tar.gz",
+                "size": "$SZ_PI"
+              }
+            }
+          }
+          EOF
+
+          # Clean up artifacts directory
+          rm -rf artifacts/
+
+      - name: Commit and push to gh-pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Release ${{ github.ref_name }}"
+          git push
