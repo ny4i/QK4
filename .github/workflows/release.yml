@@ -8,6 +8,9 @@ on:
 jobs:
   build-macos:
     runs-on: macos-14
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
     steps:
       - uses: actions/checkout@v4
 
@@ -41,10 +44,24 @@ jobs:
           # qt@6 renamed to qt in Homebrew (Qt 6 is now default)
           brew install qt opus hidapi openssl@3 dbus brotli
 
+      - name: Setup ccache
+        run: brew install ccache
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/ccache
+          key: ccache-macos-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            ccache-macos-${{ github.ref_name }}-
+            ccache-macos-
+
       - name: Configure CMake
         run: |
           cmake -B build \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DCMAKE_PREFIX_PATH="$(brew --prefix qt)" \
             -DK4CONTROLLER_VERSION_FULL="${{ steps.version.outputs.version }}"
 
@@ -354,6 +371,7 @@ jobs:
           target: 'desktop'
           arch: 'win64_msvc2019_64'
           modules: 'qtmultimedia qtshadertools qtserialport'
+          cache: true
 
       - name: Setup vcpkg
         run: |
@@ -364,8 +382,11 @@ jobs:
       - name: Install dependencies
         run: vcpkg install opus:x64-windows hidapi:x64-windows openssl:x64-windows
 
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.7
+
       - name: Configure CMake
-        run: cmake -B build -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release -DK4CONTROLLER_VERSION_FULL="${{ steps.version.outputs.version }}"
+        run: cmake -B build -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DK4CONTROLLER_VERSION_FULL="${{ steps.version.outputs.version }}"
 
       - name: Build
         run: cmake --build build --config Release
