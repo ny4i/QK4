@@ -29,7 +29,9 @@ jobs:
             brew-macos-14-v2-
 
       - name: Install dependencies
-        run: brew install qt opus openssl@3 hidapi dbus brotli
+        run: |
+          brew install qt opus openssl@3 hidapi dbus brotli
+          brew link --overwrite qt opus hidapi openssl@3 dbus brotli
 
       - name: Setup ccache
         run: brew install ccache
