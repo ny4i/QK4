@@ -23,48 +23,52 @@ A cross-platform desktop application for remote control of Elecraft K4 radios ov
 - **Dual-Channel Audio** — Opus-encoded stereo with independent MAIN/SUB volume controls
 - **Radio Controls** — Full control panel with mode-dependent controls, TX functions, and feature popups
 - **Band Selection** — Quick band switching via popup menu
+- **KPOD Support** — USB integration with Elecraft KPOD tuning knob
 - **KPA1500 Support** — Optional integration with Elecraft KPA1500 amplifier
-- **Self-Contained App Bundle** — macOS releases include all dependencies (no Homebrew required)
+- **CAT Server** — Built-in CAT server (port 9299) for integration with third-party logging and contest software
+- **Self-Contained Releases** — macOS DMG and Windows ZIP include all dependencies
 
-## Requirements
+## Download
 
-### macOS
+Pre-built releases are available on the [Releases](https://github.com/mikeg-dal/K4Controller/releases) page.
 
-**To run pre-built release:**
-- macOS 14 (Sonoma) or later
-- Apple Silicon Mac (M1 or newer)
-- No additional dependencies required (self-contained app bundle)
+| Platform | Download | Notes |
+|----------|----------|-------|
+| macOS | `K4Controller-macos.dmg` | Signed and notarized — open the DMG and drag to Applications |
+| Windows | `K4Controller-windows.zip` | Extract and run `K4Controller.exe` |
 
-**To build from source:**
-- Homebrew
-- Qt 6, libopus, OpenSSL 3, hidapi
+### Windows Prerequisite
 
-### Windows
+- [Visual C++ Redistributable 2019+](https://aka.ms/vs/17/release/vc_redist.x64.exe) (if not already installed)
 
-**To run pre-built release:**
-- Windows 11
-- [Visual C++ Redistributable 2019+](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+## Building from Source
 
-**To build from source:**
-- Visual Studio 2019+ Build Tools
-- Qt 6, libopus, hidapi (via vcpkg)
+### Requirements
 
-## Installation
+| Dependency | macOS (Homebrew) | Windows (vcpkg + Qt Installer) |
+|------------|------------------|-------------------------------|
+| C++ compiler | Xcode Command Line Tools | Visual Studio 2019+ Build Tools |
+| CMake | `brew install cmake` | Included with VS Build Tools |
+| Qt 6.7+ | `brew install qt` | [Qt Online Installer](https://www.qt.io/download-qt-installer) or [aqtinstall](https://github.com/miurahr/aqtinstall) |
+| Qt modules | Included with Homebrew Qt | Multimedia, ShaderTools, SerialPort |
+| libopus | `brew install opus` | `vcpkg install opus:x64-windows` |
+| OpenSSL 3 | `brew install openssl@3` | `vcpkg install openssl:x64-windows` |
+| HIDAPI | `brew install hidapi` | `vcpkg install hidapi:x64-windows` |
 
 ### macOS
 
 ```bash
 # Install dependencies
-brew install qt@6 opus openssl@3 hidapi cmake
+brew install qt opus openssl@3 hidapi cmake
 
 # Clone and build
 git clone https://github.com/mikeg-dal/K4Controller.git
 cd K4Controller
-cmake -B build -DCMAKE_PREFIX_PATH="$(brew --prefix qt@6)"
+cmake -B build -DCMAKE_PREFIX_PATH="$(brew --prefix qt)"
 cmake --build build
 
 # Run
-./build/K4Controller
+./build/K4Controller.app/Contents/MacOS/K4Controller
 
 # Create distributable app bundle (optional)
 cmake --build build --target deploy
@@ -74,9 +78,10 @@ cmake --build build --target deploy
 
 ```powershell
 # Install vcpkg dependencies
-vcpkg install opus:x64-windows hidapi:x64-windows
+vcpkg install opus:x64-windows hidapi:x64-windows openssl:x64-windows
 
-# Install Qt 6 (via Qt Online Installer or aqtinstall)
+# Install Qt 6.7+ via Qt Online Installer or aqtinstall
+# Required modules: Multimedia, ShaderTools, SerialPort
 
 # Clone and build
 git clone https://github.com/mikeg-dal/K4Controller.git
