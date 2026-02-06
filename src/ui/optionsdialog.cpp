@@ -5,7 +5,6 @@
 #include "../hardware/kpoddevice.h"
 #include "../hardware/halikeydevice.h"
 #include "../settings/radiosettings.h"
-#include "../network/kpa1500client.h"
 #include "../network/catserver.h"
 #include "../audio/audioengine.h"
 #include <QVBoxLayout>
@@ -22,24 +21,17 @@
 
 // Use K4Styles::Colors::DialogBorder for dialog-specific borders
 
-OptionsDialog::OptionsDialog(RadioState *radioState, KPA1500Client *kpa1500Client, AudioEngine *audioEngine,
+OptionsDialog::OptionsDialog(RadioState *radioState, AudioEngine *audioEngine,
                              KpodDevice *kpodDevice, CatServer *catServer, HalikeyDevice *halikeyDevice,
                              QWidget *parent)
-    : QDialog(parent), m_radioState(radioState), m_kpa1500Client(kpa1500Client), m_audioEngine(audioEngine),
-      m_kpodDevice(kpodDevice), m_catServer(catServer), m_halikeyDevice(halikeyDevice), m_kpa1500StatusLabel(nullptr),
+    : QDialog(parent), m_radioState(radioState), m_audioEngine(audioEngine),
+      m_kpodDevice(kpodDevice), m_catServer(catServer), m_halikeyDevice(halikeyDevice),
       m_micDeviceCombo(nullptr), m_micGainSlider(nullptr), m_micGainValueLabel(nullptr), m_micTestBtn(nullptr),
       m_micMeter(nullptr), m_speakerDeviceCombo(nullptr), m_catServerEnableCheckbox(nullptr),
       m_catServerPortEdit(nullptr), m_catServerStatusLabel(nullptr), m_catServerClientsLabel(nullptr),
       m_cwKeyerPortCombo(nullptr), m_cwKeyerRefreshBtn(nullptr), m_cwKeyerConnectBtn(nullptr),
       m_cwKeyerStatusLabel(nullptr), m_cwKeyerEnableCheckbox(nullptr) {
     setupUi();
-
-    // Connect to KPA1500 client signals for status updates
-    if (m_kpa1500Client) {
-        connect(m_kpa1500Client, &KPA1500Client::connected, this, &OptionsDialog::onKpa1500ConnectionStateChanged);
-        connect(m_kpa1500Client, &KPA1500Client::disconnected, this, &OptionsDialog::onKpa1500ConnectionStateChanged);
-        connect(m_kpa1500Client, &KPA1500Client::stateChanged, this, &OptionsDialog::onKpa1500ConnectionStateChanged);
-    }
 
     // Connect to AudioEngine for mic level updates
     if (m_audioEngine) {
@@ -103,11 +95,8 @@ void OptionsDialog::setupUi() {
     m_tabList->addItem("Audio Input");
     m_tabList->addItem("Audio Output");
     m_tabList->addItem("Rig Control");
-    m_tabList->addItem("Network");
     m_tabList->addItem("CW Keyer");
     m_tabList->addItem("K-Pod");
-    m_tabList->addItem("KPA1500");
-    m_tabList->addItem("DX Cluster");
     m_tabList->setCurrentRow(0);
 
     // Right side: stacked pages
@@ -116,11 +105,8 @@ void OptionsDialog::setupUi() {
     m_pageStack->addWidget(createAudioInputPage());
     m_pageStack->addWidget(createAudioOutputPage());
     m_pageStack->addWidget(createRigControlPage());
-    m_pageStack->addWidget(createNetworkPage());
     m_pageStack->addWidget(createCwKeyerPage());
     m_pageStack->addWidget(createKpodPage());
-    m_pageStack->addWidget(createKpa1500Page());
-    m_pageStack->addWidget(createDxClusterPage());
 
     // Connect tab selection to page switching
     connect(m_tabList, &QListWidget::currentRowChanged, m_pageStack, &QStackedWidget::setCurrentIndex);
@@ -496,229 +482,6 @@ void OptionsDialog::updateKpodStatus() {
                                       : "Connect a K-Pod device to enable this feature.");
 }
 
-QWidget *OptionsDialog::createKpa1500Page() {
-    auto *page = new QWidget(this);
-    page->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::Background));
-
-    auto *layout = new QVBoxLayout(page);
-    layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin,
-                               K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
-    layout->setSpacing(K4Styles::Dimensions::PaddingLarge);
-
-    // Title
-    auto *titleLabel = new QLabel("KPA1500 Amplifier", page);
-    titleLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
-                                  .arg(K4Styles::Colors::AccentAmber)
-                                  .arg(K4Styles::Dimensions::FontSizeTitle));
-    layout->addWidget(titleLabel);
-
-    // Status indicator
-    auto *statusLayout = new QHBoxLayout();
-    auto *statusTitleLabel = new QLabel("Status:", page);
-    statusTitleLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
-                                        .arg(K4Styles::Colors::TextGray)
-                                        .arg(K4Styles::Dimensions::FontSizePopup));
-    statusTitleLabel->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
-
-    m_kpa1500StatusLabel = new QLabel(page);
-    updateKpa1500Status(); // Set initial status
-
-    statusLayout->addWidget(statusTitleLabel);
-    statusLayout->addWidget(m_kpa1500StatusLabel);
-    statusLayout->addStretch();
-    layout->addLayout(statusLayout);
-
-    // Separator line
-    auto *line = new QFrame(page);
-    line->setFrameShape(QFrame::HLine);
-    line->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::DialogBorder));
-    line->setFixedHeight(K4Styles::Dimensions::SeparatorHeight);
-    layout->addWidget(line);
-
-    // Connection Settings section
-    auto *sectionLabel = new QLabel("Connection Settings", page);
-    sectionLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
-                                    .arg(K4Styles::Colors::TextWhite)
-                                    .arg(K4Styles::Dimensions::FontSizePopup));
-    layout->addWidget(sectionLabel);
-
-    // IP Address input
-    auto *hostLayout = new QHBoxLayout();
-    auto *hostLabel = new QLabel("IP Address:", page);
-    hostLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
-                                 .arg(K4Styles::Colors::TextGray)
-                                 .arg(K4Styles::Dimensions::FontSizePopup));
-    hostLabel->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
-
-    m_kpa1500HostEdit = new QLineEdit(page);
-    m_kpa1500HostEdit->setPlaceholderText("e.g., 192.168.1.100");
-    m_kpa1500HostEdit->setStyleSheet(QString("QLineEdit { background-color: %1; color: %2; border: 1px solid %3; "
-                                             "           padding: %6px; font-size: %5px; border-radius: %7px; }"
-                                             "QLineEdit:focus { border-color: %4; }")
-                                         .arg(K4Styles::Colors::DarkBackground, K4Styles::Colors::TextWhite,
-                                              K4Styles::Colors::DialogBorder, K4Styles::Colors::AccentAmber)
-                                         .arg(K4Styles::Dimensions::FontSizePopup)
-                                         .arg(K4Styles::Dimensions::PaddingSmall)
-                                         .arg(K4Styles::Dimensions::SliderBorderRadius));
-    m_kpa1500HostEdit->setText(RadioSettings::instance()->kpa1500Host());
-
-    hostLayout->addWidget(hostLabel);
-    hostLayout->addWidget(m_kpa1500HostEdit, 1);
-    layout->addLayout(hostLayout);
-
-    // Port input
-    auto *portLayout = new QHBoxLayout();
-    auto *portLabel = new QLabel("Port:", page);
-    portLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
-                                 .arg(K4Styles::Colors::TextGray)
-                                 .arg(K4Styles::Dimensions::FontSizePopup));
-    portLabel->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
-
-    m_kpa1500PortEdit = new QLineEdit(page);
-    m_kpa1500PortEdit->setPlaceholderText("1500");
-    m_kpa1500PortEdit->setFixedWidth(K4Styles::Dimensions::InputFieldWidthSmall);
-    m_kpa1500PortEdit->setStyleSheet(QString("QLineEdit { background-color: %1; color: %2; border: 1px solid %3; "
-                                             "           padding: %6px; font-size: %5px; border-radius: %7px; }"
-                                             "QLineEdit:focus { border-color: %4; }")
-                                         .arg(K4Styles::Colors::DarkBackground, K4Styles::Colors::TextWhite,
-                                              K4Styles::Colors::DialogBorder, K4Styles::Colors::AccentAmber)
-                                         .arg(K4Styles::Dimensions::FontSizePopup)
-                                         .arg(K4Styles::Dimensions::PaddingSmall)
-                                         .arg(K4Styles::Dimensions::SliderBorderRadius));
-    m_kpa1500PortEdit->setText(QString::number(RadioSettings::instance()->kpa1500Port()));
-
-    auto *portHint = new QLabel("(default: 1500)", page);
-    portHint->setStyleSheet(QString("color: %1; font-size: %2px;")
-                                .arg(K4Styles::Colors::TextGray)
-                                .arg(K4Styles::Dimensions::FontSizeLarge));
-
-    portLayout->addWidget(portLabel);
-    portLayout->addWidget(m_kpa1500PortEdit);
-    portLayout->addWidget(portHint);
-    portLayout->addStretch();
-    layout->addLayout(portLayout);
-
-    // Polling interval input
-    auto *pollLayout = new QHBoxLayout();
-    auto *pollLabel = new QLabel("Poll Interval:", page);
-    pollLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
-                                 .arg(K4Styles::Colors::TextGray)
-                                 .arg(K4Styles::Dimensions::FontSizePopup));
-    pollLabel->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
-
-    m_kpa1500PollIntervalEdit = new QLineEdit(page);
-    m_kpa1500PollIntervalEdit->setPlaceholderText("300");
-    m_kpa1500PollIntervalEdit->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
-    m_kpa1500PollIntervalEdit->setStyleSheet(
-        QString("QLineEdit { background-color: %1; color: %2; border: 1px solid %3; "
-                "           padding: %6px; font-size: %5px; border-radius: %7px; }"
-                "QLineEdit:focus { border-color: %4; }")
-            .arg(K4Styles::Colors::DarkBackground, K4Styles::Colors::TextWhite, K4Styles::Colors::DialogBorder,
-                 K4Styles::Colors::AccentAmber)
-            .arg(K4Styles::Dimensions::FontSizePopup)
-            .arg(K4Styles::Dimensions::PaddingSmall)
-            .arg(K4Styles::Dimensions::SliderBorderRadius));
-    m_kpa1500PollIntervalEdit->setText(QString::number(RadioSettings::instance()->kpa1500PollInterval()));
-
-    auto *pollUnitLabel = new QLabel("ms", page);
-    pollUnitLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
-                                     .arg(K4Styles::Colors::TextWhite)
-                                     .arg(K4Styles::Dimensions::FontSizePopup));
-
-    auto *pollHint = new QLabel("(100-5000, default: 800)", page);
-    pollHint->setStyleSheet(QString("color: %1; font-size: %2px;")
-                                .arg(K4Styles::Colors::TextGray)
-                                .arg(K4Styles::Dimensions::FontSizeLarge));
-
-    pollLayout->addWidget(pollLabel);
-    pollLayout->addWidget(m_kpa1500PollIntervalEdit);
-    pollLayout->addWidget(pollUnitLabel);
-    pollLayout->addSpacing(K4Styles::Dimensions::PaddingMedium);
-    pollLayout->addWidget(pollHint);
-    pollLayout->addStretch();
-    layout->addLayout(pollLayout);
-
-    // Separator line
-    auto *line2 = new QFrame(page);
-    line2->setFrameShape(QFrame::HLine);
-    line2->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::DialogBorder));
-    line2->setFixedHeight(K4Styles::Dimensions::SeparatorHeight);
-    layout->addWidget(line2);
-
-    // Enable checkbox
-    m_kpa1500EnableCheckbox = new QCheckBox("Enable KPA1500", page);
-    m_kpa1500EnableCheckbox->setStyleSheet(QString("QCheckBox { color: %1; font-size: %2px; spacing: %3px; }"
-                                                   "QCheckBox::indicator { width: %4px; height: %4px; }")
-                                               .arg(K4Styles::Colors::TextWhite)
-                                               .arg(K4Styles::Dimensions::FontSizePopup)
-                                               .arg(K4Styles::Dimensions::BorderRadiusLarge)
-                                               .arg(K4Styles::Dimensions::CheckboxSize));
-    m_kpa1500EnableCheckbox->setChecked(RadioSettings::instance()->kpa1500Enabled());
-    layout->addWidget(m_kpa1500EnableCheckbox);
-
-    // Help text
-    auto *kpa1500HelpLabel =
-        new QLabel("When enabled, K4Controller will connect to the KPA1500 amplifier for status monitoring.", page);
-    kpa1500HelpLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-style: italic;")
-                                        .arg(K4Styles::Colors::TextGray)
-                                        .arg(K4Styles::Dimensions::FontSizeLarge));
-    kpa1500HelpLabel->setWordWrap(true);
-    layout->addWidget(kpa1500HelpLabel);
-
-    // Connect signals to save settings
-    connect(m_kpa1500HostEdit, &QLineEdit::editingFinished, this,
-            [this]() { RadioSettings::instance()->setKpa1500Host(m_kpa1500HostEdit->text()); });
-
-    connect(m_kpa1500PortEdit, &QLineEdit::editingFinished, this, [this]() {
-        bool ok;
-        quint16 port = m_kpa1500PortEdit->text().toUShort(&ok);
-        if (ok && port > 0) {
-            RadioSettings::instance()->setKpa1500Port(port);
-        }
-    });
-
-    connect(m_kpa1500PollIntervalEdit, &QLineEdit::editingFinished, this, [this]() {
-        bool ok;
-        int interval = m_kpa1500PollIntervalEdit->text().toInt(&ok);
-        if (ok && interval >= 100 && interval <= 5000) {
-            RadioSettings::instance()->setKpa1500PollInterval(interval);
-        } else {
-            // Reset to current value if invalid
-            m_kpa1500PollIntervalEdit->setText(QString::number(RadioSettings::instance()->kpa1500PollInterval()));
-        }
-    });
-
-    connect(m_kpa1500EnableCheckbox, &QCheckBox::toggled, this,
-            [](bool checked) { RadioSettings::instance()->setKpa1500Enabled(checked); });
-
-    layout->addStretch();
-    return page;
-}
-
-void OptionsDialog::updateKpa1500Status() {
-    if (!m_kpa1500StatusLabel) {
-        return;
-    }
-
-    bool isConnected = m_kpa1500Client && m_kpa1500Client->isConnected();
-
-    if (isConnected) {
-        m_kpa1500StatusLabel->setText("Connected");
-        m_kpa1500StatusLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
-                                                .arg(K4Styles::Colors::StatusGreen)
-                                                .arg(K4Styles::Dimensions::FontSizePopup));
-    } else {
-        m_kpa1500StatusLabel->setText("Not Connected");
-        m_kpa1500StatusLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
-                                                .arg(K4Styles::Colors::ErrorRed)
-                                                .arg(K4Styles::Dimensions::FontSizePopup));
-    }
-}
-
-void OptionsDialog::onKpa1500ConnectionStateChanged() {
-    updateKpa1500Status();
-}
-
 QWidget *OptionsDialog::createAudioInputPage() {
     auto *page = new QWidget(this);
     page->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::Background));
@@ -1032,41 +795,6 @@ void OptionsDialog::onSpeakerDeviceChanged(int index) {
     if (m_audioEngine) {
         m_audioEngine->setOutputDevice(deviceId);
     }
-}
-
-QWidget *OptionsDialog::createNetworkPage() {
-    auto *page = new QWidget(this);
-    page->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::Background));
-
-    auto *layout = new QVBoxLayout(page);
-    layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin,
-                               K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
-    layout->setSpacing(K4Styles::Dimensions::PaddingLarge);
-
-    // Title
-    auto *titleLabel = new QLabel("Network", page);
-    titleLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
-                                  .arg(K4Styles::Colors::AccentAmber)
-                                  .arg(K4Styles::Dimensions::FontSizeTitle));
-    layout->addWidget(titleLabel);
-
-    // Separator line
-    auto *line = new QFrame(page);
-    line->setFrameShape(QFrame::HLine);
-    line->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::DialogBorder));
-    line->setFixedHeight(K4Styles::Dimensions::SeparatorHeight);
-    layout->addWidget(line);
-
-    // Placeholder message
-    auto *placeholderLabel = new QLabel("Network and connection settings will be configured here.", page);
-    placeholderLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
-                                        .arg(K4Styles::Colors::TextGray)
-                                        .arg(K4Styles::Dimensions::FontSizePopup));
-    placeholderLabel->setWordWrap(true);
-    layout->addWidget(placeholderLabel);
-
-    layout->addStretch();
-    return page;
 }
 
 QWidget *OptionsDialog::createRigControlPage() {
@@ -1536,39 +1264,4 @@ void OptionsDialog::updateCwKeyerStatus() {
                                                 .arg(K4Styles::Dimensions::FontSizePopup));
         m_cwKeyerConnectBtn->setText("Connect");
     }
-}
-
-QWidget *OptionsDialog::createDxClusterPage() {
-    auto *page = new QWidget(this);
-    page->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::Background));
-
-    auto *layout = new QVBoxLayout(page);
-    layout->setContentsMargins(K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin,
-                               K4Styles::Dimensions::DialogMargin, K4Styles::Dimensions::DialogMargin);
-    layout->setSpacing(K4Styles::Dimensions::PaddingLarge);
-
-    // Title
-    auto *titleLabel = new QLabel("DX Cluster", page);
-    titleLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
-                                  .arg(K4Styles::Colors::AccentAmber)
-                                  .arg(K4Styles::Dimensions::FontSizeTitle));
-    layout->addWidget(titleLabel);
-
-    // Separator line
-    auto *line = new QFrame(page);
-    line->setFrameShape(QFrame::HLine);
-    line->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::DialogBorder));
-    line->setFixedHeight(K4Styles::Dimensions::SeparatorHeight);
-    layout->addWidget(line);
-
-    // Placeholder message
-    auto *placeholderLabel = new QLabel("DX Cluster settings will be configured here.", page);
-    placeholderLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
-                                        .arg(K4Styles::Colors::TextGray)
-                                        .arg(K4Styles::Dimensions::FontSizePopup));
-    placeholderLabel->setWordWrap(true);
-    layout->addWidget(placeholderLabel);
-
-    layout->addStretch();
-    return page;
 }
