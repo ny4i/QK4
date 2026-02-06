@@ -3,6 +3,12 @@
 CLAUDE.md
 **/CLAUDE.md
 
+# AI tools / MCP / Claude Code
+.claude/
+.mcp.json
+tools/audit/
+*AUDIT*.md
+
 # Python cache
 __pycache__/
 *.pyc
@@ -41,8 +47,6 @@ moc_*.cpp
 qrc_*.cpp
 ui_*.h
 
-# Claude local settings
-.claude/settings.local.json
 
 # Windows
 *.exe
