@@ -1,0 +1,24 @@
+name: Build Raspberry Pi
+
+on:
+  workflow_dispatch:  # Manual trigger only - run before tagging releases
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cross-compile for ARM64 in Debian Trixie
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            -w /workspace \
+            debian:trixie \
+            bash /workspace/.github/scripts/build-pi.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: K4Controller-raspberry-pi
+          path: K4Controller-raspberry-pi-arm64.tar.gz
