@@ -33,51 +33,51 @@ constexpr int MAX_BUFFER_SIZE = 1024 * 1024; // 1MB max buffer before reset
 
 // PAN packet byte offsets (Type 0x02)
 namespace PanPacket {
-    constexpr int TYPE_OFFSET = 0;
-    constexpr int VERSION_OFFSET = 1;
-    constexpr int SEQUENCE_OFFSET = 2;
-    constexpr int PAN_TYPE_OFFSET = 3;
-    constexpr int RECEIVER_OFFSET = 4;        // 0=Main, 1=Sub
-    constexpr int DATA_LENGTH_OFFSET = 5;     // uint16 LE
-    constexpr int RESERVED_OFFSET = 7;        // 4 bytes reserved
-    constexpr int CENTER_FREQ_OFFSET = 11;    // int64 LE, Hz
-    constexpr int SAMPLE_RATE_OFFSET = 19;    // int32 LE
-    constexpr int NOISE_FLOOR_OFFSET = 23;    // int32 LE, divide by 10 for dB
-    constexpr int BINS_OFFSET = 27;           // Compressed bin data starts here
-    constexpr int HEADER_SIZE = 27;           // Minimum packet size before bins
-}
+constexpr int TYPE_OFFSET = 0;
+constexpr int VERSION_OFFSET = 1;
+constexpr int SEQUENCE_OFFSET = 2;
+constexpr int PAN_TYPE_OFFSET = 3;
+constexpr int RECEIVER_OFFSET = 4;     // 0=Main, 1=Sub
+constexpr int DATA_LENGTH_OFFSET = 5;  // uint16 LE
+constexpr int RESERVED_OFFSET = 7;     // 4 bytes reserved
+constexpr int CENTER_FREQ_OFFSET = 11; // int64 LE, Hz
+constexpr int SAMPLE_RATE_OFFSET = 19; // int32 LE
+constexpr int NOISE_FLOOR_OFFSET = 23; // int32 LE, divide by 10 for dB
+constexpr int BINS_OFFSET = 27;        // Compressed bin data starts here
+constexpr int HEADER_SIZE = 27;        // Minimum packet size before bins
+} // namespace PanPacket
 
 // MiniPAN packet byte offsets (Type 0x03)
 namespace MiniPanPacket {
-    constexpr int TYPE_OFFSET = 0;
-    constexpr int VERSION_OFFSET = 1;
-    constexpr int SEQUENCE_OFFSET = 2;
-    constexpr int RESERVED_OFFSET = 3;
-    constexpr int RECEIVER_OFFSET = 4;        // 0=Main, 1=Sub
-    constexpr int BINS_OFFSET = 5;            // Mini PAN data starts here
-    constexpr int HEADER_SIZE = 5;
-}
+constexpr int TYPE_OFFSET = 0;
+constexpr int VERSION_OFFSET = 1;
+constexpr int SEQUENCE_OFFSET = 2;
+constexpr int RESERVED_OFFSET = 3;
+constexpr int RECEIVER_OFFSET = 4; // 0=Main, 1=Sub
+constexpr int BINS_OFFSET = 5;     // Mini PAN data starts here
+constexpr int HEADER_SIZE = 5;
+} // namespace MiniPanPacket
 
 // Audio packet byte offsets (Type 0x01)
 namespace AudioPacket {
-    constexpr int TYPE_OFFSET = 0;
-    constexpr int VERSION_OFFSET = 1;
-    constexpr int SEQUENCE_OFFSET = 2;
-    constexpr int MODE_OFFSET = 3;
-    constexpr int FRAME_SIZE_OFFSET = 4;      // uint16 LE
-    constexpr int SAMPLE_RATE_OFFSET = 6;
-    constexpr int DATA_OFFSET = 7;
-    constexpr int HEADER_SIZE = 7;
-}
+constexpr int TYPE_OFFSET = 0;
+constexpr int VERSION_OFFSET = 1;
+constexpr int SEQUENCE_OFFSET = 2;
+constexpr int MODE_OFFSET = 3;
+constexpr int FRAME_SIZE_OFFSET = 4; // uint16 LE
+constexpr int SAMPLE_RATE_OFFSET = 6;
+constexpr int DATA_OFFSET = 7;
+constexpr int HEADER_SIZE = 7;
+} // namespace AudioPacket
 
 // CAT command strings
 namespace Commands {
-    constexpr const char *READY = "RDY;";
-    constexpr const char *ENABLE_K4_MODE = "K41;";
-    constexpr const char *ENABLE_LONG_ERRORS = "ER1;";
-    constexpr const char *PING = "PING;";
-    constexpr const char *DISCONNECT = "RRN;";
-}
+constexpr const char *READY = "RDY;";
+constexpr const char *ENABLE_K4_MODE = "K41;";
+constexpr const char *ENABLE_LONG_ERRORS = "ER1;";
+constexpr const char *PING = "PING;";
+constexpr const char *DISCONNECT = "RRN;";
+} // namespace Commands
 
 } // namespace K4Protocol
 

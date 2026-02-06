@@ -44,8 +44,8 @@ TcpClient::TcpClient(QObject *parent)
             // RDY triggers comprehensive state dump containing all radio state:
             // FA, FB, MD, MD$, BW, BW$, IS, CW, KS, PC, SD (per mode), SQ, RG, SQ$, RG$,
             // #SPN, #REF, VXC, VXV, VXD, and all menu definitions (MEDF)
-            sendCAT(K4Protocol::Commands::READY);            // Triggers comprehensive state dump
-            sendCAT(K4Protocol::Commands::ENABLE_K4_MODE);   // Enable advanced K4 protocol mode
+            sendCAT(K4Protocol::Commands::READY);              // Triggers comprehensive state dump
+            sendCAT(K4Protocol::Commands::ENABLE_K4_MODE);     // Enable advanced K4 protocol mode
             sendCAT(K4Protocol::Commands::ENABLE_LONG_ERRORS); // Request long format error messages
             // Set audio encode mode (0=RAW32, 1=RAW16, 2=Opus Int, 3=Opus Float)
             qDebug() << "Sending:" << QString("EM%1;").arg(m_encodeMode);

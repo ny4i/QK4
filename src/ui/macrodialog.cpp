@@ -67,15 +67,14 @@ MacroItemWidget::MacroItemWidget(const QString &functionId, const QString &displ
 
     m_commandEdit = new QLineEdit(this);
     m_commandEdit->setMaxLength(64);
-    m_commandEdit->setStyleSheet(
-        QString("QLineEdit { background: %1; color: %2; border: 1px solid %3; "
-                "border-radius: 3px; padding: 2px 5px; font-size: %4px; font-family: '%5'; "
-                "font-feature-settings: 'tnum'; }")
-            .arg(K4Styles::Colors::GradientMid1)
-            .arg(K4Styles::Colors::TextWhite)
-            .arg(K4Styles::Colors::InactiveGray)
-            .arg(K4Styles::Dimensions::FontSizePopup)
-            .arg(K4Styles::Fonts::Data));
+    m_commandEdit->setStyleSheet(QString("QLineEdit { background: %1; color: %2; border: 1px solid %3; "
+                                         "border-radius: 3px; padding: 2px 5px; font-size: %4px; font-family: '%5'; "
+                                         "font-feature-settings: 'tnum'; }")
+                                     .arg(K4Styles::Colors::GradientMid1)
+                                     .arg(K4Styles::Colors::TextWhite)
+                                     .arg(K4Styles::Colors::InactiveGray)
+                                     .arg(K4Styles::Dimensions::FontSizePopup)
+                                     .arg(K4Styles::Fonts::Data));
     m_commandEdit->hide();
     connect(m_commandEdit, &QLineEdit::editingFinished, this, &MacroItemWidget::finishEditing);
     layout->addWidget(m_commandEdit, 1); // stretch factor 1
