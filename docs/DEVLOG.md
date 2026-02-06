@@ -192,7 +192,6 @@ for (const auto &entry : m_commandHandlers) {
 **Documentation Updated:**
 - `STATUS.md` - Added Visual Polish section
 - `CONVENTIONS.md` - Added Popup & Button Styling section
-- `src/ui/CLAUDE.md` - Added Popup Styling section with code examples
 
 ---
 
@@ -1772,7 +1771,6 @@ The previous implementation incorrectly treated Auto-Ref as separate A/B setting
 - `src/mainwindow.cpp` - Simplified connection
 - `src/ui/displaypopupwidget.h` - Simplified to single m_autoRef
 - `src/ui/displaypopupwidget.cpp` - Updated handlers for global auto-ref
-- `src/models/CLAUDE.md` - Updated documentation
 
 ---
 
@@ -2165,7 +2163,6 @@ Set up professional GitHub project infrastructure for cross-platform builds.
 
 6. **Documentation:**
    - Created `CHANGELOG.md` for user-facing release notes
-   - Strengthened documentation requirements in `CLAUDE.md`
    - Added README badges for build status and linting
 
 **Files Created:**
@@ -2179,7 +2176,6 @@ Set up professional GitHub project infrastructure for cross-platform builds.
 **Files Modified:**
 - `CMakeLists.txt` - Added Windows/Linux platform handling
 - `README.md` - Added badges, cross-platform instructions
-- `CLAUDE.md` - Added mandatory documentation requirements
 - All 47 `.cpp/.h` files - Reformatted with clang-format
 
 ---
@@ -2239,7 +2235,6 @@ This caused notch filter marker to appear in wrong position for voice/data modes
 **Files Modified:**
 - `src/dsp/minipanwidget.h` - Added `m_bandwidthHz` member and `bandwidthForMode()` declaration
 - `src/dsp/minipanwidget.cpp` - Implemented `bandwidthForMode()`, updated `setMode()` and `drawNotchFilter()`
-- `src/dsp/CLAUDE.md` - Updated documentation with mode-dependent bandwidth table
 
 ---
 
