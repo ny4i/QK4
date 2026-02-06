@@ -41,8 +41,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          # qt@6 renamed to qt in Homebrew (Qt 6 is now default)
           brew install qt opus hidapi openssl@3 dbus brotli
+          brew link --overwrite qt opus hidapi openssl@3 dbus brotli
 
       - name: Setup ccache
         run: brew install ccache
