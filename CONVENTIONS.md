@@ -294,4 +294,4 @@ K4Styles::drawDropShadow(painter, contentRect, cornerRadius)
 - Style: `compactButton()`
 - Used for small toggle buttons in horizontal rows
 
-**Creating popups:** See `PATTERNS.md` → "Adding a Popup Menu" and `src/ui/CLAUDE.md` → K4PopupBase section.
+**Creating popups:** See `PATTERNS.md` → "Adding a Popup Menu" for current patterns.
