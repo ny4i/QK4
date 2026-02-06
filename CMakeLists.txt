@@ -34,8 +34,14 @@ elseif(WIN32)
         set(QT_GUI_PRIVATE_FOUND FALSE)
     endif()
 else()
-    find_package(Qt6 REQUIRED COMPONENTS GuiPrivate)
-    set(QT_GUI_PRIVATE_FOUND TRUE)
+    # Linux: Debian cross-compilation may not ship GuiPrivate CMake config
+    find_package(Qt6 COMPONENTS GuiPrivate QUIET)
+    if(Qt6GuiPrivate_FOUND)
+        set(QT_GUI_PRIVATE_FOUND TRUE)
+    else()
+        message(STATUS "Qt6GuiPrivate CMake config not found, using manual include paths")
+        set(QT_GUI_PRIVATE_FOUND FALSE)
+    endif()
 endif()
 
 # Platform-specific dependency handling
