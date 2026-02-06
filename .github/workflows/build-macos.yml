@@ -6,9 +6,6 @@ on:
 jobs:
   build:
     runs-on: macos-14
-    env:
-      HOMEBREW_NO_AUTO_UPDATE: 1
-      HOMEBREW_NO_INSTALL_CLEANUP: 1
     steps:
       - uses: actions/checkout@v4
 
@@ -29,28 +26,12 @@ jobs:
             brew-macos-14-v2-
 
       - name: Install dependencies
-        run: |
-          brew install qt opus openssl@3 hidapi dbus brotli
-          brew link --overwrite qt opus hidapi openssl@3 dbus brotli
-
-      - name: Setup ccache
-        run: brew install ccache
-
-      - name: Cache ccache
-        uses: actions/cache@v4
-        with:
-          path: ~/Library/Caches/ccache
-          key: ccache-macos-build-${{ github.ref_name }}-${{ github.sha }}
-          restore-keys: |
-            ccache-macos-build-${{ github.ref_name }}-
-            ccache-macos-build-
+        run: brew install qt opus openssl@3 hidapi dbus brotli
 
       - name: Configure CMake
         run: |
           cmake -B build \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DCMAKE_PREFIX_PATH="$(brew --prefix qt)"
 
       - name: Build
