@@ -12,7 +12,6 @@
 #include <QPushButton>
 
 class RadioState;
-class KPA1500Client;
 class AudioEngine;
 class MicMeterWidget;
 class KpodDevice;
@@ -23,13 +22,12 @@ class OptionsDialog : public QDialog {
     Q_OBJECT
 
 public:
-    explicit OptionsDialog(RadioState *radioState, KPA1500Client *kpa1500Client, AudioEngine *audioEngine,
+    explicit OptionsDialog(RadioState *radioState, AudioEngine *audioEngine,
                            KpodDevice *kpodDevice, CatServer *catServer, HalikeyDevice *halikeyDevice,
                            QWidget *parent = nullptr);
     ~OptionsDialog();
 
 private slots:
-    void onKpa1500ConnectionStateChanged();
     void onMicTestToggled(bool checked);
     void onMicLevelChanged(float level);
     void onMicDeviceChanged(int index);
@@ -43,19 +41,14 @@ private:
     void setupUi();
     QWidget *createAboutPage();
     QWidget *createKpodPage();
-    QWidget *createKpa1500Page();
     QWidget *createAudioInputPage();
     QWidget *createAudioOutputPage();
-    QWidget *createNetworkPage();
     QWidget *createRigControlPage();
     QWidget *createCwKeyerPage();
-    QWidget *createDxClusterPage();
-    void updateKpa1500Status();
     void updateCatServerStatus();
     void populateMicDevices();
 
     RadioState *m_radioState;
-    KPA1500Client *m_kpa1500Client;
     AudioEngine *m_audioEngine;
     KpodDevice *m_kpodDevice;
     CatServer *m_catServer;
@@ -74,13 +67,6 @@ private:
     QLabel *m_kpodFirmwareLabel;
     QLabel *m_kpodDeviceIdLabel;
     QLabel *m_kpodHelpLabel;
-
-    // KPA1500 settings
-    QLabel *m_kpa1500StatusLabel;
-    QLineEdit *m_kpa1500HostEdit;
-    QLineEdit *m_kpa1500PortEdit;
-    QLineEdit *m_kpa1500PollIntervalEdit;
-    QCheckBox *m_kpa1500EnableCheckbox;
 
     // Audio Input settings
     QComboBox *m_micDeviceCombo;
