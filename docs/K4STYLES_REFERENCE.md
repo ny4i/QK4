@@ -190,17 +190,20 @@ Complete reference for all `K4Styles::Colors` and `K4Styles::Dimensions` constan
 
 ### Font Sizes
 
+All font sizes are in **pixels** — use with `QFont::setPixelSize()` or `K4Styles::Fonts::paintFont()`.
+This ensures consistent rendering across macOS (72 PPI) and Windows (96 PPI).
+
 | Constant | Value | Usage |
 |----------|-------|-------|
-| `K4Styles::Dimensions::FontSizeMicro` | `6` | Meter scale numbers (pt) |
-| `K4Styles::Dimensions::FontSizeTiny` | `7` | Sub-labels (BANK, AF REC, MESSAGE) (pt) |
-| `K4Styles::Dimensions::FontSizeSmall` | `8` | TX function sub-labels (pt) |
-| `K4Styles::Dimensions::FontSizeNormal` | `9` | Memory buttons (pt) |
-| `K4Styles::Dimensions::FontSizeMedium` | `10` | Volume labels (pt) |
-| `K4Styles::Dimensions::FontSizeLarge` | `11` | Feature labels, time/power display (pt) |
-| `K4Styles::Dimensions::FontSizeButton` | `12` | Menu bar buttons (pt) |
-| `K4Styles::Dimensions::FontSizePopup` | `14` | Popup buttons (pt) |
-| `K4Styles::Dimensions::FontSizeTitle` | `16` | Large control buttons (+/-) (pt) |
+| `K4Styles::Dimensions::FontSizeTiny` | `7` | Sub-labels (BANK, AF REC, MESSAGE) (px) |
+| `K4Styles::Dimensions::FontSizeSmall` | `8` | TX function sub-labels (px) |
+| `K4Styles::Dimensions::FontSizeNormal` | `9` | Memory buttons (px) |
+| `K4Styles::Dimensions::FontSizeMedium` | `10` | Volume labels (px) |
+| `K4Styles::Dimensions::FontSizeLarge` | `11` | Feature labels, time/power display (px) |
+| `K4Styles::Dimensions::FontSizeButton` | `12` | Menu bar buttons (px) |
+| `K4Styles::Dimensions::FontSizePopup` | `14` | Popup buttons (px) |
+| `K4Styles::Dimensions::FontSizeTitle` | `16` | Large control buttons (+/-) (px) |
+| `K4Styles::Dimensions::FontSizeFrequency` | `32` | VFO frequency displays (px) |
 
 ---
 
@@ -219,6 +222,10 @@ K4Styles::menuBarButtonSmall()     // Compact +/- button stylesheet
 ### QPainter Functions
 
 ```cpp
+// Fonts (pixel-based for cross-platform consistency)
+QFont K4Styles::Fonts::paintFont(int pixelSize, QFont::Weight weight = QFont::Bold);
+QFont K4Styles::Fonts::dataFont(int pixelSize, QFont::Weight weight = QFont::Bold);
+
 // Gradients
 QLinearGradient K4Styles::buttonGradient(int top, int bottom, bool hovered = false);
 QLinearGradient K4Styles::selectedGradient(int top, int bottom);

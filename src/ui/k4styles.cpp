@@ -581,8 +581,20 @@ QString controlButton(bool selected) {
 
 namespace Fonts {
 
-QFont dataFont(int pointSize, QFont::Weight weight) {
-    QFont font(Data, pointSize, weight);
+QFont paintFont(int pixelSize, QFont::Weight weight) {
+    QFont font(Primary);
+    font.setPixelSize(pixelSize);
+    font.setWeight(weight);
+    font.setStyleHint(QFont::SansSerif);
+    font.setHintingPreference(QFont::PreferFullHinting);
+    font.setStyleStrategy(QFont::PreferAntialias);
+    return font;
+}
+
+QFont dataFont(int pixelSize, QFont::Weight weight) {
+    QFont font(Data);
+    font.setPixelSize(pixelSize);
+    font.setWeight(weight);
     font.setStyleHint(QFont::SansSerif);
     font.setHintingPreference(QFont::PreferFullHinting);
     font.setStyleStrategy(QFont::PreferAntialias);

@@ -207,12 +207,21 @@ Inter is used everywhere with tabular figures (`font-feature-settings: 'tnum'`) 
 
 ### Font Usage
 
-```cpp
-// UI text (uses Inter automatically via QApplication::setFont)
-label->setStyleSheet("font-size: 12px; font-weight: bold;");
+All font sizes are in **pixels** — use `setPixelSize()` (not `setPointSize()`) for cross-platform consistency.
 
-// Frequency/data display (use K4Styles helper for tabular figures)
-QFont font = K4Styles::Fonts::dataFont(K4Styles::Dimensions::FontSizeFrequency);
+```cpp
+// Custom-painted widgets: use paintFont() helper
+QFont labelFont = K4Styles::Fonts::paintFont(K4Styles::Dimensions::FontSizeLarge);
+
+// Or set pixel size directly on an existing font
+QFont font = font();
+font.setPixelSize(K4Styles::Dimensions::FontSizeButton);
+
+// Frequency/data display (use dataFont helper for tabular figures)
+QFont dataFont = K4Styles::Fonts::dataFont(K4Styles::Dimensions::FontSizeFrequency);
+
+// UI text via stylesheet (already uses px)
+label->setStyleSheet("font-size: 12px; font-weight: bold;");
 
 // In stylesheets, use font constants with tnum for numeric displays
 QString style = QString("font-family: '%1'; font-feature-settings: 'tnum';")
@@ -236,6 +245,10 @@ QString style = QString("font-family: '%1'; font-feature-settings: 'tnum';")
 ### QPainter Helpers (for custom-painted widgets)
 
 ```cpp
+// Fonts (pixel-based for cross-platform consistency)
+QFont K4Styles::Fonts::paintFont(pixelSize, weight)  // General-purpose paint font
+QFont K4Styles::Fonts::dataFont(pixelSize, weight)    // Tabular-figure font for numbers
+
 // Gradients
 QLinearGradient K4Styles::buttonGradient(top, bottom, hovered)
 QLinearGradient K4Styles::selectedGradient(top, bottom)

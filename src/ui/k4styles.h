@@ -290,7 +290,7 @@ constexpr int SidePanelWidth = 105;   // Left and right side panels
 constexpr int MemoryButtonWidth = 42; // M1-M4, REC, STORE, RCL buttons
 
 // =============================================================================
-// Font Sizes (in points) - use with QFont::setPointSize()
+// Font Sizes (in pixels) - use with QFont::setPixelSize() or paintFont()
 // =============================================================================
 constexpr int FontSizeTiny = 7;       // Sub-labels (BANK, AF REC, MESSAGE)
 constexpr int FontSizeSmall = 8;      // Scale fonts, secondary text
@@ -341,16 +341,29 @@ constexpr const char *Primary = "Inter"; // UI text, labels, buttons, menus
 constexpr const char *Data = "Inter";    // Frequencies, numeric data (uses tabular figures)
 
 /**
+ * @brief Create a font for custom-painted widgets with pixel-based sizing.
+ *
+ * Uses setPixelSize() instead of setPointSize() so that fonts render at
+ * the same logical size on both macOS (72 PPI) and Windows (96 PPI).
+ * On macOS where 1pt = 1px, this produces identical output to setPointSize().
+ *
+ * @param pixelSize Font size in pixels
+ * @param weight Font weight (default: Bold)
+ * @return QFont configured with pixel-based sizing
+ */
+QFont paintFont(int pixelSize, QFont::Weight weight = QFont::Bold);
+
+/**
  * @brief Create a data display font with tabular figures enabled.
  *
  * Tabular figures ensure all digits have equal width, preventing visual
  * shifting when numeric values change (e.g., frequency displays).
  *
- * @param pointSize Font size in points
+ * @param pixelSize Font size in pixels
  * @param weight Font weight (default: Bold)
  * @return QFont configured with tabular figures
  */
-QFont dataFont(int pointSize, QFont::Weight weight = QFont::Bold);
+QFont dataFont(int pixelSize, QFont::Weight weight = QFont::Bold);
 
 /**
  * @brief Get CSS font-family string for data displays in stylesheets.

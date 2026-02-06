@@ -50,7 +50,7 @@ void FnMenuButton::paintEvent(QPaintEvent *event) {
 
     // Primary text (white) - top
     QFont primaryFont = font();
-    primaryFont.setPointSize(K4Styles::Dimensions::FontSizeButton);
+    primaryFont.setPixelSize(K4Styles::Dimensions::FontSizeButton);
     primaryFont.setBold(false);
     painter.setFont(primaryFont);
     painter.setPen(Qt::white);
@@ -61,7 +61,7 @@ void FnMenuButton::paintEvent(QPaintEvent *event) {
     // Alternate text (amber) - bottom (only if not empty)
     if (!m_alternateText.isEmpty()) {
         QFont altFont = font();
-        altFont.setPointSize(K4Styles::Dimensions::FontSizeMedium);
+        altFont.setPixelSize(K4Styles::Dimensions::FontSizeMedium);
         altFont.setBold(false);
         painter.setFont(altFont);
         painter.setPen(QColor(K4Styles::Colors::AccentAmber));

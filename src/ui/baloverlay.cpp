@@ -18,7 +18,7 @@ void BalOverlay::setupUi() {
     // Title "SUB AF"
     m_titleLabel = new QLabel("SUB AF", this);
     QFont titleFont = m_titleLabel->font();
-    titleFont.setPointSize(K4Styles::Dimensions::FontSizeNormal);
+    titleFont.setPixelSize(K4Styles::Dimensions::FontSizeNormal);
     titleFont.setBold(false);
     m_titleLabel->setFont(titleFont);
     m_titleLabel->setStyleSheet(QString("color: %1;").arg(K4Styles::Colors::TextWhite));
@@ -27,7 +27,7 @@ void BalOverlay::setupUi() {
     // Mode "= NOR"
     m_modeLabel = new QLabel("= NOR", this);
     QFont modeFont = m_modeLabel->font();
-    modeFont.setPointSize(K4Styles::Dimensions::FontSizeMedium);
+    modeFont.setPixelSize(K4Styles::Dimensions::FontSizeMedium);
     modeFont.setBold(true);
     m_modeLabel->setFont(modeFont);
     m_modeLabel->setStyleSheet(QString("color: %1;").arg(K4Styles::Colors::TextWhite));
@@ -39,7 +39,7 @@ void BalOverlay::setupUi() {
     // Main value
     m_mainLabel = new QLabel("MAIN:  50", this);
     QFont valueFont = m_mainLabel->font();
-    valueFont.setPointSize(K4Styles::Dimensions::FontSizeNormal);
+    valueFont.setPixelSize(K4Styles::Dimensions::FontSizeNormal);
     m_mainLabel->setFont(valueFont);
     m_mainLabel->setStyleSheet(QString("color: %1;").arg(K4Styles::Colors::TextGray));
     layout->addWidget(m_mainLabel);

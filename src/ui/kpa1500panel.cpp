@@ -244,7 +244,7 @@ void KPA1500Panel::paintEvent(QPaintEvent *event) {
 
     // Title
     QFont titleFont = font();
-    titleFont.setPointSize(K4Styles::Dimensions::FontSizeMedium);
+    titleFont.setPixelSize(K4Styles::Dimensions::FontSizeMedium);
     titleFont.setBold(true);
     painter.setFont(titleFont);
     painter.setPen(QColor(K4Styles::Colors::AccentAmber));
@@ -292,7 +292,7 @@ void KPA1500Panel::drawStatusLabels(QPainter &painter, int y, int height) {
     int w = width();
 
     QFont labelFont = font();
-    labelFont.setPointSize(K4Styles::Dimensions::FontSizeNormal);
+    labelFont.setPixelSize(K4Styles::Dimensions::FontSizeNormal);
     labelFont.setBold(true);
     painter.setFont(labelFont);
 
@@ -327,7 +327,7 @@ void KPA1500Panel::drawMeter(QPainter &painter, int y, const QString &label, con
 
     // Label
     QFont labelFont = font();
-    labelFont.setPointSize(fontSize);
+    labelFont.setPixelSize(fontSize);
     labelFont.setBold(true);
     painter.setFont(labelFont);
     painter.setPen(QColor(K4Styles::Colors::TextWhite));
@@ -335,7 +335,7 @@ void KPA1500Panel::drawMeter(QPainter &painter, int y, const QString &label, con
 
     // Value (right side)
     QFont valueFont = font();
-    valueFont.setPointSize(valueFontSize);
+    valueFont.setPixelSize(valueFontSize);
     valueFont.setBold(true);
     painter.setFont(valueFont);
     painter.drawText(w - margin - valueWidth, y, valueWidth, barHeight + 6, Qt::AlignRight | Qt::AlignVCenter,
@@ -366,7 +366,7 @@ void KPA1500Panel::drawMeter(QPainter &painter, int y, const QString &label, con
 
     // Scale labels below bar
     QFont scaleFont = font();
-    scaleFont.setPointSize(K4Styles::Dimensions::FontSizeSmall);
+    scaleFont.setPixelSize(K4Styles::Dimensions::FontSizeSmall);
     painter.setFont(scaleFont);
     painter.setPen(QColor(K4Styles::Colors::TextGray));
 

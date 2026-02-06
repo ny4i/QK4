@@ -20,7 +20,7 @@ NotificationWidget::NotificationWidget(QWidget *parent) : QWidget(parent), m_tim
     m_label->setStyleSheet(QString("QLabel { color: %1; background: transparent; }").arg(TextColor));
 
     QFont font = m_label->font();
-    font.setPointSize(K4Styles::Dimensions::FontSizePopup);
+    font.setPixelSize(K4Styles::Dimensions::FontSizePopup);
     font.setBold(true);
     m_label->setFont(font);
 
