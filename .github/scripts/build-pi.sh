@@ -112,6 +112,10 @@ for lib in \
   cp -L /usr/lib/aarch64-linux-gnu/$lib $DIST/lib/ 2>/dev/null || true
 done
 
+# PulseAudio private library (libpulse.so links to this at runtime;
+# version must match the bundled libpulse, not the host OS)
+cp -L /usr/lib/aarch64-linux-gnu/pulseaudio/libpulsecommon-*.so $DIST/lib/ 2>/dev/null || true
+
 # -----------------------------------------------------------------------------
 # Set rpath so binary finds bundled libs
 # -----------------------------------------------------------------------------
