@@ -413,8 +413,27 @@ jobs:
           name: K4Controller-windows
           path: K4Controller-windows.zip
 
+  build-raspberry-pi:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cross-compile for ARM64 in Debian Trixie
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            -w /workspace \
+            debian:trixie \
+            bash /workspace/.github/scripts/build-pi.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: K4Controller-raspberry-pi
+          path: K4Controller-raspberry-pi-arm64.tar.gz
+
   release:
-    needs: [build-macos, build-windows]
+    needs: [build-macos, build-windows, build-raspberry-pi]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -431,11 +450,17 @@ jobs:
         with:
           name: K4Controller-windows
 
+      - name: Download Raspberry Pi artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: K4Controller-raspberry-pi
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             K4Controller-macos.dmg
             K4Controller-windows.zip
+            K4Controller-raspberry-pi-arm64.tar.gz
           generate_release_notes: true
           prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') }}

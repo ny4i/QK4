@@ -29,7 +29,7 @@ jobs:
             brew-macos-14-v2-
 
       - name: Install dependencies
-        run: brew install qt opus openssl@3 hidapi
+        run: brew install qt opus openssl@3 hidapi dbus brotli
 
       - name: Setup ccache
         run: brew install ccache
@@ -46,12 +46,13 @@ jobs:
       - name: Configure CMake
         run: |
           cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DCMAKE_PREFIX_PATH="$(brew --prefix qt)"
 
       - name: Build
-        run: cmake --build build
+        run: cmake --build build --config Release
 
       - name: Verify executable
         run: test -f build/K4Controller.app/Contents/MacOS/K4Controller

@@ -3,8 +3,7 @@
 A cross-platform desktop application for remote control of Elecraft K4 radios over TCP/IP with real-time audio streaming and spectrum display.
 
 [![Release](https://img.shields.io/github/v/release/mikeg-dal/K4Controller?include_prereleases)](https://github.com/mikeg-dal/K4Controller/releases)
-[![Build macOS](https://github.com/mikeg-dal/K4Controller/actions/workflows/build-macos.yml/badge.svg)](https://github.com/mikeg-dal/K4Controller/actions/workflows/build-macos.yml)
-[![Build Windows](https://github.com/mikeg-dal/K4Controller/actions/workflows/build-windows.yml/badge.svg)](https://github.com/mikeg-dal/K4Controller/actions/workflows/build-windows.yml)
+[![Build](https://github.com/mikeg-dal/K4Controller/actions/workflows/release.yml/badge.svg)](https://github.com/mikeg-dal/K4Controller/actions/workflows/release.yml)
 [![Lint](https://github.com/mikeg-dal/K4Controller/actions/workflows/lint.yml/badge.svg)](https://github.com/mikeg-dal/K4Controller/actions/workflows/lint.yml)
 
 ## Supported Platforms
@@ -13,6 +12,7 @@ A cross-platform desktop application for remote control of Elecraft K4 radios ov
 |----------|-----------------|--------------|
 | macOS | 14 (Sonoma) | Apple Silicon (M1/M2/M3/M4) |
 | Windows | 11 | x64 |
+| Linux | Debian Trixie / Ubuntu 24.04+ | ARM64 (Raspberry Pi 4/5) |
 
 ## Features
 
@@ -26,7 +26,7 @@ A cross-platform desktop application for remote control of Elecraft K4 radios ov
 - **KPOD Support** — USB integration with Elecraft KPOD tuning knob
 - **KPA1500 Support** — Optional integration with Elecraft KPA1500 amplifier
 - **CAT Server** — Built-in CAT server (port 9299) for integration with third-party logging and contest software
-- **Self-Contained Releases** — macOS DMG and Windows ZIP include all dependencies
+- **Self-Contained Releases** — macOS DMG, Windows ZIP, and Raspberry Pi tarball include all dependencies
 
 ## Download
 
@@ -36,24 +36,31 @@ Pre-built releases are available on the [Releases](https://github.com/mikeg-dal/
 |----------|----------|-------|
 | macOS | `K4Controller-macos.dmg` | Signed and notarized — open the DMG and drag to Applications |
 | Windows | `K4Controller-windows.zip` | Extract and run `K4Controller.exe` |
+| Raspberry Pi | `K4Controller-raspberry-pi-arm64.tar.gz` | Extract and run `./K4Controller/run.sh` |
 
 ### Windows Prerequisite
 
 - [Visual C++ Redistributable 2019+](https://aka.ms/vs/17/release/vc_redist.x64.exe) (if not already installed)
 
+### Raspberry Pi Prerequisites
+
+- Raspberry Pi 4 or 5 with a desktop environment (X11 or Wayland)
+- Debian Trixie, Ubuntu 24.04+, or Raspberry Pi OS Bookworm+
+
 ## Building from Source
 
 ### Requirements
 
-| Dependency | macOS (Homebrew) | Windows (vcpkg + Qt Installer) |
-|------------|------------------|-------------------------------|
-| C++ compiler | Xcode Command Line Tools | Visual Studio 2019+ Build Tools |
-| CMake | `brew install cmake` | Included with VS Build Tools |
-| Qt 6.7+ | `brew install qt` | [Qt Online Installer](https://www.qt.io/download-qt-installer) or [aqtinstall](https://github.com/miurahr/aqtinstall) |
-| Qt modules | Included with Homebrew Qt | Multimedia, ShaderTools, SerialPort |
-| libopus | `brew install opus` | `vcpkg install opus:x64-windows` |
-| OpenSSL 3 | `brew install openssl@3` | `vcpkg install openssl:x64-windows` |
-| HIDAPI | `brew install hidapi` | `vcpkg install hidapi:x64-windows` |
+| Dependency | macOS (Homebrew) | Windows (vcpkg + Qt Installer) | Linux / Raspberry Pi (apt) |
+|------------|------------------|-------------------------------|---------------------------|
+| C++ compiler | Xcode Command Line Tools | Visual Studio 2019+ Build Tools | `apt install g++` |
+| CMake | `brew install cmake` | Included with VS Build Tools | `apt install cmake` |
+| Qt 6.7+ | `brew install qt` | [Qt Online Installer](https://www.qt.io/download-qt-installer) or [aqtinstall](https://github.com/miurahr/aqtinstall) | `apt install qt6-base-dev qt6-base-private-dev` |
+| Qt modules | Included with Homebrew Qt | Multimedia, ShaderTools, SerialPort | `apt install qt6-multimedia-dev qt6-shadertools-dev qt6-serialport-dev` |
+| libopus | `brew install opus` | `vcpkg install opus:x64-windows` | `apt install libopus-dev` |
+| OpenSSL 3 | `brew install openssl@3` | `vcpkg install openssl:x64-windows` | `apt install libssl-dev` |
+| HIDAPI | `brew install hidapi` | `vcpkg install hidapi:x64-windows` | `apt install libhidapi-dev` |
+| Audio | Included with macOS | N/A | `apt install libasound2-dev libpulse-dev` |
 
 ### macOS
 
@@ -91,6 +98,26 @@ cmake --build build --config Release
 
 # Run
 .\build\Release\K4Controller.exe
+```
+
+### Linux / Raspberry Pi
+
+```bash
+# Install dependencies (Debian Trixie / Ubuntu 24.04+)
+sudo apt install cmake g++ file patchelf \
+  qt6-base-dev qt6-base-private-dev \
+  qt6-multimedia-dev qt6-shadertools-dev qt6-serialport-dev \
+  libopus-dev libhidapi-dev libssl-dev \
+  libasound2-dev libpulse-dev
+
+# Clone and build
+git clone https://github.com/mikeg-dal/K4Controller.git
+cd K4Controller
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j$(nproc)
+
+# Run
+./build/K4Controller
 ```
 
 ## Usage
