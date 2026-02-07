@@ -3,6 +3,9 @@ name: Build Windows
 on:
   workflow_dispatch:  # Manual trigger only - run before tagging releases
 
+env:
+  CMAKE_BUILD_PARALLEL_LEVEL: 4
+
 jobs:
   build:
     runs-on: windows-latest
@@ -32,7 +35,6 @@ jobs:
       - name: Setup vcpkg
         run: |
           cd C:\vcpkg
-          git pull
           .\bootstrap-vcpkg.bat
 
       - name: Install dependencies
@@ -40,7 +42,7 @@ jobs:
           vcpkg install opus:x64-windows hidapi:x64-windows openssl:x64-windows
 
       - name: Setup sccache
-        uses: mozilla-actions/sccache-action@v0.0.7
+        uses: mozilla-actions/sccache-action@v0.0.9
 
       - name: Configure CMake
         run: |

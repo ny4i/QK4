@@ -3,6 +3,9 @@ name: Build macOS
 on:
   workflow_dispatch:  # Manual trigger only - run before tagging releases
 
+env:
+  CMAKE_BUILD_PARALLEL_LEVEL: 4
+
 jobs:
   build:
     runs-on: macos-14
@@ -12,11 +15,16 @@ jobs:
       - name: Install dependencies
         run: brew install qt opus openssl@3 hidapi dbus brotli
 
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.9
+
       - name: Configure CMake
         run: |
           cmake -B build \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="$(brew --prefix qt)"
+            -DCMAKE_PREFIX_PATH="$(brew --prefix qt)" \
+            -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
 
       - name: Build
         run: cmake --build build --config Release

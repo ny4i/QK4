@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+env:
+  CMAKE_BUILD_PARALLEL_LEVEL: 4
+
 jobs:
   build-macos:
     runs-on: macos-14
@@ -23,11 +26,16 @@ jobs:
       - name: Install dependencies
         run: brew install qt opus hidapi openssl@3 dbus brotli
 
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.9
+
       - name: Configure CMake
         run: |
           cmake -B build \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_PREFIX_PATH="$(brew --prefix qt)" \
+            -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
             -DK4CONTROLLER_VERSION_FULL="${{ steps.version.outputs.version }}"
 
       - name: Build
@@ -341,14 +349,13 @@ jobs:
       - name: Setup vcpkg
         run: |
           cd C:\vcpkg
-          git pull
           .\bootstrap-vcpkg.bat
 
       - name: Install dependencies
         run: vcpkg install opus:x64-windows hidapi:x64-windows openssl:x64-windows
 
       - name: Setup sccache
-        uses: mozilla-actions/sccache-action@v0.0.7
+        uses: mozilla-actions/sccache-action@v0.0.9
 
       - name: Configure CMake
         run: cmake -B build -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DK4CONTROLLER_VERSION_FULL="${{ steps.version.outputs.version }}"
