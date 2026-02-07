@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+env:
+  CMAKE_BUILD_PARALLEL_LEVEL: 4
+
 jobs:
   build-macos:
     runs-on: macos-14
@@ -20,14 +23,28 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Extracted version: $VERSION"
 
+      - name: Cache Homebrew downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/Homebrew/downloads
+            ~/Library/Caches/Homebrew/api
+          key: brew-macos-${{ hashFiles('.github/workflows/release.yml') }}
+          restore-keys: brew-macos-
+
       - name: Install dependencies
         run: brew install qt opus hidapi openssl@3 dbus brotli
+
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.9
 
       - name: Configure CMake
         run: |
           cmake -B build \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_PREFIX_PATH="$(brew --prefix qt)" \
+            -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
             -DK4CONTROLLER_VERSION_FULL="${{ steps.version.outputs.version }}"
 
       - name: Build
@@ -341,14 +358,13 @@ jobs:
       - name: Setup vcpkg
         run: |
           cd C:\vcpkg
-          git pull
           .\bootstrap-vcpkg.bat
 
       - name: Install dependencies
         run: vcpkg install opus:x64-windows hidapi:x64-windows openssl:x64-windows
 
       - name: Setup sccache
-        uses: mozilla-actions/sccache-action@v0.0.7
+        uses: mozilla-actions/sccache-action@v0.0.9
 
       - name: Configure CMake
         run: cmake -B build -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DK4CONTROLLER_VERSION_FULL="${{ steps.version.outputs.version }}"
@@ -383,13 +399,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+
+      - name: Cache Pi build dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            /tmp/pi-apt-cache
+            /tmp/pi-ccache
+          key: pi-arm64-${{ hashFiles('.github/scripts/build-pi.sh') }}
+          restore-keys: pi-arm64-
+
       - name: Cross-compile for ARM64 in Debian Trixie
         run: |
+          mkdir -p /tmp/pi-apt-cache /tmp/pi-ccache
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
+            -v /tmp/pi-apt-cache:/var/cache/apt/archives \
+            -v /tmp/pi-ccache:/ccache \
+            -e CCACHE_DIR=/ccache \
             -w /workspace \
             debian:trixie \
-            bash /workspace/.github/scripts/build-pi.sh
+            bash /workspace/.github/scripts/build-pi.sh "${{ steps.version.outputs.version }}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

@@ -13,12 +13,15 @@ set -ex
 # Build method: x86_64 cross-compilation with aarch64-linux-gnu toolchain
 # =============================================================================
 
+ARM_LIB=/usr/lib/aarch64-linux-gnu
+QT_PLUGINS=$ARM_LIB/qt6/plugins
+
 # Enable arm64 multiarch
 dpkg --add-architecture arm64
 apt-get update
 
 # Native host tools (x86, full speed)
-apt-get install -y cmake g++-aarch64-linux-gnu file patchelf pkg-config
+apt-get install -y cmake g++-aarch64-linux-gnu file patchelf pkg-config ccache
 
 # Qt6 native host tools (moc, rcc, uic, qsb)
 apt-get install -y qt6-base-dev-tools qt6-shadertools-dev
@@ -35,12 +38,30 @@ apt-get install -y \
   libasound2-dev:arm64 libpulse-dev:arm64
 
 # Build with cross-compilation toolchain
-export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig
-export PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu/pkgconfig
+export PKG_CONFIG_PATH=$ARM_LIB/pkgconfig
+export PKG_CONFIG_LIBDIR=$ARM_LIB/pkgconfig
+
+# Configure ccache (CCACHE_DIR may be mounted from host for persistence)
+export CCACHE_DIR="${CCACHE_DIR:-/tmp/ccache}"
+export CCACHE_MAXSIZE=500M
+ccache --zero-stats
+
+# Version passed as first argument (from release workflow tag)
+VERSION_FLAG=""
+if [ -n "$1" ]; then
+  VERSION_FLAG="-DK4CONTROLLER_VERSION_FULL=$1"
+  echo "Building version: $1"
+fi
 
 cmake -B build -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain-aarch64-linux.cmake
+  -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain-aarch64-linux.cmake \
+  -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+  -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+  $VERSION_FLAG
 cmake --build build -j$(nproc)
+
+echo "=== ccache stats ==="
+ccache --show-stats
 
 # Verify output is actually ARM64
 file build/K4Controller | grep -q "aarch64" || { echo "ERROR: Binary is not ARM64!"; exit 1; }
@@ -54,8 +75,24 @@ mkdir -p $DIST/plugins
 
 cp build/K4Controller $DIST/
 
+# Helper: copy a library and fail the build if it's missing
+require_lib() {
+  local src="$1" dst="$2"
+  cp -rL "$src" "$dst" || { echo "ERROR: Required library missing: $src"; exit 1; }
+}
+
+# Helper: copy a library/directory if it exists (truly optional)
+optional_lib() {
+  local src="$1" dst="$2"
+  if ls $src 1>/dev/null 2>&1; then
+    cp -rL $src "$dst"
+  else
+    echo "NOTE: Optional library not found: $src (skipping)"
+  fi
+}
+
 # -----------------------------------------------------------------------------
-# Qt Libraries
+# Qt Libraries (required)
 # -----------------------------------------------------------------------------
 for lib in \
   libQt6Core.so.6 \
@@ -68,32 +105,35 @@ for lib in \
   libQt6OpenGL.so.6 \
   libQt6OpenGLWidgets.so.6 \
   libQt6DBus.so.6 \
-  libQt6XcbQpa.so.6 \
-  libQt6Svg.so.6; do
-  cp -L /usr/lib/aarch64-linux-gnu/$lib $DIST/lib/ 2>/dev/null || true
+  libQt6XcbQpa.so.6; do
+  require_lib "$ARM_LIB/$lib" "$DIST/lib/"
 done
+
+# Qt libraries that may not be present in all configurations
+optional_lib "$ARM_LIB/libQt6Svg.so.6" "$DIST/lib/"
 
 # -----------------------------------------------------------------------------
 # Qt Plugins
 # -----------------------------------------------------------------------------
-# Platform plugins (X11/XCB support)
-cp -r /usr/lib/aarch64-linux-gnu/qt6/plugins/platforms $DIST/plugins/
-cp -r /usr/lib/aarch64-linux-gnu/qt6/plugins/xcbglintegrations $DIST/plugins/ 2>/dev/null || true
-
-# Multimedia plugins (audio/video backends)
-cp -r /usr/lib/aarch64-linux-gnu/qt6/plugins/multimedia $DIST/plugins/ 2>/dev/null || true
+# Platform plugins (XCB — the only platform we ship)
+cp -r $QT_PLUGINS/platforms $DIST/plugins/
+optional_lib "$QT_PLUGINS/xcbglintegrations" "$DIST/plugins/"
 
 # TLS/SSL plugins (for HTTPS connections)
-cp -r /usr/lib/aarch64-linux-gnu/qt6/plugins/tls $DIST/plugins/ 2>/dev/null || true
+cp -r $QT_PLUGINS/tls $DIST/plugins/
 
 # Image format plugins
-cp -r /usr/lib/aarch64-linux-gnu/qt6/plugins/imageformats $DIST/plugins/ 2>/dev/null || true
+optional_lib "$QT_PLUGINS/imageformats" "$DIST/plugins/"
 
 # Icon engine plugins
-cp -r /usr/lib/aarch64-linux-gnu/qt6/plugins/iconengines $DIST/plugins/ 2>/dev/null || true
+optional_lib "$QT_PLUGINS/iconengines" "$DIST/plugins/"
+
+# NOTE: We intentionally do NOT bundle plugins/multimedia. The audio engine
+# uses QAudioSink/QAudioSource which work directly through PulseAudio/ALSA
+# and do not require the GStreamer/FFmpeg-based multimedia backend plugins.
 
 # -----------------------------------------------------------------------------
-# System Libraries
+# System Libraries (required)
 # -----------------------------------------------------------------------------
 for lib in \
   libopus.so.0 \
@@ -101,20 +141,59 @@ for lib in \
   libhidapi-libusb.so.0 \
   libssl.so.3 \
   libcrypto.so.3; do
-  cp -L /usr/lib/aarch64-linux-gnu/$lib $DIST/lib/ 2>/dev/null || true
+  require_lib "$ARM_LIB/$lib" "$DIST/lib/"
 done
 
-# PulseAudio/ALSA libraries for audio
+# PulseAudio/ALSA libraries (required for audio)
 for lib in \
   libpulse.so.0 \
   libpulse-simple.so.0 \
   libasound.so.2; do
-  cp -L /usr/lib/aarch64-linux-gnu/$lib $DIST/lib/ 2>/dev/null || true
+  require_lib "$ARM_LIB/$lib" "$DIST/lib/"
 done
 
 # PulseAudio private library (libpulse.so links to this at runtime;
 # version must match the bundled libpulse, not the host OS)
-cp -L /usr/lib/aarch64-linux-gnu/pulseaudio/libpulsecommon-*.so $DIST/lib/ 2>/dev/null || true
+PULSECOMMON=$(ls $ARM_LIB/pulseaudio/libpulsecommon-*.so 2>/dev/null) \
+  || { echo "ERROR: libpulsecommon not found in $ARM_LIB/pulseaudio/"; exit 1; }
+cp -L $PULSECOMMON $DIST/lib/
+
+# -----------------------------------------------------------------------------
+# Verify bundle completeness
+# -----------------------------------------------------------------------------
+echo "=== Verifying bundle ==="
+MISSING=0
+for check in \
+  "$DIST/K4Controller" \
+  "$DIST/lib/libQt6Core.so.6" \
+  "$DIST/lib/libQt6Multimedia.so.6" \
+  "$DIST/lib/libopus.so.0" \
+  "$DIST/lib/libpulse.so.0" \
+  "$DIST/lib/libasound.so.2" \
+  "$DIST/lib/libssl.so.3" \
+  "$DIST/plugins/platforms"; do
+  if [ ! -e "$check" ]; then
+    echo "ERROR: Missing from bundle: $check"
+    MISSING=1
+  fi
+done
+
+# Verify libpulsecommon made it (glob name varies by version)
+if ! ls $DIST/lib/libpulsecommon-*.so 1>/dev/null 2>&1; then
+  echo "ERROR: Missing from bundle: libpulsecommon-*.so"
+  MISSING=1
+fi
+
+if [ $MISSING -ne 0 ]; then
+  echo "Bundle verification FAILED"
+  exit 1
+fi
+
+echo "Bundle verification passed"
+echo ""
+echo "=== Bundle contents ==="
+find $DIST -type f | sort
+echo ""
 
 # -----------------------------------------------------------------------------
 # Set rpath so binary finds bundled libs
@@ -141,9 +220,8 @@ export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"
 # Use bundled Qt plugins
 export QT_PLUGIN_PATH="$DIR/plugins"
 
-# Force XCB platform (X11) if Wayland gives issues
-# Uncomment the next line if you have display problems:
-# export QT_QPA_PLATFORM=xcb
+# Use XCB (X11) platform — we ship XCB plugins, not Wayland
+export QT_QPA_PLATFORM=xcb
 
 # Launch the application
 exec "$DIR/K4Controller" "$@"
