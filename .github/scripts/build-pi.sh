@@ -154,7 +154,9 @@ done
 
 # PulseAudio private library (libpulse.so links to this at runtime;
 # version must match the bundled libpulse, not the host OS)
-require_lib "$ARM_LIB/pulseaudio/libpulsecommon-*.so" "$DIST/lib/"
+PULSECOMMON=$(ls $ARM_LIB/pulseaudio/libpulsecommon-*.so 2>/dev/null) \
+  || { echo "ERROR: libpulsecommon not found in $ARM_LIB/pulseaudio/"; exit 1; }
+cp -L $PULSECOMMON $DIST/lib/
 
 # -----------------------------------------------------------------------------
 # Verify bundle completeness
