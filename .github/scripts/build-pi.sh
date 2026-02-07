@@ -74,6 +74,7 @@ mkdir -p $DIST/lib
 mkdir -p $DIST/plugins
 
 cp build/K4Controller $DIST/
+cp resources/99-kpod.rules $DIST/
 
 # Helper: copy a library and fail the build if it's missing
 require_lib() {
@@ -213,6 +214,17 @@ cat > $DIST/run.sh << 'LAUNCHER'
 # This script sets up the environment to use bundled libraries
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Install KPOD udev rule if not already present (requires sudo, one-time setup)
+UDEV_RULE="$DIR/99-kpod.rules"
+UDEV_DEST="/etc/udev/rules.d/99-kpod.rules"
+if [ -f "$UDEV_RULE" ] && [ ! -f "$UDEV_DEST" ]; then
+    echo "KPOD udev rule not installed. Installing for USB HID access..."
+    sudo cp "$UDEV_RULE" "$UDEV_DEST"
+    sudo udevadm control --reload-rules
+    sudo udevadm trigger
+    echo "KPOD udev rule installed. You may need to re-plug the KPOD device."
+fi
 
 # Use bundled libraries
 export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"

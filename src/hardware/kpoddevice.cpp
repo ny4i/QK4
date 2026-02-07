@@ -98,17 +98,15 @@ bool KpodDevice::openDevice() {
         return false;
     }
 
-    // Use hid_open_path() on Windows - hid_open() can fail even when enumerate succeeds
-#ifdef Q_OS_WIN
+    // Use hid_open_path() on all platforms - hid_open() can fail on Windows (race condition)
+    // and Linux (permission errors with libusb backend). Using the path from enumeration is
+    // more reliable and works consistently across all hidapi backends.
     if (m_deviceInfo.devicePath.isEmpty()) {
         qWarning() << "KPOD: No device path available";
         hid_exit();
         return false;
     }
     m_hidDevice = hid_open_path(m_deviceInfo.devicePath.toUtf8().constData());
-#else
-    m_hidDevice = hid_open(VENDOR_ID, PRODUCT_ID, nullptr);
-#endif
     if (!m_hidDevice) {
         qWarning() << "KPOD: Failed to open device";
         hid_exit();
@@ -319,9 +317,9 @@ KpodDeviceInfo KpodDevice::detectDevice() {
         kpodLog("Attempting to open device...");
         hid_device *dev = nullptr;
 
-#ifdef Q_OS_WIN
-        // Windows HID race condition: device path can become stale between enumerate and open.
-        // Try multiple approaches with delays to handle device settling.
+        // Use hid_open_path() on all platforms for consistency.
+        // hid_open() fails on Linux (hidraw permission errors) and Windows (race conditions).
+        // Retry with delays to handle device settling after enumeration.
         const int maxRetries = 3;
         const int retryDelayMs = 200;
 
@@ -332,7 +330,6 @@ KpodDeviceInfo KpodDevice::detectDevice() {
                 QThread::msleep(retryDelayMs);
             }
 
-            // Try hid_open_path first (uses the enumerated path)
             dev = hid_open_path(cur_dev->path);
             if (dev) {
                 kpodLog(QString("hid_open_path succeeded on attempt %1").arg(attempt));
@@ -342,6 +339,7 @@ KpodDeviceInfo KpodDevice::detectDevice() {
             const wchar_t *pathErr = hid_error(nullptr);
             kpodLog(QString("hid_open_path failed: %1").arg(pathErr ? QString::fromWCharArray(pathErr) : "unknown"));
 
+#ifdef Q_OS_WIN
             // Fallback: try hid_open with VID/PID (lets hidapi find a fresh path)
             dev = hid_open(VENDOR_ID, PRODUCT_ID, nullptr);
             if (dev) {
@@ -351,10 +349,8 @@ KpodDeviceInfo KpodDevice::detectDevice() {
 
             const wchar_t *vidErr = hid_error(nullptr);
             kpodLog(QString("hid_open (VID/PID) failed: %1").arg(vidErr ? QString::fromWCharArray(vidErr) : "unknown"));
-        }
-#else
-        dev = hid_open(VENDOR_ID, PRODUCT_ID, nullptr);
 #endif
+        }
         if (dev) {
             kpodLog("Device opened successfully");
             unsigned char buf[8];
