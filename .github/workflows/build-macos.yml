@@ -1,7 +1,9 @@
 name: Build macOS
 
 on:
-  workflow_dispatch:  # Manual trigger only - run before tagging releases
+  workflow_dispatch:
+  push:
+    branches: [main]
 
 env:
   CMAKE_BUILD_PARALLEL_LEVEL: 4

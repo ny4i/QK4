@@ -1,7 +1,9 @@
 name: Build Raspberry Pi
 
 on:
-  workflow_dispatch:  # Manual trigger only - run before tagging releases
+  workflow_dispatch:
+  push:
+    branches: [main]
 
 jobs:
   build:

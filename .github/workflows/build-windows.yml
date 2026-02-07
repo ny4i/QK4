@@ -1,7 +1,9 @@
 name: Build Windows
 
 on:
-  workflow_dispatch:  # Manual trigger only - run before tagging releases
+  workflow_dispatch:
+  push:
+    branches: [main]
 
 env:
   CMAKE_BUILD_PARALLEL_LEVEL: 4
@@ -41,19 +43,24 @@ jobs:
         run: |
           vcpkg install opus:x64-windows hidapi:x64-windows openssl:x64-windows
 
+      - name: Setup MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
       - name: Setup sccache
         uses: mozilla-actions/sccache-action@v0.0.9
 
       - name: Configure CMake
         run: |
-          cmake -B build -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+          cmake -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
 
       - name: Build
-        run: cmake --build build --config Release
+        run: cmake --build build
 
       - name: Verify executable
         run: |
-          if (Test-Path build/Release/K4Controller.exe) {
+          if (Test-Path build/K4Controller.exe) {
             Write-Host "Build successful"
             exit 0
           } else {
@@ -65,5 +72,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: K4Controller-windows
-          path: build/Release/K4Controller.exe
+          path: build/K4Controller.exe
           retention-days: 7
