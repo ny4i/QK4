@@ -41,8 +41,16 @@ apt-get install -y \
 export PKG_CONFIG_PATH=$ARM_LIB/pkgconfig
 export PKG_CONFIG_LIBDIR=$ARM_LIB/pkgconfig
 
+# Version passed as first argument (from release workflow tag)
+VERSION_FLAG=""
+if [ -n "$1" ]; then
+  VERSION_FLAG="-DK4CONTROLLER_VERSION_FULL=$1"
+  echo "Building version: $1"
+fi
+
 cmake -B build -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain-aarch64-linux.cmake
+  -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain-aarch64-linux.cmake \
+  $VERSION_FLAG
 cmake --build build -j$(nproc)
 
 # Verify output is actually ARM64
