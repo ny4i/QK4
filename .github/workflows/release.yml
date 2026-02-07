@@ -426,6 +426,8 @@ jobs:
             -w /workspace \
             debian:trixie \
             bash /workspace/.github/scripts/build-pi.sh "${{ steps.version.outputs.version }}"
+          # Fix ownership so actions/cache can tar the files (Docker writes as root)
+          sudo chown -R $(id -u):$(id -g) /tmp/pi-apt-cache /tmp/pi-ccache
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
