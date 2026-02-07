@@ -519,6 +519,11 @@ jobs:
           SZ_WIN=$(du -h "downloads/$TAG/K4Controller-windows.zip" | cut -f1 | xargs)
           SZ_PI=$(du -h "downloads/$TAG/K4Controller-raspberry-pi-arm64.tar.gz" | cut -f1 | xargs)
 
+          # Compute SHA256 hashes
+          HASH_MAC=$(sha256sum "downloads/$TAG/K4Controller-macos.dmg" | cut -d' ' -f1)
+          HASH_WIN=$(sha256sum "downloads/$TAG/K4Controller-windows.zip" | cut -d' ' -f1)
+          HASH_PI=$(sha256sum "downloads/$TAG/K4Controller-raspberry-pi-arm64.tar.gz" | cut -d' ' -f1)
+
           # Detect prerelease
           if echo "$TAG" | grep -qE 'alpha|beta'; then
             PRERELEASE=true
@@ -537,17 +542,20 @@ jobs:
               "macos": {
                 "name": "K4Controller-macos.dmg",
                 "url": "./downloads/$TAG/K4Controller-macos.dmg",
-                "size": "$SZ_MAC"
+                "size": "$SZ_MAC",
+                "sha256": "$HASH_MAC"
               },
               "windows": {
                 "name": "K4Controller-windows.zip",
                 "url": "./downloads/$TAG/K4Controller-windows.zip",
-                "size": "$SZ_WIN"
+                "size": "$SZ_WIN",
+                "sha256": "$HASH_WIN"
               },
               "raspberry-pi": {
                 "name": "K4Controller-raspberry-pi-arm64.tar.gz",
                 "url": "./downloads/$TAG/K4Controller-raspberry-pi-arm64.tar.gz",
-                "size": "$SZ_PI"
+                "size": "$SZ_PI",
+                "sha256": "$HASH_PI"
               }
             }
           }
