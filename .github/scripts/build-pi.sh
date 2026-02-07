@@ -78,14 +78,14 @@ cp build/K4Controller $DIST/
 # Helper: copy a library and fail the build if it's missing
 require_lib() {
   local src="$1" dst="$2"
-  cp -L "$src" "$dst" || { echo "ERROR: Required library missing: $src"; exit 1; }
+  cp -rL "$src" "$dst" || { echo "ERROR: Required library missing: $src"; exit 1; }
 }
 
-# Helper: copy a library if it exists (truly optional)
+# Helper: copy a library/directory if it exists (truly optional)
 optional_lib() {
   local src="$1" dst="$2"
   if ls $src 1>/dev/null 2>&1; then
-    cp -L $src "$dst"
+    cp -rL $src "$dst"
   else
     echo "NOTE: Optional library not found: $src (skipping)"
   fi
