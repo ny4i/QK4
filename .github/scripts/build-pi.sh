@@ -21,7 +21,7 @@ dpkg --add-architecture arm64
 apt-get update
 
 # Native host tools (x86, full speed)
-apt-get install -y cmake g++-aarch64-linux-gnu file patchelf pkg-config
+apt-get install -y cmake g++-aarch64-linux-gnu file patchelf pkg-config ccache
 
 # Qt6 native host tools (moc, rcc, uic, qsb)
 apt-get install -y qt6-base-dev-tools qt6-shadertools-dev
@@ -41,6 +41,11 @@ apt-get install -y \
 export PKG_CONFIG_PATH=$ARM_LIB/pkgconfig
 export PKG_CONFIG_LIBDIR=$ARM_LIB/pkgconfig
 
+# Configure ccache (CCACHE_DIR may be mounted from host for persistence)
+export CCACHE_DIR="${CCACHE_DIR:-/tmp/ccache}"
+export CCACHE_MAXSIZE=500M
+ccache --zero-stats
+
 # Version passed as first argument (from release workflow tag)
 VERSION_FLAG=""
 if [ -n "$1" ]; then
@@ -50,8 +55,13 @@ fi
 
 cmake -B build -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain-aarch64-linux.cmake \
+  -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+  -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
   $VERSION_FLAG
 cmake --build build -j$(nproc)
+
+echo "=== ccache stats ==="
+ccache --show-stats
 
 # Verify output is actually ARM64
 file build/K4Controller | grep -q "aarch64" || { echo "ERROR: Binary is not ARM64!"; exit 1; }

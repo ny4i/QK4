@@ -12,6 +12,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache Homebrew downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/Homebrew/downloads
+            ~/Library/Caches/Homebrew/api
+          key: brew-macos-${{ hashFiles('.github/workflows/build-macos.yml') }}
+          restore-keys: brew-macos-
+
       - name: Install dependencies
         run: brew install qt opus openssl@3 hidapi dbus brotli
 

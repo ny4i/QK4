@@ -9,10 +9,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache Pi build dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            /tmp/pi-apt-cache
+            /tmp/pi-ccache
+          key: pi-arm64-${{ hashFiles('.github/scripts/build-pi.sh') }}
+          restore-keys: pi-arm64-
+
       - name: Cross-compile for ARM64 in Debian Trixie
         run: |
+          mkdir -p /tmp/pi-apt-cache /tmp/pi-ccache
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
+            -v /tmp/pi-apt-cache:/var/cache/apt/archives \
+            -v /tmp/pi-ccache:/ccache \
+            -e CCACHE_DIR=/ccache \
             -w /workspace \
             debian:trixie \
             bash /workspace/.github/scripts/build-pi.sh
