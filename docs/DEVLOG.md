@@ -1,5 +1,38 @@
 # K4Controller Development Log
 
+## February 8, 2026
+
+### Feature: WheelAccumulator — Unified Scroll Handling
+
+**Summary:** Replaced per-widget `angleDelta().y() > 0 ? 1 : -1` patterns across 16 wheel handlers with a shared `WheelAccumulator` class that properly accumulates fractional trackpad deltas into discrete steps.
+
+**Problem:** Trackpad scrolling generated many small pixel-based events (angleDelta ~15°) that were each rounded to ±1 step, causing over-sensitivity. Notched mice (Logitech) send 120° per notch and worked fine.
+
+**Solution:** `WheelAccumulator` accumulates deltas per key and emits steps only when a full 120° notch is reached. Supports per-key accumulators for widgets with modifier-based axes.
+
+**Momentum tuning:** Panadapter frequency scrolling enables macOS trackpad momentum (`setFilterMomentum(false)`) for a flick-to-tune feel. All other widgets filter momentum by default.
+
+**Files Added:** `src/ui/wheelaccumulator.h`, `src/ui/wheelaccumulator.cpp`
+**Files Modified:** 16 widget files + `CMakeLists.txt`, `panadapter_rhi.h/.cpp`, `mainwindow.h/.cpp`
+
+---
+
+### Fix: PWR Display Shows "--" on Connect at 50W QRO
+
+**Summary:** Power display stayed at "--" when connecting with radio set to exactly 50W QRO.
+
+**Root Cause:** `m_rfPower` was initialized to `50.0` since the initial commit. When the RDY state dump returned `PC050H` (50W QRO), `handlePC()` saw `watts == m_rfPower && qrp == m_isQrpMode` — both matched defaults — so `changed` stayed `false` and `rfPowerChanged` was never emitted. The display, initialized to "--", was never updated.
+
+**Why intermittent:** Only triggers at exactly 50W QRO. Any other power level or QRP mode has at least one field that differs from the default, so the signal fires normally. Testers running at different power levels never saw it.
+
+**Fix:** Changed `m_rfPower = 50.0` to `m_rfPower = -1.0` (sentinel), matching the pattern already used by `m_micGain`, `m_compression`, `m_rfGain`, `m_squelchLevel`, and `m_cwPitch`. The sentinel was introduced in commit `76e12a1` for neighboring fields but `m_rfPower` was overlooked.
+
+**Verified via direct K4 CAT testing:** Connected to radio via `nc 192.168.1.10 9200` and confirmed `RDY;` dump always returns `PC` in K4 extended format (`PCnnnr;`) regardless of K41/AI ordering.
+
+**File Modified:** `src/models/radiostate.h`
+
+---
+
 ## February 6, 2026
 
 ### Feature: Honor K4 "Mouse L/R Button QSY" Menu Setting

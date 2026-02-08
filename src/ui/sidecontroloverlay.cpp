@@ -51,9 +51,9 @@ void SideControlOverlay::paintEvent(QPaintEvent *) {
 }
 
 void SideControlOverlay::wheelEvent(QWheelEvent *event) {
-    // Convert scroll to delta (positive = scroll up = increase)
-    int delta = event->angleDelta().y() > 0 ? 1 : -1;
-    emit valueScrolled(delta);
+    int steps = m_wheelAccumulator.accumulate(event);
+    if (steps != 0)
+        emit valueScrolled(steps);
     event->accept();
 }
 

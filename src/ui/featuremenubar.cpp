@@ -182,10 +182,12 @@ void FeatureMenuBar::keyPressEvent(QKeyEvent *event) {
 }
 
 void FeatureMenuBar::wheelEvent(QWheelEvent *event) {
-    if (event->angleDelta().y() > 0) {
-        emit incrementRequested(); // Scroll up = increase
-    } else if (event->angleDelta().y() < 0) {
-        emit decrementRequested(); // Scroll down = decrease
+    int steps = m_wheelAccumulator.accumulate(event);
+    for (int i = 0; i < qAbs(steps); ++i) {
+        if (steps > 0)
+            emit incrementRequested();
+        else
+            emit decrementRequested();
     }
     event->accept();
 }

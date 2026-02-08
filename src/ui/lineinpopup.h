@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QLabel>
 #include <QPushButton>
+#include "wheelaccumulator.h"
 
 class LineInPopupWidget : public QWidget {
     Q_OBJECT
@@ -52,6 +53,7 @@ private:
     int m_soundCardLevel = 0;
     int m_lineInJackLevel = 0;
     int m_source = 0; // 0=SoundCard, 1=LineInJack
+    WheelAccumulator m_wheelAccumulator;
 };
 
 #endif // LINEINPOPUP_H

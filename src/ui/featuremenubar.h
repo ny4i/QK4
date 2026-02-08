@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QLabel>
 #include <QPushButton>
+#include "wheelaccumulator.h"
 
 class FeatureMenuBar : public QWidget {
     Q_OBJECT
@@ -55,6 +56,7 @@ private:
     QString m_valueUnit;
     int m_nbFilter = 0;                   // 0=NONE, 1=NARROW, 2=WIDE
     QWidget *m_referenceWidget = nullptr; // Widget to position relative to
+    WheelAccumulator m_wheelAccumulator;
 };
 
 #endif // FEATUREMENUBAR_H

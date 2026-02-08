@@ -13,6 +13,7 @@
 #include "settings/radiosettings.h"
 #include "models/radiostate.h"
 #include "ui/vfowidget.h"
+#include "ui/wheelaccumulator.h"
 
 class PanadapterRhiWidget;
 class AudioEngine;
@@ -330,6 +331,8 @@ private:
     // K4 "Mouse L/R Button QSY" menu setting
     int m_mouseQsyMode = 0;      // 0=Left Only, 1=L=A R=B
     int m_mouseQsyMenuId = -999; // Menu ID from MEDF (sentinel = not yet discovered)
+
+    WheelAccumulator m_ritWheelAccumulator;
 };
 
 #endif // MAINWINDOW_H

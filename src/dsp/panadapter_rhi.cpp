@@ -236,6 +236,7 @@ private:
 PanadapterRhiWidget::PanadapterRhiWidget(QWidget *parent) : QRhiWidget(parent) {
     setMinimumHeight(200);
     setMouseTracking(true);
+    m_wheelAccumulator.setFilterMomentum(false);
 
     // Force Metal API on macOS
 #ifdef Q_OS_MACOS
@@ -1777,19 +1778,24 @@ void PanadapterRhiWidget::mouseReleaseEvent(QMouseEvent *event) {
 }
 
 void PanadapterRhiWidget::wheelEvent(QWheelEvent *event) {
-    int degrees = event->angleDelta().y() / 8;
-    int steps = degrees / 15;
+    int key = 0; // frequency (no modifier)
+    if (event->modifiers() & Qt::ShiftModifier)
+        key = 1; // scale
+    else if (event->modifiers() & Qt::ControlModifier)
+        key = 2; // ref level
 
+    int steps = m_wheelAccumulator.accumulate(event, key);
     if (steps != 0) {
-        if (event->modifiers() & Qt::ShiftModifier) {
-            // Shift+Wheel: Adjust scale (dB range)
+        switch (key) {
+        case 1:
             emit scaleScrolled(steps);
-        } else if (event->modifiers() & Qt::ControlModifier) {
-            // Ctrl+Wheel: Adjust reference level
+            break;
+        case 2:
             emit refLevelScrolled(steps);
-        } else {
-            // Plain wheel: Tune frequency
+            break;
+        default:
             emit frequencyScrolled(steps);
+            break;
         }
     }
     event->accept();

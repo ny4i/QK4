@@ -6,6 +6,7 @@
 #include <QScrollArea>
 #include <QVBoxLayout>
 #include <QWidget>
+#include "wheelaccumulator.h"
 
 // Forward declarations
 class QLabel;
@@ -110,6 +111,7 @@ private:
     QPushButton *m_downBtn;
     QPushButton *m_editBtn;
     QPushButton *m_backBtn;
+    WheelAccumulator m_wheelAccumulator;
 };
 
 #endif // MACRODIALOG_H

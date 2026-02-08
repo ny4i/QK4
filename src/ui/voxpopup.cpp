@@ -238,8 +238,9 @@ void VoxPopupWidget::keyPressEvent(QKeyEvent *event) {
 }
 
 void VoxPopupWidget::wheelEvent(QWheelEvent *event) {
-    int delta = (event->angleDelta().y() > 0) ? 1 : -1;
-    adjustValue(delta);
+    int steps = m_wheelAccumulator.accumulate(event);
+    if (steps != 0)
+        adjustValue(steps);
     event->accept();
 }
 

@@ -666,7 +666,7 @@ private:
     int m_cwPitch = -1;  // Init to -1 to ensure first emit
 
     // Power and levels
-    double m_rfPower = 50.0;
+    double m_rfPower = -1.0; // Init to invalid to ensure first emit
     bool m_isQrpMode = false;
     int m_micGain = -1;       // Init to invalid to ensure first emit (0-80)
     int m_compression = -1;   // Init to invalid to ensure first emit (0-30, SSB only)

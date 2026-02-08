@@ -339,12 +339,14 @@ void TextDecodeWindow::resizeEvent(QResizeEvent *event) {
 void TextDecodeWindow::wheelEvent(QWheelEvent *event) {
     // Scroll wheel adjusts threshold when in manual mode
     if (!m_autoThreshold && m_operatingMode == ModeCW) {
-        int delta = (event->angleDelta().y() > 0) ? 1 : -1;
-        int newVal = qBound(1, m_threshold + delta, 9);
-        if (newVal != m_threshold) {
-            m_threshold = newVal;
-            m_thresholdValueLabel->setText(QString::number(m_threshold));
-            emit thresholdChanged(m_threshold);
+        int steps = m_wheelAccumulator.accumulate(event);
+        if (steps != 0) {
+            int newVal = qBound(1, m_threshold + steps, 9);
+            if (newVal != m_threshold) {
+                m_threshold = newVal;
+                m_thresholdValueLabel->setText(QString::number(m_threshold));
+                emit thresholdChanged(m_threshold);
+            }
         }
         event->accept();
         return;

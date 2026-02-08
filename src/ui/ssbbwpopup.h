@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QLabel>
 #include <QPushButton>
+#include "wheelaccumulator.h"
 
 class SsbBwPopupWidget : public QWidget {
     Q_OBJECT
@@ -45,6 +46,7 @@ private:
 
     bool m_essbEnabled = false;
     int m_bandwidth = 28; // SSB default: 2.8 kHz
+    WheelAccumulator m_wheelAccumulator;
 };
 
 #endif // SSBBWPOPUP_H

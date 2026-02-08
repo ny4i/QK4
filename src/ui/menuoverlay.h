@@ -12,6 +12,7 @@
 #include <QList>
 #include <QWheelEvent>
 #include "../models/menumodel.h"
+#include "wheelaccumulator.h"
 
 class MenuItemWidget : public QWidget {
     Q_OBJECT
@@ -107,6 +108,7 @@ private:
     QWidget *m_searchPopup;
     QLineEdit *m_searchInput;
     QString m_currentFilter;
+    WheelAccumulator m_wheelAccumulator;
 };
 
 #endif // MENUOVERLAY_H

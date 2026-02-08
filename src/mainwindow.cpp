@@ -1821,8 +1821,7 @@ void MainWindow::setupMenuBar() {
     QAction *optionsAction = new QAction("&Settings...", this);
     optionsAction->setMenuRole(QAction::PreferencesRole); // macOS: moves to app menu as Preferences
     connect(optionsAction, &QAction::triggered, this, [this]() {
-        OptionsDialog dialog(m_radioState, m_audioEngine, m_kpodDevice, m_catServer, m_halikeyDevice,
-                             this);
+        OptionsDialog dialog(m_radioState, m_audioEngine, m_kpodDevice, m_catServer, m_halikeyDevice, this);
         dialog.exec();
     });
     toolsMenu->addAction(optionsAction);
@@ -4340,14 +4339,14 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
     // B SET aware: use $ suffix when targeting Sub RX
     if (watched == m_ritXitBox && event->type() == QEvent::Wheel) {
         auto *wheelEvent = static_cast<QWheelEvent *>(event);
-        bool bSet = m_radioState->bSetEnabled();
-        QString cmd;
-        if (wheelEvent->angleDelta().y() > 0) {
-            cmd = bSet ? "RU$;" : "RU;";
-        } else {
-            cmd = bSet ? "RD$;" : "RD;";
+        int steps = m_ritWheelAccumulator.accumulate(wheelEvent);
+        if (steps != 0) {
+            bool bSet = m_radioState->bSetEnabled();
+            QString upCmd = bSet ? "RU$;" : "RU;";
+            QString downCmd = bSet ? "RD$;" : "RD;";
+            for (int i = 0; i < qAbs(steps); ++i)
+                m_tcpClient->sendCAT(steps > 0 ? upCmd : downCmd);
         }
-        m_tcpClient->sendCAT(cmd);
         return true;
     }
 
