@@ -5,6 +5,7 @@
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QLabel>
+#include "wheelaccumulator.h"
 
 class TextDecodeWindow : public QWidget {
     Q_OBJECT
@@ -88,6 +89,7 @@ private:
     bool m_resizing = false;
     QPoint m_resizeStartPos;
     QSize m_resizeStartSize;
+    WheelAccumulator m_wheelAccumulator;
 };
 
 #endif // TEXTDECODEWINDOW_H

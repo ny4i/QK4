@@ -2,6 +2,7 @@
 #define DISPLAYPOPUPWIDGET_H
 
 #include "k4popupbase.h"
+#include "wheelaccumulator.h"
 #include <QLabel>
 #include <QList>
 #include <QPushButton>
@@ -280,6 +281,7 @@ private:
     QRect m_autoRect;
     QRect m_minusRect;
     QRect m_plusRect;
+    WheelAccumulator m_wheelAccumulator;
 };
 
 // Helper class for bordered toggle groups with rounded corners

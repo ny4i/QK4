@@ -263,10 +263,12 @@ void ControlGroupWidget::mousePressEvent(QMouseEvent *event) {
 }
 
 void ControlGroupWidget::wheelEvent(QWheelEvent *event) {
-    if (event->angleDelta().y() > 0) {
-        emit incrementClicked(); // Scroll up = increase
-    } else if (event->angleDelta().y() < 0) {
-        emit decrementClicked(); // Scroll down = decrease
+    int steps = m_wheelAccumulator.accumulate(event);
+    for (int i = 0; i < qAbs(steps); ++i) {
+        if (steps > 0)
+            emit incrementClicked();
+        else
+            emit decrementClicked();
     }
     event->accept();
 }

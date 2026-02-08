@@ -121,6 +121,7 @@ set(SOURCES
     src/ui/sidecontroloverlay.cpp
     src/ui/monoverlay.cpp
     src/ui/baloverlay.cpp
+    src/ui/wheelaccumulator.cpp
     src/hardware/kpoddevice.cpp
     src/hardware/halikeydevice.cpp
 )
@@ -177,6 +178,7 @@ set(HEADERS
     src/ui/sidecontroloverlay.h
     src/ui/monoverlay.h
     src/ui/baloverlay.h
+    src/ui/wheelaccumulator.h
     src/hardware/kpoddevice.h
     src/hardware/halikeydevice.h
 )

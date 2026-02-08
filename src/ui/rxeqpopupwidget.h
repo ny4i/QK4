@@ -2,6 +2,7 @@
 #define RXEQPOPUPWIDGET_H
 
 #include "k4popupbase.h"
+#include "wheelaccumulator.h"
 #include <QLabel>
 #include <QMenu>
 #include <QPushButton>
@@ -55,6 +56,7 @@ private:
 
     static constexpr int MIN_DB = -16;
     static constexpr int MAX_DB = 16;
+    WheelAccumulator m_wheelAccumulator;
 };
 
 /**

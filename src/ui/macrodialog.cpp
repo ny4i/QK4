@@ -584,11 +584,12 @@ void MacroDialog::wheelEvent(QWheelEvent *event) {
         return;
     }
 
-    int delta = event->angleDelta().y();
-    if (delta > 0) {
-        navigateUp();
-    } else if (delta < 0) {
-        navigateDown();
+    int steps = m_wheelAccumulator.accumulate(event);
+    for (int i = 0; i < qAbs(steps); ++i) {
+        if (steps > 0)
+            navigateUp();
+        else
+            navigateDown();
     }
     event->accept();
 }
@@ -596,11 +597,12 @@ void MacroDialog::wheelEvent(QWheelEvent *event) {
 bool MacroDialog::eventFilter(QObject *watched, QEvent *event) {
     if (event->type() == QEvent::Wheel && !m_editMode) {
         auto *wheelEvent = static_cast<QWheelEvent *>(event);
-        int delta = wheelEvent->angleDelta().y();
-        if (delta > 0) {
-            navigateUp();
-        } else if (delta < 0) {
-            navigateDown();
+        int steps = m_wheelAccumulator.accumulate(wheelEvent);
+        for (int i = 0; i < qAbs(steps); ++i) {
+            if (steps > 0)
+                navigateUp();
+            else
+                navigateDown();
         }
         return true;
     }

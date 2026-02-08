@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- **WheelAccumulator utility class**: Centralized scroll-wheel handling for all 16 wheel-enabled widgets
+  - Accumulates fractional trackpad scroll deltas into discrete integer steps
+  - Per-key accumulators for widgets with modifier-based axes (e.g., panadapter: plain/Shift/Ctrl)
+  - Configurable momentum filtering (enabled by default, disabled for panadapter frequency tuning)
+  - Consistent behavior across notched mice (Logitech) and pixel-based trackpads
+- **Panadapter trackpad momentum tuning**: Flick-to-tune on trackpad for VFO-knob-like inertia feel
+  - Only applies to panadapter frequency scrolling; all other widgets stop on finger lift
+
+### Fixed
+- **PWR display shows "--" on connect at 50W**: RadioState `m_rfPower` was initialized to 50.0, matching the radio's default power level. When the RDY dump returned PC050H (50W QRO), the change-detection guard suppressed the signal and the display stayed at "--". Fixed by using -1.0 sentinel value, matching the pattern used by all neighboring fields.
+
 ### Changed
 - **RadioState command parsing refactored**: Replaced ~1500-line if-else chain with handler registry pattern
   - New `registerCommandHandlers()` with ~80 command handlers sorted by prefix length

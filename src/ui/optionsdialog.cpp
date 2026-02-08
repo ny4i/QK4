@@ -21,16 +21,14 @@
 
 // Use K4Styles::Colors::DialogBorder for dialog-specific borders
 
-OptionsDialog::OptionsDialog(RadioState *radioState, AudioEngine *audioEngine,
-                             KpodDevice *kpodDevice, CatServer *catServer, HalikeyDevice *halikeyDevice,
-                             QWidget *parent)
-    : QDialog(parent), m_radioState(radioState), m_audioEngine(audioEngine),
-      m_kpodDevice(kpodDevice), m_catServer(catServer), m_halikeyDevice(halikeyDevice),
-      m_micDeviceCombo(nullptr), m_micGainSlider(nullptr), m_micGainValueLabel(nullptr), m_micTestBtn(nullptr),
-      m_micMeter(nullptr), m_speakerDeviceCombo(nullptr), m_catServerEnableCheckbox(nullptr),
-      m_catServerPortEdit(nullptr), m_catServerStatusLabel(nullptr), m_catServerClientsLabel(nullptr),
-      m_cwKeyerPortCombo(nullptr), m_cwKeyerRefreshBtn(nullptr), m_cwKeyerConnectBtn(nullptr),
-      m_cwKeyerStatusLabel(nullptr), m_cwKeyerEnableCheckbox(nullptr) {
+OptionsDialog::OptionsDialog(RadioState *radioState, AudioEngine *audioEngine, KpodDevice *kpodDevice,
+                             CatServer *catServer, HalikeyDevice *halikeyDevice, QWidget *parent)
+    : QDialog(parent), m_radioState(radioState), m_audioEngine(audioEngine), m_kpodDevice(kpodDevice),
+      m_catServer(catServer), m_halikeyDevice(halikeyDevice), m_micDeviceCombo(nullptr), m_micGainSlider(nullptr),
+      m_micGainValueLabel(nullptr), m_micTestBtn(nullptr), m_micMeter(nullptr), m_speakerDeviceCombo(nullptr),
+      m_catServerEnableCheckbox(nullptr), m_catServerPortEdit(nullptr), m_catServerStatusLabel(nullptr),
+      m_catServerClientsLabel(nullptr), m_cwKeyerPortCombo(nullptr), m_cwKeyerRefreshBtn(nullptr),
+      m_cwKeyerConnectBtn(nullptr), m_cwKeyerStatusLabel(nullptr), m_cwKeyerEnableCheckbox(nullptr) {
     setupUi();
 
     // Connect to AudioEngine for mic level updates

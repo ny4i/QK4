@@ -22,9 +22,8 @@ class OptionsDialog : public QDialog {
     Q_OBJECT
 
 public:
-    explicit OptionsDialog(RadioState *radioState, AudioEngine *audioEngine,
-                           KpodDevice *kpodDevice, CatServer *catServer, HalikeyDevice *halikeyDevice,
-                           QWidget *parent = nullptr);
+    explicit OptionsDialog(RadioState *radioState, AudioEngine *audioEngine, KpodDevice *kpodDevice,
+                           CatServer *catServer, HalikeyDevice *halikeyDevice, QWidget *parent = nullptr);
     ~OptionsDialog();
 
 private slots:

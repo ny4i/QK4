@@ -260,10 +260,14 @@ void LineOutPopupWidget::keyPressEvent(QKeyEvent *event) {
 }
 
 void LineOutPopupWidget::wheelEvent(QWheelEvent *event) {
-    int delta = (event->angleDelta().y() > 0) ? 1 : -1;
+    int steps = m_wheelAccumulator.accumulate(event);
+    if (steps == 0) {
+        event->accept();
+        return;
+    }
 
     if (m_leftSelected) {
-        int newLevel = qBound(0, m_leftLevel + delta, 40);
+        int newLevel = qBound(0, m_leftLevel + steps, 40);
         if (newLevel != m_leftLevel) {
             m_leftLevel = newLevel;
             m_leftValueLabel->setText(QString::number(newLevel));
@@ -278,7 +282,7 @@ void LineOutPopupWidget::wheelEvent(QWheelEvent *event) {
     } else {
         // Adjust right level (only if not in RIGHT=LEFT mode)
         if (!m_rightEqualsLeft) {
-            int newLevel = qBound(0, m_rightLevel + delta, 40);
+            int newLevel = qBound(0, m_rightLevel + steps, 40);
             if (newLevel != m_rightLevel) {
                 m_rightLevel = newLevel;
                 m_rightValueLabel->setText(QString::number(newLevel));

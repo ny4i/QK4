@@ -2,6 +2,7 @@
 #define SIDECONTROLOVERLAY_H
 
 #include <QWidget>
+#include "wheelaccumulator.h"
 
 /**
  * @brief Base class for overlay panels in SideControlPanel.
@@ -68,6 +69,8 @@ protected:
      * @brief Corner radius for the overlay background.
      */
     static constexpr int CornerRadius = 6;
+
+    WheelAccumulator m_wheelAccumulator;
 
 private:
     Context m_context;

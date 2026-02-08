@@ -75,9 +75,9 @@ void BalOverlay::updateDisplay() {
 }
 
 void BalOverlay::wheelEvent(QWheelEvent *event) {
-    // Convert scroll to delta
-    int delta = event->angleDelta().y() > 0 ? 1 : -1;
-    emit balanceChangeRequested(delta);
+    int steps = m_wheelAccumulator.accumulate(event);
+    if (steps != 0)
+        emit balanceChangeRequested(steps);
     event->accept();
 }
 

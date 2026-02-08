@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QLabel>
 #include <QPushButton>
+#include "wheelaccumulator.h"
 
 class VoxPopupWidget : public QWidget {
     Q_OBJECT
@@ -56,6 +57,7 @@ private:
     bool m_isDataMode = false;
     int m_value = 0;
     bool m_voxEnabled = false;
+    WheelAccumulator m_wheelAccumulator;
 };
 
 #endif // VOXPOPUP_H

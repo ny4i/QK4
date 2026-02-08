@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QString>
 #include <QColor>
+#include "wheelaccumulator.h"
 
 /**
  * DualControlButton - A dual-function control button for K4Controller
@@ -86,6 +87,7 @@ private:
     Context m_context = MainRx;
     bool m_showIndicator = true; // Show the colored bar (active in group)
     bool m_isHovered = false;
+    WheelAccumulator m_wheelAccumulator;
 };
 
 #endif // DUALCONTROLBUTTON_H

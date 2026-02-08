@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QLabel>
 #include <QPushButton>
+#include "wheelaccumulator.h"
 
 class LineOutPopupWidget : public QWidget {
     Q_OBJECT
@@ -52,6 +53,7 @@ private:
     QPushButton *m_closeBtn;
 
     QWidget *m_referenceWidget = nullptr;
+    WheelAccumulator m_wheelAccumulator;
 };
 
 #endif // LINEOUTPOPUP_H

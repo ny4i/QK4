@@ -449,26 +449,26 @@ void MenuOverlayWidget::mousePressEvent(QMouseEvent *event) {
 }
 
 void MenuOverlayWidget::wheelEvent(QWheelEvent *event) {
-    int delta = event->angleDelta().y();
-    if (delta == 0)
+    int steps = m_wheelAccumulator.accumulate(event);
+    if (steps == 0) {
+        event->accept();
         return;
+    }
 
     if (m_editMode) {
         // In edit mode, wheel changes value
         if (!m_itemWidgets.isEmpty() && m_selectedIndex < m_itemWidgets.size()) {
             MenuItem *item = m_itemWidgets[m_selectedIndex]->menuItem();
-            if (delta > 0) {
-                emit menuValueChangeRequested(item->id, "+");
-            } else {
-                emit menuValueChangeRequested(item->id, "-");
-            }
+            for (int i = 0; i < qAbs(steps); ++i)
+                emit menuValueChangeRequested(item->id, steps > 0 ? "+" : "-");
         }
     } else {
         // In browse mode, wheel scrolls through items
-        if (delta > 0) {
-            navigateUp();
-        } else {
-            navigateDown();
+        for (int i = 0; i < qAbs(steps); ++i) {
+            if (steps > 0)
+                navigateUp();
+            else
+                navigateDown();
         }
     }
     event->accept();
@@ -481,26 +481,24 @@ bool MenuOverlayWidget::eventFilter(QObject *watched, QEvent *event) {
             QWheelEvent *wheelEvent = static_cast<QWheelEvent *>(event);
             wheelEvent->accept();
 
-            int delta = wheelEvent->angleDelta().y();
-            if (delta == 0)
+            int steps = m_wheelAccumulator.accumulate(wheelEvent);
+            if (steps == 0)
                 return true;
 
             if (m_editMode) {
                 // In edit mode, wheel changes value
                 if (!m_itemWidgets.isEmpty() && m_selectedIndex < m_itemWidgets.size()) {
                     MenuItem *item = m_itemWidgets[m_selectedIndex]->menuItem();
-                    if (delta > 0) {
-                        emit menuValueChangeRequested(item->id, "+");
-                    } else {
-                        emit menuValueChangeRequested(item->id, "-");
-                    }
+                    for (int i = 0; i < qAbs(steps); ++i)
+                        emit menuValueChangeRequested(item->id, steps > 0 ? "+" : "-");
                 }
             } else {
                 // In browse mode, wheel moves selection (with hard stops)
-                if (delta > 0) {
-                    navigateUp();
-                } else {
-                    navigateDown();
+                for (int i = 0; i < qAbs(steps); ++i) {
+                    if (steps > 0)
+                        navigateUp();
+                    else
+                        navigateDown();
                 }
             }
             return true; // Event handled, don't let scroll area scroll

@@ -8,6 +8,7 @@
 #include <QTimer>
 #include <QVector>
 #include <memory>
+#include "../ui/wheelaccumulator.h"
 
 // Forward declarations for overlay widgets
 class DbmScaleOverlay;
@@ -248,6 +249,8 @@ private:
     // Waterfall marker
     QTimer *m_waterfallMarkerTimer = nullptr;
     bool m_showWaterfallMarker = false;
+
+    WheelAccumulator m_wheelAccumulator;
 
     // dBm scale overlay (child widget for text rendering)
     DbmScaleOverlay *m_dbmScaleOverlay = nullptr;

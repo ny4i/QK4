@@ -58,16 +58,15 @@ void MonOverlay::updateValueDisplay() {
 }
 
 void MonOverlay::wheelEvent(QWheelEvent *event) {
-    // Convert scroll to value change
-    int delta = event->angleDelta().y() > 0 ? 1 : -1;
-    int newValue = qBound(0, m_value + delta, 100);
-
-    if (newValue != m_value) {
-        m_value = newValue;
-        updateValueDisplay();
-        emit levelChangeRequested(m_mode, m_value);
+    int steps = m_wheelAccumulator.accumulate(event);
+    if (steps != 0) {
+        int newValue = qBound(0, m_value + steps, 100);
+        if (newValue != m_value) {
+            m_value = newValue;
+            updateValueDisplay();
+            emit levelChangeRequested(m_mode, m_value);
+        }
     }
-
     event->accept();
 }
 

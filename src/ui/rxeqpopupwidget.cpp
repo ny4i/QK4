@@ -123,15 +123,17 @@ void EqBandWidget::setValue(int dB) {
 }
 
 void EqBandWidget::wheelEvent(QWheelEvent *event) {
-    int delta = event->angleDelta().y() > 0 ? 1 : -1;
-    int newValue = qBound(MIN_DB, m_value + delta, MAX_DB);
-    if (newValue != m_value) {
-        m_value = newValue;
-        m_slider->blockSignals(true);
-        m_slider->setValue(m_value);
-        m_slider->blockSignals(false);
-        updateValueLabel();
-        emit valueChanged(m_bandIndex, m_value);
+    int steps = m_wheelAccumulator.accumulate(event);
+    if (steps != 0) {
+        int newValue = qBound(MIN_DB, m_value + steps, MAX_DB);
+        if (newValue != m_value) {
+            m_value = newValue;
+            m_slider->blockSignals(true);
+            m_slider->setValue(m_value);
+            m_slider->blockSignals(false);
+            updateValueLabel();
+            emit valueChanged(m_bandIndex, m_value);
+        }
     }
     event->accept();
 }

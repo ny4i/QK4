@@ -180,18 +180,13 @@ void DualControlButton::mousePressEvent(QMouseEvent *event) {
 }
 
 void DualControlButton::wheelEvent(QWheelEvent *event) {
-    // Only respond to scroll if this button has the indicator (is active)
-    if (m_showIndicator) {
-        int delta = event->angleDelta().y() > 0 ? 1 : -1;
-        emit valueScrolled(delta);
-        event->accept();
-    } else {
-        // Make this button active first, then respond to scroll
-        emit becameActive();
-        int delta = event->angleDelta().y() > 0 ? 1 : -1;
-        emit valueScrolled(delta);
-        event->accept();
+    int steps = m_wheelAccumulator.accumulate(event);
+    if (steps != 0) {
+        if (!m_showIndicator)
+            emit becameActive();
+        emit valueScrolled(steps);
     }
+    event->accept();
 }
 
 void DualControlButton::enterEvent(QEnterEvent *event) {
