@@ -12,7 +12,7 @@ class MonOverlay;
 class BalOverlay;
 
 /**
- * SideControlPanel - Left-side vertical control panel for K4Controller
+ * SideControlPanel - Left-side vertical control panel for QK4
  *
  * Contains 3 groups of 2 DualControlButtons each:
  * - Group 1 (Global/Orange): WPM/PTCH, PWR/DLY

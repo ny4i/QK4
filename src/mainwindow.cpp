@@ -1832,23 +1832,22 @@ void MainWindow::setupMenuBar() {
 
     // Help menu
     QMenu *helpMenu = menuBar()->addMenu("&Help");
-    QAction *aboutAction = new QAction("&About K4Controller", this);
+    QAction *aboutAction = new QAction("&About QK4", this);
     aboutAction->setMenuRole(QAction::AboutRole); // macOS: moves to app menu
     connect(aboutAction, &QAction::triggered, this, [this]() {
-        QMessageBox::about(
-            this, "About K4Controller",
-            QString("<h2>K4Controller</h2>"
-                    "<p>Version %1</p>"
-                    "<p>Remote control application for Elecraft K4 radios.</p>"
-                    "<p>Copyright &copy; 2024-2025 AI5QK</p>"
-                    "<p><a href='https://github.com/mikeg-dal/K4Controller'>github.com/mikeg-dal/K4Controller</a></p>")
-                .arg(QCoreApplication::applicationVersion()));
+        QMessageBox::about(this, "About QK4",
+                           QString("<h2>QK4</h2>"
+                                   "<p>Version %1</p>"
+                                   "<p>Remote control application for Elecraft K4 radios.</p>"
+                                   "<p>Copyright &copy; 2024-2025 AI5QK</p>"
+                                   "<p><a href='https://github.com/mikeg-dal/QK4'>github.com/mikeg-dal/QK4</a></p>")
+                               .arg(QCoreApplication::applicationVersion()));
     });
     helpMenu->addAction(aboutAction);
 }
 
 void MainWindow::setupUi() {
-    setWindowTitle("K4Controller");
+    setWindowTitle("QK4");
     setMinimumSize(1340, 840);
     resize(1340, 840); // Default to minimum size on launch
 

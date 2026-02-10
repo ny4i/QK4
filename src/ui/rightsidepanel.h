@@ -7,7 +7,7 @@
 #include <QVBoxLayout>
 
 /**
- * RightSidePanel - Right-side vertical panel for K4Controller
+ * RightSidePanel - Right-side vertical panel for QK4
  *
  * Contains button grids:
  *

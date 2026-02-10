@@ -1,6 +1,6 @@
 # Status
 
-Current implementation state of K4Controller (January 2026).
+Current implementation state of QK4 (January 2026).
 
 ## Implemented Features
 

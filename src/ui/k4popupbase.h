@@ -4,7 +4,7 @@
 #include <QWidget>
 
 /**
- * @brief Base class for K4Controller popup widgets.
+ * @brief Base class for QK4 popup widgets.
  *
  * Provides centralized handling of:
  * - Window flags and translucent background setup

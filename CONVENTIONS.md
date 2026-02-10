@@ -1,6 +1,6 @@
 # Conventions
 
-Code style, naming conventions, and development rules for K4Controller.
+Code style, naming conventions, and development rules for QK4.
 
 ## Development Rules
 
