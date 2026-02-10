@@ -2,9 +2,9 @@
 set -ex
 
 # =============================================================================
-# K4Controller Raspberry Pi Build Script
+# QK4 Raspberry Pi Build Script
 # =============================================================================
-# This script cross-compiles K4Controller for Raspberry Pi (ARM64) using
+# This script cross-compiles QK4 for Raspberry Pi (ARM64) using
 # Debian multiarch and creates a portable tarball with all required
 # libraries bundled.
 #
@@ -49,7 +49,7 @@ ccache --zero-stats
 # Version passed as first argument (from release workflow tag)
 VERSION_FLAG=""
 if [ -n "$1" ]; then
-  VERSION_FLAG="-DK4CONTROLLER_VERSION_FULL=$1"
+  VERSION_FLAG="-DQK4_VERSION_FULL=$1"
   echo "Building version: $1"
 fi
 
@@ -64,16 +64,16 @@ echo "=== ccache stats ==="
 ccache --show-stats
 
 # Verify output is actually ARM64
-file build/K4Controller | grep -q "aarch64" || { echo "ERROR: Binary is not ARM64!"; exit 1; }
+file build/QK4 | grep -q "aarch64" || { echo "ERROR: Binary is not ARM64!"; exit 1; }
 
 # =============================================================================
 # Create portable bundle
 # =============================================================================
-DIST=dist/K4Controller
+DIST=dist/QK4
 mkdir -p $DIST/lib
 mkdir -p $DIST/plugins
 
-cp build/K4Controller $DIST/
+cp build/QK4 $DIST/
 cp resources/99-kpod.rules $DIST/
 
 # Helper: copy a library and fail the build if it's missing
@@ -165,7 +165,7 @@ cp -L $PULSECOMMON $DIST/lib/
 echo "=== Verifying bundle ==="
 MISSING=0
 for check in \
-  "$DIST/K4Controller" \
+  "$DIST/QK4" \
   "$DIST/lib/libQt6Core.so.6" \
   "$DIST/lib/libQt6Multimedia.so.6" \
   "$DIST/lib/libopus.so.0" \
@@ -199,7 +199,7 @@ echo ""
 # -----------------------------------------------------------------------------
 # Set rpath so binary finds bundled libs
 # -----------------------------------------------------------------------------
-patchelf --set-rpath '$ORIGIN/lib' $DIST/K4Controller
+patchelf --set-rpath '$ORIGIN/lib' $DIST/QK4
 
 # Also patch any bundled .so files that might need it
 find $DIST/lib -name "*.so*" -type f -exec patchelf --set-rpath '$ORIGIN' {} \; 2>/dev/null || true
@@ -210,7 +210,7 @@ find $DIST/plugins -name "*.so*" -type f -exec patchelf --set-rpath '$ORIGIN/../
 # -----------------------------------------------------------------------------
 cat > $DIST/run.sh << 'LAUNCHER'
 #!/bin/bash
-# K4Controller Launcher for Raspberry Pi
+# QK4 Launcher for Raspberry Pi
 # This script sets up the environment to use bundled libraries
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -236,7 +236,7 @@ export QT_PLUGIN_PATH="$DIR/plugins"
 export QT_QPA_PLATFORM=xcb
 
 # Launch the application
-exec "$DIR/K4Controller" "$@"
+exec "$DIR/QK4" "$@"
 LAUNCHER
 chmod +x $DIST/run.sh
 
@@ -244,9 +244,9 @@ chmod +x $DIST/run.sh
 # Package
 # -----------------------------------------------------------------------------
 cd dist
-tar czf ../K4Controller-raspberry-pi-arm64.tar.gz K4Controller/
+tar czf ../QK4-raspberry-pi-arm64.tar.gz QK4/
 
 echo "============================================="
 echo "Build complete!"
-echo "Output: K4Controller-raspberry-pi-arm64.tar.gz"
+echo "Output: QK4-raspberry-pi-arm64.tar.gz"
 echo "============================================="

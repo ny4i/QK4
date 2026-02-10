@@ -1,10 +1,10 @@
 // Windows Version Resource File
-// This file is configured by CMake - edit K4Controller.rc.in, not K4Controller.rc
+// This file is configured by CMake - edit QK4.rc.in, not QK4.rc
 
 #include <windows.h>
 
 // Application Icon
-IDI_ICON1 ICON "@CMAKE_SOURCE_DIR@/resources/K4Controller.ico"
+IDI_ICON1 ICON "@CMAKE_SOURCE_DIR@/resources/QK4.ico"
 
 VS_VERSION_INFO VERSIONINFO
 FILEVERSION @PROJECT_VERSION_MAJOR@,@PROJECT_VERSION_MINOR@,@PROJECT_VERSION_PATCH@,0
@@ -25,12 +25,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "AI5QK"
             VALUE "FileDescription", "K4 Remote Controller"
-            VALUE "FileVersion", "@K4CONTROLLER_VERSION_FULL@"
-            VALUE "InternalName", "K4Controller"
+            VALUE "FileVersion", "@QK4_VERSION_FULL@"
+            VALUE "InternalName", "QK4"
             VALUE "LegalCopyright", "Copyright (C) 2024-2025 AI5QK"
-            VALUE "OriginalFilename", "K4Controller.exe"
-            VALUE "ProductName", "K4Controller"
-            VALUE "ProductVersion", "@K4CONTROLLER_VERSION_FULL@"
+            VALUE "OriginalFilename", "QK4.exe"
+            VALUE "ProductName", "QK4"
+            VALUE "ProductVersion", "@QK4_VERSION_FULL@"
         END
     END
     BLOCK "VarFileInfo"

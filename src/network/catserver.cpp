@@ -286,7 +286,7 @@ QString CatServer::handleCommand(const QString &cmd) {
             return QString("OM %1;").arg(om); // Note: space after OM
         }
         // AI - Auto-information (transceive mode)
-        // K4Controller uses AI4 globally - report that, don't let external apps change it
+        // QK4 uses AI4 globally - report that, don't let external apps change it
         if (prefix == "AI") {
             return "AI4;";
         }

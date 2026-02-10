@@ -6,7 +6,7 @@ RadioSettings *RadioSettings::instance() {
 }
 
 RadioSettings::RadioSettings(QObject *parent)
-    : QObject(parent), m_lastSelectedIndex(-1), m_kpodEnabled(false), m_settings("K4Controller", "K4Controller") {
+    : QObject(parent), m_lastSelectedIndex(-1), m_kpodEnabled(false), m_settings("QK4", "QK4") {
     load();
 }
 

@@ -1,10 +1,10 @@
-# K4Controller
+# QK4
 
 A cross-platform desktop application for remote control of Elecraft K4 radios over TCP/IP with real-time audio streaming and spectrum display.
 
-[![Release](https://img.shields.io/github/v/release/mikeg-dal/K4Controller?include_prereleases)](https://github.com/mikeg-dal/K4Controller/releases)
-[![Build](https://github.com/mikeg-dal/K4Controller/actions/workflows/release.yml/badge.svg)](https://github.com/mikeg-dal/K4Controller/actions/workflows/release.yml)
-[![Lint](https://github.com/mikeg-dal/K4Controller/actions/workflows/lint.yml/badge.svg)](https://github.com/mikeg-dal/K4Controller/actions/workflows/lint.yml)
+[![Release](https://img.shields.io/github/v/release/mikeg-dal/QK4?include_prereleases)](https://github.com/mikeg-dal/QK4/releases)
+[![Build](https://github.com/mikeg-dal/QK4/actions/workflows/release.yml/badge.svg)](https://github.com/mikeg-dal/QK4/actions/workflows/release.yml)
+[![Lint](https://github.com/mikeg-dal/QK4/actions/workflows/lint.yml/badge.svg)](https://github.com/mikeg-dal/QK4/actions/workflows/lint.yml)
 
 ## Supported Platforms
 
@@ -30,13 +30,13 @@ A cross-platform desktop application for remote control of Elecraft K4 radios ov
 
 ## Download
 
-Pre-built releases are available on the [Releases](https://github.com/mikeg-dal/K4Controller/releases) page.
+Pre-built releases are available on the [Releases](https://github.com/mikeg-dal/QK4/releases) page.
 
 | Platform | Download | Notes |
 |----------|----------|-------|
-| macOS | `K4Controller-macos.dmg` | Signed and notarized — open the DMG and drag to Applications |
-| Windows | `K4Controller-windows.zip` | Extract and run `K4Controller.exe` |
-| Raspberry Pi | `K4Controller-raspberry-pi-arm64.tar.gz` | Extract and run `./K4Controller/run.sh` |
+| macOS | `QK4-macos.dmg` | Signed and notarized — open the DMG and drag to Applications |
+| Windows | `QK4-windows.zip` | Extract and run `QK4.exe` |
+| Raspberry Pi | `QK4-raspberry-pi-arm64.tar.gz` | Extract and run `./QK4/run.sh` |
 
 ### Windows Prerequisite
 
@@ -70,13 +70,13 @@ Pre-built releases are available on the [Releases](https://github.com/mikeg-dal/
 brew install qt opus openssl@3 hidapi cmake
 
 # Clone and build
-git clone https://github.com/mikeg-dal/K4Controller.git
-cd K4Controller
+git clone https://github.com/mikeg-dal/QK4.git
+cd QK4
 cmake -B build -DCMAKE_PREFIX_PATH="$(brew --prefix qt)"
 cmake --build build
 
 # Run
-./build/K4Controller.app/Contents/MacOS/K4Controller
+./build/QK4.app/Contents/MacOS/QK4
 
 # Create distributable app bundle (optional)
 cmake --build build --target deploy
@@ -92,13 +92,13 @@ vcpkg install opus:x64-windows hidapi:x64-windows openssl:x64-windows
 # Required modules: Multimedia, ShaderTools, SerialPort
 
 # Clone and build
-git clone https://github.com/mikeg-dal/K4Controller.git
-cd K4Controller
+git clone https://github.com/mikeg-dal/QK4.git
+cd QK4
 cmake -B build -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
 cmake --build build --config Release
 
 # Run
-.\build\Release\K4Controller.exe
+.\build\Release\QK4.exe
 ```
 
 ### Linux / Raspberry Pi
@@ -112,18 +112,18 @@ sudo apt install cmake g++ file patchelf \
   libasound2-dev libpulse-dev
 
 # Clone and build
-git clone https://github.com/mikeg-dal/K4Controller.git
-cd K4Controller
+git clone https://github.com/mikeg-dal/QK4.git
+cd QK4
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j$(nproc)
 
 # Run
-./build/K4Controller
+./build/QK4
 ```
 
 ## Usage
 
-1. Launch K4Controller
+1. Launch QK4
 2. Go to **File → Connect** to open the Radio Manager
 3. Enter your K4's IP address
 4. **For encrypted connection**: Check "Use TLS", enter your PSK, port auto-sets to 9204

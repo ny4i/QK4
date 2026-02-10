@@ -1,4 +1,4 @@
-# K4Controller Development Log
+# QK4 Development Log
 
 ## February 8, 2026
 
@@ -603,7 +603,7 @@ openssl s_client -tls1_2 -psk <hex> -connect 192.168.x.x:9204
 
 1. **Info.plist.in** (`resources/Info.plist.in`):
    - macOS app bundle metadata template
-   - Bundle identifier: `com.ai5qk.k4controller`
+   - Bundle identifier: `com.ai5qk.qk4`
    - Minimum macOS version: 14.0
 
 2. **CMakeLists.txt** - Added `deploy` target:
@@ -2137,16 +2137,16 @@ Fixed macOS release bundle to run standalone without Homebrew Qt installed.
 
 ```bash
 # 1. Use ditto instead of cp (handles macOS frameworks correctly)
-ditto "$QTDBUS_REAL" K4Controller.app/Contents/Frameworks/QtDBus.framework
+ditto "$QTDBUS_REAL" QK4.app/Contents/Frameworks/QtDBus.framework
 
 # 2. Copy missing transitive dependencies
 for lib in libbrotlicommon.1.dylib libbrotlidec.1.dylib libbrotlienc.1.dylib; do
-  ditto "$(brew --prefix)/lib/$lib" "K4Controller.app/Contents/Frameworks/$lib"
+  ditto "$(brew --prefix)/lib/$lib" "QK4.app/Contents/Frameworks/$lib"
 done
-ditto "$DBUS_LIB" "K4Controller.app/Contents/Frameworks/libdbus-1.3.dylib"
+ditto "$DBUS_LIB" "QK4.app/Contents/Frameworks/libdbus-1.3.dylib"
 
 # 3. Fix permissions (Homebrew files are read-only)
-chmod -R u+rw K4Controller.app/Contents/Frameworks/
+chmod -R u+rw QK4.app/Contents/Frameworks/
 
 # 4. Rewrite library paths to use @rpath
 install_name_tool -change "$(brew --prefix)/lib/libbrotlicommon.1.dylib" \
@@ -2155,7 +2155,7 @@ install_name_tool -change "$(brew --prefix)/opt/dbus/lib/libdbus-1.3.dylib" \
   "@rpath/libdbus-1.3.dylib" "$FRAMEWORKS/QtDBus.framework/Versions/A/QtDBus"
 
 # 5. Re-sign after modifications
-codesign --force --deep --sign - K4Controller.app
+codesign --force --deep --sign - QK4.app
 ```
 
 **Key Learnings:**

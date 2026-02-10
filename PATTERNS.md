@@ -1,6 +1,6 @@
 # Patterns
 
-Signal/slot patterns and feature addition guides for K4Controller.
+Signal/slot patterns and feature addition guides for QK4.
 
 ## Signal/Slot Connection Patterns
 

@@ -6,7 +6,7 @@
 #include <QPushButton>
 
 /**
- * @brief Mode selection popup for K4Controller.
+ * @brief Mode selection popup for QK4.
  *
  * Layout (2x4 grid):
  * Row 1: CW, SSB (LSB/USB toggle), DATA, AFSK

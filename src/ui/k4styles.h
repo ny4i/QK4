@@ -7,7 +7,7 @@
 #include <QString>
 
 /**
- * @brief Centralized styling for K4Controller UI components.
+ * @brief Centralized styling for QK4 UI components.
  *
  * This namespace provides consistent button and popup styles across all widgets,
  * eliminating duplicate CSS definitions and ensuring visual consistency.
