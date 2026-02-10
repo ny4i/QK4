@@ -37,5 +37,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: K4Controller-raspberry-pi
-          path: K4Controller-raspberry-pi-arm64.tar.gz
+          name: QK4-raspberry-pi
+          path: QK4-raspberry-pi-arm64.tar.gz

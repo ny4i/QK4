@@ -98,8 +98,8 @@ int main(int argc, char *argv[]) {
     QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 
     QApplication app(argc, argv);
-    app.setApplicationName("K4Controller");
-    app.setApplicationVersion(K4CONTROLLER_VERSION);
+    app.setApplicationName("QK4");
+    app.setApplicationVersion(QK4_VERSION);
     app.setOrganizationName("AI5QK");
     app.setOrganizationDomain("ai5qk.com");
 

@@ -7,7 +7,7 @@
     <key>CFBundleExecutable</key>
     <string>${MACOSX_BUNDLE_EXECUTABLE_NAME}</string>
     <key>CFBundleIconFile</key>
-    <string>K4Controller</string>
+    <string>QK4</string>
     <key>CFBundleIdentifier</key>
     <string>${MACOSX_BUNDLE_GUI_IDENTIFIER}</string>
     <key>CFBundleInfoDictionaryVersion</key>
@@ -25,9 +25,9 @@
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSMicrophoneUsageDescription</key>
-    <string>K4Controller needs microphone access for transmit audio.</string>
+    <string>QK4 needs microphone access for transmit audio.</string>
     <key>NSLocalNetworkUsageDescription</key>
-    <string>K4Controller needs local network access to connect to your Elecraft K4 radio.</string>
+    <string>QK4 needs local network access to connect to your Elecraft K4 radio.</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
     <key>LSApplicationCategoryType</key>

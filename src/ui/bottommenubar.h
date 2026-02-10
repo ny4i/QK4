@@ -5,7 +5,7 @@
 #include <QPushButton>
 
 /**
- * BottomMenuBar - Horizontal menu bar at bottom of K4Controller
+ * BottomMenuBar - Horizontal menu bar at bottom of QK4
  *
  * Contains 7 menu buttons: MENU, Fn, DISPLAY, BAND, MAIN RX, SUB RX, TX
  * Plus PTT button at far right with stretch separator.

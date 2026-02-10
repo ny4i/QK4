@@ -7,7 +7,7 @@
 #include "wheelaccumulator.h"
 
 /**
- * DualControlButton - A dual-function control button for K4Controller
+ * DualControlButton - A dual-function control button for QK4
  *
  * Features:
  * - Primary value (white text) - changes on scroll/drag when active

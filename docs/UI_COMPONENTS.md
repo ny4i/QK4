@@ -1,6 +1,6 @@
 # UI Components Reference
 
-Complete inventory of all Qt widgets, layouts, and UI elements in K4Controller.
+Complete inventory of all Qt widgets, layouts, and UI elements in QK4.
 
 ---
 

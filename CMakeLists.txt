@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.16)
-project(K4Controller VERSION 0.2.0 LANGUAGES CXX)
+project(QK4 VERSION 0.2.0 LANGUAGES CXX)
 
 # Full version string can include prerelease info (e.g., "0.1.0-alpha.123")
-# CI sets this via -DK4CONTROLLER_VERSION_FULL="x.y.z-prerelease"
+# CI sets this via -DQK4_VERSION_FULL="x.y.z-prerelease"
 # If not set, defaults to PROJECT_VERSION
-if(NOT DEFINED K4CONTROLLER_VERSION_FULL)
-    set(K4CONTROLLER_VERSION_FULL "${PROJECT_VERSION}")
+if(NOT DEFINED QK4_VERSION_FULL)
+    set(QK4_VERSION_FULL "${PROJECT_VERSION}")
 endif()
-message(STATUS "K4Controller version: ${K4CONTROLLER_VERSION_FULL}")
+message(STATUS "QK4 version: ${QK4_VERSION_FULL}")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -186,13 +186,13 @@ set(HEADERS
 # On macOS, create an app bundle
 if(APPLE)
     set(MACOSX_BUNDLE_BUNDLE_NAME ${PROJECT_NAME})
-    set(MACOSX_BUNDLE_BUNDLE_VERSION ${K4CONTROLLER_VERSION_FULL})
-    set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${K4CONTROLLER_VERSION_FULL})
-    set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.ai5qk.k4controller")
-    set(MACOSX_BUNDLE_ICON_FILE K4Controller.icns)
+    set(MACOSX_BUNDLE_BUNDLE_VERSION ${QK4_VERSION_FULL})
+    set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${QK4_VERSION_FULL})
+    set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.ai5qk.qk4")
+    set(MACOSX_BUNDLE_ICON_FILE QK4.icns)
 
     # Set the icon file as a resource
-    set(APP_ICON_MACOS "${CMAKE_SOURCE_DIR}/resources/K4Controller.icns")
+    set(APP_ICON_MACOS "${CMAKE_SOURCE_DIR}/resources/QK4.icns")
     set_source_files_properties(${APP_ICON_MACOS} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
 
     add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES} ${HEADERS} ${APP_ICON_MACOS})
@@ -205,12 +205,12 @@ if(APPLE)
 elseif(WIN32)
     # Configure Windows version resource file
     configure_file(
-        ${CMAKE_SOURCE_DIR}/resources/K4Controller.rc.in
-        ${CMAKE_BINARY_DIR}/K4Controller.rc
+        ${CMAKE_SOURCE_DIR}/resources/QK4.rc.in
+        ${CMAKE_BINARY_DIR}/QK4.rc
         @ONLY
     )
     # WIN32 flag creates a GUI app without console window
-    add_executable(${PROJECT_NAME} WIN32 ${SOURCES} ${HEADERS} ${CMAKE_BINARY_DIR}/K4Controller.rc)
+    add_executable(${PROJECT_NAME} WIN32 ${SOURCES} ${HEADERS} ${CMAKE_BINARY_DIR}/QK4.rc)
 else()
     add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 endif()
@@ -223,7 +223,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 # Pass version to source code as compile definition
 target_compile_definitions(${PROJECT_NAME} PRIVATE
-    K4CONTROLLER_VERSION="${K4CONTROLLER_VERSION_FULL}"
+    QK4_VERSION="${QK4_VERSION_FULL}"
 )
 
 # Add Qt private headers for QRhi access
