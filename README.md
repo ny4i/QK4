@@ -124,7 +124,7 @@ cmake --build build -j$(nproc)
 ## Usage
 
 1. Launch QK4
-2. Go to **File → Connect** to open the Radio Manager
+2. Click the **globe icon** on the left side panel to open the Radio Manager
 3. Enter your K4's IP address
 4. **For encrypted connection**: Check "Use TLS", enter your PSK, port auto-sets to 9204
 5. **For unencrypted connection**: Leave TLS unchecked, port defaults to 9205
@@ -158,4 +158,4 @@ src/
 
 ## License
 
-See [LICENSE](LICENSE) for details.
+This project is licensed under the [GNU General Public License v3.0](LICENSE).

@@ -262,7 +262,7 @@ constexpr int ShadowLayers = 8;
 constexpr int ButtonHeightLarge = 44;  // Menu overlay nav buttons
 constexpr int ButtonHeightMedium = 36; // Bottom menu bar, popup buttons
 constexpr int ButtonHeightSmall = 28;  // Function buttons (side panels)
-constexpr int ButtonHeightMini = 24;   // Memory buttons (M1-M4, REC, etc.)
+constexpr int ButtonHeightMini = 24;   // Compact toggle buttons (MON, NORM, BAL, etc.)
 
 // =============================================================================
 // Popup Layout

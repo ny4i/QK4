@@ -162,7 +162,7 @@ Complete reference for all `K4Styles::Colors` and `K4Styles::Dimensions` constan
 | `K4Styles::Dimensions::ButtonHeightLarge` | `44` | Menu overlay nav buttons (px) |
 | `K4Styles::Dimensions::ButtonHeightMedium` | `36` | Bottom menu bar, popup buttons (px) |
 | `K4Styles::Dimensions::ButtonHeightSmall` | `28` | Function buttons in side panels (px) |
-| `K4Styles::Dimensions::ButtonHeightMini` | `24` | Memory buttons (M1-M4, REC, etc.) (px) |
+| `K4Styles::Dimensions::ButtonHeightMini` | `24` | Compact toggle buttons (MON, NORM, BAL, etc.) (px) |
 
 ### Popup Layout
 

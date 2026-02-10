@@ -14,23 +14,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Consistent behavior across notched mice (Logitech) and pixel-based trackpads
 - **Panadapter trackpad momentum tuning**: Flick-to-tune on trackpad for VFO-knob-like inertia feel
   - Only applies to panadapter frequency scrolling; all other widgets stop on finger lift
-
-### Fixed
-- **PWR display shows "--" on connect at 50W**: RadioState `m_rfPower` was initialized to 50.0, matching the radio's default power level. When the RDY dump returned PC050H (50W QRO), the change-detection guard suppressed the signal and the display stayed at "--". Fixed by using -1.0 sentinel value, matching the pattern used by all neighboring fields.
-
-### Changed
-- **RadioState command parsing refactored**: Replaced ~1500-line if-else chain with handler registry pattern
-  - New `registerCommandHandlers()` with ~80 command handlers sorted by prefix length
-  - `parseCATCommand()` reduced from ~1500 lines to 21 lines
-  - Adding new CAT command handlers now takes 5 lines instead of finding spot in if-else chain
-- **Protocol constants modernized**: ODR-safe inline constants, named packet offsets, Commands namespace
-- **Audio code quality improvements**:
-  - OpusDecoder: Extracted duplicated mixing loop to `mixStereoToMono()` helper
-  - OpusEncoder: Added error reporting, input validation, MAX_PACKET_SIZE constant
-  - AudioEngine: Added OUTPUT_BUFFER_SIZE, INPUT_BUFFER_SIZE, MIC_GAIN_SCALE constants
-- **DSP shared utilities**: Created `rhi_utils.h` with shared shader loading function and K4_DBM_OFFSET constant
-
-### Added
 - **TX Meter enhancements**: 500ms decay animation, S-meter gradient colors (Po/ALC/COMP/SWR), peak hold indicators
 - **SCALE control**: Right-click REF LVL/SCALE in DISPLAY popup shows +/- controls (global, 10-150 range)
 - **S-Meter peak indicator**: White vertical line showing signal peaks with 500ms decay time
@@ -66,33 +49,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Higher scale values compress display range (signals appear weaker)
   - Lower scale values expand display range (signals appear stronger)
   - dB scale labels update dynamically to match K4 display
-
-### Changed
-- **Right side panel layout**: BSET/CLR/RIT/XIT and FREQ/RATE/LOCK/SUB buttons moved down closer to PTT area
-- **Spectrum grid rendering**: Grid now drawn behind spectrum fill (standard design pattern for better signal visibility)
-- **Scale is global**: Removed incorrect per-VFO scale handling; #SCL applies to both panadapters
-
-### Fixed
-- **AVERAGE popup bug**: No longer sends CAT command when opening (was cycling value on click)
-- **AVERAGE increment**: Now steps by 1 (was jumping by 5) with optimistic UI update
-- **FREEZE toggle**: Button now updates label and can be toggled back (was stuck after first toggle)
-- **Spectrum dBm calibration**: Signal levels and display range now match K4 display. Calibrated decompression offset (-146) and display range formula (minDb=refLevel, maxDb=refLevel+scale) for accurate visual match.
-- **IF shift passband positioning**: K4 reports IF shift in decahertz (10 Hz units), not 0-99 index. Passband now correctly positions relative to dial marker when IF shift is adjusted.
-- **Span control behavior**: Reversed +/- button polarity (+ now increases span, - decreases) to match intuitive behavior
-- **Span increment sequence**: Now follows K4 radio pattern - 1kHz increments from 5-144kHz, 4kHz increments from 144-368kHz
-- **Mini-pan passband rendering**: Fixed CW mode passband positioning and filter overlay display after QRhi/Metal migration
-
-### Changed
-- **S-Meter gradient**: Colors now transition earlier for better visibility at typical signal levels
-- **S-Meter labels**: Compact format (1,3,5,7,9,20,40,60) for 200px width constraint
-- **FREEZE button**: Label toggles between "FREEZE" and "FROZEN" (was "FREEZE"/"RUN")
-- **MENU overlay**: Removed circle (○) button and "A" label from right side
-- **Waterfall color cycling**: Removed #WFC command functionality from right-click
-- **Volume slider colors**: Updated for visual consistency
-  - MAIN slider: Cyan (#00BFFF) - matches Main RX theme
-  - SUB slider: Green (#00FF00) - matches Sub RX indicators
-
-### Added
 - **Dual-channel audio mixing**: Main RX (VFO A) and Sub RX (VFO B) audio now independently controllable
   - MAIN volume slider controls left channel (Main RX)
   - SUB volume slider controls right channel (Sub RX)
@@ -181,6 +137,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Frequency indicators at bottom of waterfall (lower/center/upper frequencies)
 
 ### Changed
+- **RadioState command parsing refactored**: Replaced ~1500-line if-else chain with handler registry pattern
+  - New `registerCommandHandlers()` with ~80 command handlers sorted by prefix length
+  - `parseCATCommand()` reduced from ~1500 lines to 21 lines
+  - Adding new CAT command handlers now takes 5 lines instead of finding spot in if-else chain
+- **Protocol constants modernized**: ODR-safe inline constants, named packet offsets, Commands namespace
+- **Audio code quality improvements**:
+  - OpusDecoder: Extracted duplicated mixing loop to `mixStereoToMono()` helper
+  - OpusEncoder: Added error reporting, input validation, MAX_PACKET_SIZE constant
+  - AudioEngine: Added OUTPUT_BUFFER_SIZE, INPUT_BUFFER_SIZE, MIC_GAIN_SCALE constants
+- **DSP shared utilities**: Created `rhi_utils.h` with shared shader loading function and K4_DBM_OFFSET constant
+- **Right side panel layout**: BSET/CLR/RIT/XIT and FREQ/RATE/LOCK/SUB buttons moved down closer to PTT area
+- **Spectrum grid rendering**: Grid now drawn behind spectrum fill (standard design pattern for better signal visibility)
+- **Scale is global**: Removed incorrect per-VFO scale handling; #SCL applies to both panadapters
+- **S-Meter gradient**: Colors now transition earlier for better visibility at typical signal levels
+- **S-Meter labels**: Compact format (1,3,5,7,9,20,40,60) for 200px width constraint
+- **FREEZE button**: Label toggles between "FREEZE" and "FROZEN" (was "FREEZE"/"RUN")
+- **MENU overlay**: Removed circle button and "A" label from right side
+- **Waterfall color cycling**: Removed #WFC command functionality from right-click
+- **Volume slider colors**: Updated for visual consistency
+  - MAIN slider: Cyan (#00BFFF) - matches Main RX theme
+  - SUB slider: Green (#00FF00) - matches Sub RX indicators
 - Panadapter now displays raw K4 spectrum data (removed client-side EMA smoothing)
 - Spectrum/waterfall rendering now uses GPU (OpenGL) instead of CPU (QPainter)
 - Dramatically improved performance at high resolutions (CPU usage reduced from ~114% to ~15-25%)
@@ -195,6 +172,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Mini-Pan now shows center frequency marker line (darker shade of passband color)
 
 ### Fixed
+- **PWR display shows "--" on connect at 50W**: RadioState `m_rfPower` was initialized to 50.0, matching the radio's default power level. When the RDY dump returned PC050H (50W QRO), the change-detection guard suppressed the signal and the display stayed at "--". Fixed by using -1.0 sentinel value, matching the pattern used by all neighboring fields.
+- **AVERAGE popup bug**: No longer sends CAT command when opening (was cycling value on click)
+- **AVERAGE increment**: Now steps by 1 (was jumping by 5) with optimistic UI update
+- **FREEZE toggle**: Button now updates label and can be toggled back (was stuck after first toggle)
+- **Spectrum dBm calibration**: Signal levels and display range now match K4 display. Calibrated decompression offset (-146) and display range formula (minDb=refLevel, maxDb=refLevel+scale) for accurate visual match.
+- **IF shift passband positioning**: K4 reports IF shift in decahertz (10 Hz units), not 0-99 index. Passband now correctly positions relative to dial marker when IF shift is adjusted.
+- **Span control behavior**: Reversed +/- button polarity (+ now increases span, - decreases) to match intuitive behavior
+- **Span increment sequence**: Now follows K4 radio pattern - 1kHz increments from 5-144kHz, 4kHz increments from 144-368kHz
+- **Mini-pan passband rendering**: Fixed CW mode passband positioning and filter overlay display after QRhi/Metal migration
 - **Metal overlay rendering**: Fixed passband showing as opaque triangles instead of translucent rectangles
 - **Metal overlay rendering**: Fixed grid turning blue instead of proper gray color
 - **Metal overlay height**: Passband and marker now correctly stop at spectrum area boundary (don't extend into waterfall)

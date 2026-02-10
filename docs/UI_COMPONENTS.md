@@ -282,8 +282,8 @@ Supports B SET mode (commands use $ suffix for Sub RX).
 
 | Property | Value |
 |----------|-------|
-| MAIN Volume | Amber (#FFB000), left audio channel |
-| SUB Volume | Cyan (#00BFFF), right audio channel |
+| MAIN Volume | Cyan (#00BFFF), left audio channel |
+| SUB Volume | Green (#00FF00), right audio channel |
 | Range | 0-100 |
 | Default | 45% |
 
@@ -333,8 +333,8 @@ Both sliders persist values via RadioSettings.
 
 | Variable | Purpose | Color | Size |
 |----------|---------|-------|------|
-| `m_vfoASquare` | "A" indicator | Cyan bg | 16px, 30x30 |
-| `m_vfoBSquare` | "B" indicator | Green bg | 16px, 30x30 |
+| `m_vfoASquare` | "A" indicator | Cyan bg | 16px, 45x45 |
+| `m_vfoBSquare` | "B" indicator | Green bg | 16px, 45x45 |
 | `m_txTriangle` | "◀" (points to A) | Amber | 18px |
 | `m_txTriangleB` | "▶" (points to B, split) | Amber | 18px |
 | `m_txIndicator` | "TX" | Amber | 18px bold |
@@ -695,12 +695,12 @@ Handles:
 
 | Usage | Family | Size | Weight |
 |-------|--------|------|--------|
-| Frequency display | Courier New (mono) | 32px | Bold |
-| Title | System | 14px | Bold |
-| Mode labels | System | 11px | Bold |
-| Status labels | System | 11-12px | Normal |
-| Secondary text | System | 10-11px | Normal |
+| Frequency display | Inter (tabular figures) | 32px | Bold |
+| Title | Inter | 14px | Bold |
+| Mode labels | Inter | 11px | Bold |
+| Status labels | Inter | 11-12px | Normal |
+| Secondary text | Inter | 10-11px | Normal |
 
 ---
 
-*Last updated: January 4, 2026*
+*Last updated: February 10, 2026*
