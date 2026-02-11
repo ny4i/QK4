@@ -16,6 +16,7 @@ jobs:
       MINGW_BIN: C:/Qt/Tools/mingw1310_64/bin
       OPUS_ROOT: C:/opus
       HIDAPI_ROOT: C:/hidapi
+      OPENSSL_DIR: C:/Program Files/OpenSSL-Win64
 
     steps:
       - uses: actions/checkout@v4
@@ -58,9 +59,47 @@ jobs:
             exit 1
           fi
 
-      - name: Upload build artifact
+      - name: Create release package
+        shell: bash
+        run: |
+          rm -rf QK4-windows
+          mkdir -p QK4-windows
+          cp build/QK4.exe QK4-windows/
+
+          # Use windeployqt to bundle Qt DLLs and plugins
+          "${{ env.QT_ROOT_DIR }}/bin/windeployqt.exe" --release --no-translations QK4-windows/QK4.exe
+
+          # Copy HIDAPI DLL
+          cp "${{ env.HIDAPI_ROOT }}/bin/libhidapi.dll" QK4-windows/
+
+          # Copy MinGW runtime DLLs
+          cp "${{ env.MINGW_BIN }}/libgcc_s_seh-1.dll" QK4-windows/
+          cp "${{ env.MINGW_BIN }}/libstdc++-6.dll" QK4-windows/
+          cp "${{ env.MINGW_BIN }}/libwinpthread-1.dll" QK4-windows/
+
+          # Copy OpenSSL runtime DLLs (required by Qt TLS/PSK backend)
+          if [ -f "${{ env.OPENSSL_DIR }}/bin/libssl-3-x64.dll" ]; then
+            cp "${{ env.OPENSSL_DIR }}/bin/libssl-3-x64.dll" QK4-windows/
+            cp "${{ env.OPENSSL_DIR }}/bin/libcrypto-3-x64.dll" QK4-windows/
+          fi
+
+          echo "=== Release package contents ==="
+          ls -la QK4-windows/
+
+      - name: Build installer
+        shell: bash
+        run: |
+          cd installer
+          "/c/Program Files (x86)/NSIS/makensis.exe" /DAPPVERSION=0.0.0-test qk4.nsi
+          cd ..
+          echo "=== Installer created ==="
+          ls -lh QK4-0.0.0-test-Setup.exe
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: QK4-windows
-          path: build/QK4.exe
+          path: |
+            QK4-windows/
+            QK4-*-Setup.exe
           retention-days: 7
