@@ -8,9 +8,9 @@ AudioEngine::AudioEngine(QObject *parent)
     : QObject(parent), m_audioSink(nullptr), m_audioSinkDevice(nullptr), m_audioSource(nullptr),
       m_audioSourceDevice(nullptr), m_micEnabled(false), m_micPollTimer(nullptr) {
 
-    // Output format: K4 uses 12kHz mono Float32 PCM (for RX audio playback)
+    // Output format: K4 uses 12kHz stereo Float32 PCM (L=Main RX, R=Sub RX)
     m_outputFormat.setSampleRate(12000);
-    m_outputFormat.setChannelCount(1);
+    m_outputFormat.setChannelCount(2);
     m_outputFormat.setSampleFormat(QAudioFormat::Float);
 
     // Input format: Use native 48kHz for microphone capture (most hardware supports this)

@@ -57,7 +57,7 @@ private:
     // Resample 48kHz Float32 samples to 12kHz (4:1 decimation with averaging)
     QByteArray resample48kTo12k(const QByteArray &input48k);
 
-    // Audio output format: 12kHz mono Float32 (K4 RX audio)
+    // Audio output format: 12kHz stereo Float32 (K4 RX audio, L=Main R=Sub)
     QAudioFormat m_outputFormat;
 
     // Audio input format: 48kHz mono Float32 (native macOS rate, resampled to 12kHz)
@@ -81,9 +81,9 @@ private:
     float m_micGain = 0.25f; // Default 25% (macOS mic input is typically hot)
 
     // Audio buffer sizes for ~100ms latency
-    // Output: 12kHz * 4 bytes/sample * 0.1 sec = 4800 bytes
+    // Output: 12kHz * 2 channels * 4 bytes/sample * 0.1 sec = 9600 bytes
     // Input: 48kHz * 4 bytes/sample * 0.1 sec = 19200 bytes
-    static constexpr int OUTPUT_BUFFER_SIZE = 4800;
+    static constexpr int OUTPUT_BUFFER_SIZE = 9600;
     static constexpr int INPUT_BUFFER_SIZE = 19200;
 
     // Microphone gain scaling factor (gain slider 0-1 maps to 0-2x, so 0.5 = unity)

@@ -3,12 +3,13 @@
 
 #include "sidecontroloverlay.h"
 #include <QLabel>
+#include <QPushButton>
 
 /**
  * @brief Sub AF balance overlay for SideControlPanel.
  *
- * Shows SUB AF balance mode with MAIN and SUB values.
- * CAT commands TBD - placeholder implementation.
+ * Shows SUB AF balance mode (NOR/BAL) with MAIN and SUB values.
+ * Integrates with BL CAT command for audio balance control.
  */
 class BalOverlay : public SideControlOverlay {
     Q_OBJECT
@@ -17,33 +18,19 @@ public:
     explicit BalOverlay(QWidget *parent = nullptr);
 
     /**
-     * @brief Set the balance mode display text.
-     * @param mode Mode string (e.g., "NOR", "BAL", etc.)
+     * @brief Set the balance state from radio.
+     * @param mode 0=NOR, 1=BAL
+     * @param offset -50 to +50 (MAIN = 50 - offset, SUB = 50 + offset)
      */
-    void setBalanceMode(const QString &mode);
-
-    /**
-     * @brief Set the MAIN value.
-     * @param value Main value (typically 0-100)
-     */
-    void setMainValue(int value);
-
-    /**
-     * @brief Set the SUB value.
-     * @param value Sub value (typically 0-100)
-     */
-    void setSubValue(int value);
-
-    QString balanceMode() const { return m_balanceMode; }
-    int mainValue() const { return m_mainValue; }
-    int subValue() const { return m_subValue; }
+    void setBalance(int mode, int offset);
 
 signals:
     /**
      * @brief Emitted when the user scrolls to change balance.
-     * @param delta Scroll delta (positive = increase, negative = decrease)
+     * @param mode Current mode (0=NOR, 1=BAL)
+     * @param offset New absolute offset (-50 to +50)
      */
-    void balanceChangeRequested(int delta);
+    void balanceChangeRequested(int mode, int offset);
 
 protected:
     void wheelEvent(QWheelEvent *event) override;
@@ -53,14 +40,12 @@ private:
     void setupUi();
     void updateDisplay();
 
-    QLabel *m_titleLabel;
-    QLabel *m_modeLabel;
+    QPushButton *m_modeBtn;
     QLabel *m_mainLabel;
     QLabel *m_subLabel;
 
-    QString m_balanceMode = "NOR";
-    int m_mainValue = 50;
-    int m_subValue = 50;
+    int m_mode = 0;   // 0=NOR, 1=BAL
+    int m_offset = 0; // -50 to +50
 };
 
 #endif // BALOVERLAY_H

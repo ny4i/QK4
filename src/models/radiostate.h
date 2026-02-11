@@ -236,6 +236,17 @@ public:
         }
     }
 
+    // Audio mix routing (MX command) - how main/sub maps to L/R when SUB is on
+    int audioMixLeft() const { return m_audioMixLeft; }   // MixSource value for left output
+    int audioMixRight() const { return m_audioMixRight; } // MixSource value for right output
+
+    // Audio balance (BL command) - MAIN/SUB balance
+    int balanceMode() const { return m_balanceMode; }     // 0=NOR, 1=BAL
+    int balanceOffset() const { return m_balanceOffset; } // -50 to +50
+
+    // Optimistic setter for balance (radio doesn't echo BL SET commands)
+    void setBalance(int mode, int offset);
+
     // Optimistic setter for monitor level
     void setMonitorLevel(int mode, int level);
 
@@ -610,6 +621,8 @@ signals:
     void lockAChanged(bool locked);                // LK: VFO A lock state
     void lockBChanged(bool locked);                // LK$: VFO B lock state
     void monitorLevelChanged(int mode, int level); // ML: Monitor level (0=CW, 1=Data, 2=Voice)
+    void audioMixChanged(int left, int right);     // MX: Audio mix routing (MixSource values)
+    void balanceChanged(int mode, int offset);     // BL: Balance (mode 0=NOR/1=BAL, offset -50 to +50)
 
     // RX Graphic Equalizer
     void rxEqChanged();                      // Any EQ band value changed
@@ -779,6 +792,15 @@ private:
     // VFO Lock (LK/LK$ commands)
     bool m_lockA = false;
     bool m_lockB = false;
+
+    // Audio mix routing (MX command) - default A.B (main left, sub right)
+    // Values are MixSource enum: 0=A(main), 1=B(sub), 2=AB(main+sub), 3=-A(neg main)
+    int m_audioMixLeft = 0;  // MixA
+    int m_audioMixRight = 1; // MixB
+
+    // Audio balance (BL command) - MAIN/SUB balance
+    int m_balanceMode = 0;   // 0=NOR, 1=BAL
+    int m_balanceOffset = 0; // -50 to +50
 
     // Monitor Level (ML command) - sidetone/speech monitor (0-100)
     int m_monitorLevelCW = -1;    // CW sidetone level
@@ -978,6 +1000,10 @@ private:
     void handleNASub(const QString &cmd); // Auto Notch Sub (NA$)
     void handleNM(const QString &cmd);    // Manual Notch Main
     void handleNMSub(const QString &cmd); // Manual Notch Sub (NM$)
+
+    // Balance and audio mix commands
+    void handleBL(const QString &cmd); // Audio Balance (BL)
+    void handleMX(const QString &cmd); // Audio Mix routing (MX)
 
     // Audio/Effects commands
     void handleFX(const QString &cmd);    // Audio Effects
