@@ -5,68 +5,58 @@ on:
   push:
     branches: [main]
 
-env:
-  CMAKE_BUILD_PARALLEL_LEVEL: 4
-
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: [self-hosted, Windows, X64]
+
+    # Self-hosted runner pre-installed tools:
+    #   Qt 6.10.1 (MinGW), MinGW 13.1, Opus, HIDAPI, OpenSSL 3.x, NSIS
+    env:
+      QT_ROOT_DIR: C:/Qt/6.10.1/mingw_64
+      MINGW_BIN: C:/Qt/Tools/mingw1310_64/bin
+      OPUS_ROOT: C:/opus
+      HIDAPI_ROOT: C:/hidapi
+
     steps:
       - uses: actions/checkout@v4
-
-      - name: Cache vcpkg packages
-        uses: actions/cache@v4
         with:
-          path: |
-            C:\vcpkg\installed
-            C:\vcpkg\packages
-          key: vcpkg-win-build-${{ hashFiles('.github/workflows/build-windows.yml') }}
-          restore-keys: |
-            vcpkg-win-build-
+          clean: false
+          fetch-depth: 2
 
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: '6.7.*'
-          host: 'windows'
-          target: 'desktop'
-          arch: 'win64_msvc2019_64'
-          modules: 'qtmultimedia qtshadertools qtserialport'
-          cache: true
-
-      - name: Setup vcpkg
+      - name: Smart clean
+        shell: bash
         run: |
-          cd C:\vcpkg
-          .\bootstrap-vcpkg.bat
-
-      - name: Install dependencies
-        run: |
-          vcpkg install opus:x64-windows hidapi:x64-windows openssl:x64-windows
-
-      - name: Setup MSVC environment
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
-
-      - name: Setup sccache
-        uses: mozilla-actions/sccache-action@v0.0.9
+          if git diff HEAD~1 --name-only 2>/dev/null | grep -qE '(CMakeLists\.txt|\.cmake)'; then
+            echo "Build system changed - forcing clean rebuild"
+            rm -rf build || true
+          fi
 
       - name: Configure CMake
+        shell: bash
         run: |
-          cmake -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+          export PATH="${{ env.MINGW_BIN }}:$PATH"
+          cmake -B build -G "MinGW Makefiles" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="${{ env.QT_ROOT_DIR }}" \
+            -DOPUS_ROOT="${{ env.OPUS_ROOT }}" \
+            -DHIDAPI_ROOT="${{ env.HIDAPI_ROOT }}"
 
       - name: Build
-        run: cmake --build build
+        shell: bash
+        run: |
+          export PATH="${{ env.MINGW_BIN }}:$PATH"
+          cmake --build build -j4
 
       - name: Verify executable
+        shell: bash
         run: |
-          if (Test-Path build/QK4.exe) {
-            Write-Host "Build successful"
-            exit 0
-          } else {
-            Write-Host "Build failed - executable not found"
+          if [ -f build/QK4.exe ]; then
+            echo "Build successful"
+            ls -lh build/QK4.exe
+          else
+            echo "Build failed - executable not found"
             exit 1
-          }
+          fi
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4

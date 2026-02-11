@@ -321,83 +321,133 @@ jobs:
           path: QK4-macos.dmg
 
   build-windows:
-    runs-on: windows-latest
+    runs-on: [self-hosted, Windows, X64]
+
+    # Self-hosted runner pre-installed tools:
+    #   Qt 6.10.1 (MinGW) at C:\Qt\6.10.1\mingw_64
+    #   MinGW 13.1 at C:\Qt\Tools\mingw1310_64
+    #   NSIS 3.11 at C:\Program Files (x86)\NSIS
+    #   Opus at C:\opus (built from source with MinGW)
+    #   HIDAPI at C:\hidapi (built from source with MinGW)
+    #   OpenSSL 3.x at C:\Program Files\OpenSSL-Win64 (runtime DLLs for Qt TLS)
+    env:
+      QT_ROOT_DIR: C:/Qt/6.10.1/mingw_64
+      MINGW_BIN: C:/Qt/Tools/mingw1310_64/bin
+      OPUS_ROOT: C:/opus
+      HIDAPI_ROOT: C:/hidapi
+      OPENSSL_DIR: C:/Program Files/OpenSSL-Win64
+
     steps:
       - uses: actions/checkout@v4
+        with:
+          clean: false
+          fetch-depth: 2
 
       - name: Extract version from tag
         id: version
         shell: bash
         run: |
-          # Tag format: v0.1.0 or v0.1.0-alpha.123
-          # Strip leading 'v' to get version string
           VERSION=${GITHUB_REF_NAME#v}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Extracted version: $VERSION"
 
-      - name: Cache vcpkg packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            C:\vcpkg\installed
-            C:\vcpkg\packages
-          key: vcpkg-win-${{ hashFiles('.github/workflows/release.yml') }}
-          restore-keys: |
-            vcpkg-win-
-
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: '6.7.*'
-          host: 'windows'
-          target: 'desktop'
-          arch: 'win64_msvc2019_64'
-          modules: 'qtmultimedia qtshadertools qtserialport'
-          cache: true
-
-      - name: Setup vcpkg
+      - name: Smart clean
+        shell: bash
         run: |
-          cd C:\vcpkg
-          .\bootstrap-vcpkg.bat
+          # Force clean on tag builds or CMake config changes
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "Tag build - forcing clean rebuild"
+            rm -rf build || true
+          elif git diff HEAD~1 --name-only 2>/dev/null | grep -qE '(CMakeLists\.txt|\.cmake)'; then
+            echo "Build system changed - forcing clean rebuild"
+            rm -rf build || true
+          fi
 
-      - name: Install dependencies
-        run: vcpkg install opus:x64-windows hidapi:x64-windows openssl:x64-windows
-
-      - name: Setup MSVC environment
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
-
-      - name: Setup sccache
-        uses: mozilla-actions/sccache-action@v0.0.9
+      - name: Verify pre-installed tools
+        shell: bash
+        run: |
+          echo "=== Verifying Pre-installed Build Tools ==="
+          ls "${{ env.QT_ROOT_DIR }}/bin/Qt6Core.dll" || { echo "ERROR: Qt not found at ${{ env.QT_ROOT_DIR }}"; exit 1; }
+          ls "${{ env.MINGW_BIN }}/g++.exe" || { echo "ERROR: MinGW not found at ${{ env.MINGW_BIN }}"; exit 1; }
+          ls "${{ env.OPUS_ROOT }}/include/opus/opus.h" || { echo "ERROR: Opus not found at ${{ env.OPUS_ROOT }}"; exit 1; }
+          ls "${{ env.HIDAPI_ROOT }}/include/hidapi/hidapi.h" || { echo "ERROR: HIDAPI not found at ${{ env.HIDAPI_ROOT }}"; exit 1; }
+          ls "/c/Program Files (x86)/NSIS/makensis.exe" || { echo "ERROR: NSIS not found"; exit 1; }
+          echo "All pre-installed tools verified"
 
       - name: Configure CMake
-        run: cmake -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DQK4_VERSION_FULL="${{ steps.version.outputs.version }}"
+        shell: bash
+        run: |
+          export PATH="${{ env.MINGW_BIN }}:$PATH"
+          cmake -B build -G "MinGW Makefiles" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="${{ env.QT_ROOT_DIR }}" \
+            -DOPUS_ROOT="${{ env.OPUS_ROOT }}" \
+            -DHIDAPI_ROOT="${{ env.HIDAPI_ROOT }}" \
+            -DQK4_VERSION_FULL="${{ steps.version.outputs.version }}"
 
       - name: Build
-        run: cmake --build build
+        shell: bash
+        run: |
+          export PATH="${{ env.MINGW_BIN }}:$PATH"
+          cmake --build build -j4
 
       - name: Create release package
+        shell: bash
         run: |
-          mkdir QK4-windows
-          copy build\QK4.exe QK4-windows\
+          export PATH="${{ env.QT_ROOT_DIR }}/bin:${{ env.MINGW_BIN }}:$PATH"
 
-          # Use windeployqt to bundle Qt DLLs
-          windeployqt --release --no-translations QK4-windows\QK4.exe
+          rm -rf QK4-windows
+          mkdir -p QK4-windows
+          cp build/QK4.exe QK4-windows/
 
-          # Copy vcpkg DLLs (opus, hidapi, openssl)
-          copy C:\vcpkg\installed\x64-windows\bin\opus.dll QK4-windows\
-          copy C:\vcpkg\installed\x64-windows\bin\hidapi.dll QK4-windows\
-          copy C:\vcpkg\installed\x64-windows\bin\libssl-3-x64.dll QK4-windows\
-          copy C:\vcpkg\installed\x64-windows\bin\libcrypto-3-x64.dll QK4-windows\
+          # Use windeployqt to bundle Qt DLLs and plugins
+          windeployqt --release --no-translations QK4-windows/QK4.exe
 
-          Compress-Archive -Path QK4-windows -DestinationPath QK4-windows.zip
+          # Copy HIDAPI DLL
+          cp "${{ env.HIDAPI_ROOT }}/bin/libhidapi.dll" QK4-windows/
 
-      - name: Upload artifact
+          # Copy MinGW runtime DLLs
+          cp "${{ env.MINGW_BIN }}/libgcc_s_seh-1.dll" QK4-windows/
+          cp "${{ env.MINGW_BIN }}/libstdc++-6.dll" QK4-windows/
+          cp "${{ env.MINGW_BIN }}/libwinpthread-1.dll" QK4-windows/
+
+          # Copy OpenSSL runtime DLLs (required by Qt TLS/PSK backend)
+          if [ -f "${{ env.OPENSSL_DIR }}/bin/libssl-3-x64.dll" ]; then
+            cp "${{ env.OPENSSL_DIR }}/bin/libssl-3-x64.dll" QK4-windows/
+            cp "${{ env.OPENSSL_DIR }}/bin/libcrypto-3-x64.dll" QK4-windows/
+          elif [ -f "${{ env.OPENSSL_DIR }}/libssl-3-x64.dll" ]; then
+            cp "${{ env.OPENSSL_DIR }}/libssl-3-x64.dll" QK4-windows/
+            cp "${{ env.OPENSSL_DIR }}/libcrypto-3-x64.dll" QK4-windows/
+          else
+            echo "WARNING: OpenSSL DLLs not found - TLS/PSK will not work"
+          fi
+
+          echo "=== Release package contents ==="
+          ls -la QK4-windows/
+          echo "=== Qt plugins ==="
+          find QK4-windows -name "*.dll" -path "*/plugins/*" -o -name "*.dll" -path "*/platforms/*" | head -20
+
+          # Create ZIP
+          7z a QK4-windows.zip QK4-windows/
+
+      - name: Build installer
+        shell: bash
+        run: |
+          cd installer
+          "/c/Program Files (x86)/NSIS/makensis.exe" \
+            /DAPPVERSION=${{ steps.version.outputs.version }} \
+            qk4.nsi
+          cd ..
+          echo "=== Installer created ==="
+          ls -lh QK4-${{ steps.version.outputs.version }}-Setup.exe
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: QK4-windows
-          path: QK4-windows.zip
+          path: |
+            QK4-windows.zip
+            QK4-${{ steps.version.outputs.version }}-Setup.exe
 
   build-raspberry-pi:
     runs-on: ubuntu-24.04
@@ -469,6 +519,7 @@ jobs:
           files: |
             QK4-macos.dmg
             QK4-windows.zip
+            QK4-*-Setup.exe
             QK4-raspberry-pi-arm64.tar.gz
           generate_release_notes: true
           prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') }}
@@ -512,16 +563,22 @@ jobs:
           mkdir -p "downloads/$TAG"
           cp artifacts/macos/QK4-macos.dmg "downloads/$TAG/"
           cp artifacts/windows/QK4-windows.zip "downloads/$TAG/"
+          cp artifacts/windows/QK4-*-Setup.exe "downloads/$TAG/"
           cp artifacts/raspberry-pi/QK4-raspberry-pi-arm64.tar.gz "downloads/$TAG/"
+
+          # Resolve installer filename
+          WIN_SETUP_NAME=$(basename artifacts/windows/QK4-*-Setup.exe)
 
           # Compute human-readable sizes
           SZ_MAC=$(du -h "downloads/$TAG/QK4-macos.dmg" | cut -f1 | xargs)
           SZ_WIN=$(du -h "downloads/$TAG/QK4-windows.zip" | cut -f1 | xargs)
+          SZ_WIN_SETUP=$(du -h "downloads/$TAG/$WIN_SETUP_NAME" | cut -f1 | xargs)
           SZ_PI=$(du -h "downloads/$TAG/QK4-raspberry-pi-arm64.tar.gz" | cut -f1 | xargs)
 
           # Compute SHA256 hashes
           HASH_MAC=$(sha256sum "downloads/$TAG/QK4-macos.dmg" | cut -d' ' -f1)
           HASH_WIN=$(sha256sum "downloads/$TAG/QK4-windows.zip" | cut -d' ' -f1)
+          HASH_WIN_SETUP=$(sha256sum "downloads/$TAG/$WIN_SETUP_NAME" | cut -d' ' -f1)
           HASH_PI=$(sha256sum "downloads/$TAG/QK4-raspberry-pi-arm64.tar.gz" | cut -d' ' -f1)
 
           # Detect prerelease
@@ -550,6 +607,12 @@ jobs:
                 "url": "./downloads/$TAG/QK4-windows.zip",
                 "size": "$SZ_WIN",
                 "sha256": "$HASH_WIN"
+              },
+              "windows-installer": {
+                "name": "$WIN_SETUP_NAME",
+                "url": "./downloads/$TAG/$WIN_SETUP_NAME",
+                "size": "$SZ_WIN_SETUP",
+                "sha256": "$HASH_WIN_SETUP"
               },
               "raspberry-pi": {
                 "name": "QK4-raspberry-pi-arm64.tar.gz",
