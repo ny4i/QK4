@@ -87,13 +87,12 @@ jobs:
           ls -la QK4-windows/
 
       - name: Build installer
-        shell: bash
+        shell: cmd
         run: |
           cd installer
-          "/c/Program Files (x86)/NSIS/makensis.exe" /DAPPVERSION=0.0.0-test qk4.nsi
+          "C:\Program Files (x86)\NSIS\makensis.exe" /DAPPVERSION=0.0.0-test qk4.nsi
           cd ..
-          echo "=== Installer created ==="
-          ls -lh QK4-0.0.0-test-Setup.exe
+          dir QK4-0.0.0-test-Setup.exe
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

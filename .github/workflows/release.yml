@@ -431,15 +431,12 @@ jobs:
           7z a QK4-windows.zip QK4-windows/
 
       - name: Build installer
-        shell: bash
+        shell: cmd
         run: |
           cd installer
-          "/c/Program Files (x86)/NSIS/makensis.exe" \
-            /DAPPVERSION=${{ steps.version.outputs.version }} \
-            qk4.nsi
+          "C:\Program Files (x86)\NSIS\makensis.exe" /DAPPVERSION=${{ steps.version.outputs.version }} qk4.nsi
           cd ..
-          echo "=== Installer created ==="
-          ls -lh QK4-${{ steps.version.outputs.version }}-Setup.exe
+          dir QK4-${{ steps.version.outputs.version }}-Setup.exe
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
