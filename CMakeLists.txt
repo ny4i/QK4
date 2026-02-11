@@ -395,3 +395,30 @@ elseif(WIN32)
     )
 endif()
 
+# =============================================================================
+# Testing
+# =============================================================================
+option(BUILD_TESTING "Build unit tests" ON)
+if(BUILD_TESTING)
+    enable_testing()
+    find_package(Qt6 REQUIRED COMPONENTS Test)
+
+    # test_protocol
+    add_executable(test_protocol tests/test_protocol.cpp src/network/protocol.cpp)
+    target_include_directories(test_protocol PRIVATE src)
+    target_link_libraries(test_protocol PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME test_protocol COMMAND test_protocol)
+
+    # test_menumodel
+    add_executable(test_menumodel tests/test_menumodel.cpp src/models/menumodel.cpp)
+    target_include_directories(test_menumodel PRIVATE src)
+    target_link_libraries(test_menumodel PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME test_menumodel COMMAND test_menumodel)
+
+    # test_radiostate
+    add_executable(test_radiostate tests/test_radiostate.cpp src/models/radiostate.cpp)
+    target_include_directories(test_radiostate PRIVATE src)
+    target_link_libraries(test_radiostate PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME test_radiostate COMMAND test_radiostate)
+endif()
+
