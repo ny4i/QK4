@@ -49,7 +49,8 @@ signals:
     void ntchClicked();
     void filClicked();
     void abClicked();
-    void revClicked();
+    void revPressed();
+    void revReleased();
     void atobClicked();
     void spotClicked();
     void modeClicked();

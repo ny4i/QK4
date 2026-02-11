@@ -2490,7 +2490,8 @@ void MainWindow::setupUi() {
     connect(m_rightSidePanel, &RightSidePanel::ntchClicked, this, [this]() { m_tcpClient->sendCAT("SW31;"); });
     connect(m_rightSidePanel, &RightSidePanel::filClicked, this, [this]() { m_tcpClient->sendCAT("SW33;"); });
     connect(m_rightSidePanel, &RightSidePanel::abClicked, this, [this]() { m_tcpClient->sendCAT("SW41;"); });
-    // revClicked - TBD (needs press/release pattern)
+    connect(m_rightSidePanel, &RightSidePanel::revPressed, this, [this]() { m_tcpClient->sendCAT("SW160;"); });
+    connect(m_rightSidePanel, &RightSidePanel::revReleased, this, [this]() { m_tcpClient->sendCAT("SW161;"); });
     connect(m_rightSidePanel, &RightSidePanel::atobClicked, this, [this]() { m_tcpClient->sendCAT("SW72;"); });
     connect(m_rightSidePanel, &RightSidePanel::spotClicked, this, [this]() { m_tcpClient->sendCAT("SW42;"); });
     connect(m_rightSidePanel, &RightSidePanel::modeClicked, this, [this]() {

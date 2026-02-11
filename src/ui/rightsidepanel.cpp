@@ -55,7 +55,8 @@ void RightSidePanel::setupUi() {
     connect(m_ntchBtn, &QPushButton::clicked, this, &RightSidePanel::ntchClicked);
     connect(m_filBtn, &QPushButton::clicked, this, &RightSidePanel::filClicked);
     connect(m_abBtn, &QPushButton::clicked, this, &RightSidePanel::abClicked);
-    connect(m_revBtn, &QPushButton::clicked, this, &RightSidePanel::revClicked);
+    connect(m_revBtn, &QPushButton::pressed, this, &RightSidePanel::revPressed);
+    connect(m_revBtn, &QPushButton::released, this, &RightSidePanel::revReleased);
     connect(m_atobBtn, &QPushButton::clicked, this, &RightSidePanel::atobClicked);
     connect(m_spotBtn, &QPushButton::clicked, this, &RightSidePanel::spotClicked);
     connect(m_modeBtn, &QPushButton::clicked, this, &RightSidePanel::modeClicked);
@@ -67,7 +68,7 @@ void RightSidePanel::setupUi() {
     m_ntchBtn->installEventFilter(this);
     m_filBtn->installEventFilter(this);
     m_abBtn->installEventFilter(this);
-    // m_revBtn - TBD (needs special press/release handling)
+    // m_revBtn - uses press/release (not right-click)
     m_atobBtn->installEventFilter(this);
     m_spotBtn->installEventFilter(this);
     m_modeBtn->installEventFilter(this);
