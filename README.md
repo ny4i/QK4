@@ -35,7 +35,8 @@ Pre-built releases are available on the [Releases](https://github.com/mikeg-dal/
 | Platform | Download | Notes |
 |----------|----------|-------|
 | macOS | [QK4-macos.dmg](https://github.com/mikeg-dal/QK4/releases/download/v0.4.0-beta.1/QK4-macos.dmg) | Signed and notarized — open the DMG and drag to Applications |
-| Windows | [QK4-windows.zip](https://github.com/mikeg-dal/QK4/releases/download/v0.4.0-beta.1/QK4-windows.zip) | Extract and run `QK4.exe` |
+| Windows (installer) | [QK4-Setup.exe](https://github.com/mikeg-dal/QK4/releases/download/v0.4.0-beta.1/QK4-0.4.0-beta.1-Setup.exe) | Installer with Start Menu/Desktop shortcuts and uninstaller |
+| Windows (portable) | [QK4-windows.zip](https://github.com/mikeg-dal/QK4/releases/download/v0.4.0-beta.1/QK4-windows.zip) | Extract and run `QK4.exe` — no installation required |
 | Raspberry Pi | [QK4-raspberry-pi-arm64.tar.gz](https://github.com/mikeg-dal/QK4/releases/download/v0.4.0-beta.1/QK4-raspberry-pi-arm64.tar.gz) | Extract and run `./QK4/run.sh` |
 
 ### Windows Prerequisite
