@@ -1,0 +1,31 @@
+name: Test
+
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+    branches: [main, development]
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            qt6-base-dev qt6-base-private-dev \
+            qt6-multimedia-dev qt6-shadertools-dev qt6-serialport-dev \
+            libopus-dev libhidapi-dev pkg-config
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build tests
+        run: cmake --build build --target test_protocol test_menumodel test_radiostate -j$(nproc)
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure
