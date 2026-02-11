@@ -401,7 +401,7 @@ jobs:
           cp build/QK4.exe QK4-windows/
 
           # Use windeployqt to bundle Qt DLLs and plugins
-          windeployqt --release --no-translations QK4-windows/QK4.exe
+          "${{ env.QT_ROOT_DIR }}/bin/windeployqt.exe" --release --no-translations QK4-windows/QK4.exe
 
           # Copy HIDAPI DLL
           cp "${{ env.HIDAPI_ROOT }}/bin/libhidapi.dll" QK4-windows/
