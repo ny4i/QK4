@@ -23,7 +23,6 @@ Code style, naming conventions, and development rules for QK4.
    - Widgets self-contained with clear public interfaces
 
 4. **Document ALL changes** - Mandatory:
-   - `docs/DEVLOG.md` - Technical log of what changed and why
    - `CHANGELOG.md` - User-facing release notes
    - Update IMMEDIATELY after completing any feature, fix, or change
 
@@ -131,7 +130,6 @@ Before considering a feature complete:
 - [ ] Are signals/slots properly connected?
 - [ ] Is state initialized correctly?
 - [ ] Lint check passes? (REQUIRED - run pre-commit checklist above)
-- [ ] Is `docs/DEVLOG.md` updated? (REQUIRED)
 - [ ] Is `CHANGELOG.md` updated? (REQUIRED for user-facing changes)
 - [ ] Would another developer understand this code?
 
