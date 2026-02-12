@@ -463,6 +463,13 @@ jobs:
         with:
           name: QK4-raspberry-pi
 
+      - name: Extract release notes from CHANGELOG
+        id: changelog
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          # Extract content between ## [VERSION] and the next ## [ header (or EOF)
+          awk "/^## \[${VERSION}\]/{found=1; next} /^## \[/{if(found) exit} found{print}" CHANGELOG.md > release_notes.md
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -470,7 +477,7 @@ jobs:
             QK4-macos.dmg
             QK4-windows.zip
             QK4-raspberry-pi-arm64.tar.gz
-          generate_release_notes: true
+          body_path: release_notes.md
           prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') }}
 
   publish:

@@ -82,5 +82,4 @@ Current implementation state of QK4 (February 2026).
 ## References
 
 - `docs/UI_COMPONENTS.md` - Complete widget inventory
-- `docs/DEVLOG.md` - Development history
 - `CHANGELOG.md` - User-facing release notes
