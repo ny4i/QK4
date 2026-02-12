@@ -74,7 +74,7 @@ QByteArray OpusDecoder::decodeK4Packet(const QByteArray &packet) {
             normalized[i] = static_cast<float>(stereoSamples[i]) * NORMALIZE_32BIT;
         }
 
-        return mixStereoToMono(normalized.constData(), sampleCount, K4_GAIN_BOOST);
+        return mixToStereo(normalized.constData(), sampleCount, K4_GAIN_BOOST);
     }
 
     case 0x01: // EM1 - RAW 16-bit S16LE stereo PCM (full scale, no boost needed)
@@ -89,7 +89,7 @@ QByteArray OpusDecoder::decodeK4Packet(const QByteArray &packet) {
             normalized[i] = static_cast<float>(stereoSamples[i]) * NORMALIZE_16BIT;
         }
 
-        return mixStereoToMono(normalized.constData(), sampleCount, 1.0f); // No boost for RAW
+        return mixToStereo(normalized.constData(), sampleCount, 1.0f); // No boost for RAW
     }
 
     case 0x02: // EM2 - Opus encoded, decode with opus_decode() (returns S16LE)
@@ -109,7 +109,7 @@ QByteArray OpusDecoder::decodeK4Packet(const QByteArray &packet) {
             normalized[i] = static_cast<float>(stereoSamples[i]) * NORMALIZE_16BIT;
         }
 
-        return mixStereoToMono(normalized.constData(), sampleCount, K4_GAIN_BOOST);
+        return mixToStereo(normalized.constData(), sampleCount, K4_GAIN_BOOST);
     }
 
     case 0x03: // EM3 - Opus encoded, decode with opus_decode_float() (returns float)
@@ -122,7 +122,7 @@ QByteArray OpusDecoder::decodeK4Packet(const QByteArray &packet) {
         const float *stereoFloats = reinterpret_cast<const float *>(stereoPcm.constData());
         int sampleCount = stereoPcm.size() / sizeof(float) / 2;
 
-        return mixStereoToMono(stereoFloats, sampleCount, K4_GAIN_BOOST);
+        return mixToStereo(stereoFloats, sampleCount, K4_GAIN_BOOST);
     }
 
     default:
@@ -139,21 +139,85 @@ void OpusDecoder::setSubVolume(float volume) {
     m_subVolume = qBound(0.0f, volume, 1.0f);
 }
 
-QByteArray OpusDecoder::mixStereoToMono(const float *stereoFloats, int sampleCount, float gainBoost) {
-    QByteArray monoPcm(sampleCount * sizeof(float), Qt::Uninitialized);
-    float *monoFloats = reinterpret_cast<float *>(monoPcm.data());
+void OpusDecoder::setSubMuted(bool muted) {
+    m_subMuted = muted;
+}
+
+void OpusDecoder::setAudioMix(int left, int right) {
+    m_mixLeft = static_cast<MixSource>(qBound(0, left, 3));
+    m_mixRight = static_cast<MixSource>(qBound(0, right, 3));
+}
+
+void OpusDecoder::setBalanceMode(int mode) {
+    m_balanceMode = qBound(0, mode, 1);
+}
+
+void OpusDecoder::setBalanceOffset(int offset) {
+    m_balanceOffset = qBound(-50, offset, 50);
+}
+
+// Compute one output channel's mix from main/sub sources
+static inline float mixChannel(float mainSample, float subSample, OpusDecoder::MixSource src, float mainVol,
+                               float subVol, float gain) {
+    switch (src) {
+    case OpusDecoder::MixA:
+        return mainSample * mainVol * gain;
+    case OpusDecoder::MixB:
+        return subSample * subVol * gain;
+    case OpusDecoder::MixAB:
+        return mainSample * mainVol * gain + subSample * subVol * gain;
+    case OpusDecoder::MixNegA:
+        return -mainSample * mainVol * gain;
+    }
+    return 0.0f;
+}
+
+QByteArray OpusDecoder::mixToStereo(const float *stereoFloats, int sampleCount, float gainBoost) {
+    QByteArray stereoPcm(sampleCount * 2 * sizeof(float), Qt::Uninitialized);
+    float *out = reinterpret_cast<float *>(stereoPcm.data());
+
+    // Pre-compute BL balance gains (BAL mode only, applied after MX routing)
+    float balLeftGain = 1.0f, balRightGain = 1.0f;
+    if (m_balanceMode == 1) {
+        balLeftGain = qBound(0.0f, (50.0f - m_balanceOffset) / 50.0f, 1.0f);
+        balRightGain = qBound(0.0f, (50.0f + m_balanceOffset) / 50.0f, 1.0f);
+    }
 
     for (int i = 0; i < sampleCount; i++) {
         float mainSample = stereoFloats[i * 2];    // Left channel (Main RX / VFO A)
         float subSample = stereoFloats[i * 2 + 1]; // Right channel (Sub RX / VFO B)
 
-        float mainWithVolume = mainSample * m_mainVolume * gainBoost;
-        float subWithVolume = subSample * m_subVolume * gainBoost;
+        // Step 1: SUB RX off — both channels get main audio only, sub slider has no effect
+        // BL balance still applies (L/R gain is independent of SUB RX state)
+        if (m_subMuted) {
+            float s = mainSample * m_mainVolume * gainBoost;
+            out[i * 2] = qBound(-1.0f, s * balLeftGain, 1.0f);
+            out[i * 2 + 1] = qBound(-1.0f, s * balRightGain, 1.0f);
+            continue;
+        }
 
-        monoFloats[i] = qBound(-1.0f, mainWithVolume + subWithVolume, 1.0f);
+        // Step 2: SUB RX on — apply MX routing
+        float left, right;
+        if (m_balanceMode == 0) {
+            // NOR mode: main slider controls main, sub slider controls sub
+            left = mixChannel(mainSample, subSample, m_mixLeft, m_mainVolume, m_subVolume, gainBoost);
+            right = mixChannel(mainSample, subSample, m_mixRight, m_mainVolume, m_subVolume, gainBoost);
+        } else {
+            // BAL mode: mainVolume controls both receivers (sub slider repurposed as balance)
+            left = mixChannel(mainSample, subSample, m_mixLeft, m_mainVolume, m_mainVolume, gainBoost);
+            right = mixChannel(mainSample, subSample, m_mixRight, m_mainVolume, m_mainVolume, gainBoost);
+
+            // Step 3: Apply BL balance (L/R gain adjustment after MX routing)
+            left *= balLeftGain;
+            right *= balRightGain;
+        }
+
+        // Step 4: Clamp
+        out[i * 2] = qBound(-1.0f, left, 1.0f);
+        out[i * 2 + 1] = qBound(-1.0f, right, 1.0f);
     }
 
-    return monoPcm;
+    return stereoPcm;
 }
 
 QByteArray OpusDecoder::decode(const QByteArray &opusData) {

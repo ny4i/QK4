@@ -224,6 +224,16 @@ void RadioState::setCompression(int level) {
     }
 }
 
+void RadioState::setBalance(int mode, int offset) {
+    mode = qBound(0, mode, 1);
+    offset = qBound(-50, offset, 50);
+    if (m_balanceMode != mode || m_balanceOffset != offset) {
+        m_balanceMode = mode;
+        m_balanceOffset = offset;
+        emit balanceChanged(mode, offset);
+    }
+}
+
 void RadioState::setMonitorLevel(int mode, int level) {
     level = qBound(0, level, 100);
     int *target = nullptr;
@@ -717,6 +727,7 @@ void RadioState::registerCommandHandlers() {
     m_commandHandlers.append({"FP", [this](const QString &c) { handleFP(c); }});
     m_commandHandlers.append({"FX", [this](const QString &c) { handleFX(c); }});
     m_commandHandlers.append({"MD", [this](const QString &c) { handleMD(c); }});
+    m_commandHandlers.append({"BL", [this](const QString &c) { handleBL(c); }});
     m_commandHandlers.append({"BW", [this](const QString &c) { handleBW(c); }});
     m_commandHandlers.append({"IS", [this](const QString &c) { handleIS(c); }});
     m_commandHandlers.append({"CW", [this](const QString &c) { handleCW(c); }});
@@ -750,6 +761,7 @@ void RadioState::registerCommandHandlers() {
     m_commandHandlers.append({"VI", [this](const QString &c) { handleVI(c); }});
     m_commandHandlers.append({"MI", [this](const QString &c) { handleMI(c); }});
     m_commandHandlers.append({"MS", [this](const QString &c) { handleMS(c); }});
+    m_commandHandlers.append({"MX", [this](const QString &c) { handleMX(c); }});
     m_commandHandlers.append({"MN", [this](const QString &c) { handleMN(c); }});
     m_commandHandlers.append({"ES", [this](const QString &c) { handleES(c); }});
     m_commandHandlers.append({"SD", [this](const QString &c) { handleSD(c); }});
@@ -1039,6 +1051,68 @@ void RadioState::handleML(const QString &cmd) {
     if (target && *target != level) {
         *target = level;
         emit monitorLevelChanged(mode, level);
+    }
+}
+
+void RadioState::handleBL(const QString &cmd) {
+    // Balance - BLm±nn where m=mode (0=NOR, 1=BAL), ±nn=offset (-50 to +50)
+    // Examples: BL0+00, BL0+02, BL0-03, BL1+00, BL1-01
+    if (cmd.length() < 5)
+        return;
+    int mode = cmd[2].digitValue();
+    if (mode < 0 || mode > 1)
+        return;
+    QChar sign = cmd[3];
+    bool ok;
+    int nn = cmd.mid(4).toInt(&ok);
+    if (!ok)
+        return;
+    int offset = (sign == '-') ? -nn : nn;
+    offset = qBound(-50, offset, 50);
+    if (m_balanceMode != mode || m_balanceOffset != offset) {
+        m_balanceMode = mode;
+        m_balanceOffset = offset;
+        emit balanceChanged(mode, offset);
+    }
+}
+
+void RadioState::handleMX(const QString &cmd) {
+    // Audio Mix routing - MXL.R where L and R are component strings
+    // Format: "MX" followed by "left.right" e.g. "MXA.B", "MXAB.AB", "MXA.-A"
+    // Components: A=main(0), B=sub(1), AB=main+sub(2), -A=neg main(3)
+    if (cmd.length() < 5)
+        return;
+
+    QString body = cmd.mid(2); // e.g. "A.B", "AB.AB", "A.-A"
+    int dotPos = body.indexOf('.');
+    if (dotPos < 1 || dotPos >= body.length() - 1)
+        return;
+
+    QString leftStr = body.left(dotPos);
+    QString rightStr = body.mid(dotPos + 1);
+
+    // Map component string to MixSource value
+    auto mapComponent = [](const QString &s) -> int {
+        if (s == "A")
+            return 0; // MixA
+        if (s == "B")
+            return 1; // MixB
+        if (s == "AB")
+            return 2; // MixAB
+        if (s == "-A")
+            return 3; // MixNegA
+        return -1;
+    };
+
+    int left = mapComponent(leftStr);
+    int right = mapComponent(rightStr);
+    if (left < 0 || right < 0)
+        return;
+
+    if (m_audioMixLeft != left || m_audioMixRight != right) {
+        m_audioMixLeft = left;
+        m_audioMixRight = right;
+        emit audioMixChanged(left, right);
     }
 }
 

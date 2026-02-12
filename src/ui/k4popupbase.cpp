@@ -69,7 +69,7 @@ void K4PopupBase::showAboveWidget(QWidget *referenceWidget) {
     int popupY = refGlobal.y() - totalHeight;
 
     // Ensure popup stays on screen
-    QRect screenGeom = QApplication::primaryScreen()->availableGeometry();
+    QRect screenGeom = referenceWidget->screen()->availableGeometry();
 
     // Check left edge
     if (popupX < screenGeom.left() - K4Styles::Dimensions::ShadowMargin) {

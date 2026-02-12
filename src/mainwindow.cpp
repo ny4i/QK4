@@ -1109,6 +1109,11 @@ MainWindow::MainWindow(QWidget *parent)
             // Auto-hide mini pan B if VFOs are on different bands (can't have mini pan B without SUB RX)
             checkAndHideMiniPanB();
         }
+
+        // Mute/unmute sub RX audio channel
+        if (m_opusDecoder) {
+            m_opusDecoder->setSubMuted(!enabled);
+        }
     });
 
     // DIV indicator - green only when BOTH diversity AND sub RX are enabled
@@ -2233,9 +2238,22 @@ void MainWindow::setupUi() {
     });
 
     // Connect sub volume slider to OpusDecoder (Sub RX / VFO B)
+    // In BAL mode, this slider controls L/R balance offset instead of sub volume
     connect(m_sideControlPanel, &SideControlPanel::subVolumeChanged, this, [this](int value) {
         if (m_opusDecoder) {
-            m_opusDecoder->setSubVolume(value / 100.0f);
+            if (m_radioState->balanceMode() == 1) {
+                // BAL mode: slider controls L/R balance (0-100 maps to -50..+50)
+                int offset = value - 50;
+                m_opusDecoder->setBalanceOffset(offset);
+                // Send BL command to radio with current mode and new offset
+                QString sign = offset >= 0 ? "+" : "-";
+                QString cmd = QString("BL1%1%2;").arg(sign).arg(qAbs(offset), 2, 10, QChar('0'));
+                m_tcpClient->sendCAT(cmd);
+                m_radioState->setBalance(1, offset);
+            } else {
+                // NOR mode: slider controls sub RX volume
+                m_opusDecoder->setSubVolume(value / 100.0f);
+            }
         }
         RadioSettings::instance()->setSubVolume(value); // Persist setting
     });
@@ -2438,6 +2456,32 @@ void MainWindow::setupUi() {
         m_sideControlPanel->updateMonitorMode(monMode);
     });
 
+    // Connect balance wheel signal (BL command)
+    connect(m_sideControlPanel, &SideControlPanel::balChangeRequested, this, [this](int mode, int offset) {
+        QString sign = offset >= 0 ? "+" : "-";
+        QString cmd = QString("BL%1%2%3;").arg(mode).arg(sign).arg(qAbs(offset), 2, 10, QChar('0'));
+        m_tcpClient->sendCAT(cmd);
+        m_radioState->setBalance(mode, offset);
+    });
+
+    // Update BAL overlay and button when RadioState changes
+    connect(m_radioState, &RadioState::balanceChanged, m_sideControlPanel, &SideControlPanel::updateBalance);
+
+    // Forward balance state to audio decoder for L/R routing
+    connect(m_radioState, &RadioState::balanceChanged, this, [this](int mode, int offset) {
+        if (m_opusDecoder) {
+            m_opusDecoder->setBalanceMode(mode);
+            m_opusDecoder->setBalanceOffset(offset);
+        }
+    });
+
+    // Forward audio mix routing (MX command) to decoder
+    connect(m_radioState, &RadioState::audioMixChanged, this, [this](int left, int right) {
+        if (m_opusDecoder) {
+            m_opusDecoder->setAudioMix(left, right);
+        }
+    });
+
     // Connect right side panel button signals to CAT commands
     // Primary (left-click) signals
     connect(m_rightSidePanel, &RightSidePanel::preClicked, this, [this]() { m_tcpClient->sendCAT("SW61;"); });
@@ -2446,7 +2490,8 @@ void MainWindow::setupUi() {
     connect(m_rightSidePanel, &RightSidePanel::ntchClicked, this, [this]() { m_tcpClient->sendCAT("SW31;"); });
     connect(m_rightSidePanel, &RightSidePanel::filClicked, this, [this]() { m_tcpClient->sendCAT("SW33;"); });
     connect(m_rightSidePanel, &RightSidePanel::abClicked, this, [this]() { m_tcpClient->sendCAT("SW41;"); });
-    // revClicked - TBD (needs press/release pattern)
+    connect(m_rightSidePanel, &RightSidePanel::revPressed, this, [this]() { m_tcpClient->sendCAT("SW160;"); });
+    connect(m_rightSidePanel, &RightSidePanel::revReleased, this, [this]() { m_tcpClient->sendCAT("SW161;"); });
     connect(m_rightSidePanel, &RightSidePanel::atobClicked, this, [this]() { m_tcpClient->sendCAT("SW72;"); });
     connect(m_rightSidePanel, &RightSidePanel::spotClicked, this, [this]() { m_tcpClient->sendCAT("SW42;"); });
     connect(m_rightSidePanel, &RightSidePanel::modeClicked, this, [this]() {
@@ -4155,8 +4200,8 @@ void MainWindow::onAudioData(const QByteArray &payload) {
         return;
     }
 
-    // Decode K4 audio packet (handles header parsing, stereo decode, de-interleave, gain boost)
-    // Returns mono Float32 PCM for main channel (RX1/VFO A) only
+    // Decode K4 audio packet (handles header parsing, stereo decode, volume/balance mixing)
+    // Returns stereo Float32 PCM (L=Main, R=Sub with mute/balance applied)
     QByteArray pcmData = m_opusDecoder->decodeK4Packet(payload);
 
     if (!pcmData.isEmpty()) {

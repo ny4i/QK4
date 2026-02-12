@@ -173,7 +173,7 @@ void SideControlPanel::setupUi() {
     // Connect NORM button - just sends command, no overlay
     connect(m_normBtn, &QPushButton::clicked, this, [this]() { emit swCommandRequested("SW129;"); });
 
-    // Connect BAL button - toggles BAL overlay
+    // Connect BAL button - sends SW130 and toggles BAL overlay
     connect(m_balBtn, &QPushButton::clicked, this, [this]() {
         emit swCommandRequested("SW130;");
         if (m_balOverlay->isVisible()) {
@@ -656,6 +656,12 @@ void SideControlPanel::updateMonitorLevel(int mode, int level) {
 void SideControlPanel::updateMonitorMode(int mode) {
     if (m_monOverlay) {
         m_monOverlay->setMode(mode);
+    }
+}
+
+void SideControlPanel::updateBalance(int mode, int offset) {
+    if (m_balOverlay) {
+        m_balOverlay->setBalance(mode, offset);
     }
 }
 

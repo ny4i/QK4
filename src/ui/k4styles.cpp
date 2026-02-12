@@ -367,6 +367,11 @@ QString compactButton() {
         QPushButton:pressed {
             background: %6;
         }
+        QPushButton:checked {
+            background: %7;
+            color: %8;
+            border: 1px solid %9;
+        }
     )")
         .arg(gradientCss(Colors::GradientTop, Colors::GradientMid1, Colors::GradientMid2, Colors::GradientBottom))
         .arg(Colors::BorderNormal)
@@ -374,7 +379,10 @@ QString compactButton() {
         .arg(Dimensions::FontSizeNormal)
         .arg(gradientCss(Colors::HoverTop, Colors::HoverMid1, Colors::HoverMid2, Colors::HoverBottom))
         .arg(gradientCssReversed(Colors::GradientTop, Colors::GradientMid1, Colors::GradientMid2,
-                                 Colors::GradientBottom));
+                                 Colors::GradientBottom))
+        .arg(gradientCss(Colors::SelectedTop, Colors::SelectedMid1, Colors::SelectedMid2, Colors::SelectedBottom))
+        .arg(Colors::TextDark)
+        .arg(Colors::BorderSelected);
 }
 
 QString sidePanelButton() {
