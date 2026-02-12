@@ -4,7 +4,7 @@ All notable changes to QK4 will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [0.4.0-beta.3] - 2026-02-12
 
 ### Added
 - **RX audio jitter buffer**: Decoded PCM packets are queued and drained by a 10ms timer instead of writing directly to the audio device, eliminating crackle/pop artifacts from buffer underruns
@@ -181,6 +181,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Mini-Pan now shows center frequency marker line (darker shade of passband color)
 
 ### Fixed
+- **RadioState initial state suppression**: 17 member variables used defaults matching common K4 state (e.g., `m_mode = USB`), causing the change guard to suppress the first signal emission on connect — side panel showed CW controls instead of voice controls when radio was in USB mode. Fixed with sentinel defaults that always trigger on first update.
 - **Multi-monitor popup positioning**: All popups now follow the app window to secondary monitors (replaced `primaryScreen()` with `referenceWidget->screen()`)
 - **Notch filter indicator**: Red vertical line no longer renders entire grid red (added dedicated GPU buffers for notch rendering)
 - **PWR display shows "--" on connect at 50W**: RadioState `m_rfPower` was initialized to 50.0, matching the radio's default power level. When the RDY dump returned PC050H (50W QRO), the change-detection guard suppressed the signal and the display stayed at "--". Fixed by using -1.0 sentinel value, matching the pattern used by all neighboring fields.
