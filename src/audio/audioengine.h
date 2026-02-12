@@ -7,6 +7,7 @@
 #include <QAudioFormat>
 #include <QIODevice>
 #include <QTimer>
+#include <QQueue>
 
 class AudioEngine : public QObject {
     Q_OBJECT
@@ -17,7 +18,7 @@ public:
 
     bool start();
     void stop();
-    void playAudio(const QByteArray &pcmData);
+    void enqueueAudio(const QByteArray &pcmData);
 
     void setMicEnabled(bool enabled);
     bool isMicEnabled() const { return m_micEnabled; }
@@ -49,6 +50,7 @@ signals:
 
 private slots:
     void onMicDataReady();
+    void feedAudioDevice();
 
 private:
     bool setupAudioOutput();
@@ -97,6 +99,14 @@ private:
 
     // Timer for polling microphone data (more reliable than readyRead signal)
     QTimer *m_micPollTimer;
+
+    // Jitter buffer for RX audio playback
+    QQueue<QByteArray> m_audioQueue;
+    QTimer *m_feedTimer;
+    bool m_prebuffering = true;
+    static constexpr int PREBUFFER_PACKETS = 2;    // ~40ms prebuffer (2 × 20ms Opus packets)
+    static constexpr int MAX_QUEUE_PACKETS = 50;   // ~1s overflow cap
+    static constexpr int FEED_INTERVAL_MS = 10;
 };
 
 #endif // AUDIOENGINE_H

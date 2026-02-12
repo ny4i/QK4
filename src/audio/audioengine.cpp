@@ -24,6 +24,11 @@ AudioEngine::AudioEngine(QObject *parent)
     m_micPollTimer->setInterval(10); // Poll every 10ms for low latency
     connect(m_micPollTimer, &QTimer::timeout, this, &AudioEngine::onMicDataReady);
 
+    // Create feed timer for jitter-buffered RX audio playback
+    m_feedTimer = new QTimer(this);
+    m_feedTimer->setInterval(FEED_INTERVAL_MS);
+    connect(m_feedTimer, &QTimer::timeout, this, &AudioEngine::feedAudioDevice);
+
     // Setup audio input immediately so mic testing works without radio connection
     setupAudioInput();
 }
@@ -35,6 +40,10 @@ AudioEngine::~AudioEngine() {
 bool AudioEngine::start() {
     bool outputOk = setupAudioOutput();
 
+    if (outputOk) {
+        m_feedTimer->start();
+    }
+
     // Setup audio input if not already done (it's also called in constructor)
     bool inputOk = (m_audioSource != nullptr) || setupAudioInput();
 
@@ -44,7 +53,14 @@ bool AudioEngine::start() {
 }
 
 void AudioEngine::stop() {
-    // Stop mic polling timer first
+    // Stop feed timer and clear jitter buffer
+    if (m_feedTimer) {
+        m_feedTimer->stop();
+    }
+    m_audioQueue.clear();
+    m_prebuffering = true;
+
+    // Stop mic polling timer
     if (m_micPollTimer) {
         m_micPollTimer->stop();
     }
@@ -148,12 +164,34 @@ bool AudioEngine::setupAudioInput() {
     return true;
 }
 
-void AudioEngine::playAudio(const QByteArray &pcmData) {
-    if (!m_audioSinkDevice || pcmData.isEmpty()) {
-        return;
+void AudioEngine::enqueueAudio(const QByteArray &pcmData) {
+    if (pcmData.isEmpty()) return;
+
+    // Overflow protection: drop oldest if queue too deep
+    while (m_audioQueue.size() >= MAX_QUEUE_PACKETS) {
+        m_audioQueue.dequeue();
     }
 
-    m_audioSinkDevice->write(pcmData);
+    m_audioQueue.enqueue(pcmData);
+}
+
+void AudioEngine::feedAudioDevice() {
+    if (!m_audioSinkDevice || m_audioQueue.isEmpty()) return;
+
+    // Wait for prebuffer to fill before starting playback
+    if (m_prebuffering) {
+        if (m_audioQueue.size() < PREBUFFER_PACKETS) return;
+        m_prebuffering = false;
+    }
+
+    // Write as many queued packets as the sink can accept
+    while (!m_audioQueue.isEmpty()) {
+        const QByteArray &front = m_audioQueue.head();
+        int bytesFree = m_audioSink->bytesFree();
+        if (bytesFree < front.size()) break;
+
+        m_audioSinkDevice->write(m_audioQueue.dequeue());
+    }
 }
 
 void AudioEngine::setMicEnabled(bool enabled) {
