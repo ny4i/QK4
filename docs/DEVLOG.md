@@ -1,5 +1,37 @@
 # QK4 Development Log
 
+## February 12, 2026
+
+### Feature: RX Audio Jitter Buffer (Issue #32)
+
+**Summary:** RX audio had crackle/pop artifacts from buffer underruns. The audio path was fully synchronous — `playAudio()` wrote decoded PCM directly to `QIODevice::write()` with no buffering between network receive and audio output.
+
+**Problem:** The QAudioSink hardware buffer (~100ms) couldn't absorb network jitter. Any late TCP packet starved the buffer and produced an audible crack/pop — even on local gigabit LAN.
+
+**Solution:** Added a packet queue (`QQueue<QByteArray>`) between the Opus decoder and the audio device. A 10ms feed timer (`feedAudioDevice()`) drains the queue into the sink, writing only as many packets as `bytesFree()` allows. Prebuffering accumulates 1 packet (~20ms) before starting playback.
+
+**Tuning:** Initially used 2-packet prebuffer (~40ms), but this introduced visible audio-visual desync — S-meter and waterfall updated instantly while audio lagged. Reduced to 1 packet for tighter sync. Tested under 5% simulated packet loss (Network Link Conditioner) with no audible artifacts on wired LAN.
+
+**Files Modified:** `src/audio/audioengine.h`, `src/audio/audioengine.cpp`, `src/mainwindow.cpp`
+
+---
+
+### Fix: Multi-Monitor Popup Positioning
+
+**Summary:** All popups now follow the application window when moved to a secondary monitor. Previously, popups would appear on the primary monitor regardless of where the app was.
+
+**Root Cause:** Popup positioning used `QApplication::primaryScreen()` instead of `referenceWidget->screen()`.
+
+**Files Modified:** 8 popup widget files
+
+---
+
+### Fix: REV Button Press/Release Pattern
+
+**Summary:** Wired REV button using press/release CAT commands SW160 (press) and SW161 (release), matching the K4's momentary button behavior.
+
+---
+
 ## February 8, 2026
 
 ### Feature: WheelAccumulator — Unified Scroll Handling

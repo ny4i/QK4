@@ -7,6 +7,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **RX audio jitter buffer**: Decoded PCM packets are queued and drained by a 10ms timer instead of writing directly to the audio device, eliminating crackle/pop artifacts from buffer underruns
+  - 1-packet (~20ms) prebuffer absorbs network jitter without visible audio-visual desync
+  - Overflow cap at 50 packets (~1s) drops oldest to bound memory
+  - Queue clears on disconnect for clean reconnect/rebuffer
+- **Stereo audio output with MX routing**: Main RX and Sub RX audio now routes to L/R speakers via K4's MX (audio mix) command
+  - SUB mute: Sub channel silenced when Sub RX is off (both speakers get Main audio)
+  - MX routing modes: A.B, A.A, AB.AB, -A.B (matches K4 front panel MX settings)
+  - BL balance: L/R gain adjustment in BAL mode (-50 to +50 offset)
+- **REV button**: Press/release pattern using SW160 (press) and SW161 (release) CAT commands
 - **WheelAccumulator utility class**: Centralized scroll-wheel handling for all 16 wheel-enabled widgets
   - Accumulates fractional trackpad scroll deltas into discrete integer steps
   - Per-key accumulators for widgets with modifier-based axes (e.g., panadapter: plain/Shift/Ctrl)
@@ -172,6 +181,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Mini-Pan now shows center frequency marker line (darker shade of passband color)
 
 ### Fixed
+- **Multi-monitor popup positioning**: All popups now follow the app window to secondary monitors (replaced `primaryScreen()` with `referenceWidget->screen()`)
+- **Notch filter indicator**: Red vertical line no longer renders entire grid red (added dedicated GPU buffers for notch rendering)
 - **PWR display shows "--" on connect at 50W**: RadioState `m_rfPower` was initialized to 50.0, matching the radio's default power level. When the RDY dump returned PC050H (50W QRO), the change-detection guard suppressed the signal and the display stayed at "--". Fixed by using -1.0 sentinel value, matching the pattern used by all neighboring fields.
 - **AVERAGE popup bug**: No longer sends CAT command when opening (was cycling value on click)
 - **AVERAGE increment**: Now steps by 1 (was jumping by 5) with optimistic UI update
@@ -205,9 +216,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - RF Gain button faces now display with minus sign (e.g., "-0", "-30")
 - Power button face shows decimals for QRP mode (≤10W: "9.9"), whole numbers for QRO (>10W: "50")
 - Power transitions smoothly between QRP (0.1W steps) and QRO (1W steps) at 10W threshold
-
-### Known Issues
-- **Notch filter indicator**: Red vertical line renders entire grid red instead of single line (needs dedicated GPU buffers)
 
 ---
 
