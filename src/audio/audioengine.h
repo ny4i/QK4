@@ -104,7 +104,7 @@ private:
     QQueue<QByteArray> m_audioQueue;
     QTimer *m_feedTimer;
     bool m_prebuffering = true;
-    static constexpr int PREBUFFER_PACKETS = 2;  // ~40ms prebuffer (2 × 20ms Opus packets)
+    static constexpr int PREBUFFER_PACKETS = 1;  // ~20ms prebuffer (1 × 20ms Opus packet)
     static constexpr int MAX_QUEUE_PACKETS = 50; // ~1s overflow cap
     static constexpr int FEED_INTERVAL_MS = 10;
 };
