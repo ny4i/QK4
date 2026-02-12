@@ -165,7 +165,8 @@ bool AudioEngine::setupAudioInput() {
 }
 
 void AudioEngine::enqueueAudio(const QByteArray &pcmData) {
-    if (pcmData.isEmpty()) return;
+    if (pcmData.isEmpty())
+        return;
 
     // Overflow protection: drop oldest if queue too deep
     while (m_audioQueue.size() >= MAX_QUEUE_PACKETS) {
@@ -176,11 +177,13 @@ void AudioEngine::enqueueAudio(const QByteArray &pcmData) {
 }
 
 void AudioEngine::feedAudioDevice() {
-    if (!m_audioSinkDevice || m_audioQueue.isEmpty()) return;
+    if (!m_audioSinkDevice || m_audioQueue.isEmpty())
+        return;
 
     // Wait for prebuffer to fill before starting playback
     if (m_prebuffering) {
-        if (m_audioQueue.size() < PREBUFFER_PACKETS) return;
+        if (m_audioQueue.size() < PREBUFFER_PACKETS)
+            return;
         m_prebuffering = false;
     }
 
@@ -188,7 +191,8 @@ void AudioEngine::feedAudioDevice() {
     while (!m_audioQueue.isEmpty()) {
         const QByteArray &front = m_audioQueue.head();
         int bytesFree = m_audioSink->bytesFree();
-        if (bytesFree < front.size()) break;
+        if (bytesFree < front.size())
+            break;
 
         m_audioSinkDevice->write(m_audioQueue.dequeue());
     }
