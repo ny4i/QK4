@@ -1,6 +1,6 @@
 # Status
 
-Current implementation state of QK4 (January 2026).
+Current implementation state of QK4 (February 2026).
 
 ## Implemented Features
 
@@ -9,8 +9,8 @@ Current implementation state of QK4 (January 2026).
 - Dual VFO display (A/B) with frequency, mode, S-meter
 - **GPU-accelerated panadapter** via Qt RHI (Metal/DirectX/Vulkan)
 - Mini-Pan widget in VFO area (mode-dependent bandwidth: CW=3kHz, Voice/Data=10kHz)
-- **Dual-channel audio mixing**: MAIN volume (left), SUB volume (right)
-- Opus audio decoding and playback
+- **Stereo audio with MX routing**: MAIN/SUB mix to L/R via K4's MX command, SUB mute, BL balance
+- Opus audio decoding and playback with jitter-buffered output (20ms prebuffer)
 - Server manager dialog with TLS checkbox and PSK field
 - **HD fonts**: Inter with tabular figures for all UI and data displays
 

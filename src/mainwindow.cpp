@@ -4205,7 +4205,7 @@ void MainWindow::onAudioData(const QByteArray &payload) {
     QByteArray pcmData = m_opusDecoder->decodeK4Packet(payload);
 
     if (!pcmData.isEmpty()) {
-        m_audioEngine->playAudio(pcmData);
+        m_audioEngine->enqueueAudio(pcmData);
     }
 }
 
