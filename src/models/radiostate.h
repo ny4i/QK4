@@ -11,7 +11,7 @@ class RadioState : public QObject {
     Q_OBJECT
 
 public:
-    enum Mode { LSB = 1, USB = 2, CW = 3, FM = 4, AM = 5, DATA = 6, CW_R = 7, DATA_R = 9 };
+    enum Mode { Unknown = 0, LSB = 1, USB = 2, CW = 3, FM = 4, AM = 5, DATA = 6, CW_R = 7, DATA_R = 9 };
     Q_ENUM(Mode)
 
     enum AGCSpeed { AGC_Off = 0, AGC_Slow = 1, AGC_Fast = 2 };
@@ -664,16 +664,16 @@ private:
     quint64 m_frequency = 0;
     quint64 m_vfoA = 0;
     quint64 m_vfoB = 0;
-    int m_tuningStep = 3;
-    int m_tuningStepB = 3;
+    int m_tuningStep = -1;
+    int m_tuningStepB = -1;
 
     // Mode and filter
-    Mode m_mode = USB;
-    Mode m_modeB = USB;
-    int m_filterBandwidth = 2400;
-    int m_filterBandwidthB = 2400;
-    int m_filterPosition = 2;
-    int m_filterPositionB = 2;
+    Mode m_mode = Unknown;
+    Mode m_modeB = Unknown;
+    int m_filterBandwidth = -1;
+    int m_filterBandwidthB = -1;
+    int m_filterPosition = -1;
+    int m_filterPositionB = -1;
     int m_ifShift = -1;  // IF shift position (0-99, 50=centered) - init to -1 to ensure first emit
     int m_ifShiftB = -1; // Sub RX IF shift
     int m_cwPitch = -1;  // Init to -1 to ensure first emit
@@ -744,10 +744,10 @@ private:
     AGCSpeed m_agcSpeedB = AGC_Slow;
 
     // Antenna
-    int m_selectedAntenna = 1;
-    int m_receiveAntenna = 1;
-    int m_receiveAntennaSub = 1;
-    int m_atuMode = 1;
+    int m_selectedAntenna = -1;
+    int m_receiveAntenna = -1;
+    int m_receiveAntennaSub = -1;
+    int m_atuMode = -1;
     QMap<int, QString> m_antennaNames;
 
     // RIT/XIT
@@ -756,7 +756,7 @@ private:
     int m_ritXitOffset = 0;
 
     // Message bank
-    int m_messageBank = 1;
+    int m_messageBank = -1;
 
     // VOX
     bool m_voxCW = false;
@@ -795,12 +795,12 @@ private:
 
     // Audio mix routing (MX command) - default A.B (main left, sub right)
     // Values are MixSource enum: 0=A(main), 1=B(sub), 2=AB(main+sub), 3=-A(neg main)
-    int m_audioMixLeft = 0;  // MixA
-    int m_audioMixRight = 1; // MixB
+    int m_audioMixLeft = -1;
+    int m_audioMixRight = -1;
 
     // Audio balance (BL command) - MAIN/SUB balance
-    int m_balanceMode = 0;   // 0=NOR, 1=BAL
-    int m_balanceOffset = 0; // -50 to +50
+    int m_balanceMode = -1;
+    int m_balanceOffset = -99; // sentinel outside valid range (-50 to +50)
 
     // Monitor Level (ML command) - sidetone/speech monitor (0-100)
     int m_monitorLevelCW = -1;    // CW sidetone level

@@ -74,8 +74,9 @@ QString RadioState::modeToString(Mode mode) {
         return "CW-R";
     case DATA_R:
         return "DATA-R";
+    case Unknown:
     default:
-        return "USB";
+        return "";
     }
 }
 
