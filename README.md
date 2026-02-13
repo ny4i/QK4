@@ -45,7 +45,7 @@ Pre-built releases are available on the [Releases](https://github.com/mikeg-dal/
 ### Raspberry Pi Prerequisites
 
 - Raspberry Pi 4 or 5 with a desktop environment (X11 or Wayland)
-- Debian Trixie, Ubuntu 24.04+, or Raspberry Pi OS Bookworm+
+- Debian Trixie or Ubuntu 24.04+
 - **First run requires `sudo`** — the launcher (`run.sh`) installs a udev rule to grant non-root access to the Elecraft KPOD USB device. Without this rule, the Linux kernel restricts access to `/dev/hidraw*` nodes and the KPOD cannot be opened. After the first run, `sudo` is no longer needed and the KPOD will work as a normal user. If you don't have a KPOD, `sudo` is not required.
 
 ## Building from Source
