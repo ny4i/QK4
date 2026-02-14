@@ -486,43 +486,6 @@ jobs:
           body_path: release_notes.md
           prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') }}
 
-  update-docs:
-    needs: [release]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-
-      - name: Install git-cliff
-        run: |
-          GC_URL=$(gh release view --repo orhun/git-cliff --json assets --jq '.assets[] | select(.name | test("x86_64-unknown-linux-gnu.tar.gz$")) | .url')
-          curl -sSL "$GC_URL" | tar xz
-          sudo mv git-cliff-*/git-cliff /usr/local/bin/
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Generate CHANGELOG.md
-        run: git-cliff -o CHANGELOG.md
-
-      - name: Update README.md download links
-        run: |
-          TAG="${GITHUB_REF_NAME}"
-          sed -i "s|Current release: \*\*v[^*]*\*\*|Current release: **${TAG}**|" README.md
-          sed -i "s|/download/v[^/]*/|/download/${TAG}/|g" README.md
-
-      - name: Commit and push to main
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md README.md
-          git diff --cached --quiet && exit 0
-          git commit -m "docs: auto-update changelog and readme for ${GITHUB_REF_NAME}"
-          git push
-
   publish:
     needs: [release]
     runs-on: ubuntu-latest
