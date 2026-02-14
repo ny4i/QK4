@@ -31,7 +31,7 @@ jobs:
           host: 'windows'
           target: 'desktop'
           arch: 'win64_msvc2019_64'
-          modules: 'qtmultimedia qtshadertools qtserialport'
+          modules: 'qtmultimedia qtshadertools qtserialport qtsvg'
           cache: true
 
       - name: Setup vcpkg
