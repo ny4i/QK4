@@ -3861,6 +3861,141 @@ void MainWindow::updateConnectionState(TcpClient::ConnectionState state) {
         m_vfoB->setTransmitting(false);
         m_vfoB->setTxMeters(0, 0, 0, 1.0);
 
+        // Reset model state so all change-guards fire on reconnect
+        m_radioState->reset();
+
+        // --- Reset all remaining UI to clean default state ---
+
+        // Mode labels
+        m_modeALabel->setText("");
+        m_modeBLabel->setText("");
+
+        // Antenna labels
+        m_txAntennaLabel->setText("");
+        m_rxAntALabel->setText("");
+        m_rxAntBLabel->setText("");
+
+        // Split
+        m_splitLabel->setText("SPLIT OFF");
+        m_splitLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(K4Styles::Colors::AccentAmber));
+
+        // TX indicators (default: left triangle, amber)
+        m_txTriangle->setText("◀");
+        m_txTriangleB->setText("");
+
+        // B SET
+        m_bSetLabel->setVisible(false);
+
+        // SUB/DIV (disabled state)
+        m_subLabel->setStyleSheet(
+            QString("background-color: %1; color: %2; font-size: 9px; font-weight: bold; border-radius: 2px;")
+                .arg(K4Styles::Colors::DisabledBackground, K4Styles::Colors::LightGradientTop));
+        m_divLabel->setStyleSheet(
+            QString("background-color: %1; color: %2; font-size: 9px; font-weight: bold; border-radius: 2px;")
+                .arg(K4Styles::Colors::DisabledBackground, K4Styles::Colors::LightGradientTop));
+
+        // Dim VFO B (SUB off state)
+        m_vfoB->frequencyDisplay()->setNormalColor(QColor(K4Styles::Colors::InactiveGray));
+        m_modeBLabel->setStyleSheet(
+            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::InactiveGray));
+
+        // Message bank
+        m_msgBankLabel->setText("MSG: I");
+        m_msgBankLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(K4Styles::Colors::TextGray));
+
+        // RIT/XIT (disabled state)
+        m_ritLabel->setStyleSheet(
+            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::InactiveGray));
+        m_xitLabel->setStyleSheet(
+            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::InactiveGray));
+        m_ritXitValueLabel->setText("+0.00");
+        m_ritXitValueLabel->setStyleSheet(
+            QString("color: %1; font-size: 14px; font-weight: bold;").arg(K4Styles::Colors::InactiveGray));
+
+        // ATU (grey/inactive)
+        m_atuLabel->setStyleSheet(
+            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
+
+        // VOX / QSK (grey/inactive)
+        m_voxLabel->setStyleSheet(
+            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
+        m_qskLabel->setStyleSheet(
+            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
+
+        // TEST (hidden)
+        m_testLabel->setVisible(false);
+
+        // VFO indicators (AGC, PRE, ATT, NB, NR, Notch, APF, Tuning Rate)
+        m_vfoA->setAGC("AGC");
+        m_vfoA->setPreamp(false, 0);
+        m_vfoA->setAtt(false, 0);
+        m_vfoA->setNB(false);
+        m_vfoA->setNR(false);
+        m_vfoA->setNotch(false, false);
+        m_vfoA->setApf(false, 0);
+        m_vfoA->setTuningRate(0);
+
+        m_vfoB->setAGC("AGC");
+        m_vfoB->setPreamp(false, 0);
+        m_vfoB->setAtt(false, 0);
+        m_vfoB->setNB(false);
+        m_vfoB->setNR(false);
+        m_vfoB->setNotch(false, false);
+        m_vfoB->setApf(false, 0);
+        m_vfoB->setTuningRate(0);
+
+        // VFO locks (both unlocked)
+        m_vfoRow->setLockA(false);
+        m_vfoRow->setLockB(false);
+
+        // Side control panel values
+        m_sideControlPanel->setBandwidth(0);
+        m_sideControlPanel->setShift(0);
+        m_sideControlPanel->setHighCut(0);
+        m_sideControlPanel->setLowCut(0);
+        m_sideControlPanel->setPower(0);
+        m_sideControlPanel->setDelay(0);
+        m_sideControlPanel->setWpm(0);
+        m_sideControlPanel->setPitch(0);
+        m_sideControlPanel->setMicGain(0);
+        m_sideControlPanel->setCompression(0);
+        m_sideControlPanel->setMainRfGain(0);
+        m_sideControlPanel->setMainSquelch(0);
+        m_sideControlPanel->setSubRfGain(0);
+        m_sideControlPanel->setSubSquelch(0);
+
+        // Status bar values
+        m_powerLabel->setText("--- W");
+        m_swrLabel->setText("-.-:1");
+        m_voltageLabel->setText("--.- V");
+        m_currentLabel->setText("-.- A");
+        m_sideControlPanel->setPowerReading(0);
+        m_sideControlPanel->setSwr(1.0);
+        m_sideControlPanel->setVoltage(0);
+        m_sideControlPanel->setCurrent(0);
+
+        // Filter indicator widgets
+        m_filterAWidget->setBandwidth(0);
+        m_filterAWidget->setShift(50);
+        m_filterAWidget->setFilterPosition(1);
+        m_filterAWidget->setMode("");
+        m_filterBWidget->setBandwidth(0);
+        m_filterBWidget->setShift(50);
+        m_filterBWidget->setFilterPosition(1);
+        m_filterBWidget->setMode("");
+
+        // VFO mini-pan overlays (reset mode/filter state)
+        m_vfoA->setMiniPanMode("USB");
+        m_vfoA->setMiniPanFilterBandwidth(2400);
+        m_vfoA->setMiniPanIfShift(50);
+        m_vfoA->setMiniPanCwPitch(600);
+        m_vfoA->setMiniPanNotchFilter(false, 0);
+        m_vfoB->setMiniPanMode("USB");
+        m_vfoB->setMiniPanFilterBandwidth(2400);
+        m_vfoB->setMiniPanIfShift(50);
+        m_vfoB->setMiniPanCwPitch(600);
+        m_vfoB->setMiniPanNotchFilter(false, 0);
+
         // Clear menu model
         m_menuModel->clear();
 

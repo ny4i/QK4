@@ -19,6 +19,9 @@ public:
 
     explicit RadioState(QObject *parent = nullptr);
 
+    // Reset all state to initial values (used on disconnect for clean reconnect)
+    void reset();
+
     // Parse a CAT command response and update state
     void parseCATCommand(const QString &command);
 
