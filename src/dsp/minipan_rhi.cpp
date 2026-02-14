@@ -838,6 +838,22 @@ void MiniPanRhiWidget::clear() {
     m_smoothedBaseline = 0.0f;
     m_waterfallData.fill(0);
     m_waterfallNeedsFullClear = true;
+
+    // Reset persistent display state for clean reconnect
+    m_notchEnabled = false;
+    m_notchPitchHz = 0;
+    m_mode = "USB";
+    m_bandwidthHz = 10000;
+    m_filterBw = 2400;
+    m_ifShift = 50;
+    m_cwPitch = 600;
+
+    // Clear frequency labels
+    if (m_leftFreqLabel)
+        m_leftFreqLabel->setText("");
+    if (m_rightFreqLabel)
+        m_rightFreqLabel->setText("");
+
     update();
 }
 
