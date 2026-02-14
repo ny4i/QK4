@@ -30,7 +30,7 @@ apt-get install -y qt6-base-dev-tools qt6-shadertools-dev
 apt-get install -y \
   qt6-base-dev:arm64 qt6-base-private-dev:arm64 \
   qt6-multimedia-dev:arm64 qt6-shadertools-dev:arm64 \
-  qt6-serialport-dev:arm64
+  qt6-serialport-dev:arm64 qt6-svg-dev:arm64
 
 # System arm64 libraries
 apt-get install -y \
@@ -106,12 +106,10 @@ for lib in \
   libQt6OpenGL.so.6 \
   libQt6OpenGLWidgets.so.6 \
   libQt6DBus.so.6 \
+  libQt6Svg.so.6 \
   libQt6XcbQpa.so.6; do
   require_lib "$ARM_LIB/$lib" "$DIST/lib/"
 done
-
-# Qt libraries that may not be present in all configurations
-optional_lib "$ARM_LIB/libQt6Svg.so.6" "$DIST/lib/"
 
 # -----------------------------------------------------------------------------
 # Qt Plugins

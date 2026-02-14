@@ -16,7 +16,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 # Core Qt components (GuiPrivate handled separately for cross-platform compatibility)
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network Multimedia ShaderTools Gui SerialPort)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network Multimedia ShaderTools Gui SerialPort Svg)
 
 # GuiPrivate is needed for QRhi access but may not have CMake config on all platforms
 if(APPLE)
@@ -239,6 +239,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Network
     Qt6::Multimedia
     Qt6::Gui
+    Qt6::Svg
     Qt6::SerialPort
     ${OPUS_LIBRARIES}
     ${HIDAPI_LIBRARIES}
