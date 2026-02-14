@@ -1568,10 +1568,10 @@ void PanadapterRhiWidget::clear() {
     m_notchPitchHz = 0;
     m_cursorVisible = false;
 
-    // Secondary VFO
+    // Secondary VFO (visibility is a UI preference set at construction;
+    // rendering is gated by freq/bw > 0 which are reset here)
     m_secondaryTunedFreq = 0;
     m_secondaryFilterBw = 0;
-    m_secondaryVisible = false;
 
     // Hide frequency labels (paintEvent returns early when spanHz <= 0)
     if (m_freqScaleOverlay)
