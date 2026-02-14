@@ -452,8 +452,11 @@ jobs:
 
       - name: Install git-cliff
         run: |
-          curl -sSL https://github.com/orhun/git-cliff/releases/latest/download/git-cliff-x86_64-unknown-linux-gnu.tar.gz | tar xz
+          GC_URL=$(gh release view --repo orhun/git-cliff --json assets --jq '.assets[] | select(.name | test("x86_64-unknown-linux-gnu.tar.gz$")) | .url')
+          curl -sSL "$GC_URL" | tar xz
           sudo mv git-cliff-*/git-cliff /usr/local/bin/
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download macOS artifact
         uses: actions/download-artifact@v4
@@ -496,8 +499,11 @@ jobs:
 
       - name: Install git-cliff
         run: |
-          curl -sSL https://github.com/orhun/git-cliff/releases/latest/download/git-cliff-x86_64-unknown-linux-gnu.tar.gz | tar xz
+          GC_URL=$(gh release view --repo orhun/git-cliff --json assets --jq '.assets[] | select(.name | test("x86_64-unknown-linux-gnu.tar.gz$")) | .url')
+          curl -sSL "$GC_URL" | tar xz
           sudo mv git-cliff-*/git-cliff /usr/local/bin/
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate CHANGELOG.md
         run: git-cliff -o CHANGELOG.md
