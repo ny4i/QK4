@@ -10,6 +10,7 @@
 #include <QGridLayout>
 #include <QSpacerItem>
 #include <QEvent>
+#include <QIcon>
 #include <QMouseEvent>
 
 SideControlPanel::SideControlPanel(QWidget *parent) : QWidget(parent) {
@@ -248,8 +249,12 @@ void SideControlPanel::setupUi() {
     iconRow->setContentsMargins(0, 0, 0, 0);
     iconRow->setSpacing(K4Styles::Dimensions::PopupButtonSpacing);
 
-    m_helpBtn = createIconButton("?");
-    m_connectBtn = createIconButton(QString::fromUtf8("\xF0\x9F\x8C\x90")); // 🌐 Globe
+    m_helpBtn = createIconButton("");
+    m_helpBtn->setIcon(QIcon(":/icons/help.svg"));
+    m_helpBtn->setIconSize(QSize(24, 24));
+    m_connectBtn = createIconButton("");
+    m_connectBtn->setIcon(QIcon(":/icons/globe.svg"));
+    m_connectBtn->setIconSize(QSize(24, 24));
     m_connectBtn->setToolTip("Connect to Radio");
 
     iconRow->addWidget(m_helpBtn);

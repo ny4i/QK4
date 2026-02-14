@@ -284,6 +284,15 @@ qt_add_resources(${PROJECT_NAME} "fonts"
         resources/fonts/Inter-Bold.ttf
 )
 
+# Embed UI icons (SVG)
+qt_add_resources(${PROJECT_NAME} "icons"
+    PREFIX "/"
+    BASE "resources"
+    FILES
+        resources/icons/globe.svg
+        resources/icons/help.svg
+)
+
 # =============================================================================
 # Deployment / Bundling - Create self-contained distributable app
 # =============================================================================
