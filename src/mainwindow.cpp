@@ -4868,30 +4868,28 @@ void MainWindow::onKpodEncoderRotated(int ticks) {
     // Action depends on rocker position
     switch (m_kpodDevice->rockerPosition()) {
     case KpodDevice::RockerLeft: // VFO A
-        {
-            quint64 currentFreq = m_radioState->vfoA();
-            int stepHz = tuningStepToHz(m_radioState->tuningStep());
-            qint64 newFreq = static_cast<qint64>(currentFreq) + static_cast<qint64>(ticks) * stepHz;
-            if (newFreq > 0) {
-                QString cmd = QString("FA%1;").arg(static_cast<quint64>(newFreq));
-                m_tcpClient->sendCAT(cmd);
-                m_radioState->parseCATCommand(cmd);
-            }
+    {
+        quint64 currentFreq = m_radioState->vfoA();
+        int stepHz = tuningStepToHz(m_radioState->tuningStep());
+        qint64 newFreq = static_cast<qint64>(currentFreq) + static_cast<qint64>(ticks) * stepHz;
+        if (newFreq > 0) {
+            QString cmd = QString("FA%1;").arg(static_cast<quint64>(newFreq));
+            m_tcpClient->sendCAT(cmd);
+            m_radioState->parseCATCommand(cmd);
         }
-        break;
+    } break;
 
     case KpodDevice::RockerCenter: // VFO B
-        {
-            quint64 currentFreq = m_radioState->vfoB();
-            int stepHz = tuningStepToHz(m_radioState->tuningStepB());
-            qint64 newFreq = static_cast<qint64>(currentFreq) + static_cast<qint64>(ticks) * stepHz;
-            if (newFreq > 0) {
-                QString cmd = QString("FB%1;").arg(static_cast<quint64>(newFreq));
-                m_tcpClient->sendCAT(cmd);
-                m_radioState->parseCATCommand(cmd);
-            }
+    {
+        quint64 currentFreq = m_radioState->vfoB();
+        int stepHz = tuningStepToHz(m_radioState->tuningStepB());
+        qint64 newFreq = static_cast<qint64>(currentFreq) + static_cast<qint64>(ticks) * stepHz;
+        if (newFreq > 0) {
+            QString cmd = QString("FB%1;").arg(static_cast<quint64>(newFreq));
+            m_tcpClient->sendCAT(cmd);
+            m_radioState->parseCATCommand(cmd);
         }
-        break;
+    } break;
 
     case KpodDevice::RockerRight: // RIT/XIT
         // Adjust RIT/XIT offset using RU/RD commands
