@@ -68,6 +68,12 @@ static constexpr int SPAN_MAX = 368000;
 static constexpr int SPAN_THRESHOLD_UP = 144000;   // Switch to 4kHz steps above this
 static constexpr int SPAN_THRESHOLD_DOWN = 140000; // Switch to 1kHz steps below this
 
+// Convert K4 tuning step index (VT command, 0-5) to Hz
+static int tuningStepToHz(int step) {
+    static const int table[] = {1, 10, 100, 1000, 10000, 100};
+    return (step >= 0 && step <= 5) ? table[step] : 1000;
+}
+
 static int getNextSpanUp(int currentSpan) {
     if (currentSpan >= SPAN_MAX)
         return SPAN_MAX;
@@ -3371,19 +3377,18 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
         m_radioState->parseCATCommand(cmd);
     });
 
-    // Mouse control: scroll wheel to adjust frequency using K4's native step
+    // Mouse control: scroll wheel to adjust frequency by computed step
     connect(m_panadapterA, &PanadapterRhiWidget::frequencyScrolled, this, [this](int steps) {
-        // Guard: only send if connected
         if (!m_tcpClient->isConnected())
             return;
-        // Use UP/DN commands - respects K4's current VFO step size
-        QString cmd = (steps > 0) ? "UP;" : "DN;";
-        int count = qAbs(steps);
-        for (int i = 0; i < count; i++) {
+        quint64 currentFreq = m_radioState->vfoA();
+        int stepHz = tuningStepToHz(m_radioState->tuningStep());
+        qint64 newFreq = static_cast<qint64>(currentFreq) + static_cast<qint64>(steps) * stepHz;
+        if (newFreq > 0) {
+            QString cmd = QString("FA%1;").arg(static_cast<quint64>(newFreq));
             m_tcpClient->sendCAT(cmd);
+            m_radioState->parseCATCommand(cmd);
         }
-        // Request frequency back to update UI
-        m_tcpClient->sendCAT("FA;");
     });
 
     // Shift+Wheel: Adjust scale (dB range) - global setting applies to both panadapters
@@ -3511,19 +3516,18 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
         m_radioState->parseCATCommand(cmd);
     });
 
-    // Mouse control for VFO B: scroll wheel to adjust frequency using K4's native step
+    // Mouse control for VFO B: scroll wheel to adjust frequency by computed step
     connect(m_panadapterB, &PanadapterRhiWidget::frequencyScrolled, this, [this](int steps) {
-        // Guard: only send if connected
         if (!m_tcpClient->isConnected())
             return;
-        // Use UP$/DN$ commands for Sub RX - respects K4's current VFO step size
-        QString cmd = (steps > 0) ? "UP$;" : "DN$;";
-        int count = qAbs(steps);
-        for (int i = 0; i < count; i++) {
+        quint64 currentFreq = m_radioState->vfoB();
+        int stepHz = tuningStepToHz(m_radioState->tuningStepB());
+        qint64 newFreq = static_cast<qint64>(currentFreq) + static_cast<qint64>(steps) * stepHz;
+        if (newFreq > 0) {
+            QString cmd = QString("FB%1;").arg(static_cast<quint64>(newFreq));
             m_tcpClient->sendCAT(cmd);
+            m_radioState->parseCATCommand(cmd);
         }
-        // Request frequency back to update UI
-        m_tcpClient->sendCAT("FB;");
     });
 
     // Shift+Wheel on panadapter B: Adjust scale (same as A - global setting)
@@ -4864,23 +4868,27 @@ void MainWindow::onKpodEncoderRotated(int ticks) {
     // Action depends on rocker position
     switch (m_kpodDevice->rockerPosition()) {
     case KpodDevice::RockerLeft: // VFO A
-        // Tune VFO A using UP/DN commands
         {
-            QString cmd = (ticks > 0) ? "UP;" : "DN;";
-            int count = qAbs(ticks);
-            for (int i = 0; i < count; i++) {
+            quint64 currentFreq = m_radioState->vfoA();
+            int stepHz = tuningStepToHz(m_radioState->tuningStep());
+            qint64 newFreq = static_cast<qint64>(currentFreq) + static_cast<qint64>(ticks) * stepHz;
+            if (newFreq > 0) {
+                QString cmd = QString("FA%1;").arg(static_cast<quint64>(newFreq));
                 m_tcpClient->sendCAT(cmd);
+                m_radioState->parseCATCommand(cmd);
             }
         }
         break;
 
     case KpodDevice::RockerCenter: // VFO B
-        // Tune VFO B using UP$/DN$ commands (Sub RX)
         {
-            QString cmd = (ticks > 0) ? "UP$;" : "DN$;";
-            int count = qAbs(ticks);
-            for (int i = 0; i < count; i++) {
+            quint64 currentFreq = m_radioState->vfoB();
+            int stepHz = tuningStepToHz(m_radioState->tuningStepB());
+            qint64 newFreq = static_cast<qint64>(currentFreq) + static_cast<qint64>(ticks) * stepHz;
+            if (newFreq > 0) {
+                QString cmd = QString("FB%1;").arg(static_cast<quint64>(newFreq));
                 m_tcpClient->sendCAT(cmd);
+                m_radioState->parseCATCommand(cmd);
             }
         }
         break;
