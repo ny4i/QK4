@@ -68,6 +68,12 @@ static constexpr int SPAN_MAX = 368000;
 static constexpr int SPAN_THRESHOLD_UP = 144000;   // Switch to 4kHz steps above this
 static constexpr int SPAN_THRESHOLD_DOWN = 140000; // Switch to 1kHz steps below this
 
+// Convert K4 tuning step index (VT command, 0-5) to Hz
+static int tuningStepToHz(int step) {
+    static const int table[] = {1, 10, 100, 1000, 10000, 100};
+    return (step >= 0 && step <= 5) ? table[step] : 1000;
+}
+
 static int getNextSpanUp(int currentSpan) {
     if (currentSpan >= SPAN_MAX)
         return SPAN_MAX;
@@ -1111,8 +1117,8 @@ MainWindow::MainWindow(QWidget *parent)
         }
 
         // Mute/unmute sub RX audio channel
-        if (m_opusDecoder) {
-            m_opusDecoder->setSubMuted(!enabled);
+        if (m_audioEngine) {
+            m_audioEngine->setSubMuted(!enabled);
         }
     });
 
@@ -2229,22 +2235,22 @@ void MainWindow::setupUi() {
         // TODO: Show help dialog
     });
 
-    // Connect volume slider to OpusDecoder (Main RX / VFO A)
+    // Connect volume slider to AudioEngine (Main RX / VFO A)
     connect(m_sideControlPanel, &SideControlPanel::volumeChanged, this, [this](int value) {
-        if (m_opusDecoder) {
-            m_opusDecoder->setMainVolume(value / 100.0f);
+        if (m_audioEngine) {
+            m_audioEngine->setMainVolume(value / 100.0f);
         }
         RadioSettings::instance()->setVolume(value); // Persist setting
     });
 
-    // Connect sub volume slider to OpusDecoder (Sub RX / VFO B)
+    // Connect sub volume slider to AudioEngine (Sub RX / VFO B)
     // In BAL mode, this slider controls L/R balance offset instead of sub volume
     connect(m_sideControlPanel, &SideControlPanel::subVolumeChanged, this, [this](int value) {
-        if (m_opusDecoder) {
+        if (m_audioEngine) {
             if (m_radioState->balanceMode() == 1) {
                 // BAL mode: slider controls L/R balance (0-100 maps to -50..+50)
                 int offset = value - 50;
-                m_opusDecoder->setBalanceOffset(offset);
+                m_audioEngine->setBalanceOffset(offset);
                 // Send BL command to radio with current mode and new offset
                 QString sign = offset >= 0 ? "+" : "-";
                 QString cmd = QString("BL1%1%2;").arg(sign).arg(qAbs(offset), 2, 10, QChar('0'));
@@ -2252,7 +2258,7 @@ void MainWindow::setupUi() {
                 m_radioState->setBalance(1, offset);
             } else {
                 // NOR mode: slider controls sub RX volume
-                m_opusDecoder->setSubVolume(value / 100.0f);
+                m_audioEngine->setSubVolume(value / 100.0f);
             }
         }
         RadioSettings::instance()->setSubVolume(value); // Persist setting
@@ -2467,18 +2473,18 @@ void MainWindow::setupUi() {
     // Update BAL overlay and button when RadioState changes
     connect(m_radioState, &RadioState::balanceChanged, m_sideControlPanel, &SideControlPanel::updateBalance);
 
-    // Forward balance state to audio decoder for L/R routing
+    // Forward balance state to audio engine for L/R routing
     connect(m_radioState, &RadioState::balanceChanged, this, [this](int mode, int offset) {
-        if (m_opusDecoder) {
-            m_opusDecoder->setBalanceMode(mode);
-            m_opusDecoder->setBalanceOffset(offset);
+        if (m_audioEngine) {
+            m_audioEngine->setBalanceMode(mode);
+            m_audioEngine->setBalanceOffset(offset);
         }
     });
 
-    // Forward audio mix routing (MX command) to decoder
+    // Forward audio mix routing (MX command) to audio engine
     connect(m_radioState, &RadioState::audioMixChanged, this, [this](int left, int right) {
-        if (m_opusDecoder) {
-            m_opusDecoder->setAudioMix(left, right);
+        if (m_audioEngine) {
+            m_audioEngine->setAudioMix(left, right);
         }
     });
 
@@ -2674,6 +2680,17 @@ void MainWindow::setupUi() {
 
     // Connect microphone frames to encoding/transmission
     connect(m_audioEngine, &AudioEngine::microphoneFrame, this, &MainWindow::onMicrophoneFrame);
+
+    // Flush audio jitter buffer on discrete filter/mode changes to avoid stale audio lag.
+    // These signals fire once per button press (not continuously like VFO tuning).
+    connect(m_radioState, &RadioState::modeChanged, m_audioEngine, &AudioEngine::flushQueue);
+    connect(m_radioState, &RadioState::modeBChanged, m_audioEngine, &AudioEngine::flushQueue);
+    connect(m_radioState, &RadioState::filterBandwidthChanged, m_audioEngine, &AudioEngine::flushQueue);
+    connect(m_radioState, &RadioState::filterBandwidthBChanged, m_audioEngine, &AudioEngine::flushQueue);
+    connect(m_radioState, &RadioState::filterPositionChanged, m_audioEngine, &AudioEngine::flushQueue);
+    connect(m_radioState, &RadioState::filterPositionBChanged, m_audioEngine, &AudioEngine::flushQueue);
+    connect(m_radioState, &RadioState::dataSubModeChanged, m_audioEngine, &AudioEngine::flushQueue);
+    connect(m_radioState, &RadioState::dataSubModeBChanged, m_audioEngine, &AudioEngine::flushQueue);
 }
 
 void MainWindow::setupTopStatusBar(QWidget *parent) {
@@ -3360,19 +3377,18 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
         m_radioState->parseCATCommand(cmd);
     });
 
-    // Mouse control: scroll wheel to adjust frequency using K4's native step
+    // Mouse control: scroll wheel to adjust frequency by computed step
     connect(m_panadapterA, &PanadapterRhiWidget::frequencyScrolled, this, [this](int steps) {
-        // Guard: only send if connected
         if (!m_tcpClient->isConnected())
             return;
-        // Use UP/DN commands - respects K4's current VFO step size
-        QString cmd = (steps > 0) ? "UP;" : "DN;";
-        int count = qAbs(steps);
-        for (int i = 0; i < count; i++) {
+        quint64 currentFreq = m_radioState->vfoA();
+        int stepHz = tuningStepToHz(m_radioState->tuningStep());
+        qint64 newFreq = static_cast<qint64>(currentFreq) + static_cast<qint64>(steps) * stepHz;
+        if (newFreq > 0) {
+            QString cmd = QString("FA%1;").arg(static_cast<quint64>(newFreq));
             m_tcpClient->sendCAT(cmd);
+            m_radioState->parseCATCommand(cmd);
         }
-        // Request frequency back to update UI
-        m_tcpClient->sendCAT("FA;");
     });
 
     // Shift+Wheel: Adjust scale (dB range) - global setting applies to both panadapters
@@ -3500,19 +3516,18 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
         m_radioState->parseCATCommand(cmd);
     });
 
-    // Mouse control for VFO B: scroll wheel to adjust frequency using K4's native step
+    // Mouse control for VFO B: scroll wheel to adjust frequency by computed step
     connect(m_panadapterB, &PanadapterRhiWidget::frequencyScrolled, this, [this](int steps) {
-        // Guard: only send if connected
         if (!m_tcpClient->isConnected())
             return;
-        // Use UP$/DN$ commands for Sub RX - respects K4's current VFO step size
-        QString cmd = (steps > 0) ? "UP$;" : "DN$;";
-        int count = qAbs(steps);
-        for (int i = 0; i < count; i++) {
+        quint64 currentFreq = m_radioState->vfoB();
+        int stepHz = tuningStepToHz(m_radioState->tuningStepB());
+        qint64 newFreq = static_cast<qint64>(currentFreq) + static_cast<qint64>(steps) * stepHz;
+        if (newFreq > 0) {
+            QString cmd = QString("FB%1;").arg(static_cast<quint64>(newFreq));
             m_tcpClient->sendCAT(cmd);
+            m_radioState->parseCATCommand(cmd);
         }
-        // Request frequency back to update UI
-        m_tcpClient->sendCAT("FB;");
     });
 
     // Shift+Wheel on panadapter B: Adjust scale (same as A - global setting)
@@ -3699,9 +3714,9 @@ void MainWindow::onAuthenticated() {
     // Start audio engine for RX audio
     if (m_audioEngine->start()) {
         qDebug() << "Audio engine started for RX audio";
-        // Apply current volume slider settings to OpusDecoder (for channel mixing)
-        m_opusDecoder->setMainVolume(m_sideControlPanel->volume() / 100.0f);
-        m_opusDecoder->setSubVolume(m_sideControlPanel->subVolume() / 100.0f);
+        // Apply current volume slider settings to AudioEngine (for channel mixing)
+        m_audioEngine->setMainVolume(m_sideControlPanel->volume() / 100.0f);
+        m_audioEngine->setSubVolume(m_sideControlPanel->subVolume() / 100.0f);
         // Apply saved mic gain setting
         m_audioEngine->setMicGain(RadioSettings::instance()->micGain() / 100.0f);
     } else {
@@ -4853,26 +4868,28 @@ void MainWindow::onKpodEncoderRotated(int ticks) {
     // Action depends on rocker position
     switch (m_kpodDevice->rockerPosition()) {
     case KpodDevice::RockerLeft: // VFO A
-        // Tune VFO A using UP/DN commands
-        {
-            QString cmd = (ticks > 0) ? "UP;" : "DN;";
-            int count = qAbs(ticks);
-            for (int i = 0; i < count; i++) {
-                m_tcpClient->sendCAT(cmd);
-            }
+    {
+        quint64 currentFreq = m_radioState->vfoA();
+        int stepHz = tuningStepToHz(m_radioState->tuningStep());
+        qint64 newFreq = static_cast<qint64>(currentFreq) + static_cast<qint64>(ticks) * stepHz;
+        if (newFreq > 0) {
+            QString cmd = QString("FA%1;").arg(static_cast<quint64>(newFreq));
+            m_tcpClient->sendCAT(cmd);
+            m_radioState->parseCATCommand(cmd);
         }
-        break;
+    } break;
 
     case KpodDevice::RockerCenter: // VFO B
-        // Tune VFO B using UP$/DN$ commands (Sub RX)
-        {
-            QString cmd = (ticks > 0) ? "UP$;" : "DN$;";
-            int count = qAbs(ticks);
-            for (int i = 0; i < count; i++) {
-                m_tcpClient->sendCAT(cmd);
-            }
+    {
+        quint64 currentFreq = m_radioState->vfoB();
+        int stepHz = tuningStepToHz(m_radioState->tuningStepB());
+        qint64 newFreq = static_cast<qint64>(currentFreq) + static_cast<qint64>(ticks) * stepHz;
+        if (newFreq > 0) {
+            QString cmd = QString("FB%1;").arg(static_cast<quint64>(newFreq));
+            m_tcpClient->sendCAT(cmd);
+            m_radioState->parseCATCommand(cmd);
         }
-        break;
+    } break;
 
     case KpodDevice::RockerRight: // RIT/XIT
         // Adjust RIT/XIT offset using RU/RD commands
