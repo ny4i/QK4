@@ -13,18 +13,37 @@ class AudioEngine : public QObject {
     Q_OBJECT
 
 public:
+    enum MixSource { MixA = 0, MixB = 1, MixAB = 2, MixNegA = 3 };
+
     explicit AudioEngine(QObject *parent = nullptr);
     ~AudioEngine();
 
     bool start();
     void stop();
     void enqueueAudio(const QByteArray &pcmData);
+    void flushQueue();
 
     void setMicEnabled(bool enabled);
     bool isMicEnabled() const { return m_micEnabled; }
 
     void setVolume(float volume); // 0.0 to 1.0
     float volume() const { return m_volume; }
+
+    // Channel volume controls (applied at playback time for instant response)
+    void setMainVolume(float volume);
+    void setSubVolume(float volume);
+    float mainVolume() const { return m_mainVolume; }
+    float subVolume() const { return m_subVolume; }
+
+    // SUB RX mute control (when sub receiver is off, sub channel is silent)
+    void setSubMuted(bool muted);
+
+    // Audio mix routing (MX command - how main/sub maps to L/R when SUB is on)
+    void setAudioMix(int left, int right); // MixSource values
+
+    // Balance mode control (0=NOR, 1=BAL)
+    void setBalanceMode(int mode);
+    void setBalanceOffset(int offset); // -50 to +50
 
     // Microphone settings
     void setMicGain(float gain); // 0.0 to 1.0
@@ -59,6 +78,9 @@ private:
     // Resample 48kHz Float32 samples to 12kHz (4:1 decimation with averaging)
     QByteArray resample48kTo12k(const QByteArray &input48k);
 
+    // Apply MX routing + volume + balance to a raw [main, sub] interleaved packet
+    void applyMixAndVolume(QByteArray &packet);
+
     // Audio output format: 12kHz stereo Float32 (K4 RX audio, L=Main R=Sub)
     QAudioFormat m_outputFormat;
 
@@ -76,8 +98,23 @@ private:
     QString m_selectedMicDeviceId;    // Empty = use system default
     QString m_selectedOutputDeviceId; // Empty = use system default
 
-    // Volume control
+    // Volume control (QAudioSink system volume)
     float m_volume = 1.0f;
+
+    // Channel volume controls (0.0 to 1.0)
+    float m_mainVolume = 1.0f;
+    float m_subVolume = 1.0f;
+
+    // SUB RX mute state (true = sub muted, sub channel is silent)
+    bool m_subMuted = true; // Starts muted (SUB RX is off at startup)
+
+    // Audio mix routing (MX command) - default A.B (main left, sub right)
+    MixSource m_mixLeft = MixA;
+    MixSource m_mixRight = MixB;
+
+    // Balance mode (0=NOR: independent volume, 1=BAL: L/R balance)
+    int m_balanceMode = 0;
+    int m_balanceOffset = 0; // -50 to +50
 
     // Microphone gain control
     float m_micGain = 0.25f; // Default 25% (macOS mic input is typically hot)

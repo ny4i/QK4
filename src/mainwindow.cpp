@@ -1111,8 +1111,8 @@ MainWindow::MainWindow(QWidget *parent)
         }
 
         // Mute/unmute sub RX audio channel
-        if (m_opusDecoder) {
-            m_opusDecoder->setSubMuted(!enabled);
+        if (m_audioEngine) {
+            m_audioEngine->setSubMuted(!enabled);
         }
     });
 
@@ -2229,22 +2229,22 @@ void MainWindow::setupUi() {
         // TODO: Show help dialog
     });
 
-    // Connect volume slider to OpusDecoder (Main RX / VFO A)
+    // Connect volume slider to AudioEngine (Main RX / VFO A)
     connect(m_sideControlPanel, &SideControlPanel::volumeChanged, this, [this](int value) {
-        if (m_opusDecoder) {
-            m_opusDecoder->setMainVolume(value / 100.0f);
+        if (m_audioEngine) {
+            m_audioEngine->setMainVolume(value / 100.0f);
         }
         RadioSettings::instance()->setVolume(value); // Persist setting
     });
 
-    // Connect sub volume slider to OpusDecoder (Sub RX / VFO B)
+    // Connect sub volume slider to AudioEngine (Sub RX / VFO B)
     // In BAL mode, this slider controls L/R balance offset instead of sub volume
     connect(m_sideControlPanel, &SideControlPanel::subVolumeChanged, this, [this](int value) {
-        if (m_opusDecoder) {
+        if (m_audioEngine) {
             if (m_radioState->balanceMode() == 1) {
                 // BAL mode: slider controls L/R balance (0-100 maps to -50..+50)
                 int offset = value - 50;
-                m_opusDecoder->setBalanceOffset(offset);
+                m_audioEngine->setBalanceOffset(offset);
                 // Send BL command to radio with current mode and new offset
                 QString sign = offset >= 0 ? "+" : "-";
                 QString cmd = QString("BL1%1%2;").arg(sign).arg(qAbs(offset), 2, 10, QChar('0'));
@@ -2252,7 +2252,7 @@ void MainWindow::setupUi() {
                 m_radioState->setBalance(1, offset);
             } else {
                 // NOR mode: slider controls sub RX volume
-                m_opusDecoder->setSubVolume(value / 100.0f);
+                m_audioEngine->setSubVolume(value / 100.0f);
             }
         }
         RadioSettings::instance()->setSubVolume(value); // Persist setting
@@ -2467,18 +2467,18 @@ void MainWindow::setupUi() {
     // Update BAL overlay and button when RadioState changes
     connect(m_radioState, &RadioState::balanceChanged, m_sideControlPanel, &SideControlPanel::updateBalance);
 
-    // Forward balance state to audio decoder for L/R routing
+    // Forward balance state to audio engine for L/R routing
     connect(m_radioState, &RadioState::balanceChanged, this, [this](int mode, int offset) {
-        if (m_opusDecoder) {
-            m_opusDecoder->setBalanceMode(mode);
-            m_opusDecoder->setBalanceOffset(offset);
+        if (m_audioEngine) {
+            m_audioEngine->setBalanceMode(mode);
+            m_audioEngine->setBalanceOffset(offset);
         }
     });
 
-    // Forward audio mix routing (MX command) to decoder
+    // Forward audio mix routing (MX command) to audio engine
     connect(m_radioState, &RadioState::audioMixChanged, this, [this](int left, int right) {
-        if (m_opusDecoder) {
-            m_opusDecoder->setAudioMix(left, right);
+        if (m_audioEngine) {
+            m_audioEngine->setAudioMix(left, right);
         }
     });
 
@@ -2674,6 +2674,17 @@ void MainWindow::setupUi() {
 
     // Connect microphone frames to encoding/transmission
     connect(m_audioEngine, &AudioEngine::microphoneFrame, this, &MainWindow::onMicrophoneFrame);
+
+    // Flush audio jitter buffer on discrete filter/mode changes to avoid stale audio lag.
+    // These signals fire once per button press (not continuously like VFO tuning).
+    connect(m_radioState, &RadioState::modeChanged, m_audioEngine, &AudioEngine::flushQueue);
+    connect(m_radioState, &RadioState::modeBChanged, m_audioEngine, &AudioEngine::flushQueue);
+    connect(m_radioState, &RadioState::filterBandwidthChanged, m_audioEngine, &AudioEngine::flushQueue);
+    connect(m_radioState, &RadioState::filterBandwidthBChanged, m_audioEngine, &AudioEngine::flushQueue);
+    connect(m_radioState, &RadioState::filterPositionChanged, m_audioEngine, &AudioEngine::flushQueue);
+    connect(m_radioState, &RadioState::filterPositionBChanged, m_audioEngine, &AudioEngine::flushQueue);
+    connect(m_radioState, &RadioState::dataSubModeChanged, m_audioEngine, &AudioEngine::flushQueue);
+    connect(m_radioState, &RadioState::dataSubModeBChanged, m_audioEngine, &AudioEngine::flushQueue);
 }
 
 void MainWindow::setupTopStatusBar(QWidget *parent) {
@@ -3699,9 +3710,9 @@ void MainWindow::onAuthenticated() {
     // Start audio engine for RX audio
     if (m_audioEngine->start()) {
         qDebug() << "Audio engine started for RX audio";
-        // Apply current volume slider settings to OpusDecoder (for channel mixing)
-        m_opusDecoder->setMainVolume(m_sideControlPanel->volume() / 100.0f);
-        m_opusDecoder->setSubVolume(m_sideControlPanel->subVolume() / 100.0f);
+        // Apply current volume slider settings to AudioEngine (for channel mixing)
+        m_audioEngine->setMainVolume(m_sideControlPanel->volume() / 100.0f);
+        m_audioEngine->setSubVolume(m_sideControlPanel->subVolume() / 100.0f);
         // Apply saved mic gain setting
         m_audioEngine->setMicGain(RadioSettings::instance()->micGain() / 100.0f);
     } else {
