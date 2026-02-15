@@ -1,8 +1,9 @@
 #ifndef BOTTOMMENUBAR_H
 #define BOTTOMMENUBAR_H
 
-#include <QWidget>
 #include <QPushButton>
+#include <QTimer>
+#include <QWidget>
 
 /**
  * BottomMenuBar - Horizontal menu bar at bottom of QK4
@@ -52,6 +53,9 @@ signals:
     void pttPressed();  // PTT button pressed (start TX audio)
     void pttReleased(); // PTT button released (stop TX audio)
 
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
 private:
     void setupUi();
     QPushButton *createMenuButton(const QString &text);
@@ -65,6 +69,9 @@ private:
     QPushButton *m_subRxBtn;
     QPushButton *m_txBtn;
     QPushButton *m_pttBtn;
+
+    bool m_pttLocked = false;
+    QTimer *m_pttLockTimer = nullptr;
 };
 
 #endif // BOTTOMMENUBAR_H
