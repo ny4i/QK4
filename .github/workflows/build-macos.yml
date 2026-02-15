@@ -179,6 +179,28 @@ jobs:
           echo "=== Frameworks contents ==="
           ls -la "$FRAMEWORKS/" | head -30
 
+      - name: Ad-hoc codesign
+        run: |
+          APP_BUNDLE="build/QK4.app"
+
+          # Re-sign all dylibs (install_name_tool invalidates existing signatures)
+          find "$APP_BUNDLE/Contents/Frameworks" -name "*.dylib" -exec \
+            codesign --force --sign - {} \;
+
+          # Re-sign all frameworks
+          find "$APP_BUNDLE/Contents/Frameworks" -name "*.framework" -exec \
+            codesign --force --sign - {} \;
+
+          # Re-sign plugins
+          find "$APP_BUNDLE/Contents/PlugIns" -name "*.dylib" -exec \
+            codesign --force --sign - {} \;
+
+          # Re-sign the main executable
+          codesign --force --sign - "$APP_BUNDLE"
+
+          # Verify
+          codesign --verify --verbose=2 "$APP_BUNDLE"
+
       - name: Package artifact
         run: cd build && zip -r ../QK4-macos.zip QK4.app
 
