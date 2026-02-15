@@ -1555,6 +1555,28 @@ void PanadapterRhiWidget::clear() {
     m_waterfallWriteRow = 0;
     m_waterfallData.fill(0);
     m_waterfallNeedsFullClear = true;
+
+    // Reset frequency/mode/overlay state so reconnect starts clean
+    m_centerFreq = 0;
+    m_tunedFreq = 0;
+    m_spanHz = 10000;
+    m_mode = "USB";
+    m_cwPitch = 500;
+    m_ifShift = 50;
+    m_filterBw = 2400;
+    m_notchEnabled = false;
+    m_notchPitchHz = 0;
+    m_cursorVisible = false;
+
+    // Secondary VFO (visibility is a UI preference set at construction;
+    // rendering is gated by freq/bw > 0 which are reset here)
+    m_secondaryTunedFreq = 0;
+    m_secondaryFilterBw = 0;
+
+    // Hide frequency labels (paintEvent returns early when spanHz <= 0)
+    if (m_freqScaleOverlay)
+        m_freqScaleOverlay->setFrequencyRange(0, 0, 0, "");
+
     update();
 }
 

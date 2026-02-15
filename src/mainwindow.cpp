@@ -68,6 +68,12 @@ static constexpr int SPAN_MAX = 368000;
 static constexpr int SPAN_THRESHOLD_UP = 144000;   // Switch to 4kHz steps above this
 static constexpr int SPAN_THRESHOLD_DOWN = 140000; // Switch to 1kHz steps below this
 
+// Convert K4 tuning step index (VT command, 0-5) to Hz
+static int tuningStepToHz(int step) {
+    static const int table[] = {1, 10, 100, 1000, 10000, 100};
+    return (step >= 0 && step <= 5) ? table[step] : 1000;
+}
+
 static int getNextSpanUp(int currentSpan) {
     if (currentSpan >= SPAN_MAX)
         return SPAN_MAX;
@@ -1108,6 +1114,11 @@ MainWindow::MainWindow(QWidget *parent)
 
             // Auto-hide mini pan B if VFOs are on different bands (can't have mini pan B without SUB RX)
             checkAndHideMiniPanB();
+        }
+
+        // Mute/unmute sub RX audio channel
+        if (m_audioEngine) {
+            m_audioEngine->setSubMuted(!enabled);
         }
     });
 
@@ -2224,18 +2235,31 @@ void MainWindow::setupUi() {
         // TODO: Show help dialog
     });
 
-    // Connect volume slider to OpusDecoder (Main RX / VFO A)
+    // Connect volume slider to AudioEngine (Main RX / VFO A)
     connect(m_sideControlPanel, &SideControlPanel::volumeChanged, this, [this](int value) {
-        if (m_opusDecoder) {
-            m_opusDecoder->setMainVolume(value / 100.0f);
+        if (m_audioEngine) {
+            m_audioEngine->setMainVolume(value / 100.0f);
         }
         RadioSettings::instance()->setVolume(value); // Persist setting
     });
 
-    // Connect sub volume slider to OpusDecoder (Sub RX / VFO B)
+    // Connect sub volume slider to AudioEngine (Sub RX / VFO B)
+    // In BAL mode, this slider controls L/R balance offset instead of sub volume
     connect(m_sideControlPanel, &SideControlPanel::subVolumeChanged, this, [this](int value) {
-        if (m_opusDecoder) {
-            m_opusDecoder->setSubVolume(value / 100.0f);
+        if (m_audioEngine) {
+            if (m_radioState->balanceMode() == 1) {
+                // BAL mode: slider controls L/R balance (0-100 maps to -50..+50)
+                int offset = value - 50;
+                m_audioEngine->setBalanceOffset(offset);
+                // Send BL command to radio with current mode and new offset
+                QString sign = offset >= 0 ? "+" : "-";
+                QString cmd = QString("BL1%1%2;").arg(sign).arg(qAbs(offset), 2, 10, QChar('0'));
+                m_tcpClient->sendCAT(cmd);
+                m_radioState->setBalance(1, offset);
+            } else {
+                // NOR mode: slider controls sub RX volume
+                m_audioEngine->setSubVolume(value / 100.0f);
+            }
         }
         RadioSettings::instance()->setSubVolume(value); // Persist setting
     });
@@ -2438,6 +2462,32 @@ void MainWindow::setupUi() {
         m_sideControlPanel->updateMonitorMode(monMode);
     });
 
+    // Connect balance wheel signal (BL command)
+    connect(m_sideControlPanel, &SideControlPanel::balChangeRequested, this, [this](int mode, int offset) {
+        QString sign = offset >= 0 ? "+" : "-";
+        QString cmd = QString("BL%1%2%3;").arg(mode).arg(sign).arg(qAbs(offset), 2, 10, QChar('0'));
+        m_tcpClient->sendCAT(cmd);
+        m_radioState->setBalance(mode, offset);
+    });
+
+    // Update BAL overlay and button when RadioState changes
+    connect(m_radioState, &RadioState::balanceChanged, m_sideControlPanel, &SideControlPanel::updateBalance);
+
+    // Forward balance state to audio engine for L/R routing
+    connect(m_radioState, &RadioState::balanceChanged, this, [this](int mode, int offset) {
+        if (m_audioEngine) {
+            m_audioEngine->setBalanceMode(mode);
+            m_audioEngine->setBalanceOffset(offset);
+        }
+    });
+
+    // Forward audio mix routing (MX command) to audio engine
+    connect(m_radioState, &RadioState::audioMixChanged, this, [this](int left, int right) {
+        if (m_audioEngine) {
+            m_audioEngine->setAudioMix(left, right);
+        }
+    });
+
     // Connect right side panel button signals to CAT commands
     // Primary (left-click) signals
     connect(m_rightSidePanel, &RightSidePanel::preClicked, this, [this]() { m_tcpClient->sendCAT("SW61;"); });
@@ -2446,7 +2496,8 @@ void MainWindow::setupUi() {
     connect(m_rightSidePanel, &RightSidePanel::ntchClicked, this, [this]() { m_tcpClient->sendCAT("SW31;"); });
     connect(m_rightSidePanel, &RightSidePanel::filClicked, this, [this]() { m_tcpClient->sendCAT("SW33;"); });
     connect(m_rightSidePanel, &RightSidePanel::abClicked, this, [this]() { m_tcpClient->sendCAT("SW41;"); });
-    // revClicked - TBD (needs press/release pattern)
+    connect(m_rightSidePanel, &RightSidePanel::revPressed, this, [this]() { m_tcpClient->sendCAT("SW160;"); });
+    connect(m_rightSidePanel, &RightSidePanel::revReleased, this, [this]() { m_tcpClient->sendCAT("SW161;"); });
     connect(m_rightSidePanel, &RightSidePanel::atobClicked, this, [this]() { m_tcpClient->sendCAT("SW72;"); });
     connect(m_rightSidePanel, &RightSidePanel::spotClicked, this, [this]() { m_tcpClient->sendCAT("SW42;"); });
     connect(m_rightSidePanel, &RightSidePanel::modeClicked, this, [this]() {
@@ -2629,6 +2680,17 @@ void MainWindow::setupUi() {
 
     // Connect microphone frames to encoding/transmission
     connect(m_audioEngine, &AudioEngine::microphoneFrame, this, &MainWindow::onMicrophoneFrame);
+
+    // Flush audio jitter buffer on discrete filter/mode changes to avoid stale audio lag.
+    // These signals fire once per button press (not continuously like VFO tuning).
+    connect(m_radioState, &RadioState::modeChanged, m_audioEngine, &AudioEngine::flushQueue);
+    connect(m_radioState, &RadioState::modeBChanged, m_audioEngine, &AudioEngine::flushQueue);
+    connect(m_radioState, &RadioState::filterBandwidthChanged, m_audioEngine, &AudioEngine::flushQueue);
+    connect(m_radioState, &RadioState::filterBandwidthBChanged, m_audioEngine, &AudioEngine::flushQueue);
+    connect(m_radioState, &RadioState::filterPositionChanged, m_audioEngine, &AudioEngine::flushQueue);
+    connect(m_radioState, &RadioState::filterPositionBChanged, m_audioEngine, &AudioEngine::flushQueue);
+    connect(m_radioState, &RadioState::dataSubModeChanged, m_audioEngine, &AudioEngine::flushQueue);
+    connect(m_radioState, &RadioState::dataSubModeBChanged, m_audioEngine, &AudioEngine::flushQueue);
 }
 
 void MainWindow::setupTopStatusBar(QWidget *parent) {
@@ -2787,7 +2849,8 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     // RIT/XIT Box with border - constrained size
     // Supports mouse wheel to adjust RIT/XIT offset
     m_ritXitBox = new QWidget(centerWidget);
-    m_ritXitBox->setStyleSheet(QString("border: 1px solid %1;").arg(K4Styles::Colors::InactiveGray));
+    m_ritXitBox->setObjectName("ritXitBox");
+    m_ritXitBox->setStyleSheet(QString("#ritXitBox { border: 1px solid %1; }").arg(K4Styles::Colors::InactiveGray));
     m_ritXitBox->setMaximumWidth(80);
     m_ritXitBox->setMaximumHeight(40);
     m_ritXitBox->installEventFilter(this);
@@ -2828,6 +2891,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
         QString("color: %1; font-size: %2px; font-weight: bold; border: none; padding: 0 11px;")
             .arg(K4Styles::Colors::InactiveGray)
             .arg(K4Styles::Dimensions::FontSizePopup)); // Grey until RIT/XIT is enabled
+    m_ritXitValueLabel->installEventFilter(this);
     ritXitLayout->addWidget(m_ritXitValueLabel);
 
     // Create filter/RIT/XIT row - filter indicators flanking the RIT/XIT box
@@ -3315,19 +3379,18 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
         m_radioState->parseCATCommand(cmd);
     });
 
-    // Mouse control: scroll wheel to adjust frequency using K4's native step
+    // Mouse control: scroll wheel to adjust frequency by computed step
     connect(m_panadapterA, &PanadapterRhiWidget::frequencyScrolled, this, [this](int steps) {
-        // Guard: only send if connected
         if (!m_tcpClient->isConnected())
             return;
-        // Use UP/DN commands - respects K4's current VFO step size
-        QString cmd = (steps > 0) ? "UP;" : "DN;";
-        int count = qAbs(steps);
-        for (int i = 0; i < count; i++) {
+        quint64 currentFreq = m_radioState->vfoA();
+        int stepHz = tuningStepToHz(m_radioState->tuningStep());
+        qint64 newFreq = static_cast<qint64>(currentFreq) + static_cast<qint64>(steps) * stepHz;
+        if (newFreq > 0) {
+            QString cmd = QString("FA%1;").arg(static_cast<quint64>(newFreq));
             m_tcpClient->sendCAT(cmd);
+            m_radioState->parseCATCommand(cmd);
         }
-        // Request frequency back to update UI
-        m_tcpClient->sendCAT("FA;");
     });
 
     // Shift+Wheel: Adjust scale (dB range) - global setting applies to both panadapters
@@ -3455,19 +3518,18 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
         m_radioState->parseCATCommand(cmd);
     });
 
-    // Mouse control for VFO B: scroll wheel to adjust frequency using K4's native step
+    // Mouse control for VFO B: scroll wheel to adjust frequency by computed step
     connect(m_panadapterB, &PanadapterRhiWidget::frequencyScrolled, this, [this](int steps) {
-        // Guard: only send if connected
         if (!m_tcpClient->isConnected())
             return;
-        // Use UP$/DN$ commands for Sub RX - respects K4's current VFO step size
-        QString cmd = (steps > 0) ? "UP$;" : "DN$;";
-        int count = qAbs(steps);
-        for (int i = 0; i < count; i++) {
+        quint64 currentFreq = m_radioState->vfoB();
+        int stepHz = tuningStepToHz(m_radioState->tuningStepB());
+        qint64 newFreq = static_cast<qint64>(currentFreq) + static_cast<qint64>(steps) * stepHz;
+        if (newFreq > 0) {
+            QString cmd = QString("FB%1;").arg(static_cast<quint64>(newFreq));
             m_tcpClient->sendCAT(cmd);
+            m_radioState->parseCATCommand(cmd);
         }
-        // Request frequency back to update UI
-        m_tcpClient->sendCAT("FB;");
     });
 
     // Shift+Wheel on panadapter B: Adjust scale (same as A - global setting)
@@ -3654,9 +3716,9 @@ void MainWindow::onAuthenticated() {
     // Start audio engine for RX audio
     if (m_audioEngine->start()) {
         qDebug() << "Audio engine started for RX audio";
-        // Apply current volume slider settings to OpusDecoder (for channel mixing)
-        m_opusDecoder->setMainVolume(m_sideControlPanel->volume() / 100.0f);
-        m_opusDecoder->setSubVolume(m_sideControlPanel->subVolume() / 100.0f);
+        // Apply current volume slider settings to AudioEngine (for channel mixing)
+        m_audioEngine->setMainVolume(m_sideControlPanel->volume() / 100.0f);
+        m_audioEngine->setSubVolume(m_sideControlPanel->subVolume() / 100.0f);
         // Apply saved mic gain setting
         m_audioEngine->setMicGain(RadioSettings::instance()->micGain() / 100.0f);
     } else {
@@ -3815,6 +3877,141 @@ void MainWindow::updateConnectionState(TcpClient::ConnectionState state) {
         m_vfoB->setSMeterValue(0);
         m_vfoB->setTransmitting(false);
         m_vfoB->setTxMeters(0, 0, 0, 1.0);
+
+        // Reset model state so all change-guards fire on reconnect
+        m_radioState->reset();
+
+        // --- Reset all remaining UI to clean default state ---
+
+        // Mode labels
+        m_modeALabel->setText("");
+        m_modeBLabel->setText("");
+
+        // Antenna labels
+        m_txAntennaLabel->setText("");
+        m_rxAntALabel->setText("");
+        m_rxAntBLabel->setText("");
+
+        // Split
+        m_splitLabel->setText("SPLIT OFF");
+        m_splitLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(K4Styles::Colors::AccentAmber));
+
+        // TX indicators (default: left triangle, amber)
+        m_txTriangle->setText("◀");
+        m_txTriangleB->setText("");
+
+        // B SET
+        m_bSetLabel->setVisible(false);
+
+        // SUB/DIV (disabled state)
+        m_subLabel->setStyleSheet(
+            QString("background-color: %1; color: %2; font-size: 9px; font-weight: bold; border-radius: 2px;")
+                .arg(K4Styles::Colors::DisabledBackground, K4Styles::Colors::LightGradientTop));
+        m_divLabel->setStyleSheet(
+            QString("background-color: %1; color: %2; font-size: 9px; font-weight: bold; border-radius: 2px;")
+                .arg(K4Styles::Colors::DisabledBackground, K4Styles::Colors::LightGradientTop));
+
+        // Dim VFO B (SUB off state)
+        m_vfoB->frequencyDisplay()->setNormalColor(QColor(K4Styles::Colors::InactiveGray));
+        m_modeBLabel->setStyleSheet(
+            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::InactiveGray));
+
+        // Message bank
+        m_msgBankLabel->setText("MSG: I");
+        m_msgBankLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(K4Styles::Colors::TextGray));
+
+        // RIT/XIT (disabled state)
+        m_ritLabel->setStyleSheet(
+            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::InactiveGray));
+        m_xitLabel->setStyleSheet(
+            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::InactiveGray));
+        m_ritXitValueLabel->setText("+0.00");
+        m_ritXitValueLabel->setStyleSheet(
+            QString("color: %1; font-size: 14px; font-weight: bold;").arg(K4Styles::Colors::InactiveGray));
+
+        // ATU (grey/inactive)
+        m_atuLabel->setStyleSheet(
+            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
+
+        // VOX / QSK (grey/inactive)
+        m_voxLabel->setStyleSheet(
+            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
+        m_qskLabel->setStyleSheet(
+            QString("color: %1; font-size: 11px; font-weight: bold;").arg(K4Styles::Colors::TextGray));
+
+        // TEST (hidden)
+        m_testLabel->setVisible(false);
+
+        // VFO indicators (AGC, PRE, ATT, NB, NR, Notch, APF, Tuning Rate)
+        m_vfoA->setAGC("AGC");
+        m_vfoA->setPreamp(false, 0);
+        m_vfoA->setAtt(false, 0);
+        m_vfoA->setNB(false);
+        m_vfoA->setNR(false);
+        m_vfoA->setNotch(false, false);
+        m_vfoA->setApf(false, 0);
+        m_vfoA->setTuningRate(0);
+
+        m_vfoB->setAGC("AGC");
+        m_vfoB->setPreamp(false, 0);
+        m_vfoB->setAtt(false, 0);
+        m_vfoB->setNB(false);
+        m_vfoB->setNR(false);
+        m_vfoB->setNotch(false, false);
+        m_vfoB->setApf(false, 0);
+        m_vfoB->setTuningRate(0);
+
+        // VFO locks (both unlocked)
+        m_vfoRow->setLockA(false);
+        m_vfoRow->setLockB(false);
+
+        // Side control panel values
+        m_sideControlPanel->setBandwidth(0);
+        m_sideControlPanel->setShift(0);
+        m_sideControlPanel->setHighCut(0);
+        m_sideControlPanel->setLowCut(0);
+        m_sideControlPanel->setPower(0);
+        m_sideControlPanel->setDelay(0);
+        m_sideControlPanel->setWpm(0);
+        m_sideControlPanel->setPitch(0);
+        m_sideControlPanel->setMicGain(0);
+        m_sideControlPanel->setCompression(0);
+        m_sideControlPanel->setMainRfGain(0);
+        m_sideControlPanel->setMainSquelch(0);
+        m_sideControlPanel->setSubRfGain(0);
+        m_sideControlPanel->setSubSquelch(0);
+
+        // Status bar values
+        m_powerLabel->setText("--- W");
+        m_swrLabel->setText("-.-:1");
+        m_voltageLabel->setText("--.- V");
+        m_currentLabel->setText("-.- A");
+        m_sideControlPanel->setPowerReading(0);
+        m_sideControlPanel->setSwr(1.0);
+        m_sideControlPanel->setVoltage(0);
+        m_sideControlPanel->setCurrent(0);
+
+        // Filter indicator widgets
+        m_filterAWidget->setBandwidth(0);
+        m_filterAWidget->setShift(50);
+        m_filterAWidget->setFilterPosition(1);
+        m_filterAWidget->setMode("");
+        m_filterBWidget->setBandwidth(0);
+        m_filterBWidget->setShift(50);
+        m_filterBWidget->setFilterPosition(1);
+        m_filterBWidget->setMode("");
+
+        // VFO mini-pan overlays (reset mode/filter state)
+        m_vfoA->setMiniPanMode("USB");
+        m_vfoA->setMiniPanFilterBandwidth(2400);
+        m_vfoA->setMiniPanIfShift(50);
+        m_vfoA->setMiniPanCwPitch(600);
+        m_vfoA->setMiniPanNotchFilter(false, 0);
+        m_vfoB->setMiniPanMode("USB");
+        m_vfoB->setMiniPanFilterBandwidth(2400);
+        m_vfoB->setMiniPanIfShift(50);
+        m_vfoB->setMiniPanCwPitch(600);
+        m_vfoB->setMiniPanNotchFilter(false, 0);
 
         // Clear menu model
         m_menuModel->clear();
@@ -4155,12 +4352,12 @@ void MainWindow::onAudioData(const QByteArray &payload) {
         return;
     }
 
-    // Decode K4 audio packet (handles header parsing, stereo decode, de-interleave, gain boost)
-    // Returns mono Float32 PCM for main channel (RX1/VFO A) only
+    // Decode K4 audio packet (handles header parsing, stereo decode, volume/balance mixing)
+    // Returns stereo Float32 PCM (L=Main, R=Sub with mute/balance applied)
     QByteArray pcmData = m_opusDecoder->decodeK4Packet(payload);
 
     if (!pcmData.isEmpty()) {
-        m_audioEngine->playAudio(pcmData);
+        m_audioEngine->enqueueAudio(pcmData);
     }
 }
 
@@ -4334,9 +4531,10 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
         return true;
     }
 
-    // Mouse wheel on RIT/XIT box - adjust offset using RU/RD commands
+    // Mouse wheel on RIT/XIT box (or its child widgets) - adjust offset using RU/RD commands
     // B SET aware: use $ suffix when targeting Sub RX
-    if (watched == m_ritXitBox && event->type() == QEvent::Wheel) {
+    if (event->type() == QEvent::Wheel &&
+        (watched == m_ritXitBox || watched == m_ritLabel || watched == m_xitLabel || watched == m_ritXitValueLabel)) {
         auto *wheelEvent = static_cast<QWheelEvent *>(event);
         int steps = m_ritWheelAccumulator.accumulate(wheelEvent);
         if (steps != 0) {
@@ -4673,26 +4871,28 @@ void MainWindow::onKpodEncoderRotated(int ticks) {
     // Action depends on rocker position
     switch (m_kpodDevice->rockerPosition()) {
     case KpodDevice::RockerLeft: // VFO A
-        // Tune VFO A using UP/DN commands
-        {
-            QString cmd = (ticks > 0) ? "UP;" : "DN;";
-            int count = qAbs(ticks);
-            for (int i = 0; i < count; i++) {
-                m_tcpClient->sendCAT(cmd);
-            }
+    {
+        quint64 currentFreq = m_radioState->vfoA();
+        int stepHz = tuningStepToHz(m_radioState->tuningStep());
+        qint64 newFreq = static_cast<qint64>(currentFreq) + static_cast<qint64>(ticks) * stepHz;
+        if (newFreq > 0) {
+            QString cmd = QString("FA%1;").arg(static_cast<quint64>(newFreq));
+            m_tcpClient->sendCAT(cmd);
+            m_radioState->parseCATCommand(cmd);
         }
-        break;
+    } break;
 
     case KpodDevice::RockerCenter: // VFO B
-        // Tune VFO B using UP$/DN$ commands (Sub RX)
-        {
-            QString cmd = (ticks > 0) ? "UP$;" : "DN$;";
-            int count = qAbs(ticks);
-            for (int i = 0; i < count; i++) {
-                m_tcpClient->sendCAT(cmd);
-            }
+    {
+        quint64 currentFreq = m_radioState->vfoB();
+        int stepHz = tuningStepToHz(m_radioState->tuningStepB());
+        qint64 newFreq = static_cast<qint64>(currentFreq) + static_cast<qint64>(ticks) * stepHz;
+        if (newFreq > 0) {
+            QString cmd = QString("FB%1;").arg(static_cast<quint64>(newFreq));
+            m_tcpClient->sendCAT(cmd);
+            m_radioState->parseCATCommand(cmd);
         }
-        break;
+    } break;
 
     case KpodDevice::RockerRight: // RIT/XIT
         // Adjust RIT/XIT offset using RU/RD commands

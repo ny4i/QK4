@@ -71,6 +71,9 @@ public:
     void updateMonitorLevel(int mode, int level);
     void updateMonitorMode(int mode);
 
+    // Balance (BAL overlay + button)
+    void updateBalance(int mode, int offset);
+
 signals:
     // Icon button signals
     void helpClicked();
@@ -116,8 +119,8 @@ signals:
     // Monitor level change (ML command)
     void monLevelChangeRequested(int mode, int level);
 
-    // Balance change (BAL overlay scroll)
-    void balChangeRequested(int delta);
+    // Balance change (BAL overlay mode toggle or scroll)
+    void balChangeRequested(int mode, int offset);
 
 private slots:
     // Group 1: WPM/PWR - handle activation and scrolling

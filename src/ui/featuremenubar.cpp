@@ -146,7 +146,7 @@ void FeatureMenuBar::showAboveWidget(QWidget *referenceWidget) {
     int popupY = refGlobal.y() - height() - 4;
 
     // Ensure popup stays on screen
-    QRect screenGeom = QApplication::primaryScreen()->availableGeometry();
+    QRect screenGeom = referenceWidget->screen()->availableGeometry();
     if (popupX < screenGeom.left() - K4Styles::Dimensions::ShadowMargin) {
         popupX = screenGeom.left() - K4Styles::Dimensions::ShadowMargin;
     } else if (popupX + width() > screenGeom.right() + K4Styles::Dimensions::ShadowMargin) {

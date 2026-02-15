@@ -454,6 +454,16 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install git-cliff
+        run: |
+          GC_URL=$(gh release view --repo orhun/git-cliff --json assets --jq '.assets[] | select(.name | test("x86_64-unknown-linux-gnu.tar.gz$")) | .url')
+          curl -sSL "$GC_URL" | tar xz
+          sudo mv git-cliff-*/git-cliff /usr/local/bin/
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download macOS artifact
         uses: actions/download-artifact@v4
@@ -470,6 +480,9 @@ jobs:
         with:
           name: QK4-raspberry-pi
 
+      - name: Generate release notes
+        run: git-cliff --latest --strip header -o release_notes.md
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -478,7 +491,7 @@ jobs:
             QK4-windows.zip
             QK4-*-Setup.exe
             QK4-raspberry-pi-arm64.tar.gz
-          generate_release_notes: true
+          body_path: release_notes.md
           prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') }}
 
   publish:

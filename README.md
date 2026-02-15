@@ -30,14 +30,13 @@ A cross-platform desktop application for remote control of Elecraft K4 radios ov
 
 ## Download
 
-Pre-built releases are available on the [Releases](https://github.com/mikeg-dal/QK4/releases) page. Current release: **v0.4.0-beta.1**
+Pre-built releases are available on the [Releases](https://github.com/mikeg-dal/QK4/releases) page. Current release: **v0.4.0-beta.3**
 
 | Platform | Download | Notes |
 |----------|----------|-------|
-| macOS | [QK4-macos.dmg](https://github.com/mikeg-dal/QK4/releases/download/v0.4.0-beta.1/QK4-macos.dmg) | Signed and notarized — open the DMG and drag to Applications |
-| Windows (installer) | [QK4-Setup.exe](https://github.com/mikeg-dal/QK4/releases/download/v0.4.0-beta.1/QK4-0.4.0-beta.1-Setup.exe) | Installer with Start Menu/Desktop shortcuts and uninstaller |
-| Windows (portable) | [QK4-windows.zip](https://github.com/mikeg-dal/QK4/releases/download/v0.4.0-beta.1/QK4-windows.zip) | Extract and run `QK4.exe` — no installation required |
-| Raspberry Pi | [QK4-raspberry-pi-arm64.tar.gz](https://github.com/mikeg-dal/QK4/releases/download/v0.4.0-beta.1/QK4-raspberry-pi-arm64.tar.gz) | Extract and run `./QK4/run.sh` |
+| macOS | [QK4-macos.dmg](https://github.com/mikeg-dal/QK4/releases/download/v0.4.0-beta.3/QK4-macos.dmg) | Signed and notarized — open the DMG and drag to Applications |
+| Windows | [QK4-windows.zip](https://github.com/mikeg-dal/QK4/releases/download/v0.4.0-beta.3/QK4-windows.zip) | Extract and run `QK4.exe` |
+| Raspberry Pi | [QK4-raspberry-pi-arm64.tar.gz](https://github.com/mikeg-dal/QK4/releases/download/v0.4.0-beta.3/QK4-raspberry-pi-arm64.tar.gz) | Extract and run `./QK4/run.sh` |
 
 ### Windows Prerequisite
 
@@ -46,7 +45,7 @@ Pre-built releases are available on the [Releases](https://github.com/mikeg-dal/
 ### Raspberry Pi Prerequisites
 
 - Raspberry Pi 4 or 5 with a desktop environment (X11 or Wayland)
-- Debian Trixie, Ubuntu 24.04+, or Raspberry Pi OS Bookworm+
+- Debian Trixie or Ubuntu 24.04+
 - **First run requires `sudo`** — the launcher (`run.sh`) installs a udev rule to grant non-root access to the Elecraft KPOD USB device. Without this rule, the Linux kernel restricts access to `/dev/hidraw*` nodes and the KPOD cannot be opened. After the first run, `sudo` is no longer needed and the KPOD will work as a normal user. If you don't have a KPOD, `sudo` is not required.
 
 ## Building from Source
