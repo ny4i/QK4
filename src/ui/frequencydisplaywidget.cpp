@@ -3,6 +3,7 @@
 #include <QPainter>
 #include <QMouseEvent>
 #include <QKeyEvent>
+#include <QWheelEvent>
 #include <QFontMetrics>
 
 FrequencyDisplayWidget::FrequencyDisplayWidget(QWidget *parent)
@@ -351,6 +352,17 @@ void FrequencyDisplayWidget::keyPressEvent(QKeyEvent *event) {
     } else {
         QWidget::keyPressEvent(event);
     }
+}
+
+void FrequencyDisplayWidget::wheelEvent(QWheelEvent *event) {
+    if (m_cursorPosition >= 0) {
+        event->ignore(); // In edit mode — don't tune
+        return;
+    }
+    int steps = m_wheelAccumulator.accumulate(event);
+    if (steps != 0)
+        emit frequencyScrolled(steps);
+    event->accept();
 }
 
 void FrequencyDisplayWidget::focusOutEvent(QFocusEvent *event) {

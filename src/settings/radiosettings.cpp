@@ -1,5 +1,25 @@
 #include "radiosettings.h"
 
+static const QByteArray obfuscationKey = "K4RemoteObfuscation";
+
+static QString obfuscatePassword(const QString &password) {
+    if (password.isEmpty())
+        return QString();
+    QByteArray utf8 = password.toUtf8();
+    for (int i = 0; i < utf8.size(); ++i)
+        utf8[i] = utf8[i] ^ obfuscationKey[i % obfuscationKey.size()];
+    return QStringLiteral("obf:") + QString::fromLatin1(utf8.toBase64());
+}
+
+static QString deobfuscatePassword(const QString &stored) {
+    if (!stored.startsWith(QStringLiteral("obf:")))
+        return stored;
+    QByteArray decoded = QByteArray::fromBase64(stored.mid(4).toLatin1());
+    for (int i = 0; i < decoded.size(); ++i)
+        decoded[i] = decoded[i] ^ obfuscationKey[i % obfuscationKey.size()];
+    return QString::fromUtf8(decoded);
+}
+
 RadioSettings *RadioSettings::instance() {
     static RadioSettings instance;
     return &instance;
@@ -342,7 +362,7 @@ void RadioSettings::load() {
         RadioEntry entry;
         entry.name = m_settings.value("name").toString();
         entry.host = m_settings.value("host").toString();
-        entry.password = m_settings.value("password").toString();
+        entry.password = deobfuscatePassword(m_settings.value("password").toString());
         entry.port = m_settings.value("port").toUInt();
         entry.useTls = m_settings.value("useTls", false).toBool();
         entry.identity = m_settings.value("identity").toString();
@@ -429,7 +449,7 @@ void RadioSettings::save() {
         m_settings.setArrayIndex(i);
         m_settings.setValue("name", m_radios[i].name);
         m_settings.setValue("host", m_radios[i].host);
-        m_settings.setValue("password", m_radios[i].password);
+        m_settings.setValue("password", obfuscatePassword(m_radios[i].password));
         m_settings.setValue("port", m_radios[i].port);
         m_settings.setValue("useTls", m_radios[i].useTls);
         m_settings.setValue("identity", m_radios[i].identity);
