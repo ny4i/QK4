@@ -29,6 +29,7 @@ void VFOWidget::setupUi() {
 
     // Forward frequency entry signal
     connect(m_frequencyDisplay, &FrequencyDisplayWidget::frequencyEntered, this, &VFOWidget::frequencyEntered);
+    connect(m_frequencyDisplay, &FrequencyDisplayWidget::frequencyScrolled, this, &VFOWidget::frequencyScrolled);
 
     // VFO A: frequency on left, VFO B: frequency on right
     // Frequency container width matches stacked widget (270px) for vertical alignment

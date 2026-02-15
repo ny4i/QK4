@@ -2781,6 +2781,20 @@ void MainWindow::setupVfoSection(QWidget *parent) {
         m_tcpClient->sendCAT(QString("FA%1;FA;").arg(freqString));
     });
 
+    // Connect VFO A wheel tuning - same pattern as panadapter wheel tuning
+    connect(m_vfoA, &VFOWidget::frequencyScrolled, this, [this](int steps) {
+        if (!m_tcpClient->isConnected())
+            return;
+        quint64 currentFreq = m_radioState->vfoA();
+        int stepHz = tuningStepToHz(m_radioState->tuningStep());
+        qint64 newFreq = static_cast<qint64>(currentFreq) + static_cast<qint64>(steps) * stepHz;
+        if (newFreq > 0) {
+            QString cmd = QString("FA%1;").arg(static_cast<quint64>(newFreq));
+            m_tcpClient->sendCAT(cmd);
+            m_radioState->parseCATCommand(cmd);
+        }
+    });
+
     // Set Mini-Pan A colors to cyan (matching VFO A theme)
     m_vfoA->setMiniPanSpectrumColor(QColor(K4Styles::Colors::VfoACyan));
     QColor vfoAPassband(K4Styles::Colors::VfoACyan);
@@ -3108,6 +3122,20 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     connect(m_vfoB, &VFOWidget::frequencyEntered, this, [this](const QString &freqString) {
         // FB accepts 1-11 digits: 1-2 = MHz, 3-5 = kHz, 6+ = Hz
         m_tcpClient->sendCAT(QString("FB%1;FB;").arg(freqString));
+    });
+
+    // Connect VFO B wheel tuning - same pattern as panadapter wheel tuning
+    connect(m_vfoB, &VFOWidget::frequencyScrolled, this, [this](int steps) {
+        if (!m_tcpClient->isConnected())
+            return;
+        quint64 currentFreq = m_radioState->vfoB();
+        int stepHz = tuningStepToHz(m_radioState->tuningStepB());
+        qint64 newFreq = static_cast<qint64>(currentFreq) + static_cast<qint64>(steps) * stepHz;
+        if (newFreq > 0) {
+            QString cmd = QString("FB%1;").arg(static_cast<quint64>(newFreq));
+            m_tcpClient->sendCAT(cmd);
+            m_radioState->parseCATCommand(cmd);
+        }
     });
 
     layout->addWidget(m_vfoB, 1, Qt::AlignTop);
