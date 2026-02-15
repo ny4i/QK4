@@ -2849,7 +2849,8 @@ void MainWindow::setupVfoSection(QWidget *parent) {
     // RIT/XIT Box with border - constrained size
     // Supports mouse wheel to adjust RIT/XIT offset
     m_ritXitBox = new QWidget(centerWidget);
-    m_ritXitBox->setStyleSheet(QString("border: 1px solid %1;").arg(K4Styles::Colors::InactiveGray));
+    m_ritXitBox->setObjectName("ritXitBox");
+    m_ritXitBox->setStyleSheet(QString("#ritXitBox { border: 1px solid %1; }").arg(K4Styles::Colors::InactiveGray));
     m_ritXitBox->setMaximumWidth(80);
     m_ritXitBox->setMaximumHeight(40);
     m_ritXitBox->installEventFilter(this);
@@ -2890,6 +2891,7 @@ void MainWindow::setupVfoSection(QWidget *parent) {
         QString("color: %1; font-size: %2px; font-weight: bold; border: none; padding: 0 11px;")
             .arg(K4Styles::Colors::InactiveGray)
             .arg(K4Styles::Dimensions::FontSizePopup)); // Grey until RIT/XIT is enabled
+    m_ritXitValueLabel->installEventFilter(this);
     ritXitLayout->addWidget(m_ritXitValueLabel);
 
     // Create filter/RIT/XIT row - filter indicators flanking the RIT/XIT box
@@ -4529,9 +4531,10 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
         return true;
     }
 
-    // Mouse wheel on RIT/XIT box - adjust offset using RU/RD commands
+    // Mouse wheel on RIT/XIT box (or its child widgets) - adjust offset using RU/RD commands
     // B SET aware: use $ suffix when targeting Sub RX
-    if (watched == m_ritXitBox && event->type() == QEvent::Wheel) {
+    if (event->type() == QEvent::Wheel &&
+        (watched == m_ritXitBox || watched == m_ritLabel || watched == m_xitLabel || watched == m_ritXitValueLabel)) {
         auto *wheelEvent = static_cast<QWheelEvent *>(event);
         int steps = m_ritWheelAccumulator.accumulate(wheelEvent);
         if (steps != 0) {
