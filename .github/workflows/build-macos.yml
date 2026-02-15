@@ -179,26 +179,57 @@ jobs:
           echo "=== Frameworks contents ==="
           ls -la "$FRAMEWORKS/" | head -30
 
-      - name: Ad-hoc codesign
+      - name: Import Code Signing Certificate
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          # Create temporary keychain
+          KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Import certificate
+          echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > $RUNNER_TEMP/certificate.p12
+          security import $RUNNER_TEMP/certificate.p12 \
+            -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -A -t cert -f pkcs12 \
+            -k "$KEYCHAIN_PATH"
+
+          # Set keychain for codesign
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Verify certificate is available
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+      - name: Sign Application
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           APP_BUNDLE="build/QK4.app"
 
-          # Re-sign all dylibs (install_name_tool invalidates existing signatures)
+          echo "=== Signing frameworks and libraries ==="
           find "$APP_BUNDLE/Contents/Frameworks" -name "*.dylib" -exec \
-            codesign --force --sign - {} \;
+            codesign --force --options runtime --sign "Developer ID Application: Michael Richard Garcia ($APPLE_TEAM_ID)" {} \;
 
-          # Re-sign all frameworks
           find "$APP_BUNDLE/Contents/Frameworks" -name "*.framework" -exec \
-            codesign --force --sign - {} \;
+            codesign --force --options runtime --sign "Developer ID Application: Michael Richard Garcia ($APPLE_TEAM_ID)" {} \;
 
-          # Re-sign plugins
+          echo "=== Signing PlugIns ==="
           find "$APP_BUNDLE/Contents/PlugIns" -name "*.dylib" -exec \
-            codesign --force --sign - {} \;
+            codesign --force --options runtime --sign "Developer ID Application: Michael Richard Garcia ($APPLE_TEAM_ID)" {} \;
 
-          # Re-sign the main executable
-          codesign --force --sign - "$APP_BUNDLE"
+          echo "=== Signing main application with entitlements ==="
+          codesign --force --options runtime \
+            --entitlements "resources/QK4.entitlements" \
+            --sign "Developer ID Application: Michael Richard Garcia ($APPLE_TEAM_ID)" \
+            "$APP_BUNDLE"
 
-          # Verify
+          echo "=== Verifying signature ==="
           codesign --verify --verbose=2 "$APP_BUNDLE"
 
       - name: Package artifact
