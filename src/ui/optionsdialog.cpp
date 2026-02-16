@@ -28,7 +28,7 @@ OptionsDialog::OptionsDialog(RadioState *radioState, AudioEngine *audioEngine, K
       m_micGainValueLabel(nullptr), m_micTestBtn(nullptr), m_micMeter(nullptr), m_speakerDeviceCombo(nullptr),
       m_catServerEnableCheckbox(nullptr), m_catServerPortEdit(nullptr), m_catServerStatusLabel(nullptr),
       m_catServerClientsLabel(nullptr), m_cwKeyerPortCombo(nullptr), m_cwKeyerRefreshBtn(nullptr),
-      m_cwKeyerConnectBtn(nullptr), m_cwKeyerStatusLabel(nullptr), m_cwKeyerEnableCheckbox(nullptr) {
+      m_cwKeyerConnectBtn(nullptr), m_cwKeyerStatusLabel(nullptr) {
     setupUi();
 
     // Connect to AudioEngine for mic level updates
@@ -1108,27 +1108,6 @@ QWidget *OptionsDialog::createCwKeyerPage() {
     line3->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::DialogBorder));
     line3->setFixedHeight(K4Styles::Dimensions::SeparatorHeight);
     layout->addWidget(line3);
-
-    // Enable checkbox
-    m_cwKeyerEnableCheckbox = new QCheckBox("Enable CW Keyer on startup", page);
-    m_cwKeyerEnableCheckbox->setStyleSheet(QString("QCheckBox { color: %1; font-size: %2px; spacing: %3px; }"
-                                                   "QCheckBox::indicator { width: %4px; height: %4px; }")
-                                               .arg(K4Styles::Colors::TextWhite)
-                                               .arg(K4Styles::Dimensions::FontSizePopup)
-                                               .arg(K4Styles::Dimensions::BorderRadiusLarge)
-                                               .arg(K4Styles::Dimensions::CheckboxSize));
-    m_cwKeyerEnableCheckbox->setChecked(RadioSettings::instance()->halikeyEnabled());
-    connect(m_cwKeyerEnableCheckbox, &QCheckBox::toggled, this,
-            [](bool checked) { RadioSettings::instance()->setHalikeyEnabled(checked); });
-    layout->addWidget(m_cwKeyerEnableCheckbox);
-
-    // Help text
-    auto *helpLabel = new QLabel("When enabled, the CW Keyer will automatically connect on application startup.", page);
-    helpLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-style: italic;")
-                                 .arg(K4Styles::Colors::TextGray)
-                                 .arg(K4Styles::Dimensions::FontSizeLarge));
-    helpLabel->setWordWrap(true);
-    layout->addWidget(helpLabel);
 
     // Separator line
     auto *line5 = new QFrame(page);

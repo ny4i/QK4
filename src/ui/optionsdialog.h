@@ -92,7 +92,6 @@ private:
     QPushButton *m_cwKeyerRefreshBtn;
     QPushButton *m_cwKeyerConnectBtn;
     QLabel *m_cwKeyerStatusLabel;
-    QCheckBox *m_cwKeyerEnableCheckbox;
     QSlider *m_sidetoneVolumeSlider = nullptr;
     QLabel *m_sidetoneVolumeValueLabel = nullptr;
     void populateCwKeyerPorts();

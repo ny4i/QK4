@@ -1703,11 +1703,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_sidetoneGenerator, &SidetoneGenerator::ditRepeated, this, [this]() { m_tcpClient->sendCAT("KZ.;"); });
     connect(m_sidetoneGenerator, &SidetoneGenerator::dahRepeated, this, [this]() { m_tcpClient->sendCAT("KZ-;"); });
 
-    // Auto-connect HaliKey if enabled and port is saved
-    if (RadioSettings::instance()->halikeyEnabled() && !RadioSettings::instance()->halikeyPortName().isEmpty()) {
-        m_halikeyDevice->openPort(RadioSettings::instance()->halikeyPortName());
-    }
-
     // KPA1500 amplifier client
     m_kpa1500Client = new KPA1500Client(this);
 

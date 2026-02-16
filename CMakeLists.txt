@@ -124,6 +124,7 @@ set(SOURCES
     src/ui/wheelaccumulator.cpp
     src/hardware/kpoddevice.cpp
     src/hardware/halikeydevice.cpp
+    src/hardware/halikeyworker.cpp
 )
 
 set(HEADERS
@@ -181,6 +182,7 @@ set(HEADERS
     src/ui/wheelaccumulator.h
     src/hardware/kpoddevice.h
     src/hardware/halikeydevice.h
+    src/hardware/halikeyworker.h
 )
 
 # On macOS, create an app bundle
