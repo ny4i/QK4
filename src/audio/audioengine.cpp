@@ -8,9 +8,9 @@ AudioEngine::AudioEngine(QObject *parent)
     : QObject(parent), m_audioSink(nullptr), m_audioSinkDevice(nullptr), m_audioSource(nullptr),
       m_audioSourceDevice(nullptr), m_micEnabled(false), m_micPollTimer(nullptr) {
 
-    // Output format: K4 uses 12kHz mono Float32 PCM (for RX audio playback)
+    // Output format: K4 uses 12kHz stereo Float32 PCM (L=Main RX, R=Sub RX)
     m_outputFormat.setSampleRate(12000);
-    m_outputFormat.setChannelCount(1);
+    m_outputFormat.setChannelCount(2);
     m_outputFormat.setSampleFormat(QAudioFormat::Float);
 
     // Input format: Use native 48kHz for microphone capture (most hardware supports this)
@@ -24,6 +24,11 @@ AudioEngine::AudioEngine(QObject *parent)
     m_micPollTimer->setInterval(10); // Poll every 10ms for low latency
     connect(m_micPollTimer, &QTimer::timeout, this, &AudioEngine::onMicDataReady);
 
+    // Create feed timer for jitter-buffered RX audio playback
+    m_feedTimer = new QTimer(this);
+    m_feedTimer->setInterval(FEED_INTERVAL_MS);
+    connect(m_feedTimer, &QTimer::timeout, this, &AudioEngine::feedAudioDevice);
+
     // Setup audio input immediately so mic testing works without radio connection
     setupAudioInput();
 }
@@ -35,6 +40,10 @@ AudioEngine::~AudioEngine() {
 bool AudioEngine::start() {
     bool outputOk = setupAudioOutput();
 
+    if (outputOk) {
+        m_feedTimer->start();
+    }
+
     // Setup audio input if not already done (it's also called in constructor)
     bool inputOk = (m_audioSource != nullptr) || setupAudioInput();
 
@@ -44,7 +53,14 @@ bool AudioEngine::start() {
 }
 
 void AudioEngine::stop() {
-    // Stop mic polling timer first
+    // Stop feed timer and clear jitter buffer
+    if (m_feedTimer) {
+        m_feedTimer->stop();
+    }
+    m_audioQueue.clear();
+    m_prebuffering = true;
+
+    // Stop mic polling timer
     if (m_micPollTimer) {
         m_micPollTimer->stop();
     }
@@ -148,12 +164,110 @@ bool AudioEngine::setupAudioInput() {
     return true;
 }
 
-void AudioEngine::playAudio(const QByteArray &pcmData) {
-    if (!m_audioSinkDevice || pcmData.isEmpty()) {
+void AudioEngine::enqueueAudio(const QByteArray &pcmData) {
+    if (pcmData.isEmpty())
         return;
+
+    // Overflow protection: drop oldest if queue too deep
+    while (m_audioQueue.size() >= MAX_QUEUE_PACKETS) {
+        m_audioQueue.dequeue();
     }
 
-    m_audioSinkDevice->write(pcmData);
+    m_audioQueue.enqueue(pcmData);
+}
+
+void AudioEngine::flushQueue() {
+    m_audioQueue.clear();
+    m_prebuffering = true;
+}
+
+void AudioEngine::feedAudioDevice() {
+    if (!m_audioSinkDevice || m_audioQueue.isEmpty())
+        return;
+
+    // Wait for prebuffer to fill before starting playback
+    if (m_prebuffering) {
+        if (m_audioQueue.size() < PREBUFFER_PACKETS)
+            return;
+        m_prebuffering = false;
+    }
+
+    // Write as many queued packets as the sink can accept
+    // Volume/routing/balance is applied here at playback time so slider
+    // changes take effect instantly regardless of queue depth
+    while (!m_audioQueue.isEmpty()) {
+        const QByteArray &front = m_audioQueue.head();
+        int bytesFree = m_audioSink->bytesFree();
+        if (bytesFree < front.size())
+            break;
+
+        QByteArray packet = m_audioQueue.dequeue();
+        applyMixAndVolume(packet);
+        m_audioSinkDevice->write(packet);
+    }
+}
+
+// Compute one output channel's mix from main/sub sources
+static inline float mixChannel(float mainSample, float subSample, AudioEngine::MixSource src, float mainVol,
+                               float subVol) {
+    switch (src) {
+    case AudioEngine::MixA:
+        return mainSample * mainVol;
+    case AudioEngine::MixB:
+        return subSample * subVol;
+    case AudioEngine::MixAB:
+        return mainSample * mainVol + subSample * subVol;
+    case AudioEngine::MixNegA:
+        return -mainSample * mainVol;
+    }
+    return 0.0f;
+}
+
+void AudioEngine::applyMixAndVolume(QByteArray &packet) {
+    float *samples = reinterpret_cast<float *>(packet.data());
+    int totalFloats = packet.size() / sizeof(float);
+    int sampleCount = totalFloats / 2;
+
+    // Pre-compute BL balance gains (BAL mode only, applied after MX routing)
+    float balLeftGain = 1.0f, balRightGain = 1.0f;
+    if (m_balanceMode == 1) {
+        balLeftGain = qBound(0.0f, (50.0f - m_balanceOffset) / 50.0f, 1.0f);
+        balRightGain = qBound(0.0f, (50.0f + m_balanceOffset) / 50.0f, 1.0f);
+    }
+
+    for (int i = 0; i < sampleCount; i++) {
+        float mainSample = samples[i * 2];    // Left channel (Main RX / VFO A)
+        float subSample = samples[i * 2 + 1]; // Right channel (Sub RX / VFO B)
+
+        // Step 1: SUB RX off — both channels get main audio only, sub slider has no effect
+        // BL balance still applies (L/R gain is independent of SUB RX state)
+        if (m_subMuted) {
+            float s = mainSample * m_mainVolume;
+            samples[i * 2] = qBound(-1.0f, s * balLeftGain, 1.0f);
+            samples[i * 2 + 1] = qBound(-1.0f, s * balRightGain, 1.0f);
+            continue;
+        }
+
+        // Step 2: SUB RX on — apply MX routing
+        float left, right;
+        if (m_balanceMode == 0) {
+            // NOR mode: main slider controls main, sub slider controls sub
+            left = mixChannel(mainSample, subSample, m_mixLeft, m_mainVolume, m_subVolume);
+            right = mixChannel(mainSample, subSample, m_mixRight, m_mainVolume, m_subVolume);
+        } else {
+            // BAL mode: mainVolume controls both receivers (sub slider repurposed as balance)
+            left = mixChannel(mainSample, subSample, m_mixLeft, m_mainVolume, m_mainVolume);
+            right = mixChannel(mainSample, subSample, m_mixRight, m_mainVolume, m_mainVolume);
+
+            // Step 3: Apply BL balance (L/R gain adjustment after MX routing)
+            left *= balLeftGain;
+            right *= balRightGain;
+        }
+
+        // Step 4: Clamp
+        samples[i * 2] = qBound(-1.0f, left, 1.0f);
+        samples[i * 2 + 1] = qBound(-1.0f, right, 1.0f);
+    }
 }
 
 void AudioEngine::setMicEnabled(bool enabled) {
@@ -263,6 +377,31 @@ void AudioEngine::setVolume(float volume) {
     if (m_audioSink) {
         m_audioSink->setVolume(m_volume);
     }
+}
+
+void AudioEngine::setMainVolume(float volume) {
+    m_mainVolume = qBound(0.0f, volume, 1.0f);
+}
+
+void AudioEngine::setSubVolume(float volume) {
+    m_subVolume = qBound(0.0f, volume, 1.0f);
+}
+
+void AudioEngine::setSubMuted(bool muted) {
+    m_subMuted = muted;
+}
+
+void AudioEngine::setAudioMix(int left, int right) {
+    m_mixLeft = static_cast<MixSource>(qBound(0, left, 3));
+    m_mixRight = static_cast<MixSource>(qBound(0, right, 3));
+}
+
+void AudioEngine::setBalanceMode(int mode) {
+    m_balanceMode = qBound(0, mode, 1);
+}
+
+void AudioEngine::setBalanceOffset(int offset) {
+    m_balanceOffset = qBound(-50, offset, 50);
 }
 
 void AudioEngine::setMicGain(float gain) {

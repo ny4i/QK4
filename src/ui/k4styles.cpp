@@ -367,6 +367,11 @@ QString compactButton() {
         QPushButton:pressed {
             background: %6;
         }
+        QPushButton:checked {
+            background: %7;
+            color: %8;
+            border: 1px solid %9;
+        }
     )")
         .arg(gradientCss(Colors::GradientTop, Colors::GradientMid1, Colors::GradientMid2, Colors::GradientBottom))
         .arg(Colors::BorderNormal)
@@ -374,7 +379,10 @@ QString compactButton() {
         .arg(Dimensions::FontSizeNormal)
         .arg(gradientCss(Colors::HoverTop, Colors::HoverMid1, Colors::HoverMid2, Colors::HoverBottom))
         .arg(gradientCssReversed(Colors::GradientTop, Colors::GradientMid1, Colors::GradientMid2,
-                                 Colors::GradientBottom));
+                                 Colors::GradientBottom))
+        .arg(gradientCss(Colors::SelectedTop, Colors::SelectedMid1, Colors::SelectedMid2, Colors::SelectedBottom))
+        .arg(Colors::TextDark)
+        .arg(Colors::BorderSelected);
 }
 
 QString sidePanelButton() {
@@ -480,32 +488,30 @@ QString dialogButton() {
         QPushButton {
             background: %1;
             color: %2;
-            border: 1px solid %3;
-            border-radius: 5px;
-            padding: %4px 20px;
-            font-size: %5px;
+            border: 2px solid %3;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: %4px;
             font-weight: bold;
-            min-width: 70px;
         }
         QPushButton:hover {
-            background: %6;
-            border: 1px solid %7;
+            background: %5;
+            border: 2px solid %6;
         }
         QPushButton:pressed {
-            background: %8;
-            border: 1px solid %9;
+            background: %7;
+            border: 2px solid %8;
         }
         QPushButton:disabled {
-            background: %10;
-            color: %11;
-            border: 1px solid %12;
+            background: %9;
+            color: %10;
+            border: 2px solid %11;
         }
     )")
         .arg(gradientCss(Colors::GradientTop, Colors::GradientMid1, Colors::GradientMid2, Colors::GradientBottom))
         .arg(Colors::TextWhite)
         .arg(Colors::BorderNormal)
-        .arg(Dimensions::PaddingMedium)
-        .arg(Dimensions::FontSizeButton)
+        .arg(Dimensions::PopupButtonSize)
         .arg(gradientCss(Colors::HoverTop, Colors::HoverMid1, Colors::HoverMid2, Colors::HoverBottom))
         .arg(Colors::BorderHover)
         .arg(gradientCssReversed(Colors::GradientTop, Colors::GradientMid1, Colors::GradientMid2,

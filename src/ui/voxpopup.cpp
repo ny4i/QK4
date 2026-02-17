@@ -204,7 +204,7 @@ void VoxPopupWidget::showAboveWidget(QWidget *referenceWidget) {
     int popupX = refCenterX - contentWidth / 2 - K4Styles::Dimensions::ShadowMargin;
     int popupY = refGlobal.y() - height() - 4;
 
-    QRect screenGeom = QApplication::primaryScreen()->availableGeometry();
+    QRect screenGeom = referenceWidget->screen()->availableGeometry();
     if (popupX < screenGeom.left() - K4Styles::Dimensions::ShadowMargin) {
         popupX = screenGeom.left() - K4Styles::Dimensions::ShadowMargin;
     } else if (popupX + width() > screenGeom.right() + K4Styles::Dimensions::ShadowMargin) {

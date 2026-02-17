@@ -223,7 +223,7 @@ void RadioManagerDialog::setupUi() {
     m_connectButton->setStyleSheet(K4Styles::dialogButton());
     buttonLayout->addWidget(m_connectButton);
 
-    m_newButton = new QPushButton("New", this);
+    m_newButton = new QPushButton("Add", this);
     m_newButton->setStyleSheet(K4Styles::dialogButton());
     buttonLayout->addWidget(m_newButton);
 
@@ -314,7 +314,10 @@ void RadioManagerDialog::onConnectClicked() {
 void RadioManagerDialog::onNewClicked() {
     m_currentIndex = -1;
     clearFields();
+    m_radioList->blockSignals(true);
     m_radioList->clearSelection();
+    m_radioList->setCurrentRow(-1);
+    m_radioList->blockSignals(false);
     m_nameEdit->setFocus();
     updateButtonStates();
 }

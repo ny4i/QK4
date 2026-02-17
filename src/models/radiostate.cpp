@@ -7,6 +7,234 @@ RadioState::RadioState(QObject *parent) : QObject(parent) {
     registerCommandHandlers();
 }
 
+void RadioState::reset() {
+    // Frequency and VFO
+    m_frequency = 0;
+    m_vfoA = 0;
+    m_vfoB = 0;
+    m_tuningStep = -1;
+    m_tuningStepB = -1;
+
+    // Mode and filter
+    m_mode = Unknown;
+    m_modeB = Unknown;
+    m_filterBandwidth = -1;
+    m_filterBandwidthB = -1;
+    m_filterPosition = -1;
+    m_filterPositionB = -1;
+    m_ifShift = -1;
+    m_ifShiftB = -1;
+    m_cwPitch = -1;
+
+    // Power and levels
+    m_rfPower = -1.0;
+    m_isQrpMode = false;
+    m_micGain = -1;
+    m_compression = -1;
+    m_rfGain = -999;
+    m_squelchLevel = -1;
+    m_rfGainB = -999;
+    m_squelchLevelB = -1;
+    m_keyerSpeed = -1;
+
+    // Meters
+    m_sMeter = 0.0;
+    m_sMeterB = 0.0;
+    m_powerMeter = 0;
+    m_swrMeter = 1.0;
+    m_alcMeter = 0;
+    m_compressionDb = 0;
+    m_forwardPower = 0.0;
+
+    // Power supply
+    m_supplyVoltage = 0.0;
+    m_supplyCurrent = 0.0;
+
+    // Control states
+    m_isTransmitting = false;
+    m_subReceiverEnabled = false;
+    m_diversityEnabled = false;
+    m_splitEnabled = false;
+
+    // Processing - Main RX
+    m_noiseBlankerLevel = 0;
+    m_noiseBlankerEnabled = false;
+    m_noiseBlankerFilterWidth = 0;
+    m_noiseReductionLevel = 0;
+    m_noiseReductionEnabled = false;
+
+    // Notch filter - Main RX
+    m_autoNotchEnabled = false;
+    m_manualNotchEnabled = false;
+    m_manualNotchPitch = 1000;
+
+    // Notch filter - Sub RX
+    m_autoNotchEnabledB = false;
+    m_manualNotchEnabledB = false;
+    m_manualNotchPitchB = 1000;
+
+    m_preamp = 0;
+    m_preampEnabled = false;
+    m_attenuatorLevel = 0;
+    m_attenuatorEnabled = false;
+    m_agcSpeed = AGC_Slow;
+
+    // Processing - Sub RX
+    m_noiseBlankerLevelB = 0;
+    m_noiseBlankerEnabledB = false;
+    m_noiseBlankerFilterWidthB = 0;
+    m_noiseReductionLevelB = 0;
+    m_noiseReductionEnabledB = false;
+    m_preampB = 0;
+    m_preampEnabledB = false;
+    m_attenuatorLevelB = 0;
+    m_attenuatorEnabledB = false;
+    m_agcSpeedB = AGC_Slow;
+
+    // Antenna
+    m_selectedAntenna = -1;
+    m_receiveAntenna = -1;
+    m_receiveAntennaSub = -1;
+    m_atuMode = -1;
+    m_antennaNames.clear();
+
+    // RIT/XIT
+    m_ritEnabled = false;
+    m_xitEnabled = false;
+    m_ritXitOffset = 0;
+
+    // Message bank
+    m_messageBank = -1;
+
+    // VOX
+    m_voxCW = false;
+    m_voxVoice = false;
+    m_voxData = false;
+
+    // QSK / TEST / B SET
+    m_qskEnabled = false;
+    m_testMode = false;
+    m_bSetEnabled = false;
+
+    // QSK/VOX Delay
+    m_qskDelayCW = -1;
+    m_qskDelayVoice = -1;
+    m_qskDelayData = -1;
+
+    // Audio effects
+    m_afxMode = 0;
+    m_apfEnabled = false;
+    m_apfBandwidth = 0;
+    m_apfEnabledB = false;
+    m_apfBandwidthB = 0;
+
+    // VFO Link/Lock
+    m_vfoLink = false;
+    m_lockA = false;
+    m_lockB = false;
+
+    // Audio mix/balance
+    m_audioMixLeft = -1;
+    m_audioMixRight = -1;
+    m_balanceMode = -1;
+    m_balanceOffset = -99;
+
+    // Monitor Level
+    m_monitorLevelCW = -1;
+    m_monitorLevelData = -1;
+    m_monitorLevelVoice = -1;
+
+    // Panadapter
+    m_refLevel = -110;
+    m_scale = -1;
+    m_spanHz = 0;
+    m_refLevelB = -110;
+    m_spanHzB = 0;
+
+    // Radio info
+    m_radioID.clear();
+    m_radioModel.clear();
+    m_optionModules.clear();
+    m_firmwareVersions.clear();
+
+    // Mini-Pan
+    m_miniPanAEnabled = false;
+    m_miniPanBEnabled = false;
+
+    // Display state
+    m_dualPanModeLcd = -1;
+    m_dualPanModeExt = -1;
+    m_displayModeLcd = -1;
+    m_displayModeExt = -1;
+    m_displayFps = 30;
+    m_waterfallColor = -1;
+    m_waterfallHeight = 50;
+    m_waterfallHeightExt = 50;
+    m_averaging = -1;
+    m_peakMode = -1;
+    m_fixedTune = -1;
+    m_fixedTuneMode = -1;
+    m_freeze = -1;
+    m_vfoACursor = -1;
+    m_vfoBCursor = -1;
+    m_autoRefLevel = -1;
+    m_ddcNbMode = -1;
+    m_ddcNbLevel = -1;
+
+    // Data sub-mode
+    m_dataSubMode = -1;
+    m_dataSubModeB = -1;
+    m_dataSubModeOptimisticTime = 0;
+    m_dataSubModeBOptimisticTime = 0;
+
+    // EQ bands
+    std::fill(std::begin(m_rxEqBands), std::end(m_rxEqBands), 0);
+    std::fill(std::begin(m_txEqBands), std::end(m_txEqBands), 0);
+
+    // Antenna config masks
+    m_mainRxDisplayAll = true;
+    std::fill(std::begin(m_mainRxAntMask), std::end(m_mainRxAntMask), false);
+    m_subRxDisplayAll = true;
+    std::fill(std::begin(m_subRxAntMask), std::end(m_subRxAntMask), false);
+    m_txDisplayAll = true;
+    std::fill(std::begin(m_txAntMask), std::end(m_txAntMask), false);
+
+    // Line Out
+    m_lineOutLeft = -1;
+    m_lineOutRight = -1;
+    m_lineOutRightEqualsLeft = false;
+
+    // Line In
+    m_lineInSoundCard = -1;
+    m_lineInJack = -1;
+    m_lineInSource = -1;
+
+    // Mic Input/Setup
+    m_micInput = -1;
+    m_micFrontPreamp = -1;
+    m_micFrontBias = -1;
+    m_micFrontButtons = -1;
+    m_micRearPreamp = -1;
+    m_micRearBias = -1;
+
+    // VOX Gain / Anti-VOX
+    m_voxGainVoice = -1;
+    m_voxGainData = -1;
+    m_antiVox = -1;
+
+    // ESSB
+    m_essbEnabled = false;
+    m_ssbTxBw = -1;
+
+    // Text Decode
+    m_textDecodeMode = -1;
+    m_textDecodeThreshold = -1;
+    m_textDecodeLines = -1;
+    m_textDecodeModeB = -1;
+    m_textDecodeThresholdB = -1;
+    m_textDecodeLinesB = -1;
+}
+
 void RadioState::parseCATCommand(const QString &command) {
     QString cmd = command.trimmed();
     if (cmd.isEmpty())
@@ -74,8 +302,9 @@ QString RadioState::modeToString(Mode mode) {
         return "CW-R";
     case DATA_R:
         return "DATA-R";
+    case Unknown:
     default:
-        return "USB";
+        return "";
     }
 }
 
@@ -221,6 +450,16 @@ void RadioState::setCompression(int level) {
     if (m_compression != level) {
         m_compression = level;
         emit compressionChanged(m_compression);
+    }
+}
+
+void RadioState::setBalance(int mode, int offset) {
+    mode = qBound(0, mode, 1);
+    offset = qBound(-50, offset, 50);
+    if (m_balanceMode != mode || m_balanceOffset != offset) {
+        m_balanceMode = mode;
+        m_balanceOffset = offset;
+        emit balanceChanged(mode, offset);
     }
 }
 
@@ -717,6 +956,7 @@ void RadioState::registerCommandHandlers() {
     m_commandHandlers.append({"FP", [this](const QString &c) { handleFP(c); }});
     m_commandHandlers.append({"FX", [this](const QString &c) { handleFX(c); }});
     m_commandHandlers.append({"MD", [this](const QString &c) { handleMD(c); }});
+    m_commandHandlers.append({"BL", [this](const QString &c) { handleBL(c); }});
     m_commandHandlers.append({"BW", [this](const QString &c) { handleBW(c); }});
     m_commandHandlers.append({"IS", [this](const QString &c) { handleIS(c); }});
     m_commandHandlers.append({"CW", [this](const QString &c) { handleCW(c); }});
@@ -750,6 +990,7 @@ void RadioState::registerCommandHandlers() {
     m_commandHandlers.append({"VI", [this](const QString &c) { handleVI(c); }});
     m_commandHandlers.append({"MI", [this](const QString &c) { handleMI(c); }});
     m_commandHandlers.append({"MS", [this](const QString &c) { handleMS(c); }});
+    m_commandHandlers.append({"MX", [this](const QString &c) { handleMX(c); }});
     m_commandHandlers.append({"MN", [this](const QString &c) { handleMN(c); }});
     m_commandHandlers.append({"ES", [this](const QString &c) { handleES(c); }});
     m_commandHandlers.append({"SD", [this](const QString &c) { handleSD(c); }});
@@ -1039,6 +1280,68 @@ void RadioState::handleML(const QString &cmd) {
     if (target && *target != level) {
         *target = level;
         emit monitorLevelChanged(mode, level);
+    }
+}
+
+void RadioState::handleBL(const QString &cmd) {
+    // Balance - BLm±nn where m=mode (0=NOR, 1=BAL), ±nn=offset (-50 to +50)
+    // Examples: BL0+00, BL0+02, BL0-03, BL1+00, BL1-01
+    if (cmd.length() < 5)
+        return;
+    int mode = cmd[2].digitValue();
+    if (mode < 0 || mode > 1)
+        return;
+    QChar sign = cmd[3];
+    bool ok;
+    int nn = cmd.mid(4).toInt(&ok);
+    if (!ok)
+        return;
+    int offset = (sign == '-') ? -nn : nn;
+    offset = qBound(-50, offset, 50);
+    if (m_balanceMode != mode || m_balanceOffset != offset) {
+        m_balanceMode = mode;
+        m_balanceOffset = offset;
+        emit balanceChanged(mode, offset);
+    }
+}
+
+void RadioState::handleMX(const QString &cmd) {
+    // Audio Mix routing - MXL.R where L and R are component strings
+    // Format: "MX" followed by "left.right" e.g. "MXA.B", "MXAB.AB", "MXA.-A"
+    // Components: A=main(0), B=sub(1), AB=main+sub(2), -A=neg main(3)
+    if (cmd.length() < 5)
+        return;
+
+    QString body = cmd.mid(2); // e.g. "A.B", "AB.AB", "A.-A"
+    int dotPos = body.indexOf('.');
+    if (dotPos < 1 || dotPos >= body.length() - 1)
+        return;
+
+    QString leftStr = body.left(dotPos);
+    QString rightStr = body.mid(dotPos + 1);
+
+    // Map component string to MixSource value
+    auto mapComponent = [](const QString &s) -> int {
+        if (s == "A")
+            return 0; // MixA
+        if (s == "B")
+            return 1; // MixB
+        if (s == "AB")
+            return 2; // MixAB
+        if (s == "-A")
+            return 3; // MixNegA
+        return -1;
+    };
+
+    int left = mapComponent(leftStr);
+    int right = mapComponent(rightStr);
+    if (left < 0 || right < 0)
+        return;
+
+    if (m_audioMixLeft != left || m_audioMixRight != right) {
+        m_audioMixLeft = left;
+        m_audioMixRight = right;
+        emit audioMixChanged(left, right);
     }
 }
 

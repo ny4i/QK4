@@ -22,10 +22,7 @@ Code style, naming conventions, and development rules for QK4.
    - Protocol for CAT parsing, emitting typed signals
    - Widgets self-contained with clear public interfaces
 
-4. **Document ALL changes** - Mandatory:
-   - `docs/DEVLOG.md` - Technical log of what changed and why
-   - `CHANGELOG.md` - User-facing release notes
-   - Update IMMEDIATELY after completing any feature, fix, or change
+4. **Write descriptive commits** - `CHANGELOG.md` is auto-generated from conventional commits at release time. Use commit body text for details that should appear in the changelog (see Commit Messages below).
 
 5. **Parse order matters** - Check specific patterns FIRST (e.g., `RG$` before `RG`)
 
@@ -131,9 +128,32 @@ Before considering a feature complete:
 - [ ] Are signals/slots properly connected?
 - [ ] Is state initialized correctly?
 - [ ] Lint check passes? (REQUIRED - run pre-commit checklist above)
-- [ ] Is `docs/DEVLOG.md` updated? (REQUIRED)
-- [ ] Is `CHANGELOG.md` updated? (REQUIRED for user-facing changes)
 - [ ] Would another developer understand this code?
+
+## Commit Messages
+
+Commits drive the auto-generated changelog. Use [conventional commit](https://www.conventionalcommits.org/) format:
+
+```
+type(scope): short summary
+
+Optional body with detail — each line becomes a sub-bullet in the changelog.
+```
+
+| Type | Changelog Section | Example |
+|------|-------------------|---------|
+| `feat` | Added | `feat(audio): add jitter buffer for RX playback` |
+| `fix` | Fixed | `fix(panadapter): correct CW pitch offset in passband` |
+| `refactor` | Changed | `refactor(state): replace if-else chain with handler registry` |
+| `perf` | Changed | `perf(dsp): reduce CPU usage with GPU spectrum rendering` |
+| `docs` | *(skipped)* | `docs: update README build instructions` |
+| `chore` | *(skipped)* | `chore: bump Qt to 6.8` |
+| `ci` | *(skipped)* | `ci: add Raspberry Pi build job` |
+
+**Tips:**
+- The `(scope)` is optional but makes changelog entries scannable (e.g., `audio`, `panadapter`, `state`, `ui`)
+- Put detail in the commit body — it flows into the changelog as sub-bullets
+- Keep the summary line under 72 characters
 
 ---
 

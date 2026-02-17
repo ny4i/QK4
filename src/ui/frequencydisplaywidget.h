@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QColor>
 #include <QFont>
+#include "wheelaccumulator.h"
 
 /**
  * FrequencyDisplayWidget - Inline frequency display with segment-based editing.
@@ -60,11 +61,15 @@ signals:
     // Emitted when editing is cancelled (Escape or click outside)
     void editingCancelled();
 
+    // Emitted when user scrolls mouse wheel over frequency (not in edit mode)
+    void frequencyScrolled(int steps);
+
 protected:
     void paintEvent(QPaintEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
     void focusOutEvent(QFocusEvent *event) override;
+    void wheelEvent(QWheelEvent *event) override;
 
 private:
     // Enter edit mode with cursor at the specified digit position (0-7)
@@ -100,6 +105,8 @@ private:
 
     // Tuning rate indicator: digits from this position to 0 show in gray
     int m_tuningRateDigit = -1; // -1 = no indicator, 0-4 = position from right
+
+    WheelAccumulator m_wheelAccumulator;
 
     // Cached character metrics for click detection
     int m_charWidth = 0;
