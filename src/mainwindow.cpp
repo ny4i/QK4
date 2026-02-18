@@ -1685,7 +1685,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_halikeyDevice, &HalikeyDevice::ditStateChanged, this, [this](bool pressed) {
         if (pressed) {
             m_tcpClient->sendCAT("KZ.;");
-            m_sidetoneGenerator->startDit(); // Start repeating dit while held
+            m_sidetoneGenerator->startDit();
         } else {
             m_sidetoneGenerator->stopElement();
         }
@@ -1693,20 +1693,19 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_halikeyDevice, &HalikeyDevice::dahStateChanged, this, [this](bool pressed) {
         if (pressed) {
             m_tcpClient->sendCAT("KZ-;");
-            m_sidetoneGenerator->startDah(); // Start repeating dah while held
+            m_sidetoneGenerator->startDah();
         } else {
             m_sidetoneGenerator->stopElement();
         }
     });
 
-    // Send repeated KZ commands when sidetone repeat timer fires
+    // Stop sidetone when HaliKey disconnects (prevents runaway repeat timer
+    // if paddle was held when disconnected — Note Off never arrives)
+    connect(m_halikeyDevice, &HalikeyDevice::disconnected, this, [this]() { m_sidetoneGenerator->stopElement(); });
+
+    // Send repeated KZ commands when sidetone repeat timer fires (V14 mode only)
     connect(m_sidetoneGenerator, &SidetoneGenerator::ditRepeated, this, [this]() { m_tcpClient->sendCAT("KZ.;"); });
     connect(m_sidetoneGenerator, &SidetoneGenerator::dahRepeated, this, [this]() { m_tcpClient->sendCAT("KZ-;"); });
-
-    // Auto-connect HaliKey if enabled and port is saved
-    if (RadioSettings::instance()->halikeyEnabled() && !RadioSettings::instance()->halikeyPortName().isEmpty()) {
-        m_halikeyDevice->openPort(RadioSettings::instance()->halikeyPortName());
-    }
 
     // KPA1500 amplifier client
     m_kpa1500Client = new KPA1500Client(this);
@@ -2641,10 +2640,24 @@ void MainWindow::setupUi() {
     // Bottom row signals (SUB, DIVERSITY, RATE, LOCK)
     connect(m_rightSidePanel, &RightSidePanel::subClicked, this, [this]() { m_tcpClient->sendCAT("SW83;"); });
     connect(m_rightSidePanel, &RightSidePanel::diversityClicked, this, [this]() { m_tcpClient->sendCAT("SW152;"); });
-    connect(m_rightSidePanel, &RightSidePanel::rateClicked, this,
-            [this]() { m_tcpClient->sendCAT("SW73;"); }); // Cycle fine rates
-    connect(m_rightSidePanel, &RightSidePanel::khzClicked, this,
-            [this]() { m_tcpClient->sendCAT("SW150;"); }); // Jump to 100kHz
+    connect(m_rightSidePanel, &RightSidePanel::rateClicked, this, [this]() {
+        // Cycle fine rates: 1 Hz → 10 Hz → 100 Hz → 1 Hz
+        // B-SET aware: targets VFO B (VT$) when B SET is engaged
+        bool bSet = m_radioState->bSetEnabled();
+        int current = bSet ? m_radioState->tuningStepB() : m_radioState->tuningStep();
+        int next = (current >= 0 && current < 2) ? current + 1 : 0;
+        QString cmd = QString("%1%2;").arg(bSet ? "VT$" : "VT").arg(next);
+        m_tcpClient->sendCAT(cmd);
+        m_radioState->parseCATCommand(cmd);
+    });
+    connect(m_rightSidePanel, &RightSidePanel::khzClicked, this, [this]() {
+        // Set tuning step to 1 kHz (VT3)
+        // B-SET aware: targets VFO B (VT$) when B SET is engaged
+        bool bSet = m_radioState->bSetEnabled();
+        QString cmd = bSet ? QStringLiteral("VT$3;") : QStringLiteral("VT3;");
+        m_tcpClient->sendCAT(cmd);
+        m_radioState->parseCATCommand(cmd);
+    });
     connect(m_rightSidePanel, &RightSidePanel::lockAClicked, this,
             [this]() { m_tcpClient->sendCAT("SW63;"); }); // Toggle Lock A
     connect(m_rightSidePanel, &RightSidePanel::lockBClicked, this,
@@ -3397,11 +3410,16 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     });
 
     // Mouse control: drag to tune (continuous frequency change while dragging)
+    // Frequency is snapped to the current tuning rate step for consistent behavior
     connect(m_panadapterA, &PanadapterRhiWidget::frequencyDragged, this, [this](qint64 freq) {
         // Guard: only send if connected and frequency is valid
         if (!m_tcpClient->isConnected() || freq <= 0)
             return;
-        QString cmd = QString("FA%1;").arg(freq, 11, 10, QChar('0'));
+        int stepHz = tuningStepToHz(m_radioState->tuningStep());
+        qint64 snapped = (freq / stepHz) * stepHz;
+        if (snapped <= 0)
+            return;
+        QString cmd = QString("FA%1;").arg(snapped, 11, 10, QChar('0'));
         m_tcpClient->sendCAT(cmd);
         // Update local state immediately for responsive UI (K4 doesn't echo SET commands)
         m_radioState->parseCATCommand(cmd);
@@ -3535,13 +3553,19 @@ void MainWindow::setupSpectrumPlaceholder(QWidget *parent) {
     });
 
     // Mouse control for VFO B: drag to tune (continuous frequency change while dragging)
+    // Frequency is snapped to the current tuning rate step for consistent behavior
     connect(m_panadapterB, &PanadapterRhiWidget::frequencyDragged, this, [this](qint64 freq) {
         // Guard: only send if connected and frequency is valid
         if (!m_tcpClient->isConnected() || freq <= 0)
             return;
         // L=A R=B mode: left-drag on Pan B tunes VFO A
-        QString vfo = (m_mouseQsyMode == 1) ? "FA" : "FB";
-        QString cmd = QString("%1%2;").arg(vfo).arg(freq, 11, 10, QChar('0'));
+        bool tuneA = (m_mouseQsyMode == 1);
+        QString vfo = tuneA ? "FA" : "FB";
+        int stepHz = tuningStepToHz(tuneA ? m_radioState->tuningStep() : m_radioState->tuningStepB());
+        qint64 snapped = (freq / stepHz) * stepHz;
+        if (snapped <= 0)
+            return;
+        QString cmd = QString("%1%2;").arg(vfo).arg(snapped, 11, 10, QChar('0'));
         m_tcpClient->sendCAT(cmd);
         m_radioState->parseCATCommand(cmd);
     });

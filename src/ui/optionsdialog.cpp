@@ -27,8 +27,9 @@ OptionsDialog::OptionsDialog(RadioState *radioState, AudioEngine *audioEngine, K
       m_catServer(catServer), m_halikeyDevice(halikeyDevice), m_micDeviceCombo(nullptr), m_micGainSlider(nullptr),
       m_micGainValueLabel(nullptr), m_micTestBtn(nullptr), m_micMeter(nullptr), m_speakerDeviceCombo(nullptr),
       m_catServerEnableCheckbox(nullptr), m_catServerPortEdit(nullptr), m_catServerStatusLabel(nullptr),
-      m_catServerClientsLabel(nullptr), m_cwKeyerPortCombo(nullptr), m_cwKeyerRefreshBtn(nullptr),
-      m_cwKeyerConnectBtn(nullptr), m_cwKeyerStatusLabel(nullptr), m_cwKeyerEnableCheckbox(nullptr) {
+      m_catServerClientsLabel(nullptr), m_cwKeyerDeviceTypeCombo(nullptr), m_cwKeyerDescLabel(nullptr),
+      m_cwKeyerPortCombo(nullptr), m_cwKeyerRefreshBtn(nullptr), m_cwKeyerConnectBtn(nullptr),
+      m_cwKeyerStatusLabel(nullptr) {
     setupUi();
 
     // Connect to AudioEngine for mic level updates
@@ -1000,15 +1001,57 @@ QWidget *OptionsDialog::createCwKeyerPage() {
                                   .arg(K4Styles::Dimensions::FontSizeTitle));
     layout->addWidget(titleLabel);
 
-    // Description
-    auto *descLabel = new QLabel("Connect a HaliKey paddle interface to send CW via the K4's keyer. "
-                                 "The HaliKey uses serial port flow control signals to detect paddle inputs.",
-                                 page);
-    descLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
-                                 .arg(K4Styles::Colors::TextGray)
-                                 .arg(K4Styles::Dimensions::FontSizeButton));
-    descLabel->setWordWrap(true);
-    layout->addWidget(descLabel);
+    // Description (dynamic based on device type)
+    m_cwKeyerDescLabel = new QLabel(page);
+    m_cwKeyerDescLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
+                                          .arg(K4Styles::Colors::TextGray)
+                                          .arg(K4Styles::Dimensions::FontSizeButton));
+    m_cwKeyerDescLabel->setWordWrap(true);
+    layout->addWidget(m_cwKeyerDescLabel);
+
+    // Device Type selector
+    auto *deviceTypeLayout = new QHBoxLayout();
+    auto *deviceTypeLabel = new QLabel("Device Type:", page);
+    deviceTypeLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
+                                       .arg(K4Styles::Colors::TextGray)
+                                       .arg(K4Styles::Dimensions::FontSizePopup));
+    deviceTypeLabel->setFixedWidth(K4Styles::Dimensions::FormLabelWidth);
+
+    m_cwKeyerDeviceTypeCombo = new QComboBox(page);
+    m_cwKeyerDeviceTypeCombo->setStyleSheet(
+        QString("QComboBox { background-color: %1; color: %2; border: 1px solid %3; "
+                "           padding: %6px; font-size: %5px; border-radius: %7px; }"
+                "QComboBox:focus { border-color: %4; }"
+                "QComboBox::drop-down { border: none; width: 20px; }"
+                "QComboBox::down-arrow { image: none; border-left: 5px solid transparent; "
+                "           border-right: 5px solid transparent; border-top: 5px solid %2; }"
+                "QComboBox QAbstractItemView { background-color: %1; color: %2; selection-background-color: %4; }")
+            .arg(K4Styles::Colors::DarkBackground, K4Styles::Colors::TextWhite, K4Styles::Colors::DialogBorder,
+                 K4Styles::Colors::AccentAmber)
+            .arg(K4Styles::Dimensions::FontSizePopup)
+            .arg(K4Styles::Dimensions::PaddingSmall)
+            .arg(K4Styles::Dimensions::SliderBorderRadius));
+    m_cwKeyerDeviceTypeCombo->addItem("HaliKey V1.4", 0);
+    m_cwKeyerDeviceTypeCombo->addItem("HaliKey MIDI", 1);
+
+    int savedDeviceType = RadioSettings::instance()->halikeyDeviceType();
+    m_cwKeyerDeviceTypeCombo->setCurrentIndex(savedDeviceType);
+    updateCwKeyerDescription();
+
+    connect(m_cwKeyerDeviceTypeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int index) {
+        int type = m_cwKeyerDeviceTypeCombo->itemData(index).toInt();
+        RadioSettings::instance()->setHalikeyDeviceType(type);
+        // Disconnect if connected, since device type changed
+        if (m_halikeyDevice && m_halikeyDevice->isConnected()) {
+            m_halikeyDevice->closePort();
+        }
+        updateCwKeyerDescription();
+        populateCwKeyerPorts();
+    });
+
+    deviceTypeLayout->addWidget(deviceTypeLabel);
+    deviceTypeLayout->addWidget(m_cwKeyerDeviceTypeCombo, 1);
+    layout->addLayout(deviceTypeLayout);
 
     // Separator line
     auto *line = new QFrame(page);
@@ -1051,7 +1094,7 @@ QWidget *OptionsDialog::createCwKeyerPage() {
 
     // Port selection
     auto *portLayout = new QHBoxLayout();
-    auto *portLabel = new QLabel("Serial Port:", page);
+    auto *portLabel = new QLabel("Port:", page);
     portLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
                                  .arg(K4Styles::Colors::TextGray)
                                  .arg(K4Styles::Dimensions::FontSizePopup));
@@ -1108,27 +1151,6 @@ QWidget *OptionsDialog::createCwKeyerPage() {
     line3->setStyleSheet(QString("background-color: %1;").arg(K4Styles::Colors::DialogBorder));
     line3->setFixedHeight(K4Styles::Dimensions::SeparatorHeight);
     layout->addWidget(line3);
-
-    // Enable checkbox
-    m_cwKeyerEnableCheckbox = new QCheckBox("Enable CW Keyer on startup", page);
-    m_cwKeyerEnableCheckbox->setStyleSheet(QString("QCheckBox { color: %1; font-size: %2px; spacing: %3px; }"
-                                                   "QCheckBox::indicator { width: %4px; height: %4px; }")
-                                               .arg(K4Styles::Colors::TextWhite)
-                                               .arg(K4Styles::Dimensions::FontSizePopup)
-                                               .arg(K4Styles::Dimensions::BorderRadiusLarge)
-                                               .arg(K4Styles::Dimensions::CheckboxSize));
-    m_cwKeyerEnableCheckbox->setChecked(RadioSettings::instance()->halikeyEnabled());
-    connect(m_cwKeyerEnableCheckbox, &QCheckBox::toggled, this,
-            [](bool checked) { RadioSettings::instance()->setHalikeyEnabled(checked); });
-    layout->addWidget(m_cwKeyerEnableCheckbox);
-
-    // Help text
-    auto *helpLabel = new QLabel("When enabled, the CW Keyer will automatically connect on application startup.", page);
-    helpLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-style: italic;")
-                                 .arg(K4Styles::Colors::TextGray)
-                                 .arg(K4Styles::Dimensions::FontSizeLarge));
-    helpLabel->setWordWrap(true);
-    layout->addWidget(helpLabel);
 
     // Separator line
     auto *line5 = new QFrame(page);
@@ -1195,31 +1217,70 @@ void OptionsDialog::populateCwKeyerPorts() {
     if (!m_cwKeyerPortCombo)
         return;
 
+    // Block signals to avoid triggering save during repopulation
+    m_cwKeyerPortCombo->blockSignals(true);
     m_cwKeyerPortCombo->clear();
 
-    QStringList ports = HalikeyDevice::availablePorts();
+    int deviceType = m_cwKeyerDeviceTypeCombo ? m_cwKeyerDeviceTypeCombo->currentData().toInt() : 0;
     QString savedPort = RadioSettings::instance()->halikeyPortName();
     int selectedIndex = -1;
 
-    for (int i = 0; i < ports.size(); i++) {
-        m_cwKeyerPortCombo->addItem(ports[i]);
-
-        // Find the saved port
-        if (ports[i] == savedPort) {
-            selectedIndex = i;
+    if (deviceType == 1) {
+        // MIDI device — enumerate MIDI ports
+        QStringList midiDevices = HalikeyDevice::availableMidiDevices();
+        for (int i = 0; i < midiDevices.size(); i++) {
+            m_cwKeyerPortCombo->addItem(midiDevices[i], midiDevices[i]);
+            if (midiDevices[i] == savedPort) {
+                selectedIndex = i;
+            }
+        }
+        // Auto-select first HaliKey MIDI device if no saved selection matched
+        if (selectedIndex < 0) {
+            for (int i = 0; i < midiDevices.size(); i++) {
+                if (midiDevices[i].contains("HaliKey", Qt::CaseInsensitive)) {
+                    selectedIndex = i;
+                    break;
+                }
+            }
+        }
+    } else {
+        // V14 device — enumerate serial ports
+        auto ports = HalikeyDevice::availablePortsDetailed();
+        for (int i = 0; i < ports.size(); i++) {
+            m_cwKeyerPortCombo->addItem(ports[i].portName, ports[i].portName);
+            if (ports[i].portName == savedPort) {
+                selectedIndex = i;
+            }
         }
     }
 
     if (selectedIndex >= 0) {
         m_cwKeyerPortCombo->setCurrentIndex(selectedIndex);
     }
+    m_cwKeyerPortCombo->blockSignals(false);
 
-    // Save selection when changed
+    // Save selection when changed (reconnect since we may be called multiple times)
+    m_cwKeyerPortCombo->disconnect(this);
     connect(m_cwKeyerPortCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int index) {
         if (index >= 0) {
-            RadioSettings::instance()->setHalikeyPortName(m_cwKeyerPortCombo->currentText());
+            QString portName = m_cwKeyerPortCombo->itemData(index).toString();
+            RadioSettings::instance()->setHalikeyPortName(portName);
         }
     });
+}
+
+void OptionsDialog::updateCwKeyerDescription() {
+    if (!m_cwKeyerDescLabel || !m_cwKeyerDeviceTypeCombo)
+        return;
+
+    int type = m_cwKeyerDeviceTypeCombo->currentData().toInt();
+    if (type == 1) {
+        m_cwKeyerDescLabel->setText("Connect a HaliKey MIDI paddle interface to send CW via the K4's keyer. "
+                                    "The HaliKey MIDI uses standard MIDI note events to detect paddle and PTT inputs.");
+    } else {
+        m_cwKeyerDescLabel->setText("Connect a HaliKey paddle interface to send CW via the K4's keyer. "
+                                    "The HaliKey uses serial port flow control signals to detect paddle inputs.");
+    }
 }
 
 void OptionsDialog::onCwKeyerRefreshClicked() {
@@ -1234,8 +1295,8 @@ void OptionsDialog::onCwKeyerConnectClicked() {
         // Disconnect
         m_halikeyDevice->closePort();
     } else {
-        // Connect
-        QString portName = m_cwKeyerPortCombo->currentText();
+        // Connect — use port name from item data (without annotation suffix)
+        QString portName = m_cwKeyerPortCombo->currentData().toString();
         if (!portName.isEmpty()) {
             RadioSettings::instance()->setHalikeyPortName(portName);
             m_halikeyDevice->openPort(portName);

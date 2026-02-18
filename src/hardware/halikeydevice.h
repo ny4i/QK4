@@ -1,11 +1,19 @@
 #ifndef HALIKEYDEVICE_H
 #define HALIKEYDEVICE_H
 
+#include <QList>
 #include <QObject>
-#include <QString>
-#include <QTimer>
-#include <QSerialPort>
 #include <QSerialPortInfo>
+#include <QString>
+#include <QThread>
+#include <QTimer>
+
+class HaliKeyWorkerBase;
+
+struct HaliKeyPortInfo {
+    QString portName;
+    bool isMidiDetected = false;
+};
 
 class HalikeyDevice : public QObject {
     Q_OBJECT
@@ -22,6 +30,8 @@ public:
 
     // Available ports
     static QStringList availablePorts();
+    static QList<HaliKeyPortInfo> availablePortsDetailed();
+    static QStringList availableMidiDevices();
 
     // Current paddle state
     bool ditPressed() const;
@@ -32,32 +42,37 @@ signals:
     void disconnected();
     void connectionError(const QString &error);
 
-    // Paddle state changes
+    // Paddle state changes (debounced)
     void ditStateChanged(bool pressed);
     void dahStateChanged(bool pressed);
-
-private slots:
-    void pollSignals();
+    void pttStateChanged(bool pressed);
 
 private:
-    QSerialPort *m_serialPort = nullptr;
-    QTimer *m_pollTimer = nullptr;
+    void onRawDit(bool pressed);
+    void onRawDah(bool pressed);
+    void onRawPtt(bool pressed);
 
-    // Polling interval - fast enough for responsive keying
-    static const int POLL_INTERVAL_MS = 1;
+    QThread *m_workerThread = nullptr;
+    HaliKeyWorkerBase *m_worker = nullptr;
 
-    // Debounce - require stable state for N consecutive reads
-    static const int DEBOUNCE_COUNT = 3; // 3ms at 1ms polling
+    QString m_portName;
+    bool m_connected = false;
 
-    // Last known paddle states (debounced, what we report)
-    bool m_lastDitState = false;
-    bool m_lastDahState = false;
-
-    // Raw states and debounce counters
+    // Raw state from worker (updated on every event, including bounce)
     bool m_rawDitState = false;
     bool m_rawDahState = false;
-    int m_ditDebounceCounter = 0;
-    int m_dahDebounceCounter = 0;
+    bool m_rawPttState = false;
+
+    // Confirmed state (after debounce, what we've emitted)
+    bool m_confirmedDitState = false;
+    bool m_confirmedDahState = false;
+    bool m_confirmedPttState = false;
+
+    // Debounce timers — emit ON immediately, delay OFF by 10ms to absorb bounce
+    QTimer *m_ditDebounceTimer = nullptr;
+    QTimer *m_dahDebounceTimer = nullptr;
+    QTimer *m_pttDebounceTimer = nullptr;
+    static constexpr int DEBOUNCE_MS = 10;
 };
 
 #endif // HALIKEYDEVICE_H

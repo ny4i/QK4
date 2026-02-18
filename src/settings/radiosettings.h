@@ -109,6 +109,8 @@ public:
     void setHalikeyPortName(const QString &portName);
     bool halikeyEnabled() const;
     void setHalikeyEnabled(bool enabled);
+    int halikeyDeviceType() const;
+    void setHalikeyDeviceType(int type); // 0=V14, 1=MiDi
     int sidetoneVolume() const;
     void setSidetoneVolume(int value); // 0-100, default 30
 
@@ -136,6 +138,7 @@ signals:
     void macrosChanged();
     void halikeyEnabledChanged(bool enabled);
     void halikeyPortNameChanged(const QString &portName);
+    void halikeyDeviceTypeChanged(int type);
     void sidetoneVolumeChanged(int value);
     void rxEqPresetsChanged();
     void txEqPresetsChanged();
@@ -162,7 +165,8 @@ private:
     // HaliKey settings
     QString m_halikeyPortName;
     bool m_halikeyEnabled = false;
-    int m_sidetoneVolume = 30; // Default 30%
+    int m_halikeyDeviceType = 0; // 0=V14, 1=MiDi
+    int m_sidetoneVolume = 30;   // Default 30%
 
     // Macro settings
     QMap<QString, MacroEntry> m_macros;

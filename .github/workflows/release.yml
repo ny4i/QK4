@@ -269,15 +269,23 @@ jobs:
           # Ensure filesystem is synced and Spotlight doesn't interfere
           sync
           touch dmg-staging/.metadata_never_index
-          sleep 2
+          sleep 5
 
-          # Create the DMG
+          # Create the DMG (retry up to 3 times — hdiutil can fail with
+          # "Resource busy" on CI runners if ditto hasn't fully flushed)
           echo "=== Creating DMG ==="
-          hdiutil create -volname "QK4" \
-            -srcfolder dmg-staging \
-            -ov -format UDZO \
-            -nocrossdev \
-            "QK4-unsigned.dmg"
+          for attempt in 1 2 3; do
+            if hdiutil create -volname "QK4" \
+              -srcfolder dmg-staging \
+              -ov -format UDZO \
+              -nocrossdev \
+              "QK4-unsigned.dmg"; then
+              break
+            fi
+            echo "hdiutil attempt $attempt failed, retrying in 5s..."
+            sleep 5
+          done
+          test -f "QK4-unsigned.dmg" || { echo "DMG creation failed after 3 attempts"; exit 1; }
 
           # Sign the DMG
           echo "=== Signing DMG ==="
