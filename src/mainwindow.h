@@ -14,6 +14,7 @@
 #include "models/radiostate.h"
 #include "ui/vfowidget.h"
 #include "ui/wheelaccumulator.h"
+#include "keyer/iambickeyer.h"
 
 class PanadapterRhiWidget;
 class AudioEngine;
@@ -308,8 +309,9 @@ private:
 
     // HaliKey CW paddle device
     HalikeyDevice *m_halikeyDevice;
-    QTimer *m_ditRepeatTimer;
-    QTimer *m_dahRepeatTimer;
+
+    // Software iambic keyer (handles dit/dah alternation and timing)
+    IambicKeyer *m_iambicKeyer;
 
     // Local sidetone generator for CW keying
     SidetoneGenerator *m_sidetoneGenerator;

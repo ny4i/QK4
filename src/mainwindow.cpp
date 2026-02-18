@@ -1624,35 +1624,8 @@ MainWindow::MainWindow(QWidget *parent)
     // HaliKey CW paddle device
     m_halikeyDevice = new HalikeyDevice(this);
 
-    // Repeat timers for continuous paddle input - K4 keyer handles timing
-    // Repeat timers for held paddles - DISABLED for now
-    // The K4's keyer handles element timing based on WPM setting.
-    // We send a single element on paddle press; K4 generates the element.
-    // TODO: Implement proper iambic repeat based on WPM timing if needed.
-    m_ditRepeatTimer = new QTimer(this);
-    m_ditRepeatTimer->setInterval(500); // Much slower - only for sustained holding
-    connect(m_ditRepeatTimer, &QTimer::timeout, this, [this]() {
-        if (m_halikeyDevice && m_halikeyDevice->ditPressed()) {
-            qDebug() << "Dit repeat timer fired - sending another dit";
-            m_tcpClient->sendCAT("KZ.;");
-        } else {
-            m_ditRepeatTimer->stop();
-        }
-    });
-
-    m_dahRepeatTimer = new QTimer(this);
-    m_dahRepeatTimer->setInterval(500); // Much slower
-    connect(m_dahRepeatTimer, &QTimer::timeout, this, [this]() {
-        if (m_halikeyDevice && m_halikeyDevice->dahPressed()) {
-            qDebug() << "Dah repeat timer fired - sending another dah";
-            m_tcpClient->sendCAT("KZ-;");
-        } else {
-            m_dahRepeatTimer->stop();
-        }
-    });
-
     // Local sidetone generator for CW keying (low-latency local audio feedback)
-    // MUST be created BEFORE HaliKey signal connections that use it
+    // MUST be created BEFORE IambicKeyer signal connections that use it
     m_sidetoneGenerator = new SidetoneGenerator(this);
 
     // Set initial sidetone frequency from radio state if available
@@ -1671,41 +1644,47 @@ MainWindow::MainWindow(QWidget *parent)
     connect(RadioSettings::instance(), &RadioSettings::sidetoneVolumeChanged, this,
             [this](int value) { m_sidetoneGenerator->setVolume(value / 100.0f); });
 
-    // Set initial keyer speed from radio state if available
+    // Software iambic keyer — handles dit/dah alternation and timing
+    m_iambicKeyer = new IambicKeyer(this);
+
+    // Set initial keyer speed from radio state
     if (m_radioState->keyerSpeed() > 0) {
+        m_iambicKeyer->setWpm(m_radioState->keyerSpeed());
         m_sidetoneGenerator->setKeyerSpeed(m_radioState->keyerSpeed());
     }
 
-    // Update sidetone keyer speed when it changes
-    connect(m_radioState, &RadioState::keyerSpeedChanged, this,
-            [this](int wpm) { m_sidetoneGenerator->setKeyerSpeed(wpm); });
-
-    // Connect HaliKey paddle signals - relay paddle state to K4 in real-time
-    // Also control local sidetone for immediate audio feedback
-    connect(m_halikeyDevice, &HalikeyDevice::ditStateChanged, this, [this](bool pressed) {
-        if (pressed) {
-            m_tcpClient->sendCAT("KZ.;");
-            m_sidetoneGenerator->startDit();
-        } else {
-            m_sidetoneGenerator->stopElement();
-        }
-    });
-    connect(m_halikeyDevice, &HalikeyDevice::dahStateChanged, this, [this](bool pressed) {
-        if (pressed) {
-            m_tcpClient->sendCAT("KZ-;");
-            m_sidetoneGenerator->startDah();
-        } else {
-            m_sidetoneGenerator->stopElement();
-        }
+    // Update keyer + sidetone speed when radio WPM changes
+    connect(m_radioState, &RadioState::keyerSpeedChanged, this, [this](int wpm) {
+        m_iambicKeyer->setWpm(wpm);
+        m_sidetoneGenerator->setKeyerSpeed(wpm);
     });
 
-    // Stop sidetone when HaliKey disconnects (prevents runaway repeat timer
-    // if paddle was held when disconnected — Note Off never arrives)
-    connect(m_halikeyDevice, &HalikeyDevice::disconnected, this, [this]() { m_sidetoneGenerator->stopElement(); });
+    // Connect HaliKey combined paddle state → iambic keyer
+    connect(m_halikeyDevice, &HalikeyDevice::paddleStateChanged,
+            m_iambicKeyer, &IambicKeyer::updatePaddleState);
 
-    // Send repeated KZ commands when sidetone repeat timer fires (V14 mode only)
-    connect(m_sidetoneGenerator, &SidetoneGenerator::ditRepeated, this, [this]() { m_tcpClient->sendCAT("KZ.;"); });
-    connect(m_sidetoneGenerator, &SidetoneGenerator::dahRepeated, this, [this]() { m_tcpClient->sendCAT("KZ-;"); });
+    // Iambic keyer keyDown → send KZ CAT command + start sidetone element
+    connect(m_iambicKeyer, &IambicKeyer::keyDown, this, [this](bool isDit) {
+        qDebug().nospace() << "[KZ-SEND] " << (isDit ? "KZ.;" : "KZ-;");
+        m_tcpClient->sendCAT(isDit ? "KZ.;" : "KZ-;");
+        if (isDit) {
+            m_sidetoneGenerator->playSingleDit();
+        } else {
+            m_sidetoneGenerator->playSingleDah();
+        }
+    });
+
+    // Iambic keyer keyUp → stop sidetone
+    connect(m_iambicKeyer, &IambicKeyer::keyUp, this, [this]() {
+        qDebug() << "[KZ-SEND] keyUp → sidetone stop";
+        m_sidetoneGenerator->stopElement();
+    });
+
+    // Stop keyer + sidetone when HaliKey disconnects
+    connect(m_halikeyDevice, &HalikeyDevice::disconnected, this, [this]() {
+        m_iambicKeyer->stop();
+        m_sidetoneGenerator->stopElement();
+    });
 
     // KPA1500 amplifier client
     m_kpa1500Client = new KPA1500Client(this);

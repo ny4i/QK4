@@ -78,6 +78,12 @@ void SidetoneGenerator::startDah() {
 void SidetoneGenerator::stopElement() {
     m_currentElement = ElementNone;
     m_repeatTimer->stop();
+
+    // Flush any buffered audio so sidetone stops immediately
+    if (m_audioSink && m_pushDevice) {
+        m_audioSink->reset();
+        m_pushDevice = m_audioSink->start();
+    }
 }
 
 void SidetoneGenerator::playSingleDit() {

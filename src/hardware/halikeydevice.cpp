@@ -15,6 +15,7 @@ HalikeyDevice::HalikeyDevice(QObject *parent) : QObject(parent) {
         if (m_rawDitState != m_confirmedDitState) {
             m_confirmedDitState = m_rawDitState;
             emit ditStateChanged(m_confirmedDitState);
+            emit paddleStateChanged(m_confirmedDitState, m_confirmedDahState);
         }
     });
 
@@ -25,6 +26,7 @@ HalikeyDevice::HalikeyDevice(QObject *parent) : QObject(parent) {
         if (m_rawDahState != m_confirmedDahState) {
             m_confirmedDahState = m_rawDahState;
             emit dahStateChanged(m_confirmedDahState);
+            emit paddleStateChanged(m_confirmedDitState, m_confirmedDahState);
         }
     });
 
@@ -50,6 +52,7 @@ void HalikeyDevice::onRawDit(bool pressed) {
         m_confirmedDitState = true;
         m_ditDebounceTimer->stop();
         emit ditStateChanged(true);
+        emit paddleStateChanged(m_confirmedDitState, m_confirmedDahState);
     } else {
         // Key up or redundant key down — debounce
         m_ditDebounceTimer->start();
@@ -62,6 +65,7 @@ void HalikeyDevice::onRawDah(bool pressed) {
         m_confirmedDahState = true;
         m_dahDebounceTimer->stop();
         emit dahStateChanged(true);
+        emit paddleStateChanged(m_confirmedDitState, m_confirmedDahState);
     } else {
         m_dahDebounceTimer->start();
     }

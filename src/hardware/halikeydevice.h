@@ -47,6 +47,9 @@ signals:
     void dahStateChanged(bool pressed);
     void pttStateChanged(bool pressed);
 
+    // Combined paddle state for iambic keyer (emitted after every dit/dah change)
+    void paddleStateChanged(bool dit, bool dah);
+
 private:
     void onRawDit(bool pressed);
     void onRawDah(bool pressed);

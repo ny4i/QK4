@@ -144,6 +144,7 @@ set(SOURCES
     src/hardware/halikeyworkerbase.cpp
     src/hardware/halikeyv14worker.cpp
     src/hardware/halikeymidiworker.cpp
+    src/keyer/iambickeyer.cpp
     third_party/rtmidi/RtMidi.cpp
 )
 
@@ -205,6 +206,7 @@ set(HEADERS
     src/hardware/halikeyworkerbase.h
     src/hardware/halikeyv14worker.h
     src/hardware/halikeymidiworker.h
+    src/keyer/iambickeyer.h
 )
 
 # On macOS, create an app bundle
@@ -453,5 +455,11 @@ if(BUILD_TESTING)
     target_include_directories(test_radiostate PRIVATE src)
     target_link_libraries(test_radiostate PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME test_radiostate COMMAND test_radiostate)
+
+    # test_iambickeyer
+    add_executable(test_iambickeyer tests/test_iambickeyer.cpp src/keyer/iambickeyer.cpp)
+    target_include_directories(test_iambickeyer PRIVATE src)
+    target_link_libraries(test_iambickeyer PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME test_iambickeyer COMMAND test_iambickeyer)
 endif()
 
