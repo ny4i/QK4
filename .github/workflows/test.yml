@@ -19,7 +19,8 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             qt6-base-dev qt6-base-private-dev \
             qt6-multimedia-dev qt6-shadertools-dev qt6-serialport-dev \
-            libopus-dev libhidapi-dev pkg-config
+            qt6-svg-dev \
+            libopus-dev libhidapi-dev libasound2-dev pkg-config
 
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release
