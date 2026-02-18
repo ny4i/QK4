@@ -122,6 +122,9 @@ void ModePopupWidget::updateButtonStyles() {
         m_ssbBtn->setText(bandDefaultSideband() == MODE_LSB ? "LSB" : "USB");
     }
 
+    // Update CW button text based on current mode
+    m_cwBtn->setText(m_currentMode == MODE_CW_R ? "CW-R" : "CW");
+
     // Reset all buttons to normal style
     for (auto it = m_buttonMap.begin(); it != m_buttonMap.end(); ++it) {
         it.value()->setStyleSheet(K4Styles::popupButtonNormal());
@@ -201,7 +204,15 @@ void ModePopupWidget::onModeButtonClicked() {
     QString dtPrefix = m_bSetEnabled ? "DT$" : "DT";
 
     if (modeType == "CW") {
-        cmd = prefix + "3;";
+        // If already in CW mode, toggle between CW and CW-R
+        // Otherwise, switch to CW
+        if (m_currentMode == MODE_CW) {
+            cmd = prefix + "7;"; // Toggle to CW-R
+        } else if (m_currentMode == MODE_CW_R) {
+            cmd = prefix + "3;"; // Toggle to CW
+        } else {
+            cmd = prefix + "3;"; // Default to CW
+        }
     } else if (modeType == "SSB") {
         // If already in SSB mode, toggle between LSB and USB
         // Otherwise, switch to band-appropriate sideband (LSB <10MHz, USB >=10MHz)

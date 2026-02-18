@@ -1,71 +1,171 @@
 #include "halikeydevice.h"
+#include "halikeymidiworker.h"
+#include "halikeyv14worker.h"
+#include "halikeyworkerbase.h"
+#include "../settings/radiosettings.h"
 #include <QDebug>
+#include <RtMidi.h>
 
-HalikeyDevice::HalikeyDevice(QObject *parent)
-    : QObject(parent), m_serialPort(new QSerialPort(this)), m_pollTimer(new QTimer(this)) {
-    m_pollTimer->setInterval(POLL_INTERVAL_MS);
-    connect(m_pollTimer, &QTimer::timeout, this, &HalikeyDevice::pollSignals);
+HalikeyDevice::HalikeyDevice(QObject *parent) : QObject(parent) {
+    // Debounce timers — single-shot, fire once after DEBOUNCE_MS of stable state
+    m_ditDebounceTimer = new QTimer(this);
+    m_ditDebounceTimer->setSingleShot(true);
+    m_ditDebounceTimer->setInterval(DEBOUNCE_MS);
+    connect(m_ditDebounceTimer, &QTimer::timeout, this, [this]() {
+        if (m_rawDitState != m_confirmedDitState) {
+            m_confirmedDitState = m_rawDitState;
+            emit ditStateChanged(m_confirmedDitState);
+        }
+    });
+
+    m_dahDebounceTimer = new QTimer(this);
+    m_dahDebounceTimer->setSingleShot(true);
+    m_dahDebounceTimer->setInterval(DEBOUNCE_MS);
+    connect(m_dahDebounceTimer, &QTimer::timeout, this, [this]() {
+        if (m_rawDahState != m_confirmedDahState) {
+            m_confirmedDahState = m_rawDahState;
+            emit dahStateChanged(m_confirmedDahState);
+        }
+    });
+
+    m_pttDebounceTimer = new QTimer(this);
+    m_pttDebounceTimer->setSingleShot(true);
+    m_pttDebounceTimer->setInterval(DEBOUNCE_MS);
+    connect(m_pttDebounceTimer, &QTimer::timeout, this, [this]() {
+        if (m_rawPttState != m_confirmedPttState) {
+            m_confirmedPttState = m_rawPttState;
+            emit pttStateChanged(m_confirmedPttState);
+        }
+    });
 }
 
 HalikeyDevice::~HalikeyDevice() {
     closePort();
 }
 
+void HalikeyDevice::onRawDit(bool pressed) {
+    m_rawDitState = pressed;
+    if (pressed && !m_confirmedDitState) {
+        // Key down — emit immediately for zero latency
+        m_confirmedDitState = true;
+        m_ditDebounceTimer->stop();
+        emit ditStateChanged(true);
+    } else {
+        // Key up or redundant key down — debounce
+        m_ditDebounceTimer->start();
+    }
+}
+
+void HalikeyDevice::onRawDah(bool pressed) {
+    m_rawDahState = pressed;
+    if (pressed && !m_confirmedDahState) {
+        m_confirmedDahState = true;
+        m_dahDebounceTimer->stop();
+        emit dahStateChanged(true);
+    } else {
+        m_dahDebounceTimer->start();
+    }
+}
+
+void HalikeyDevice::onRawPtt(bool pressed) {
+    m_rawPttState = pressed;
+    if (pressed && !m_confirmedPttState) {
+        m_confirmedPttState = true;
+        m_pttDebounceTimer->stop();
+        emit pttStateChanged(true);
+    } else {
+        m_pttDebounceTimer->start();
+    }
+}
+
 bool HalikeyDevice::openPort(const QString &portName) {
-    if (m_serialPort->isOpen()) {
+    if (m_connected) {
         closePort();
     }
 
-    m_serialPort->setPortName(portName);
-
-    // HaliKey doesn't need specific baud rate since we only read flow control signals,
-    // but we need to open the port. Use a reasonable default.
-    m_serialPort->setBaudRate(QSerialPort::Baud9600);
-    m_serialPort->setDataBits(QSerialPort::Data8);
-    m_serialPort->setParity(QSerialPort::NoParity);
-    m_serialPort->setStopBits(QSerialPort::OneStop);
-    m_serialPort->setFlowControl(QSerialPort::NoFlowControl);
-
-    if (!m_serialPort->open(QIODevice::ReadOnly)) {
-        QString error = m_serialPort->errorString();
-        qWarning() << "HalikeyDevice: Failed to open port" << portName << "-" << error;
-        emit connectionError(error);
-        return false;
-    }
-
-    // Reset paddle states and debounce counters
-    m_lastDitState = false;
-    m_lastDahState = false;
+    m_portName = portName;
     m_rawDitState = false;
     m_rawDahState = false;
-    m_ditDebounceCounter = 0;
-    m_dahDebounceCounter = 0;
+    m_rawPttState = false;
+    m_confirmedDitState = false;
+    m_confirmedDahState = false;
+    m_confirmedPttState = false;
 
-    // Start polling flow control signals
-    m_pollTimer->start();
+    // Create worker based on configured device type
+    int deviceType = RadioSettings::instance()->halikeyDeviceType();
+    if (deviceType == 1) {
+        m_worker = new HaliKeyMidiWorker(portName);
+    } else {
+        m_worker = new HaliKeyV14Worker(portName);
+    }
 
-    emit connected();
+    m_workerThread = new QThread(this);
+    m_worker->moveToThread(m_workerThread);
+
+    // Wire worker signals through debounce handlers
+    connect(m_worker, &HaliKeyWorkerBase::ditStateChanged, this, &HalikeyDevice::onRawDit);
+    connect(m_worker, &HaliKeyWorkerBase::dahStateChanged, this, &HalikeyDevice::onRawDah);
+    connect(m_worker, &HaliKeyWorkerBase::pttStateChanged, this, &HalikeyDevice::onRawPtt);
+    connect(m_worker, &HaliKeyWorkerBase::portOpened, this, [this]() {
+        m_connected = true;
+        emit connected();
+    });
+    connect(m_worker, &HaliKeyWorkerBase::errorOccurred, this, [this](const QString &error) {
+        qWarning() << "HalikeyDevice: Worker error -" << error;
+        closePort();
+        emit connectionError(error);
+    });
+
+    // Start worker when thread starts
+    connect(m_workerThread, &QThread::started, m_worker, &HaliKeyWorkerBase::start);
+
+    // Clean up worker when thread finishes
+    connect(m_workerThread, &QThread::finished, m_worker, &QObject::deleteLater);
+
+    m_workerThread->start();
     return true;
 }
 
 void HalikeyDevice::closePort() {
-    m_pollTimer->stop();
-
-    if (m_serialPort->isOpen()) {
-        m_serialPort->close();
-        emit disconnected();
+    if (m_worker) {
+        m_worker->stop();
+        m_worker->prepareShutdown();
     }
 
-    m_lastDitState = false;
-    m_lastDahState = false;
+    if (m_workerThread) {
+        m_workerThread->quit();
+        m_workerThread->wait(2000);
+        m_workerThread->deleteLater();
+        m_workerThread = nullptr;
+    }
+
+    m_worker = nullptr; // Deleted by QThread::finished -> deleteLater
+
+    // Stop any pending debounce timers
+    m_ditDebounceTimer->stop();
+    m_dahDebounceTimer->stop();
+    m_pttDebounceTimer->stop();
+
+    bool wasConnected = m_connected;
+    m_connected = false;
+    m_rawDitState = false;
+    m_rawDahState = false;
+    m_rawPttState = false;
+    m_confirmedDitState = false;
+    m_confirmedDahState = false;
+    m_confirmedPttState = false;
+
+    if (wasConnected) {
+        emit disconnected();
+    }
 }
 
 bool HalikeyDevice::isConnected() const {
-    return m_serialPort->isOpen();
+    return m_connected;
 }
 
 QString HalikeyDevice::portName() const {
-    return m_serialPort->portName();
+    return m_portName;
 }
 
 QStringList HalikeyDevice::availablePorts() {
@@ -77,66 +177,48 @@ QStringList HalikeyDevice::availablePorts() {
     return ports;
 }
 
+QList<HaliKeyPortInfo> HalikeyDevice::availablePortsDetailed() {
+    QList<HaliKeyPortInfo> ports;
+    const auto portInfos = QSerialPortInfo::availablePorts();
+    for (const QSerialPortInfo &info : portInfos) {
+        HaliKeyPortInfo pi;
+        pi.portName = info.portName();
+        ports.append(pi);
+    }
+    return ports;
+}
+
+QStringList HalikeyDevice::availableMidiDevices() {
+    // System virtual MIDI devices to exclude from the list
+    static const QStringList excludedPrefixes = {"IAC Driver"};
+
+    QStringList devices;
+    try {
+        RtMidiIn midi;
+        unsigned int portCount = midi.getPortCount();
+        for (unsigned int i = 0; i < portCount; i++) {
+            QString name = QString::fromStdString(midi.getPortName(i));
+            bool excluded = false;
+            for (const QString &prefix : excludedPrefixes) {
+                if (name.startsWith(prefix, Qt::CaseInsensitive)) {
+                    excluded = true;
+                    break;
+                }
+            }
+            if (!excluded) {
+                devices.append(name);
+            }
+        }
+    } catch (RtMidiError &error) {
+        qWarning() << "HalikeyDevice: MIDI enumeration failed:" << QString::fromStdString(error.getMessage());
+    }
+    return devices;
+}
+
 bool HalikeyDevice::ditPressed() const {
-    return m_lastDitState;
+    return m_confirmedDitState;
 }
 
 bool HalikeyDevice::dahPressed() const {
-    return m_lastDahState;
-}
-
-void HalikeyDevice::pollSignals() {
-    if (!m_serialPort->isOpen()) {
-        return;
-    }
-
-    // Read flow control signals
-    // HaliKey v1: CTS = dit (tip), DSR/DCD = dah (ring)
-    QSerialPort::PinoutSignals pinState = m_serialPort->pinoutSignals();
-
-    // Check for read error
-    if (pinState == QSerialPort::NoSignal && m_serialPort->error() != QSerialPort::NoError) {
-        QString error = m_serialPort->errorString();
-        qWarning() << "HalikeyDevice: Error reading signals -" << error;
-        closePort();
-        emit connectionError(error);
-        return;
-    }
-
-    // CTS = dit paddle (tip contact)
-    bool ditState = (pinState & QSerialPort::ClearToSendSignal) != 0;
-
-    // DSR = dah paddle (ring contact)
-    bool dahState = (pinState & QSerialPort::DataSetReadySignal) != 0;
-
-    // Debounce dit - require stable state for DEBOUNCE_COUNT consecutive reads
-    if (ditState == m_rawDitState) {
-        // Same as last raw read, increment counter
-        if (m_ditDebounceCounter < DEBOUNCE_COUNT) {
-            m_ditDebounceCounter++;
-        }
-        // If stable long enough and different from debounced state, update
-        if (m_ditDebounceCounter >= DEBOUNCE_COUNT && ditState != m_lastDitState) {
-            m_lastDitState = ditState;
-            emit ditStateChanged(ditState);
-        }
-    } else {
-        // State changed, reset counter
-        m_rawDitState = ditState;
-        m_ditDebounceCounter = 1;
-    }
-
-    // Debounce dah - same logic
-    if (dahState == m_rawDahState) {
-        if (m_dahDebounceCounter < DEBOUNCE_COUNT) {
-            m_dahDebounceCounter++;
-        }
-        if (m_dahDebounceCounter >= DEBOUNCE_COUNT && dahState != m_lastDahState) {
-            m_lastDahState = dahState;
-            emit dahStateChanged(dahState);
-        }
-    } else {
-        m_rawDahState = dahState;
-        m_dahDebounceCounter = 1;
-    }
+    return m_confirmedDahState;
 }

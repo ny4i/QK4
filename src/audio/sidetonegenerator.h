@@ -19,10 +19,14 @@ public:
     void setVolume(float volume);
     void setKeyerSpeed(int wpm);
 
-    // Start repeating element while paddle is held
+    // Start repeating element while paddle is held (V14 modem-line interface)
     void startDit();
     void startDah();
     void stopElement(); // Call when paddle is released
+
+    // Play a single element without repeat (MIDI interface — K4 keyer handles repeat)
+    void playSingleDit();
+    void playSingleDah();
 
 signals:
     // Emitted when repeat timer fires (for sending KZ commands)
