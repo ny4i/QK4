@@ -78,7 +78,18 @@ void SidetoneGenerator::startDah() {
 void SidetoneGenerator::stopElement() {
     m_currentElement = ElementNone;
     m_repeatTimer->stop();
-    // Let current element finish playing naturally - don't reset audio
+}
+
+void SidetoneGenerator::playSingleDit() {
+    m_currentElement = ElementNone; // No repeat
+    m_repeatTimer->stop();
+    playElement(ditDurationMs());
+}
+
+void SidetoneGenerator::playSingleDah() {
+    m_currentElement = ElementNone; // No repeat
+    m_repeatTimer->stop();
+    playElement(dahDurationMs());
 }
 
 void SidetoneGenerator::onRepeatTimer() {

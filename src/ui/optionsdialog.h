@@ -88,6 +88,8 @@ private:
     void onSpeakerDeviceChanged(int index);
 
     // CW Keyer page elements
+    QComboBox *m_cwKeyerDeviceTypeCombo = nullptr;
+    QLabel *m_cwKeyerDescLabel = nullptr;
     QComboBox *m_cwKeyerPortCombo;
     QPushButton *m_cwKeyerRefreshBtn;
     QPushButton *m_cwKeyerConnectBtn;
@@ -95,6 +97,7 @@ private:
     QSlider *m_sidetoneVolumeSlider = nullptr;
     QLabel *m_sidetoneVolumeValueLabel = nullptr;
     void populateCwKeyerPorts();
+    void updateCwKeyerDescription();
 };
 
 #endif // OPTIONSDIALOG_H

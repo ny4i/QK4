@@ -295,6 +295,18 @@ void RadioSettings::setHalikeyEnabled(bool enabled) {
     }
 }
 
+int RadioSettings::halikeyDeviceType() const {
+    return m_halikeyDeviceType;
+}
+
+void RadioSettings::setHalikeyDeviceType(int type) {
+    if (m_halikeyDeviceType != type) {
+        m_halikeyDeviceType = type;
+        save();
+        emit halikeyDeviceTypeChanged(type);
+    }
+}
+
 int RadioSettings::sidetoneVolume() const {
     return m_sidetoneVolume;
 }
@@ -389,6 +401,7 @@ void RadioSettings::load() {
     // HaliKey settings
     m_halikeyPortName = m_settings.value("halikey/portName", "").toString();
     m_halikeyEnabled = m_settings.value("halikey/enabled", false).toBool();
+    m_halikeyDeviceType = m_settings.value("halikey/deviceType", 0).toInt();
     m_sidetoneVolume = m_settings.value("halikey/sidetoneVolume", 30).toInt();
 
     // Macro settings
@@ -475,6 +488,7 @@ void RadioSettings::save() {
     // HaliKey settings
     m_settings.setValue("halikey/portName", m_halikeyPortName);
     m_settings.setValue("halikey/enabled", m_halikeyEnabled);
+    m_settings.setValue("halikey/deviceType", m_halikeyDeviceType);
     m_settings.setValue("halikey/sidetoneVolume", m_sidetoneVolume);
 
     // Macro settings

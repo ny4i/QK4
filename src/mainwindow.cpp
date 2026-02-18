@@ -1685,7 +1685,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_halikeyDevice, &HalikeyDevice::ditStateChanged, this, [this](bool pressed) {
         if (pressed) {
             m_tcpClient->sendCAT("KZ.;");
-            m_sidetoneGenerator->startDit(); // Start repeating dit while held
+            m_sidetoneGenerator->startDit();
         } else {
             m_sidetoneGenerator->stopElement();
         }
@@ -1693,13 +1693,17 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_halikeyDevice, &HalikeyDevice::dahStateChanged, this, [this](bool pressed) {
         if (pressed) {
             m_tcpClient->sendCAT("KZ-;");
-            m_sidetoneGenerator->startDah(); // Start repeating dah while held
+            m_sidetoneGenerator->startDah();
         } else {
             m_sidetoneGenerator->stopElement();
         }
     });
 
-    // Send repeated KZ commands when sidetone repeat timer fires
+    // Stop sidetone when HaliKey disconnects (prevents runaway repeat timer
+    // if paddle was held when disconnected — Note Off never arrives)
+    connect(m_halikeyDevice, &HalikeyDevice::disconnected, this, [this]() { m_sidetoneGenerator->stopElement(); });
+
+    // Send repeated KZ commands when sidetone repeat timer fires (V14 mode only)
     connect(m_sidetoneGenerator, &SidetoneGenerator::ditRepeated, this, [this]() { m_tcpClient->sendCAT("KZ.;"); });
     connect(m_sidetoneGenerator, &SidetoneGenerator::dahRepeated, this, [this]() { m_tcpClient->sendCAT("KZ-;"); });
 

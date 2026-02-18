@@ -124,7 +124,10 @@ set(SOURCES
     src/ui/wheelaccumulator.cpp
     src/hardware/kpoddevice.cpp
     src/hardware/halikeydevice.cpp
-    src/hardware/halikeyworker.cpp
+    src/hardware/halikeyworkerbase.cpp
+    src/hardware/halikeyv14worker.cpp
+    src/hardware/halikeymidiworker.cpp
+    third_party/rtmidi/RtMidi.cpp
 )
 
 set(HEADERS
@@ -182,7 +185,9 @@ set(HEADERS
     src/ui/wheelaccumulator.h
     src/hardware/kpoddevice.h
     src/hardware/halikeydevice.h
-    src/hardware/halikeyworker.h
+    src/hardware/halikeyworkerbase.h
+    src/hardware/halikeyv14worker.h
+    src/hardware/halikeymidiworker.h
 )
 
 # On macOS, create an app bundle
@@ -219,6 +224,7 @@ endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/rtmidi
     ${OPUS_INCLUDE_DIRS}
     ${HIDAPI_INCLUDE_DIRS}
 )
@@ -258,6 +264,21 @@ if(APPLE)
         "-framework IOKit"
         "-framework CoreFoundation"
     )
+endif()
+
+# RtMidi platform-specific MIDI backend
+if(APPLE)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE __MACOSX_CORE__)
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        "-framework CoreMIDI"
+        "-framework CoreAudio"
+    )
+elseif(WIN32)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE __WINDOWS_MM__)
+    target_link_libraries(${PROJECT_NAME} PRIVATE winmm)
+else()
+    target_compile_definitions(${PROJECT_NAME} PRIVATE __LINUX_ALSA__)
+    target_link_libraries(${PROJECT_NAME} PRIVATE asound)
 endif()
 
 # Compile shaders for QRhi (Metal/DirectX/Vulkan/OpenGL)
