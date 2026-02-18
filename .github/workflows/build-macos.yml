@@ -190,7 +190,7 @@ jobs:
           codesign --verify --verbose=2 "$APP_BUNDLE"
 
       - name: Package artifact
-        run: cd build && zip -r ../QK4-macos.zip QK4.app
+        run: ditto -c -k --keepParent build/QK4.app QK4-macos.zip
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
