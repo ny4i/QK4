@@ -10,7 +10,7 @@ env:
 
 jobs:
   build-macos:
-    runs-on: macos-14
+    runs-on: ${{ fromJSON(vars.RUNNER_MACOS || '"macos-14"') }}
     steps:
       - uses: actions/checkout@v4
 
@@ -329,7 +329,7 @@ jobs:
           path: QK4-macos.dmg
 
   build-windows:
-    runs-on: [self-hosted, Windows, X64]
+    runs-on: ${{ fromJSON(vars.RUNNER_WINDOWS || '["self-hosted","Windows","X64"]') }}
 
     # Self-hosted runner pre-installed tools:
     #   Qt 6.10.1 (MinGW) at C:\Qt\6.10.1\mingw_64
@@ -455,7 +455,7 @@ jobs:
             QK4-${{ steps.version.outputs.version }}-Setup.exe
 
   build-raspberry-pi:
-    runs-on: ubuntu-24.04
+    runs-on: ${{ fromJSON(vars.RUNNER_LINUX || '"ubuntu-24.04"') }}
     steps:
       - uses: actions/checkout@v4
 
@@ -497,7 +497,7 @@ jobs:
 
   release:
     needs: [build-macos, build-windows, build-raspberry-pi]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.RUNNER_LINUX || '"ubuntu-24.04"') }}
     permissions:
       contents: write
     steps:
@@ -544,7 +544,7 @@ jobs:
 
   publish:
     needs: [release]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.RUNNER_LINUX || '"ubuntu-24.04"') }}
     permissions:
       contents: write
     steps:

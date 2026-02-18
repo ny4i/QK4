@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: [self-hosted, Windows, X64]
+    runs-on: ${{ fromJSON(vars.RUNNER_WINDOWS || '["self-hosted","Windows","X64"]') }}
 
     # Self-hosted runner pre-installed tools:
     #   Qt 6.10.1 (MinGW), MinGW 13.1, Opus, HIDAPI, OpenSSL 3.x, NSIS
