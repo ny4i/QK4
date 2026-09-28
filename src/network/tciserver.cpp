@@ -226,7 +226,11 @@ void TciServer::onClientConnected(int clientId, const QString &peerEndpoint) {
 
 void TciServer::onClientDisconnected(int clientId) {
     m_parsers.remove(clientId);
-    if (m_clients.remove(clientId) > 0) {
+    // Logged at the same level as the connect line so a reconnect reads as disconnect + connect
+    // instead of an unexplained new client number. Whether it held PTT is the detail that matters
+    // when a transmission ends at the same moment.
+    qCInfo(netTci) << "client" << clientId << "disconnected" << (m_pttOwner == clientId ? "while holding PTT" : "");
+    if (m_clients.remove(clientId)) {
         announceClients(/*force=*/true);
     }
 
