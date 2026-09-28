@@ -15,6 +15,25 @@ Q_LOGGING_CATEGORY(netTci, "net.tci")
 
 using namespace TciServerInternal;
 
+namespace {
+
+// Header fields of an inbound TX_AUDIO frame, for the one message that reports a frame we could not
+// use. A rejected frame is much easier to place when its declared type, format and length are in the
+// line that rejects it, and the header is filled in before any of the checks that can fail.
+QString describeTxFrameHeader(const QByteArray &payload, const TciAudioFrame::Header &h) {
+    return QStringLiteral("recv=%1 rate=%2 format=%3 codec=%4 length=%5 type=%6 channels=%7 payloadBytes=%8")
+        .arg(h.receiver)
+        .arg(h.sampleRate)
+        .arg(h.format)
+        .arg(h.codec)
+        .arg(h.length)
+        .arg(h.type)
+        .arg(h.channels)
+        .arg(payload.size() - TciAudioFrame::HEADER_BYTES);
+}
+
+} // namespace
+
 TciServer::TciServer(QObject *parent)
     : QObject(parent), m_socketServer(new WebSocketServer(this)), m_chronoTimer(new QTimer(this)),
       m_sensorTimer(new QTimer(this)) {
@@ -49,6 +68,7 @@ void TciServer::stop() {
     // transmitting.
     if (m_pttOwner != -1) {
         stopChrono();
+        logTxEpisode("server stopped");
         m_pttOwner = -1;
         m_snapshot.transmitting = false;
         // Say so before the listener goes away: a client that is about to be disconnected should
@@ -142,12 +162,37 @@ int TciServer::clientCount() const {
     return m_socketServer->clientCount();
 }
 
+void TciServer::logTxEpisode(const char *why) {
+    // WHY A SUMMARY AT UNKEY AND NOT JUST THE PERIODIC LINE: the periodic TX-audio line lands only
+    // every kTxSummaryEveryBlocks frames (~2.1 s), and the first frame of every transmission is
+    // key-up silence. A transmission that carried nothing and lasted a second therefore produced
+    // exactly one line reading "peak 0" - indistinguishable from the healthy start of a good one.
+    // Every failure shorter than the throttle window was invisible. This makes each episode
+    // self-describing regardless of length, and names which path released PTT.
+    const qint64 ms = m_txKeyClock.isValid() ? m_txKeyClock.elapsed() : -1;
+    QString line = QStringLiteral("TX episode ended (%1): %2 frame(s), intake peak %3, %4 ms")
+                       .arg(QLatin1String(why))
+                       .arg(m_txFramesThisKey)
+                       .arg(static_cast<double>(m_txPeakThisKey))
+                       .arg(ms);
+    // Spelled out rather than left to the reader: this is the signature of a client that keyed the
+    // transmitter and streamed nothing but zeros, which radiates no signal while looking keyed.
+    if (m_txFramesThisKey > 0 && m_txPeakThisKey <= 0.0f) {
+        line += QStringLiteral(" - NO AUDIO: every accepted frame was digital silence");
+    } else if (m_txFramesThisKey == 0) {
+        line += QStringLiteral(" - NO FRAMES: the client never sent audio while it held PTT");
+    }
+    qCInfo(netTci).noquote() << line;
+    m_txKeyClock.invalidate();
+}
+
 void TciServer::releaseLocalPtt() {
     if (m_pttOwner == -1) {
         return; // nobody was holding it; also the base case that stops a client unkey recursing
     }
     qCInfo(netTci) << "local unkey - releasing PTT held by client" << m_pttOwner;
     stopChrono();
+    logTxEpisode("local takeover");
     m_pttOwner = -1;
     m_snapshot.transmitting = false;
     // Every client tracks the transmitter, not just the one that was keying.
@@ -189,6 +234,7 @@ void TciServer::onClientDisconnected(int clientId) {
     // crashed client is the worst failure this server can have.
     if (m_pttOwner == clientId) {
         stopChrono();
+        logTxEpisode("client disconnected while keyed");
         m_pttOwner = -1;
         m_snapshot.transmitting = false;
         emit pttRequested(false);
@@ -592,6 +638,10 @@ void TciServer::setPtt(int clientId, bool active) {
         }
         m_pttOwner = clientId;
         m_snapshot.transmitting = true;
+        // Per-transmission diagnostics start here; logTxEpisode() reports them at unkey.
+        m_txFramesThisKey = 0;
+        m_txPeakThisKey = 0.0f;
+        m_txKeyClock.start();
         qCInfo(netTci) << "PTT ON from client" << clientId;
         // BROADCAST, not a reply to the asker. The protocol makes the server a synchroniser: a
         // state change reaches every client, so a second program (a logger showing an ON
@@ -615,6 +665,7 @@ void TciServer::setPtt(int clientId, bool active) {
 
     qCInfo(netTci) << "PTT OFF from client" << clientId;
     stopChrono();
+    logTxEpisode("client unkey");
     m_pttOwner = -1;
     m_snapshot.transmitting = false;
     // Broadcast for the same reason as the key: every client tracks the transmitter.
@@ -675,21 +726,44 @@ void TciServer::onBinaryMessageReceived(int clientId, const QByteArray &payload)
 
     // Only the client holding PTT may put audio on the transmitter.
     if (clientId != m_pttOwner) {
+        // WHY THIS IS LOGGED AT ALL: dropping here used to be silent, which made "the client is
+        // sending no audio" and "the client is sending audio it is not allowed to transmit" look
+        // identical from outside - and those are exactly the two cases to tell apart when a client
+        // keys up and the transmitter does not follow. Throttled like the TX summary below,
+        // because a transmitting client sends ~47 frames a second; the first frame of an episode
+        // is always reported, so the cause shows up immediately rather than two seconds later.
+        if (m_txDroppedNoPtt++ % kTxSummaryEveryBlocks == 0) {
+            qCDebug(netTci) << "TX audio: dropped" << payload.size() << "bytes from client" << clientId
+                            << "- it does not hold PTT (owner" << m_pttOwner << ") - dropped frame" << m_txDroppedNoPtt
+                            << "of this episode";
+        }
         return;
     }
+    m_txDroppedNoPtt = 0;
     std::vector<float> mono;
-    if (!TciAudioFrame::decodeTxAudioToMono(payload, &mono) || mono.empty()) {
-        qCDebug(netTci) << "TX audio: dropped an undecodable binary frame of" << payload.size() << "bytes";
+    TciAudioFrame::Header hdr;
+    if (!TciAudioFrame::decodeTxAudioToMono(payload, &mono, &hdr) || mono.empty()) {
+        // The header is filled before the checks that can fail, so it is worth printing: a rejected
+        // frame is far easier to place when its declared type, format and length are in the message.
+        qCDebug(netTci).noquote() << "TX audio: dropped an undecodable binary frame of" << payload.size() << "bytes -"
+                                  << describeTxFrameHeader(payload, hdr);
         return;
     }
 
+    ++m_txFramesThisKey; // reported once per transmission by logTxEpisode()
+
+    // Every frame, not only the ones that land on the throttle: the per-episode peak is what makes a
+    // short transmission readable, and 1024 fabs per 21 ms is not worth throttling for.
+    float framePeak = 0.0f;
+    for (float v : mono) {
+        framePeak = std::max(framePeak, std::fabs(v));
+    }
+    m_txPeakThisKey = std::max(m_txPeakThisKey, framePeak);
+
     if (++m_txBlocks % kTxSummaryEveryBlocks == 0) {
-        float peak = 0.0f;
-        for (float v : mono) {
-            peak = std::max(peak, std::fabs(v));
-        }
         qCInfo(netTci) << "TX audio:" << m_txBlocks << "blocks from client" << clientId << "," << mono.size()
-                       << "samples, peak" << peak << "- chrono sent" << m_chronoSent;
+                       << "samples, peak" << framePeak << "peak-this-key" << m_txPeakThisKey << "- chrono sent"
+                       << m_chronoSent;
     }
 
     emit txAudioReceived(

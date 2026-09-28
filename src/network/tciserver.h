@@ -194,6 +194,9 @@ private:
     void setPtt(int clientId, bool active);
     void startChrono(int clientId);
     void stopChrono();
+    // One diagnostic line per transmission, at unkey. Called from every path that releases PTT, so
+    // `why` also records WHICH of them ended the episode.
+    void logTxEpisode(const char *why);
     WebSocketServer *m_socketServer;
     TciRadioSnapshot m_snapshot;
     // Clients that sent audio_start. Per-client because audio is opt-in and a client that never
@@ -243,6 +246,15 @@ private:
     qint64 m_rxBlocks = 0;
     qint64 m_txBlocks = 0;
     qint64 m_chronoSent = 0;
+    // TX audio arriving from a client that does not hold PTT. Reset once audio is accepted again,
+    // so a later episode reports from its first frame rather than continuing an old count.
+    qint64 m_txDroppedNoPtt = 0;
+    // Per-transmission diagnostics, reset at key-up by setPtt and reported at unkey by
+    // logTxEpisode(). The peak is measured at INTAKE, before any QK4 gain, so it says what the
+    // client actually sent rather than what QK4 made of it.
+    qint64 m_txFramesThisKey = 0;
+    float m_txPeakThisKey = 0.0f;
+    QElapsedTimer m_txKeyClock;
 };
 
 #endif // NETWORK_TCISERVER_H
